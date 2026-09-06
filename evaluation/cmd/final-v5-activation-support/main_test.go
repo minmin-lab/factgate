@@ -52,11 +52,11 @@ func committedSupport(t *testing.T) finalv5profile.ActivationSupport {
 	return support
 }
 
-// The twenty live-route profiles (the sixteen prior profiles plus the four
-// refused-footprint ladder arms, the three benign-trace arms, and the four
-// comparator arms proven by their live fixed points) have
-// completed a smoke under the current contract release. Evidence from an
-// earlier release does not carry forward.
+// The proven live-route profiles (the sixteen prior profiles plus the four
+// refused-footprint ladder arms, the three benign-trace arms, the four
+// comparator arms, and the scale7 SUM-ladder arm, each proven by its live
+// fixed point) have completed a smoke under the current contract release.
+// Evidence from an earlier release does not carry forward.
 func TestCommittedManifestSupportsExactlyTheCurrentReleaseProvenProfiles(t *testing.T) {
 	support := committedSupport(t)
 	proven := map[string]bool{
@@ -68,6 +68,7 @@ func TestCommittedManifestSupportsExactlyTheCurrentReleaseProvenProfiles(t *test
 		"benign-recipe": true, "benign-x2": true, "benign-x4": true,
 		"counter-exact": true, "counter-rows": true, "counter-queries": true, "counter-release": true,
 		"adversary-owner": true, "adversary-tightened": true, "adversary-loosened": true,
+		"scale7": true,
 	}
 
 	seen := map[string]bool{}
@@ -491,11 +492,11 @@ func TestCommittedRegistryMatchesTheManifest(t *testing.T) {
 			t.Errorf("%s: routable is not derived", profile.Alias)
 		}
 	}
-	if supported != 23 {
-		t.Errorf("registry reports %d activation-supported profiles, want 23", supported)
+	if supported != 24 {
+		t.Errorf("registry reports %d activation-supported profiles, want 24", supported)
 	}
-	if eligible != 23 {
-		t.Errorf("registry reports %d targeted-run-eligible profiles, want 23", eligible)
+	if eligible != 24 {
+		t.Errorf("registry reports %d targeted-run-eligible profiles, want 24", eligible)
 	}
 	if routable != 0 {
 		t.Errorf("registry reports %d routable profiles, want 0", routable)

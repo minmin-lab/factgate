@@ -216,8 +216,8 @@ for nonprofile_id in "${nonprofile_ids[@]}"; do
       docker run --detach --name "$current_nonprofile_container" --publish 127.0.0.1::5432 \
         --env POSTGRES_PASSWORD="$nonprofile_password" --env POSTGRES_DB=taskgate_nonprofile \
         "$nonprofile_backend_image" >/dev/null
-      # Same ready-race hardening as run-profile-campaign.sh: pg_isready over
-      # the socket passes during the image's init temp server, before
+      # Same ready-race hardening as the profile campaign launcher: pg_isready
+      # over the socket passes during the image's init temp server, before
       # POSTGRES_DB exists. Require a real query on the final TCP listener.
       for attempt in $(seq 1 180); do
         docker exec -e PGPASSWORD="$nonprofile_password" "$current_nonprofile_container" \
