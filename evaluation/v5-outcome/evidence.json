@@ -1,7 +1,7 @@
 {
   "compose_execution": {
     "receipt": "evaluation/v5-outcome/compose-receipt.json",
-    "receipt_sha256": "97d83919b18197c19b753c4031a4281bd9420d3c767f0175b7368d8cfcabf4fb"
+    "receipt_sha256": "52230b224ebab44524822ea85948f81bcfbea9b80fa81db9bcf954ca099340ce"
   },
   "deterministic_set": {
     "duplicate_idempotent": true,
@@ -9,7 +9,7 @@
     "permutation_deterministic": true,
     "tamper_rejected": true
   },
-  "implementation_base_commit": "9bfe3cfb9dbe6bdd8a58dcfddb6a0195390cfb03",
+  "implementation_base_commit": "4bc1652ec43f40416d71ddad50fa524eccc73f51",
   "postgres_committed_graph": {
     "blocks_loaded": 1,
     "blocks_reused": 255,
@@ -38,7 +38,7 @@
     "packages_passed": 2,
     "postgres_version": "PostgreSQL 16.14 (Debian 16.14-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
     "raw_log": "evaluation/v5-outcome/raw/go-test.jsonl",
-    "raw_log_sha256": "e5e0aef7164a0ce0c15a6c929a19e4a9b2b4729b441f3bfbab2e0ae5a8ab3e86",
+    "raw_log_sha256": "5a6217aafb4b9aeeba7578051574e04701024071508f87caf7aa2f27babc22e0",
     "tests_failed": 0,
     "tests_passed": 12,
     "tests_skipped": 0
@@ -64,7 +64,7 @@
     "files": [
       {
         "path": "config/catalog.yaml",
-        "sha256": "5cd0ad443fb92289aebe1e780c5e7152e5a0539c07fd7ab85649fcbe75aa02ba"
+        "sha256": "9c0fbe0ec0f043c91a4e04df0ed24f54e89e9eb8197983a019cf2f1986ae69f5"
       },
       {
         "path": "go.mod",
@@ -124,7 +124,7 @@
       },
       {
         "path": "internal/gateway/exposure.go",
-        "sha256": "88056bd8044e863e9c994ebd93a38f8b9b598b2810c4b9da075e01681b2d5873"
+        "sha256": "c08a69e10a5c65270adbab00916f83c5db6f03a90930572e6563cb291aadbed2"
       },
       {
         "path": "internal/gateway/ordinal_derivation_scale_test.go",
@@ -132,7 +132,7 @@
       },
       {
         "path": "internal/gateway/query.go",
-        "sha256": "28799fb4d1d187253a1624006f7210c60f37cee94a767b707c1829da1016d46b"
+        "sha256": "47dbd2bef459a646c59616e82583d208892e23f272e169cf94f6bfcaee4ff41d"
       },
       {
         "path": "internal/gateway/query_test.go",
@@ -152,7 +152,7 @@
       },
       {
         "path": "internal/queryplan/normalform.go",
-        "sha256": "a52adc42fa38ca78ddadce513635056f6c9af9e388def64f61345abc1b38a6d4"
+        "sha256": "762c013bd57351113344e6f532d7eb227ec1ec965f5f9ae68d65b668e4f50f4d"
       },
       {
         "path": "internal/queryplan/predicate_footprint.go",
@@ -180,14 +180,14 @@
       },
       {
         "path": "scripts/integration-test.sh",
-        "sha256": "bc6c6f582ee6da7456ea554ca437fe5948a25bc4694829ed36002541d07d9e66"
+        "sha256": "198d6bf3f8b37165f3fa1977fd04b52de53710421dc706a3d0d5812ff6acc485"
       },
       {
         "path": "scripts/record-compose-e2e.sh",
         "sha256": "dbb5dfd5839feec55f102c4f02d2ff069e0312d99abd99812620dfd02ff87ffd"
       }
     ],
-    "sha256": "03048796175ce04e4cee61446ba7754ba66ca3c3ad289a54a752d5c8d8fe2adc"
+    "sha256": "e97638f0f6a2e0183729f36da080e3f8aef2e335e30d35b437f6c1c66249d3b5"
   },
-  "submission_commit": "9bfe3cfb9dbe6bdd8a58dcfddb6a0195390cfb03"
+  "submission_commit": "4bc1652ec43f40416d71ddad50fa524eccc73f51"
 }
