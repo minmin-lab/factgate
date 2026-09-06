@@ -636,10 +636,15 @@ pass "approved query creates an AVAILABLE canonical Parquet; preview paginates a
 # retains metadata/audit state while the encrypted canonical Parquet remains in
 # the independent object-store volume.
 compose restart gateway >/dev/null
+# Startup re-activates every Catalog publication's HOT dictionary; with the
+# P9.E scale-e7 publication the activated set is ~1.2 GiB (was ~0.3 GiB), so
+# this wait must be at least as generous as the gateway's own readiness
+# healthcheck (interval 3s x retries 30 = 90s), which first boot passes under.
+# The 30s here predated scale-e7 and was tighter than that healthcheck.
 attempt=0
 until curl_safe --fail --silent --show-error "$GATEWAY_URL/health/ready" >/dev/null 2>&1; do
   attempt=$((attempt + 1))
-  [ "$attempt" -lt 30 ] || fail "gateway did not become ready after restart"
+  [ "$attempt" -lt 120 ] || fail "gateway did not become ready after restart"
   sleep 1
 done
 summary_after_restart=$(mcp_call "$TASKBOUND_ALICE_TOKEN" \
