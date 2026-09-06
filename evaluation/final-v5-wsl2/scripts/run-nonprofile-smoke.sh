@@ -216,9 +216,13 @@ for nonprofile_id in "${nonprofile_ids[@]}"; do
       docker run --detach --name "$current_nonprofile_container" --publish 127.0.0.1::5432 \
         --env POSTGRES_PASSWORD="$nonprofile_password" --env POSTGRES_DB=taskgate_nonprofile \
         "$nonprofile_backend_image" >/dev/null
-      for attempt in $(seq 1 120); do
-        docker exec "$current_nonprofile_container" pg_isready -U postgres -d taskgate_nonprofile >/dev/null 2>&1 && break
-        [[ "$attempt" != 120 ]] || { echo "non-profile PostgreSQL process did not become ready" >&2; exit 1; }
+      # Same ready-race hardening as run-profile-campaign.sh: pg_isready over
+      # the socket passes during the image's init temp server, before
+      # POSTGRES_DB exists. Require a real query on the final TCP listener.
+      for attempt in $(seq 1 180); do
+        docker exec -e PGPASSWORD="$nonprofile_password" "$current_nonprofile_container" \
+          psql -h 127.0.0.1 -U postgres -d taskgate_nonprofile -Atqc 'SELECT 1' >/dev/null 2>&1 && break
+        [[ "$attempt" != 180 ]] || { echo "non-profile PostgreSQL process did not become ready" >&2; exit 1; }
         sleep 1
       done
       nonprofile_port="$(docker port "$current_nonprofile_container" 5432/tcp | awk -F: 'END{print $NF}')"
