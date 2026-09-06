@@ -22,10 +22,21 @@ import (
 
 const (
 	maxSnapshotBundleManifestBytes = 4 << 20
-	// The accepted deployment as a whole must satisfy the V4 hot-artifact
-	// threshold. COLD envelopes and sidecar semantics are streamed through
-	// bounded verifiers and are never retained in the Gateway heap.
-	maxGatewayHotArtifactsBytes = 1024 << 20
+	// Cumulative guard on the HOT dictionaries this Gateway process retains for
+	// the whole deployed Catalog. COLD envelopes and sidecar semantics are
+	// streamed through bounded verifiers and are never retained in the heap.
+	//
+	// This is not the per-profile-closure limit (finalv5profile.MaxHotBytesPerInstance,
+	// 1 GiB, the "per Catalog-bound Gateway instance HOT limit" the paper cites):
+	// every production profile activates only its own closure, which stays under
+	// that limit. This constant bounds the one deployment that activates the full
+	// live Catalog at once -- the integration compose-e2e wiring gate -- whose
+	// eight publications' HOT dictionaries sum to ~1.21 GiB once the P9.E
+	// scale-e7 publication (907 MiB alone) joined the Catalog in v1.13. Sized at
+	// 2 GiB to match the sibling combined-artifact envelope (v4-offline
+	// maxPublishedBytes) with headroom, and far under the Gateway's 12 GiB cgroup
+	// ceiling alongside its measured ~7.35 GiB accounting peak.
+	maxGatewayHotArtifactsBytes = 2 << 30
 	// Streaming COLD verification must not turn the complete audit artifact
 	// into charged cgroup page cache.  Drop already-consumed pages in bounded
 	// windows; the verifier retains only its fixed-size userspace buffer.
@@ -176,7 +187,8 @@ func loadSnapshotPublication(baseDirectory string, logicalCatalog *catalog.Catal
 		return loadedSnapshotPublication{}, 0, err
 	}
 	if bundleManifest.Hot.Bytes > remainingHotBytes || remainingHotBytes < 0 {
-		return loadedSnapshotPublication{}, 0, errors.New("Catalog hot artifacts exceed the 1024 MiB activation boundary")
+		return loadedSnapshotPublication{}, 0, fmt.Errorf(
+			"Catalog hot artifacts exceed the %d MiB activation boundary", maxGatewayHotArtifactsBytes>>20)
 	}
 	hotPath := filepath.Join(directory, bundleManifest.Hot.Name)
 	hotBytes, err := readVerifiedRegularFile(hotPath, remainingHotBytes)
