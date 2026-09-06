@@ -1,20 +1,20 @@
 {
-  "version": "taskgate-final-v5-publication-evidence-v1",
-  "purpose": "Names the frozen publication campaign the manuscript cites and binds it to the exact sealed campaign-evidence bytes. Every paper macro is re-derived from the retained sample bytes the campaign's own deployment records digest, so a number can never drift onto a rerun, a pilot, or a partial campaign.",
-  "publication_eligible": true,
-  "campaign": {
-    "id": "formal-v111-publication-03",
-    "path": "evaluation/final-v5-wsl2/raw/formal-v111-publication-03",
-    "campaign_evidence_sha256": "45e5eacdfa63c813c6b1eff2e9aecd6d05b57f58b39e6afa54e497a2ef69a138",
-    "submission_commit": "649eadb42ae6c3084942eb6f5101ac8c536b754c",
-    "contract_release": "final-v5-contracts-v1.11",
-    "deployments": 33,
-    "profile_cells": 125,
-    "scale_non_profile_cells": 36,
-    "compiler_non_profile_cells": 11,
-    "total_cells": 172,
-    "launched_at": "2026-08-27T23:53:15Z",
-    "sealed_at": "2026-08-28T18:32:00Z",
-    "host": "WSL2 Ubuntu-22.04, single host, ext4 VHD; formal Gateway image sha256:d659e502020cfe70b85326eb243689f7a98aa9eeb348f6521692bc5304a0ff1d"
-  }
+ "version": "taskgate-final-v5-publication-evidence-v1",
+ "purpose": "Names the frozen publication campaign the manuscript cites and binds it to the exact sealed campaign-evidence bytes. Every paper macro is re-derived from the retained sample bytes the campaign's own deployment records digest, so a number can never drift onto a rerun, a pilot, or a partial campaign.",
+ "publication_eligible": true,
+ "campaign": {
+  "id": "formal-v113-publication-03",
+  "path": "evaluation/final-v5-wsl2/raw/formal-v113-publication-03",
+  "campaign_evidence_sha256": "56e679f1723883e92017844d21cbcdb937f5fae46ce0ae1b2ab9dfdba437e851",
+  "submission_commit": "9cd650b9b495f896f7c3eaf3288d72e9bf5b62ae",
+  "contract_release": "final-v5-contracts-v1.13",
+  "deployments": 33,
+  "profile_cells": 125,
+  "scale_non_profile_cells": 36,
+  "compiler_non_profile_cells": 11,
+  "total_cells": 172,
+  "launched_at": "2026-09-04T16:41:03Z",
+  "sealed_at": "2026-09-06T09:03:44Z",
+  "host": "WSL2 Ubuntu-22.04, single host, ext4 VHD; formal Gateway image sha256:cf70aec12ee7225dce3e0c5734fdcdc96bf76468b6ba4b03582e6451eb3cf7cc"
+ }
 }
