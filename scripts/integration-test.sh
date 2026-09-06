@@ -142,6 +142,12 @@ COMPOSE_PORT_OVERRIDE="services:
     # directory read-only so those tests run here instead of skipping.
     volumes:
       - ./evaluation/final-v5-wsl2/raw:/src/evaluation/final-v5-wsl2/raw:ro
+      # The snapshot-index services compile every publication once, each in its
+      # own memory cgroup, onto this shared volume. Mounting it read-only lets
+      # the scale-lane full-registry tests activate the already-pinned bundles
+      # (TASKGATE_GATEWAY_PREBUILT_SNAPSHOT_DIR) instead of a second in-process
+      # compile, whose scale-e7 transient (~26 GiB) OOMs the shared host.
+      - snapshot-index-artifacts:/var/lib/taskgate/snapshot-index:ro
     command: [\"go\", \"test\", \"-race\", \"./...\"]
 networks:
   integration-host:"
@@ -417,7 +423,8 @@ pass "complete PostgreSQL-backed unit and race tests accepted: every skip declar
 # prepares an ordinal-program plan); without the tag the build simply does not
 # contain it and this step reports "did not execute". Measured 2026-08-29 on
 # the evidence host: 114.7 s, 7.1 GB peak RSS.
-promotion_recovery_output=$(compose --profile integration-tools run --rm test-runner \
+promotion_recovery_output=$(compose --profile integration-tools run --rm \
+  -e TASKGATE_GATEWAY_PREBUILT_SNAPSHOT_DIR=/var/lib/taskgate/snapshot-index test-runner \
   go test -json -count=1 -tags=taskgate_scale \
   -run '^TestCanonicalCopySurvivesAvailableTransactionFailureAndRecoversExactlyOnce$' \
   ./internal/gateway)
