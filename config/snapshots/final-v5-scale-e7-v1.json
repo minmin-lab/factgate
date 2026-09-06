@@ -171,5 +171,12 @@
       }
     ],
     "rows": []
+  },
+  "expected_digests": {
+    "sidecar_digest": "9dd595a2181f339b73a56cdb9b88d87478e47710bbf158b75c069bc4a3ac3156",
+    "dictionary_digest": "a272c253d4ab0fa24b3b0ad749fe25eea338a6ed5ea59bcd5535e49a9e612209",
+    "manifest_digest": "35e5682a098373d64ca2514118b24f8b716a33821b348099ba3724a7203080ef",
+    "cold_payload_digest": "dd01b25f38f529e67859929f7a9fda25afdf6ee6659e6c4916708b17d00fb651",
+    "hot_index_digest": "a0561285b8f8a71c5354af301b78345c30f0291897a4eb72a148e6afd8211504"
   }
 }
