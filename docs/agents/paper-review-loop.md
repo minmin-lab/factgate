@@ -12,7 +12,7 @@
    集中一次改完再重跑链。
 3. **P7.4 措辞底线**：不得声称"首次按字段计费/首次同一信息只收一次/首次等价 SQL 不套利/首次非货币数据预算/首次 provenance+Gateway"。
 4. **需要新实验或新证据的意见不在循环内做**（同机成本参照、可接纳率研究、对抗片段驱动、专家研究等）：记入
-   `tmp/reports/reviews/open-items.md`，`catm-notify say` 上报作者裁决，循环继续处理其余意见。
+   `tmp/reports/reviews/open-items.md`，在 open-items.md 与台账记录待作者裁决项，循环继续处理其余意见。
 5. **不在 WSL 跑 campaign/门禁期间构建 PDF 以外的重活**；构建（`make paper-tkde`）是轻活可以跑。
 6. 每轮改动提交到分支并推送；不合回 `tkde-artifact-rerun`（合回由作者或最终 final-check 绿后单独做）。
 
@@ -39,7 +39,7 @@
    - 连续两轮 Verdict 为 Accept 或 Minor revision 且 blocking items 全为 `needs-new-evidence`（文本层面已无可改）；
    - 连续三轮 Major 意见集合没有变化（评审在原地打转）——上报作者裁决；
    - 作者叫停。
-8. **每轮结束**：`catm-notify say` 三行（轮次/verdict/blocking 数与页数；本轮改了什么；需作者裁决什么）。
+8. **每轮结束**：台账追加一行（轮次/verdict/blocking 数与页数；本轮改了什么；需作者裁决什么）。
 
 ## 给独立审稿子代理的固定指令（逐字）
 

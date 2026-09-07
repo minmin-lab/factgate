@@ -20,7 +20,7 @@ TKDE 评测（campaign / route-matrix live / SQL 门等 harness 活）在 **WSL2
 - 远端长命令输出一律落远端文件再读；ssh 中继会随时断。后台任务用 `nohup setsid … &`，
   同一 ssh 会话内不要让后台进程持有 stdout（会挂住 ssh）。
 - 不在 git 里的驱动脚本：WSL `~/stage-e/`（E1/E2、qualification 链）、`~/formal-v111/`（正式 campaign 发射/叫停）、
-  NAS `~/stage-e-nas/`（看守脚本，`catm-notify say --workspace <repo>`）。
+  NAS `~/stage-e-nas/`（历史看守脚本；其中的 catm-notify 调用已随 CATM 废弃失效，重用前先删）。
 
 ## 网络（2026-08-27 实测）
 
