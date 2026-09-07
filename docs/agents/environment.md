@@ -7,6 +7,9 @@ TKDE 评测（campaign / route-matrix live / SQL 门等 harness 活）在 **WSL2
 
 - **WSL2 仓库**：`/home/wmm/worktrees/agent_task_gateway`
 - **NAS 仓库**：`/volume1/homes/wuminmin/github/wuminmin/agent_task_gateway`（= `/var/services/homes/...` 同一文件系统）
+- **origin（2026-09-07 起）**：两处仓库的 origin 都是 `https://github.com/minmin-lab/factgate.git`（原 wuminmin/agent_task_gateway，
+  GitHub 对旧 URL 自动跳转）。NAS 目录名未改。NAS 上 git 在 `/opt/bin`、gh 在 `~/.local/bin`，非登录 ssh 会话要用 `bash -lc`；
+  git 凭证走 `gh auth setup-git` 配的 helper，**不匿名访问 GitHub**（作者定，见全局 CLAUDE.md）。
 - **NAS→WSL2 连接**：Tailscale 节点 `wmm-wsl`（`100.73.90.49`），用户 `wmm`，专用密钥 `~/.ssh/id_ed25519_taskgate`
   ```sh
   ssh -i ~/.ssh/id_ed25519_taskgate -o StrictHostKeyChecking=accept-new \
