@@ -1881,7 +1881,7 @@ def main(argv: list[str] | None = None) -> None:
         rf"\newcommand{{\FinalVFivePublicationConcurrencyRounds}}{{{comma(sum(item['rounds'] for item in publication['concurrency'].values()))}}}",
     ])
     # ProvSQL-paired provenance-capture cost: byte-identical grouped SQL on
-    # pinned PostgreSQL, ProvSQL's complete typed drain, and FactGate's full governed
+    # pinned PostgreSQL, ProvSQL's complete typed drain, and BDG's full governed
     # path, per scale (medians of client_full_drain_ms).
     def tex(value) -> str:
         return str(value).replace("_", r"\_")
@@ -1981,11 +1981,11 @@ def main(argv: list[str] | None = None) -> None:
         rf"\newcommand{{\FinalVFivePublicationAttackThresholdProbes}}{{{len(threshold['expected_thresholds'])}}}",
         rf"\newcommand{{\FinalVFivePublicationAttackThresholdAnswered}}{{{len(threshold['observed_threshold_results'])}}}",
     ])
-    # Adaptive 100-query trace: PostgreSQL RLS (per-query) versus FactGate unlimited
-    # and FactGate bounded, with the independent trace-union oracle's prefix curve.
+    # Adaptive 100-query trace: PostgreSQL RLS (per-query) versus BDG unlimited
+    # and BDG bounded, with the independent trace-union oracle's prefix curve.
     rls = publication["rls"]
     arm_rows = []
-    for arm, label in (("rls", "PostgreSQL RLS"), ("unlimited", "FactGate, unlimited"), ("bounded", "FactGate, bounded")):
+    for arm, label in (("rls", "PostgreSQL RLS"), ("unlimited", "BDG, unlimited"), ("bounded", "BDG, bounded")):
         item = rls["arms"][arm]
         ledger = "/".join(str(v) for v in item["ledger"]) if "ledger" in item else "--"
         stop = str(item["first_rejection_index"]) if item["first_rejection_index"] else "--"
