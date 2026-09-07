@@ -25,17 +25,19 @@
 \newcommand{\rieffect}{\mathcal E^{ri}}
 \input{generated/evidence.tex}
 
-\title{Supplement to ``Bonded Data Gate: Task-Scoped Clearance and Cumulative
-Exposure Accounting for AI Agents''}
-\author{Anonymous Author(s)}
+\title{Supplement to ``FactGate: A Task-Scoped Data Gateway for AI Agents
+with Cumulative Exposure Accounting''}
+\author{Minmin~Wu\thanks{M.~Wu is with [AFFILIATION]. E-mail: wuminmin.ph@gmail.com.}}
 \date{}
 
 \begin{document}
 \maketitle
 
-Throughout, BDG abbreviates Bonded Data Gate. The bonded-warehouse phrasing is
-a narrative analogy; the formal objects and artifact states retain the names
-defined in the main paper.
+Throughout, FactGate names the system of the main paper. The sealed
+evaluation contracts, evidence files, and prototype identifiers label the
+same system \code{bdg} (an earlier internal name); those labels are
+digest-pinned and are quoted verbatim where a contract is cited. The formal
+objects and artifact states retain the names defined in the main paper.
 
 \section{Complete Inference Rules}
 
@@ -811,7 +813,7 @@ public-path same-root batches of widths \RQFourVFourConcurrencyWidths{} through
 \RQFourVFourConcurrencyGateways{} enforcement-layer replicas, and an offline
 derivation-independent comparison of all \RQFourVFourOracleFacts{} facts.
 
-The layout result is a bitmap-kernel measurement, not BDG end-to-end
+The layout result is a bitmap-kernel measurement, not FactGate end-to-end
 latency: \RQFourVFourDistributionRoundTrips{} exact portable complete-set
 round-trip checks pass at their actual cardinalities, and the worst
 ANDNOT--popcount--OR p95 is
@@ -951,7 +953,7 @@ or paper-reported scopes, not a feature score).}
 \toprule
 System/family & Controlled object and decision & Horizon and persistent subject & Enforcement/release coupling \\
 \midrule
-BDG & Declared Result, Dependency, and Outcome FactID set novelty:
+FactGate & Declared Result, Dependency, and Outcome FactID set novelty:
 does the next release fit the budget? & One signed, publication-bound root
 family; descendants share its persistent ledger & One three-dimensional
 root-head CAS co-commits ledger, audit, receipt, and PENDING intent; availability
@@ -1524,7 +1526,7 @@ Sequence & \# & Step & Task & Result & Actual $R$/$D$/$O$ & Charged $R$/$D$/$O$ 
 \label{sec:provsql-publication-supp}
 
 The ProvSQL profile of the same campaign pairs three real systems on the same
-host and byte-identical SQL (every BDG sample's committed Dependency set is
+host and byte-identical SQL (every FactGate sample's committed Dependency set is
 also linked member by member to the independent oracle's closed-form
 semantic set for that scale and nonce, as in the Scale profile:
 \FinalVFivePublicationProvSQLDependencyLinksVerified{} verifications, up to
@@ -1533,7 +1535,7 @@ missing or extra ordinal; in the sealed campaign ProvSQL's own circuit is
 drained only to its per-output-row roots, so the pairing there is a cost
 reference; Section~\ref{sec:provsql-leaves-supp} expands the circuit to base
 tuples in a pilot-class rerun): PostgreSQL~16.14 from a digest-pinned image,
-ProvSQL~1.11.0 built on that exact base image, and BDG's public
+ProvSQL~1.11.0 built on that exact base image, and FactGate's public
 \code{query_sql} path with settlement, receipt, and AVAILABLE delivery. The
 query is the orders--lineitem equijoin over the first 1,000, 10,000, or 45,000
 orders of a deterministic 50,000-order, 250,000-line fixture (TPC-H-shaped,
@@ -1544,7 +1546,7 @@ execution so that ProvSQL builds a novel circuit each time. The timed interval
 on every arm is the client's complete drain of the ordered result; on ProvSQL
 it therefore includes query rewriting, aggregate-token construction, and
 persistent circuit construction, and excludes semiring evaluation,
-probability computation, and Shapley values; on BDG it includes derivation,
+probability computation, and Shapley values; on FactGate it includes derivation,
 settlement, publication, and delivery. Warm business-data cache, disabled
 parallel gather, the simple text protocol, and a recorded per-statement
 timeout hold on both database sessions; execution order within each pair is
@@ -1556,13 +1558,13 @@ against general circuit capture; they do not rank the systems.
 
 \begin{table}[t]
 \centering
-\caption{ProvSQL-paired cells: rows returned, BDG Dependency Facts settled,
+\caption{ProvSQL-paired cells: rows returned, FactGate Dependency Facts settled,
 median complete-drain time per system, and ratios.}
 \label{tab:provsql-publication}
 \small
 \begin{tabular}{lrrrrrrrr}
 \toprule
-Scale & Rows & Dep.\ Facts & PostgreSQL (ms) & ProvSQL (s) & BDG (s) & ProvSQL/PG & BDG/PG & ProvSQL/BDG \\
+Scale & Rows & Dep.\ Facts & PostgreSQL (ms) & ProvSQL (s) & FactGate (s) & ProvSQL/PG & FactGate/PG & ProvSQL/FactGate \\
 \midrule
 \FinalVFivePublicationProvSQLTableBody
 \bottomrule
@@ -1579,7 +1581,7 @@ pages, 30 equivalent predicate spellings, 30 repeated aggregations, and four
 branches chosen from prior scalars) through three arms on the same
 \code{expense_detail} Product: PostgreSQL row-level security (a permissive
 department policy with \code{FORCE ROW LEVEL SECURITY} and column grants for a
-non-owner, non-superuser role), BDG with an unlimited exposure ledger, and BDG
+non-owner, non-superuser role), FactGate with an unlimited exposure ledger, and FactGate
 bounded at $\lfloor 0.7\,U\rfloor$ of the trace's distinct facts, where
 $U$ is computed before any bounded run by the corpus package's trace-union
 oracle. That package deliberately imports no production Gateway, Control,
@@ -1594,7 +1596,7 @@ summarizes the arms; the main text's trace figure plots the oracle's prefix
 cardinalities. The policy-denied control targets a receipt
 outside the policy department together with a column outside the grant: both
 controls return zero rows and refuse at the column (RLS
-\FinalVFivePublicationRLSControlErrorRLS{}, BDG
+\FinalVFivePublicationRLSControlErrorRLS{}, FactGate
 \FinalVFivePublicationRLSControlErrorBDG{}).
 
 Counter arms are additionally executed end to end as a retained pilot
@@ -1820,7 +1822,7 @@ in 28 minutes at a 21~GB peak; \code{campaign\_class} stays pilot.
 \subsection{Budget semantics beside a DP provenance system}
 \label{sec:compare7-supp}
 
-DProvDB (cited in the main text) and BDG guard incomparable quantities: a
+DProvDB (cited in the main text) and FactGate guard incomparable quantities: a
 differential-privacy loss over noised views versus an exact count of
 declared released facts. No latency or utility number below ranks one
 system over the other; the comparison is of \emph{budget-mechanism
@@ -1830,7 +1832,7 @@ files, TPC-H SF1 and Adult loaded per its scripts): under one fixed
 privacy budget its provenance-aware mechanism answers up to 571
 range-count queries where a naive Gaussian baseline answers 35 --
 provenance lets it \emph{discount, but not eliminate}, the cost of
-overlapping queries. The BDG side runs a frozen sixty-statement
+overlapping queries. The FactGate side runs a frozen sixty-statement
 range-\code{SUM} sequence (thirty unique, thirty byte-identical repeats)
 against the scale-point Product's a-priori recipe on three fresh
 deployments, which agree exactly: \FinalVFiveCompareAccepted{} of 60
@@ -1840,11 +1842,11 @@ statements settle (\FinalVFiveCompareUniqueAccepted{} unique,
 is spent, and every repeat charges exactly
 \FinalVFiveCompareRepeatCharges{} facts of any kind. Two shapes emerge:
 repeats are a \emph{discount} under DP provenance and \emph{free} under
-exact set accounting; and nested overlapping ranges advance BDG's
+exact set accounting; and nested overlapping ranges advance FactGate's
 Dependency ledger only by their set difference (the ledger settles at
 $\max$-bound $\times$ 14 facts), where every DP answer spends budget.
 The dual holds on refusal: DProvDB degrades accuracy as
-$\varepsilon$ thins, BDG refuses exactly and charges nothing for the
+$\varepsilon$ thins, FactGate refuses exactly and charges nothing for the
 refusal.
 
 \subsection{An optimizing adversary under owner-derived budgets}
@@ -1920,10 +1922,10 @@ of a base row from its key, and no production package is involved. The
 expansion runs outside every timing boundary. Table~\ref{tab:provsql-leaves}
 reports, per scale, the roots, the input gates reached, the mapped rows per
 relation, the ProvSQL-derived row-Fact count, and the oracle's count; every
-sample matched with no unmapped gate. Since the campaign's BDG Dependency
+sample matched with no unmapped gate. Since the campaign's FactGate Dependency
 sets are linked member by member to the same oracle
 (Section~\ref{sec:provsql-publication-supp}), ProvSQL's base tuples and
-BDG's base-row Dependency facts coincide transitively on these cells. The
+FactGate's base-row Dependency facts coincide transitively on these cells. The
 check covers base rows, not predicate-cell facts, which ProvSQL does not
 represent.
 
@@ -2128,7 +2130,7 @@ key-construction audit verifies the Catalog/schema/dictionary-set components.
 This supplement reports a campaign intentionally separated from the main
 paper's exposure-invariance evidence.  It asks only whether each generated
 PostgreSQL rewrite returns the same rows as its baseline.  Most templates lie
-outside BDG's closed structured-plan algebra; therefore the campaign does
+outside FactGate's closed structured-plan algebra; therefore the campaign does
 \emph{not} establish equal release FactSets, equal positive-output-dependency
 FactSets, equal incremental charges, or online compiler coverage.
 
@@ -2358,10 +2360,10 @@ Construct & Reason code & Count & Statements \\
 \label{sec:supp-enterprise-vision}
 
 This section describes a brownfield-compatible, incremental deployment vision,
-not an evaluated production deployment. BDG preserves existing enterprise
+not an evaluated production deployment. FactGate preserves existing enterprise
 systems and places a shared logical data-egress contract after curated products
 at the governed serving tier. Table~\ref{tab:supp-enterprise-interfaces}
-separates the inputs BDG consumes, the contract checks it adds, and
+separates the inputs FactGate consumes, the contract checks it adds, and
 responsibilities that remain with each system and its operators.
 
 \begin{table}[h]
@@ -2373,7 +2375,7 @@ not production-integration evidence.}
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{L{0.13\textwidth}L{0.23\textwidth}L{0.27\textwidth}L{0.27\textwidth}}
 \toprule
-Existing system & Supplies to BDG & BDG validates or adds & Outside BDG responsibility \\
+Existing system & Supplies to FactGate & FactGate validates or adds & Outside FactGate responsibility \\
 \midrule
 Lake / warehouse & Curated snapshot or governed serving Product & Immutable publication and version binding & Raw-lake access, ETL, source quality, and stewardship \\
 Data Catalog & Product, schema, owner, lineage, classification, and candidate business keys & Structural and version binding of attested stable identities and the signed Product, field, profile, and supported-semantics contract & Business ownership, classification, and business-key stability \\
@@ -2395,13 +2397,13 @@ small-cohort disclosure matters, a separate policy, such as a
 minimum-contributor threshold, statistical disclosure control, differential
 privacy, or DFC, remains necessary. An enterprise-wide salary query would
 require a separate HR-leader-approved task. Operations personnel could use a
-distinct equipment-and-facility Product, but the present analytical BDG path would not
+distinct equipment-and-facility Product, but the present analytical FactGate path would not
 control a network in real time. In banking, branch staff
 could analyze regional aggregates, while risk or fraud casework uses a
 short-lived, high-sensitivity, independently approved task. This does not make
-BDG a regulatory-compliance decision maker. In an electric utility, regional
+FactGate a regulatory-compliance decision maker. In an electric utility, regional
 load, loss, and equipment-health Products could remain
-separate from marketing and finance domains; BDG would not perform subsecond
+separate from marketing and finance domains; FactGate would not perform subsecond
 control, protection actions, or equipment-configuration writes. The scenarios
 only illustrate how Product, scope, approval, and the task-bound root-family
 Exposure Ledger compose.
@@ -2414,7 +2416,7 @@ tests $\rightarrow$ shadow execution $\rightarrow$ multi-role approval
 $\rightarrow$ signed profile publication. Data owners would decide purpose and
 releasable scope; security/privacy teams would define sensitive boundaries;
 IAM/OA would attest identity and approval; DBAs/data engineers would validate
-database facts and performance mappings; BDG would compile and enforce the
+database facts and performance mappings; FactGate would compile and enforce the
 published contract; and auditors would reconcile approval, settlement, and
 AVAILABLE evidence. Multi-engine connectors, DFC/Passant composition,
 principal/tenant-wide policy, differential privacy, and cross-tool IFC remain

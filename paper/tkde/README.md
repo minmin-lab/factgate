@@ -1,17 +1,17 @@
-# Bonded Data Gate (BDG) TKDE manuscript
+# FactGate TKDE manuscript
 
-This directory contains the current database-paper manuscript, *Bonded Data
-Gate: Task-Scoped Clearance and Cumulative Exposure Accounting for AI Agents*.
-The paper presents one coherent BDG design: typed release, dependency,
+This directory contains the current database-paper manuscript, *FactGate: A
+Task-Scoped Data Gateway for AI Agents with Cumulative Exposure Accounting*.
+The paper presents one coherent FactGate design: typed release, dependency,
 and Outcome exposure; immutable publication dictionaries; streamed compressed
 bitmaps; an exact Merkle-radix Outcome set; atomic root-family settlement; and
-signed settlement receipts with separately audited availability. The
-bonded-warehouse language is a narrative analogy, not a replacement for the
-formal publication, ledger, receipt, and artifact-state definitions.
+signed settlement receipts with separately audited availability. Clearance
+language is a narrative analogy, not a replacement for the formal
+publication, ledger, receipt, and artifact-state definitions.
 
 ## M3 exactness boundary
 
-- Exactness is profile-relative: within the admitted language, BDG computes
+- Exactness is profile-relative: within the admitted language, FactGate computes
   the declared Result, Dependency, and Outcome Fact sets and their novelty
   against the task-bound root-family ledger.
 - FactIDs are governance accounting identities, not estimates of knowledge
@@ -19,8 +19,8 @@ formal publication, ledger, receipt, and artifact-state definitions.
 - An `AVAILABLE` artifact implies prior three-dimensional settlement; a
   settlement receipt proves a `PENDING` intent and does not prove availability
   without the separate `QUERY_RESULT_CONSUMED` audit inclusion.
-- BDG does not measure total agent knowledge or provide differential privacy.
-- Clearance and bonded-warehouse language remain narrative shorthand for the
+- FactGate does not measure total agent knowledge or provide differential privacy.
+- Clearance language remains narrative shorthand for the
   governed declaration, settlement, and release boundary; they are not legal
   or DFC-policy compliance claims.
 - The manuscript revision changes claims and evidence mapping; supporting
@@ -29,10 +29,12 @@ formal publication, ledger, receipt, and artifact-state definitions.
   protocol semantics, namespaces, wire formats, schema, or evidence-bound
   experiment artifacts and numbers.
 
-The manuscript name is Bonded Data Gate (BDG). Evidence-bound protocol
+The manuscript name is FactGate (no abbreviation). Evidence-bound protocol
 namespaces such as `taskgate-*`, hash-domain separators, the
-`taskgate_ordinal` schema, and historical TLA+/evaluation filenames remain
-unchanged during revision. If the protocol namespace is renamed, it will be one
+`taskgate_ordinal` schema, historical TLA+/evaluation filenames, and the
+`bdg` arm label and `bdg_*` field names inside sealed contracts and evidence
+remain unchanged during revision; the supplement states that `bdg` is an
+earlier internal name of the same system. If the protocol namespace is renamed, it will be one
 deliberate post-freeze migration followed by evidence regeneration, not a
 partial compatibility alias.
 
@@ -57,13 +59,13 @@ the plan, grant, policy, publication, and effect context.
 
 ## Enterprise data-estate vision
 
-The manuscript positions BDG as a task-to-data release layer at a governed
+The manuscript positions FactGate as a task-to-data release layer at a governed
 serving tier materialized from an enterprise data lake or warehouse. The
 incremental, brownfield-compatible integration path preserves the existing
 lake/warehouse, Data Catalog, IAM/HR, OA/BPM, object store, Audit/SIEM, and
 Agent platform. Those systems remain authoritative for governed Products,
 identity and organizational attributes, human approval, storage, and external
-audit; BDG compiles their bound inputs into a signed task contract and performs
+audit; FactGate compiles their bound inputs into a signed task contract and performs
 cumulative settlement at the shared data-egress boundary.
 
 Here, `brownfield-compatible` describes an architectural interface division;
@@ -178,11 +180,18 @@ single full experiment to run after the manuscript and protocol are frozen.
 ## Related-manuscript disclosure
 
 SessionBound and this TKDE manuscript have the same author. SessionBound is an
-unsubmitted working manuscript available as a preliminary arXiv preprint; it
-has not been submitted to or accepted by TDSC. The Introduction states that
-status explicitly. Submission materials must disclose the relationship and the
-database-specific contributions of this manuscript; the paper does not organize
-its technical content around that evolution history.
+unsubmitted working manuscript available as a preliminary arXiv preprint
+(arXiv:2607.00751, cited pinned to v1); it has not been submitted to or
+accepted by TDSC. The Introduction states that status explicitly. Submission
+materials must disclose the relationship and the database-specific
+contributions of this manuscript; the paper does not organize its technical
+content around that evolution history.
+
+Author decision (2026-09-07): the manuscript is submitted single-anonymous
+under the author's real name, is posted to arXiv under a new identifier before
+submission, and the SessionBound preprint receives a v2 whose only change is a
+front-page note that it is superseded by the new identifier. The SessionBound
+identifier is never replaced with this manuscript.
 
 ## Submission-length check
 

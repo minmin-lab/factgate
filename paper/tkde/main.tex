@@ -28,8 +28,8 @@
 }{}
 \makeatother
 
-\newcommand{\systemname}{Bonded Data Gate}
-\newcommand{\system}{BDG\xspace}
+\newcommand{\systemname}{FactGate}
+\newcommand{\system}{FactGate\xspace}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\release}{\mathsf{release}}
 \newcommand{\facts}{\mathcal{F}}
@@ -50,10 +50,11 @@
 % exposed as system module versions in the paper.
 \newcommand{\RQFourVFourDependencyFacts}{\RQFourVFourInfluenceFacts}
 
-\title{\systemname: Task-Scoped Clearance and Cumulative Exposure
-Accounting for AI Agents}
+\title{\systemname: A Task-Scoped Data Gateway for AI Agents with
+Cumulative Exposure Accounting}
 
-\author{Anonymous Author(s)}
+\author{Minmin~Wu%
+\thanks{M.~Wu is with [AFFILIATION]. E-mail: wuminmin.ph@gmail.com.}}
 \date{}
 
 \begin{document}
@@ -62,7 +63,7 @@ Accounting for AI Agents}
 \begin{abstract}
 Per-query authorization does not compose across an adaptive agent's pages,
 retries, rewrites, and delegated subtasks, and query, row, or byte counters
-are order-dependent. \systemname{} (BDG) is a release layer for immutable
+are order-dependent. \system is a release layer for immutable
 reporting publications that turns one approved task into a cumulative
 contract: three set-valued budgets over declared identities (result facts,
 positive-output dependency facts, canonical query outcomes) shared by the
@@ -103,10 +104,10 @@ acquired?'' Within one approved task, an agent may split projections,
 overlap pages, retry, rewrite, and delegate (each child grant
 human-approved) while individual queries remain legal, and per-query
 authorization and row limits do not state the root family's distinct
-cumulative exposure. BDG accounts that contract-defined quantity, not the
+cumulative exposure. \system accounts that contract-defined quantity, not the
 agent's knowledge. Data-flow control (DFC) asks whether a SQL flow is
 allowed \cite{summers2026dataflow,summers2026passant}; conditional on
-authorization and any DFC check, BDG asks whether the next allowed execution
+authorization and any DFC check, \system asks whether the next allowed execution
 fits the root's cumulative contract.
 
 Query count ignores answer size, row count makes a one-row aggregate over
@@ -114,12 +115,12 @@ millions of source rows look cheap, and bytes depend on encoding; query
 pricing develops anti-arbitrage objectives
 \cite{koutris2012query,deep2017qirana,peng2025aria} and provenance explains
 where results came from \cite{green2007provenance,amsterdamer2011aggregate},
-whereas BDG asks how human authorization can create a stateful release
+whereas \system asks how human authorization can create a stateful release
 budget conserved across adaptive querying and delegation. Enterprise
 operational analytics commonly serves scheduled ETL outputs rather than
-OLTP primaries; BDG compiles each completed cut into an immutable
+OLTP primaries; \system compiles each completed cut into an immutable
 publication, new roots may bind the next cut, and unfinished roots stay on
-the prior one through version routing or fail closed, so BDG bounds the
+the prior one through version routing or fail closed, so \system bounds the
 governed release of declared facts within one reporting epoch, not
 freshness over a changing database.
 
@@ -130,12 +131,12 @@ retries, pages, and delegated subtasks. Marketplace-integrated agents close the 
 gap (Data Product MCP
 \cite{tonnarelli2026dataproductmcp,dietz2025automating,bitol2025odcs}), but
 once a purpose is approved, per-query checks still do not state how much
-governed data the task has cumulatively released. BDG starts at that boundary
+governed data the task has cumulatively released. \system starts at that boundary
 as a brownfield-compatible data-egress layer at the governed serving tier.
 The reporting pipeline supplies immutable publications, the Catalog
-supplies Products and attested stable keys, and identity and workflow
-systems supply subject, purpose, and approval; BDG compiles these into a
-signed task contract settled at a model-independent database boundary, and
+supplies Products and attested stable keys, and identity/workflow
+systems supply subject, purpose, and approval; \system compiles these into a
+signed task contract settled at a model-independent database boundary;
 the raw lake is never exposed to the agent.
 
 \system budgets the root task in three set-valued dimensions. \emph{Accounted
@@ -145,8 +146,8 @@ footprint} identifies the base facts the declared rules read---neither minimal
 causes nor all physical reads---so a one-cell
 aggregate can expose large input. \emph{Query outcome} combines canonical
 predicate atoms with one normalized query/result composite. Existing members
-add zero novelty: related thresholds reuse shared atoms but charge different
-literals/composites, while exact replay remains free.
+add no novelty: related thresholds reuse shared atoms but charge different
+literals/composites; exact replay is free.
 
 The system follows a withhold-before-settlement discipline
 (\code{reserve -> replay lookup / execute+stream -> derive -> settle -> publish}):
@@ -276,8 +277,8 @@ Go/PostgreSQL differential, generated-plan, and fault-injection evidence.
 
 \subsection{Closest System Families}
 
-The supplement tabulates each family's controlled object, horizon and
-persistent subject, and enforcement/release coupling.
+The supplement tabulates each family's object, horizon, subject, and
+enforcement/release coupling.
 
 \textbf{History, pricing, and provenance.} Auditing reconstructs access or
 determines whether a history fixes forbidden data; simulatable auditing
@@ -293,7 +294,7 @@ side-by-side: supplement).
 Statistical-database inference control studied trackers, query-set overlap,
 and cumulative auditing
 \cite{dobkin1979secure,denning1980tracker,adam1989security,kleinberg2003auditing,nabar2006robustness};
-BDG's Dependency ledger is a provenance-derived engineering of that
+\system's Dependency ledger is a provenance-derived engineering of that
 lineage: it bounds settled predicates, not inference, and its budget is a
 set of declared facts where PINQ's is $\epsilon$ \cite{mcsherry2009pinq}. Zero-novelty replay is the
 syntactic analogue of history-aware pricing, and
@@ -302,15 +303,15 @@ arbitrage-freedom. Why/where/how provenance
 \cite{buneman2001why,green2007provenance,cheney2009provenance,amsterdamer2011aggregate}
 and the GProM/ProvSQL capture mechanisms
 \cite{arab2018gprom,senellart2018provsql,sen2026provsql} explain derivations;
-BDG adds no provenance algebra but settles cumulative novelty of typed
+\system adds no provenance algebra but settles cumulative novelty of typed
 effects before release.
 
 \textbf{Data-flow policy enforcement.} FlowGuard and DFC/Passant are the
 closest database-layer comparators \cite{summers2026dataflow,summers2026passant}.
 Passant enforces optimizer-invariant aggregate predicates over each output
-tuple's provenance monomials (flow shapes BDG does not subsume);
-trajectory policy is its future work. BDG differs in temporal unit: DFC asks whether a flow is
-allowed, BDG whether another allowed flow fits the cumulative contract
+tuple's provenance monomials (flow shapes \system does not subsume);
+trajectory policy is its future work. \system differs in temporal unit: DFC asks whether a flow is
+allowed, \system whether another allowed flow fits the cumulative contract
 across queries, retries, pages, rewrites, and descendants (composition not
 evaluated).
 
@@ -329,7 +330,7 @@ SafeNLIDB inference risk on the model side \cite{liu2026safenlidb};
 provenance-based access control \cite{park2012pbac} and CaMeL's tool-layer
 capabilities \cite{debenedetti2025camel} decide admission, not cumulative
 release; GAAP's persistent cross-tool flow state \cite{stanley2026gaap}
-spans steps and services outside BDG's scope. BDG assumes the authorization boundary, settles every descendant
+spans steps and services outside \system's scope. \system assumes the authorization boundary, settles every descendant
 against one root ledger, treats the agent and its SQL as untrusted, and
 claims neither result sanitization, flow tracking, nor inference safety.
 
@@ -357,7 +358,7 @@ stopped exactly at $B_D$ (retained pilot, supplement). Four
 boundaries hold at this goal: it counts declared identities, not inference;
 page order is order-only in the Catalog tie-break keys alone (the
 \code{ORDER BY} rule below); fresh per-root, per-epoch capacity bounds
-cross-day release by the approval workflow, not by BDG; and the settlement
+cross-day release by the approval workflow, not by \system; and the settlement
 decision is two data-dependent counter channels. A rejected attempt is a chosen membership
 question over unaccounted facts answered by one bit, charged against $B_Q$
 only and never $B_O$, so rejection capacity is $\sum B_Q$ over the approved
@@ -383,7 +384,7 @@ management; and object-store access control.
 
 \subsection{Publication Epochs and Task Binding}
 
-BDG's upstream boundary is a completed reporting synchronization, not a
+\system's upstream boundary is a completed reporting synchronization, not a
 mutable transactional database; we model its compiled output as follows.
 
 \begin{definition}[Publication epoch]
@@ -489,7 +490,7 @@ digest; $\tau,\kappa,op,v$ are type, collation, operator, and canonical
 literal. For any outcome Fact $f$, its physical key is
 $\operatorname{FactHash}_O(f)=H(d_O\|\operatorname{Canon}(f))$.
 Let $h_A$ commit the sorted $\operatorname{FactHash}_O$ values of $A(q)$ and
-$k_c=\code{COMPOSITE_OUTCOME}$. BDG creates one semantic composite object
+$k_c=\code{COMPOSITE_OUTCOME}$. \system creates one semantic composite object
 \begin{equation}
  \begin{aligned}
  c_q&=\langle k_c,\varpi,\operatorname{profile}(N),h_N,h_y,m,h_c,h_A,|A(q)|\rangle,\\
@@ -563,7 +564,7 @@ The task exposure is
 The components are respectively accounted result exposure (wire label
 \code{release}), positive-output dependency
 footprint, and query-outcome exposure. Failed or rejected attempts contribute
-no set because BDG releases and commits none of their effects; this model
+no set because \system releases and commits none of their effects; this model
 does not account the rejection bit. We abbreviate the singleton history by
 $E(T,q)$.
 \end{definition}
@@ -580,7 +581,7 @@ $B=\langle B_R,B_D,B_O\rangle$. Settlement computes
  \label{eq:delta}
 \end{align}
 
-BDG measures cardinality independently in each dimension. A query may settle
+\system measures cardinality independently in each dimension. A query may settle
 only if
 $|\accounted_T^R|+|\Delta_T^R|\leq B_R$ and
 $|\accounted_T^D|+|\Delta_T^D|\leq B_D$ and
@@ -594,7 +595,7 @@ $|\accounted_T^O|+|\Delta_T^O|\leq B_O$.
 For an approved $T=(P,S,B,C)$, $C$ binds one versioned Exposure Profile $\varpi$.
 For any admissible $\Pi$ and successful query in the closed language, write
 $\facts_X^\varpi(q)$ for the existing component $\facts_X(q,S)$ with its profile
-binding made explicit. BDG exactly computes the canonical Result, Dependency,
+binding made explicit. \system exactly computes the canonical Result, Dependency,
 and Outcome sets $\facts_R^\varpi(q),\facts_D^\varpi(q),\facts_O^\varpi(q)$ and their
 componentwise novelty
 \[
@@ -606,7 +607,7 @@ accounting exactness under the signed contract and closed semantics,
 asserting nothing beyond the results that follow, and established
 empirically only as consistency with our reference implementations
 (Section~\ref{sec:evaluation}). FactIDs are accounting identities, not
-estimates of information content, knowledge, or privacy loss; BDG prevents
+estimates of information content, knowledge, or privacy loss; \system prevents
 unaccounted governed release under a task-bound, versioned profile.
 \end{definition}
 \emph{Example (cont.).} Under budgets $B_R/B_D/B_O=6/12/7$ the five-row
@@ -649,9 +650,9 @@ a mechanized composition.
 
 \textbf{O6: Profile binding.} $C$ binds effect/normal-form profiles,
 type/collation, View contract, replay identity, and result handling;
-derivation, settlement, replay, audit, and receipt all bind one
+derivation, settlement, replay, audit, and receipt bind one
 task/Catalog/publication/dictionary context, so a changed context cannot
-reuse an old semantic replay.
+reuse an old replay.
 
 \textbf{Three-way reconciliation.} The effect manifest, root-ledger heads,
 and artifact/receipt/availability evidence must identify the same settled
@@ -756,8 +757,8 @@ are retained during composition, while the two base ledgers are sets.
 Equation~\eqref{eq:observe} is the declared
 positive-output dependency-footprint profile: it is exact with respect to these
 inductive rules, not with respect to arbitrary causal provenance or physical
-source access.  Empty answers have an empty base effect except for the single
-visible row of a global aggregate; BDG nevertheless adds the tested predicate
+source access.  Empty answers have an empty base effect except the single
+visible row of a global aggregate; \system still adds the tested predicate
 atoms and one composite outcome.
 
 \begin{proposition}[Representation closure and dependency determinism]
@@ -919,7 +920,7 @@ $B_X$ excess, CASes all three manifests (conflicts reread and recompute
 every dimension), and settles resources, observation, PENDING intent,
 audit, and the signed receipt. A second transaction co-commits AVAILABLE
 and \code{QUERY_RESULT_CONSUMED} after verifying promotion to the
-canonical object, and only then returns the ID.
+canonical object, then returns the ID.
 
 Only root heads are mutable: pre-settlement failure rolls back heads,
 observations, intent, audits, cache, and receipt, while post-settlement
@@ -1029,8 +1030,8 @@ $q$ reads $(K,e)$, computes $\Delta_X=\facts_X(q,S)\setminus K_X$, and
 attempts one compare-and-swap that publishes $(K\cup\facts(q,S),e+1)$ only if
 the swap sees epoch $e$ and $|K_X|+|\Delta_X|\le B_X$ for all $X$; a swap
 that sees $e'\neq e$ rereads and recomputes; a rejected or failed attempt
-publishes nothing. Transactions of a root family, including every
-descendant, interleave arbitrarily but each swap is atomic.
+publishes nothing. Root-family transactions, including every
+descendant's, interleave arbitrarily but each swap is atomic.
 
 \begin{property}[Atomic root-family budget safety]
 \label{thm:root-family-safety}
@@ -1106,9 +1107,9 @@ so rollover routes old roots to retained $P_e$ instances and new approvals
 to $P_{e+1}$. MCP tools cover discovery, task approval/execution/delegation,
 View rebind, budgets, results, and receipts; direct SQL is lowered to the
 same canonical plan or fails closed, so no path executes agent-authored
-text; results use AES-GCM and audits form a hash chain. BDG fronts the
+text; results use AES-GCM and audits form a hash chain. \system fronts the
 governed serving tier (lake $\rightarrow$ curated products $\rightarrow$
-immutable publications $\rightarrow$ BDG $\rightarrow$ agent) and replaces
+immutable publications $\rightarrow$ \system $\rightarrow$ agent) and replaces
 none of the surrounding lake, Catalog, IAM, OA/BPM, object-store, RLS/DFC,
 or audit systems (supplement interface table; not a production deployment);
 OA/BPM may impose cross-root issuance policies while the ledger stays
@@ -1177,7 +1178,7 @@ nothing with our specification: a pilot-class rerun
 (\FinalVFiveProvSQLLeafSamples{} samples) expands ProvSQL's own
 circuit to its base tuples on the paired join cells and finds them equal,
 member by member, to the oracle's \FinalVFiveProvSQLLeafTotalRowFacts{}
-base-row facts, to which BDG's Dependency sets are linked in turn),
+base-row facts, to which \system's Dependency sets are linked in turn),
 whose import boundary excludes
 every production package (enforced by a dependency test), fixes the
 expected Fact cardinalities of all
@@ -1218,7 +1219,7 @@ grouped to three rows; S3, a one-column projection over 1,000--45,000 rows
 of the 414,000-row exposure-scale Product; S4, the depth-4 semantic-View
 form of S2/SF1; S5, a two-branch union-distinct of S1's shape; S6,
 result-heavy releases of 100--100,000 rows with 4 or 16 columns. Modes
-are direct (the same SQL against PostgreSQL without BDG), novel (the first
+are direct (the same SQL against PostgreSQL without \system), novel (the first
 governed execution), and the replays; ``publication-class'' is the frozen
 protocol's campaign class (pilot runs are never eligible). The frozen
 campaign (\FinalVFivePublicationCampaign{}, commit
@@ -1355,7 +1356,7 @@ probe is refused with \FinalVFivePublicationAttackThresholdRejectionCode{},
 so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
 bit while the direct arm answered all three (supplement); the corpus is
-preregistered, and the strategy space is probed by the executed adversary
+preregistered and the strategy space is probed by the adversary
 study above.
 
 \textbf{Adaptive trace against per-query control.} The RLS profile replays
@@ -1363,7 +1364,7 @@ one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace
 (receipt look-ups, pages, equivalent predicate spellings, repeated
 aggregations, branches chosen from prior scalars) through three arms on one
 Product: PostgreSQL row-level security with a department policy and column
-grants, BDG with an unlimited ledger, and BDG bounded at
+grants, \system with an unlimited ledger, and \system bounded at
 $\lfloor 0.7\,U\rfloor$ of the trace's distinct facts
 $U=\FinalVFivePublicationRLSUnionRelease{}/\FinalVFivePublicationRLSUnionDependency{}/\FinalVFivePublicationRLSUnionOutcome{}$
 as counted by a separate trace-union oracle (budgets
@@ -1371,23 +1372,23 @@ as counted by a separate trace-union oracle (budgets
 \FinalVFivePublicationRLSPerCell{} samples per arm, identical in every one).
 RLS answered all \FinalVFivePublicationRLSQueries{} queries
 (\FinalVFivePublicationRLSRowsRLS{} rows) in
-\FinalVFivePublicationRLSDrainRLSMS{}~ms; BDG-unlimited answered all in
+\FinalVFivePublicationRLSDrainRLSMS{}~ms; \system-unlimited answered all in
 \FinalVFivePublicationRLSDrainUnlimitedS{}~s and its final ledger equals the
-oracle's union; BDG-bounded answered
+oracle's union; \system-bounded answered
 \FinalVFivePublicationRLSBoundedSuccessful{},
 refused query \FinalVFivePublicationRLSBoundedRefusalIndex{}---the first
 whose oracle prefix exceeds a budget (Fig.~\ref{fig:rls-trace})---with
 \FinalVFivePublicationAttackThresholdRejectionCode{}, released nothing
 afterwards, and ended at \FinalVFivePublicationRLSBoundedLedger{}. A control
 step outside the policy rows and the column grant is refused at the column
-under both (supplement), so BDG composes with per-query authorization;
+under both (supplement), so \system composes with per-query authorization;
 RLS admitting every query is definitional (no cumulative budget): the
 comparison shows where a set budget binds. The counter comparators are also \emph{executed}, across three fresh
-deployments that each realized the identical outcome (retained pilot,
+deployments that each realized the same outcome (retained pilot,
 supplement): the same trace under row-, query-, and release-set budgets
 fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit
-(unlike the supplement's campaign-derived counter replay, which is
-calibrated to the set ledger's stopping point), in three orders each,
+(unlike the supplement's campaign-derived counter replay, calibrated
+to the set ledger's stopping point), in three orders each,
 released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
 every order; the exact floors capped release at
 \FinalVFiveCounterExactMaxDep{} in every order
@@ -1438,7 +1439,7 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \end{tikzpicture}
 \caption{Distinct governed facts obtained by the adaptive trace by query
 index (separate trace-union oracle; solid, marked) against the bounded
-arm's budgets (dashed, at the marked y ticks); BDG-bounded refuses at the
+arm's budgets (dashed, at the marked y ticks); \system-bounded refuses at the
 first query whose prefix crosses a budget, where the trace stops.}
 \label{fig:rls-trace}
 \end{figure}
@@ -1446,7 +1447,7 @@ first query whose prefix crosses a budget, where the trace stops.}
 
 \textbf{Provenance-capture cost.} The ProvSQL profile (supplement) pairs
 byte-identical grouped SQL on pinned PostgreSQL~16.14, ProvSQL~1.11.0's
-complete typed drain, and BDG's full governed path: at 45k orders
+complete typed drain, and \system's full governed path: at 45k orders
 \FinalVFivePublicationProvSQLFortyFiveKPostgreSQLMS{}~ms,
 \FinalVFivePublicationProvSQLFortyFiveKProvSQLS{}~s, and
 \FinalVFivePublicationProvSQLFortyFiveKBDGS{}~s over
@@ -1480,7 +1481,7 @@ or production-SLO behavior.
 \label{sec:limits}
 
 \textbf{Semantic and subject scope.} Outcome atoms and composites are
-governance units, not bits; BDG omits rejected rows, non-output
+governance units, not bits; \system omits rejected rows, non-output
 groups/pages, rank-only inputs, correlations, background knowledge, and
 physical reads, and provides neither minimal causality nor differential
 privacy (channels and fresh capacity: Section~\ref{sec:model}). \textbf{Query and identity scope.} Evidence uses
@@ -1517,7 +1518,7 @@ settlement serializes on the head (Section~\ref{sec:evaluation});
 multi-root throughput is unmeasured.
 
 \textbf{Governance and deployment scope.} Profile correctness is
-trusted---BDG validates bindings, semantics, and settlement, not policy
+trusted---\system validates bindings, semantics, and settlement, not policy
 appropriateness---and the single database path and demo approval adapter
 offer no production integration or budget-calibration study
 \cite{tonnarelli2026dataproductmcp}.

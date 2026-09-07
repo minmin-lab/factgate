@@ -146,9 +146,6 @@ paper-final-check:
 	git --no-replace-objects diff --exit-code HEAD -- paper/tkde/generated/evidence.tex
 	./paper/tkde/build-container.sh final
 
-paper-tdsc:
-	./paper/tdsc/build-container.sh
-
 # Go writes a main package's executable into the working directory, so building
 # a command from the repository root leaves the binary where `git add -A` will
 # sweep it in. Everything that produces an executable goes here instead.
