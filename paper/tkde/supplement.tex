@@ -1534,6 +1534,79 @@ Width & Mode & Rounds & Drain p50 & Drain p95 & Req./s \\
 \end{tabular}
 \end{table}
 
+\subsection{Successful throughput under an ample budget (pilot)}
+\label{sec:throughput-supp}
+
+The cells above sit at a budget boundary by design, so one contender per
+round settles novel work. A reviewer asked the complementary question: with
+budget to spare, how many legitimate novel queries does the Gateway keep
+completing per second on one root head and across independent roots, at
+what tail latency, and with how many conflicts? The pilot
+\ThroughputCampaign{} (design frozen before execution in
+\filepath{docs/p10\_b6\_throughput\_experiment\_design.md}; results digest
+\ThroughputResultsDigest{}) answers it on three fresh deployments of the
+benign-x4 profile, whose approval route grants 896 queries, 100{,}000 rows
+and 107{,}628\,/\,5{,}800{,}000\,/\,224 Release\,/\,Dependency\,/\,Outcome
+facts per root, over the 100{,}000-row \code{final\_v5\_result\_heavy}
+Product. A cell provisions $K$ root tasks with $N$ delegated contenders each
+through the real request/OA/grant path; in each of two rounds every
+contender issues one \code{query\_sql} at once and the round drains when
+the last returns. Footprints are \emph{disjoint} (one distinct row per
+contender), \emph{nested} (\code{row\_id <= 10i}), or \emph{identical}
+(the same row for all), offset between rounds so no round repeats a
+footprint. Table~\ref{tab:throughput-supp} reports \ThroughputRounds{}
+rounds; none errored, and in every round each root's ledger moved by exactly
+the sum of the responses' charges.
+
+\begin{table}[t]
+\centering
+\caption{Successful-throughput pilot (three deployments, two rounds each):
+roots $K$, contenders per root $N$, overlap, rounds, novel/settled requests,
+settled and novel requests per second (median over rounds), client p50 and
+p95 latency (ms, median over rounds), Outcome-set CAS conflicts/attempts
+summed over the rounds, and whether every round's ledger movement matched
+the charges.}
+\label{tab:throughput-supp}
+\small
+\begin{tabular}{rrlrrrrrrrl}
+\toprule
+$K$ & $N$ & Overlap & Rounds & Novel/settled & Settled/s & Novel/s & p50 & p95 & Conflicts/attempts & Ledger \\
+\midrule
+\ThroughputTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three readings. First, one root head settles about
+\ThroughputOneRootTenDisjointNPS{}--\ThroughputOneRootFiftyDisjointNPS{}
+novel queries per second whether ten or fifty contend, because every novel
+settlement serializes on the head: fifty contenders mostly wait, the p95
+grows from \ThroughputOneRootTenDisjointPNinetyFive{}~ms to
+\ThroughputOneRootFiftyDisjointPNinetyFive{}~ms, and the Outcome-set CAS
+records \ThroughputOneRootFiftyDisjointConflicts{} conflicts in
+\ThroughputOneRootFiftyDisjointAttempts{} attempts. At fifty on one head the
+retry budget is not always enough: the settlement retries the head CAS up to
+sixteen times (\code{ordinalCASMaxAttempts} in
+\filepath{internal/control/result.go}) and then returns the public
+\code{CONFLICT} code; \ThroughputOneRootFiftyRefused{} of the
+\ThroughputOneRootFiftyRequests{} requests in the one-root, fifty-contender
+cells ended that way (five to eight per round), \ThroughputOtherRefused{}
+elsewhere, and the caller's only recourse is to resubmit. Nothing was
+charged for them. Second, four independent roots raise novel throughput to
+\ThroughputFourRootFiftyDisjointNPS{} per second, about $2.3\times$ one
+root rather than $4\times$, with the p95 at
+\ThroughputFourRootFiftyDisjointPNinetyFive{}~ms for 200 simultaneous
+contenders: beyond the head, the single host's Gateway and database are the
+next bound. Third, identical footprints settle fastest
+(\ThroughputOneRootFiftyIdenticalSPS{} per second at one root, fifty
+contenders) because all but one per root are semantic replays that touch
+no business data and add no novelty, the replay behaviour the main text
+describes. No budget refusal occurred; the design's arithmetic (two rounds
+keep the largest cell under the Outcome floor) held. The numbers are one
+laptop-class host with everything colocated, and the pilot does not vary
+the retry limit or the settlement batching the main text names as the ways
+to relax the head bound.
+
 \section{Publication Campaign: Attack Corpus}
 \label{sec:attack-publication-supp}
 

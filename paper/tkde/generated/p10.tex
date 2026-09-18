@@ -187,3 +187,35 @@ query counter & 70/70/70 & 70/70/70 & 28/28/24 & 18/18/18 \\%
 \newcommand{\PassantDirectMedianMS}{0.18}
 \newcommand{\PassantOverhead}{3.3}
 \newcommand{\PassantCells}{6}
+\newcommand{\ThroughputTableBody}{%
+1 & 10 & disjoint & 6 & 60/60 & 26 & 26 & 258 & 366 & 238/298 & yes \\
+1 & 10 & nested & 6 & 60/60 & 26 & 26 & 261 & 369 & 237/297 & yes \\
+1 & 10 & identical & 6 & 6/60 & 51 & 5 & 187 & 195 & 29/35 & yes \\
+1 & 50 & disjoint & 6 & 261/261 & 30 & 30 & 991 & 1413 & 1403/1664 & yes \\
+1 & 50 & nested & 6 & 259/259 & 25 & 25 & 1240 & 1670 & 1416/1675 & yes \\
+1 & 50 & identical & 6 & 6/300 & 72 & 1 & 621 & 690 & 14/20 & yes \\
+4 & 10 & disjoint & 6 & 240/240 & 60 & 60 & 544 & 640 & 383/623 & yes \\
+4 & 10 & nested & 6 & 240/240 & 57 & 57 & 586 & 679 & 300/540 & yes \\
+4 & 10 & identical & 6 & 24/240 & 71 & 7 & 506 & 554 & 14/38 & yes \\
+4 & 50 & disjoint & 6 & 1199/1199 & 70 & 70 & 2357 & 2737 & 1829/3028 & yes \\
+4 & 50 & nested & 6 & 1200/1200 & 60 & 60 & 2790 & 3212 & 1698/2898 & yes \\
+4 & 50 & identical & 6 & 24/1200 & 79 & 2 & 2284 & 2488 & 13/37 & yes \\%
+}
+\newcommand{\ThroughputResultsDigest}{\texttt{264a501487cf}}
+\newcommand{\ThroughputCampaign}{\texttt{p10-b6-throughput-01}}
+\newcommand{\ThroughputRounds}{72}
+\newcommand{\ThroughputErrorRounds}{0}
+\newcommand{\ThroughputRefused}{81}
+\newcommand{\ThroughputLedgerAllMatch}{all}
+\newcommand{\ThroughputOneRootFiftyDisjointNPS}{30}
+\newcommand{\ThroughputFourRootFiftyDisjointNPS}{70}
+\newcommand{\ThroughputOneRootTenDisjointNPS}{26}
+\newcommand{\ThroughputOneRootFiftyDisjointPNinetyFive}{1413}
+\newcommand{\ThroughputFourRootFiftyDisjointPNinetyFive}{2737}
+\newcommand{\ThroughputOneRootFiftyDisjointConflicts}{1403}
+\newcommand{\ThroughputOneRootFiftyDisjointAttempts}{1664}
+\newcommand{\ThroughputOneRootFiftyIdenticalSPS}{72}
+\newcommand{\ThroughputOneRootTenDisjointPNinetyFive}{366}
+\newcommand{\ThroughputOneRootFiftyRefused}{80}
+\newcommand{\ThroughputOneRootFiftyRequests}{600}
+\newcommand{\ThroughputOtherRefused}{1}

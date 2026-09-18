@@ -20,6 +20,23 @@
    "submission_commit": "a8fb1e66e7ffc1cadae187f1f8b58d641bf8abfa",
    "measured_samples": 36,
    "note": "P10.B2 end-to-end LLM-agent pilot (docs/p10_b2_agent_experiment_design.md, frozen before the run): a headless Claude Code agent (claude -p, models claude-opus-5[1m] with claude-haiku-4-5 sub-calls) given only the Product description, an objective and the transcript, up to 20 SQL steps, on the adversary-owner deployment (ten-row expense fixture, owner tier 10/18/12/24); two arms (RLS-only: direct PostgreSQL FORCE RLS role, no cumulative budget; FactGate: the governed query_sql path) x two objectives (benign: list receipts >= 1000 in the department and the count; probe: recover the maximum amount) x three samples x three fresh deployments = 36 runs, zero harness errors. Benign: both arms answer correctly in all 9 runs each; FactGate refuses the agent's full listing (EXPOSURE_BUDGET_EXHAUSTED at step 2 in all 9 runs) and the agent completes with a filtered query, final root ledger 6/10/4. Probe: the RLS arm bisects to the exact value or an interval <= 0.77 wide in 19-20 steps in all 9 runs (14-19 released cells); the FactGate arm settles exactly six count probes (12 Outcome facts = B_O) and is then refused on every further probe, ending with an interval of width 625 in 7 runs and 6250/10000 in 2 runs whose agents started their bisection from 10^5-10^6, final ledger 4/8/11. Raw records keep every step's SQL, response preview, charges, refusal code and the agent's raw reply; the artifact dump directories (snapshot-index-artifacts-full, profile-artifacts) are excluded from the copied tree."
+  },
+  {
+   "id": "p10-b6-throughput-01",
+   "family": "throughput",
+   "pilot_kind": "profile_campaign_hook",
+   "path": "evaluation/final-v5-wsl2/raw/p10-b6-throughput-01",
+   "campaign_evidence_sha256": "cead3f73c7e5fadbeb5e7a9e00fc54d81345d942f59e91722e91bb69993c6f7d",
+   "sample_files": [
+    "deployments/benign-x4/001/raw/throughput.jsonl",
+    "deployments/benign-x4/002/raw/throughput.jsonl",
+    "deployments/benign-x4/003/raw/throughput.jsonl"
+   ],
+   "samples_sha256": "d85852d971103f6eee91abe4559be759b580acfa9bb2a9bf263ada6a77f1fc83",
+   "samples_note": "sha256 of the sample files concatenated in the listed order; one line per round; the campaign's planned benign cells are not cited from this run",
+   "submission_commit": "0bd1a95a42b413268ff81afb3b32d1374d10a819",
+   "measured_samples": 72,
+   "note": "P10.B6 successful-throughput pilot (docs/p10_b6_throughput_experiment_design.md, frozen before the run): benign-x4 route as the ample budget (896 queries, 100k rows, 107,628/5.8M/224 facts per root), product final_v5_result_heavy; cells roots K in {1,4} x width N in {10,50} x overlap in {disjoint,nested,identical}, 2 rounds per cell, three fresh deployments = 72 rounds, 0 error rounds; every round's per-root ledger movement equals the summed response charges. Novel settlements per second (median over rounds): one root 26 (N=10) and 25-30 (N=50); four roots 57-60 (N=10) and 60-70 (N=50); identical footprints settle 51-79/s as semantic replays with one novel per root per round. At N=50 on one root, 5-8 contenders per round (80 of 600) return the public CONFLICT code after the Outcome-set CAS gives up at 16 attempts (internal/control/result.go ordinalCASMaxAttempts); four roots x 50 saw one such refusal in 1,200. No budget refusal occurred (the design's arithmetic held). Client p95 grows from 0.37 s (1x10) to 1.4-1.7 s (1x50) and 2.7-3.2 s (4x50)."
   }
  ]
 }

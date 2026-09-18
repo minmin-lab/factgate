@@ -311,7 +311,7 @@ tuple's provenance monomials (flow shapes \system does not subsume);
 trajectory policy is its future work. \system differs in temporal unit: DFC asks whether a flow is
 allowed, \system whether another allowed flow fits the cumulative contract
 across queries, retries, pages, rewrites, and descendants (composition not
-evaluated; the Passant artifact on our adaptive trace: supplement).
+evaluated; Passant artifact replay: supplement).
 
 \textbf{Authorization, delegation, and agent controls.} Task-based and
 purpose-based authorization scope rights to an activity or a declared purpose
@@ -1317,8 +1317,9 @@ one root head, one of which settles novel work per round; every generated round 
 per cell and deployment, none discarded), and the supplement tabulates every
 width and mode. Because every descendant settles on one root head, a task
 tree's settlement throughput is bounded by that head; per-dimension or
-batched settlement could relax the bound, and multi-root throughput is not
-measured. Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
+batched settlement could relax the bound; with budget to spare, one head
+settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second and
+four roots \ThroughputFourRootFiftyDisjointNPS{} (supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
 oracle's union minus history): settlement against a same-size history is
@@ -1488,8 +1489,7 @@ lowers \HeldoutLowerable{}, \HeldoutLowerablePct\%: \HeldoutEngineeringGaps{}
 rejections are engineering gaps, \HeldoutNewRule{} need new rules,
 \HeldoutAgentDefects{} is agent output; supplement); an off-the-shelf agent
 completes a legitimate task under \system in every run after one refused
-listing, while its count-only probe stops at six probes where per-query
-authorization bisects to the value (supplement);
+listing, and its count-only probe stops at six probes (supplement);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,
@@ -1503,14 +1503,12 @@ approval, and execution.
 would need hundreds of gigabytes and hours per build, so the envelope is $10^5$--$10^6$-row Products, with a
 retained pilot ladder settling \FinalVFiveScaleSevenLargestDependency{}
 Dependency facts in one query (supplement). Same-root
-settlement serializes on the head (Section~\ref{sec:evaluation});
-multi-root throughput is unmeasured.
+settlement serializes on the head (Section~\ref{sec:evaluation}).
 
 \textbf{Governance and deployment scope.} Profile correctness is
 trusted---\system validates bindings, semantics, and settlement, not policy
 appropriateness---and the single database path and demo approval adapter
-offer no production integration or budget-calibration study
-\cite{tonnarelli2026dataproductmcp}. The guarantee composes with controls it
+offer no production integration study \cite{tonnarelli2026dataproductmcp}. The guarantee composes with controls it
 does not supply: task-tree and refusal-rate caps (Proposition~\ref{prop:probing-bound}),
 timing padding, and root expiry; splitting one objective across
 independently approved roots is fresh capacity no ledger spans, so its
@@ -1519,9 +1517,8 @@ defence is each root's approval, not accounting.
 \section{Conclusion}
 
 \system provides profile-relative exact accounting of Result, Dependency,
-and Outcome sets within one publication-bound root family, with theorems,
-models, and tests behind one scoped claim: no governed artifact becomes
-\code{AVAILABLE} before atomic root-family settlement.
+and Outcome sets within one root family behind one scoped claim: no
+governed artifact becomes \code{AVAILABLE} before atomic settlement.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

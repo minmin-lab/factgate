@@ -272,6 +272,10 @@ if tp.exists():
         rf"\newcommand{{\ThroughputOneRootFiftyDisjointConflicts}}{{{cellval(1,50,'disjoint','cas_conflicts')}}}",
         rf"\newcommand{{\ThroughputOneRootFiftyDisjointAttempts}}{{{cellval(1,50,'disjoint','cas_attempts')}}}",
         rf"\newcommand{{\ThroughputOneRootFiftyIdenticalSPS}}{{{cellval(1,50,'identical','settled_per_s_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputOneRootTenDisjointPNinetyFive}}{{{cellval(1,10,'disjoint','client_p95_ms_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyRefused}}{{{cellval(1,50,'disjoint','refused') + cellval(1,50,'nested','refused')}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyRequests}}{{{cellval(1,50,'disjoint','settled') + cellval(1,50,'disjoint','refused') + cellval(1,50,'nested','settled') + cellval(1,50,'nested','refused')}}}",
+        rf"\newcommand{{\ThroughputOtherRefused}}{{{sum(c['refused'] for c in th['cells']) - cellval(1,50,'disjoint','refused') - cellval(1,50,'nested','refused')}}}",
     ]
 
 OUT.write_text("\n".join(lines) + "\n")
