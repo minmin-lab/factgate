@@ -24,6 +24,7 @@
 \newcommand{\effect}{\mathcal E}
 \newcommand{\rieffect}{\mathcal E^{ri}}
 \input{generated/evidence.tex}
+\input{generated/p10.tex}
 
 \title{Supplement to ``FactGate: A Task-Scoped Data Gateway for AI Agents
 with Cumulative Exposure Accounting''}
@@ -2414,6 +2415,95 @@ those whose Dependency rule already exists in the fragment (engineering
 gaps) and those that would need a new rule (fundamental to the accounting).
 The questions were written by the authors; the SQL was not; no rewrite loop
 was run.
+
+\subsection{Held-Out Agent-Written Workload (Frozen Language)}
+\label{sec:heldout-supp}
+
+The workload above is a development set: \code{HAVING}, exact \code{AVG},
+\code{COUNT(DISTINCT)}, and derived cells were admitted after its first
+pass, so its \AgentWorkloadLowerablePct\% measures fit after adaptation.
+To measure fit without adaptation, \HeldoutQueries{} new questions over the
+same three Product families, in the same style and Product mix (20 expense,
+8 orders/line-item, 7 result-heavy, 5 mixed), were written and committed
+(\filepath{evaluation/agentworkload-heldout/questions.md}, digest
+\HeldoutQuestionsDigest{}, commit \HeldoutFreezeCommit{}) before any SQL was
+generated, with the language and lowerer frozen from that commit on. The same
+off-the-shelf assistant (Claude via headless Claude Code, one call per
+question, given only the unchanged product sheet and the question, no hint of
+the fragment, output unedited) wrote one statement each; the frozen lowerer
+admits \HeldoutLowerable{} of \HeldoutQueries{} (\HeldoutLowerablePct\%;
+results digest \HeldoutResultsDigest{}). Table~\ref{tab:heldout-supp} names
+the first rejection of the rest.
+
+Of the \HeldoutRejected{} rejections, \HeldoutEngineeringGaps{} are
+engineering gaps whose Dependency rule already exists: typed date literals
+(\code{DATE '2026-04-01'}), which the literal parser does not yet spell;
+\code{to_char}/\code{date_trunc} bucketing, which the product sheet handed to
+the agent advertises as allowed functions although the closed fragment has no
+scalar-function rule (a sheet/lowerer mismatch this study exposed; the sheet
+likewise advertises \code{/}); and the alias rules (a derived projection
+needs an alias, a \code{HAVING} or \code{ORDER BY} aggregate must be
+selected). \HeldoutNewRule{} need a new rule (column-to-column and
+arithmetic comparisons, division and conditional arithmetic in projections,
+a correlated subquery), and \HeldoutAgentDefects{} statement failed to parse
+because the assistant appended prose to its SQL. The held-out rate is the
+number to cite for generalization; the development-set rate is not.
+
+\begin{table}[t]
+\centering
+\caption{Held-out agent-written workload: first rejection reason per
+statement (frozen lowerer).}
+\label{tab:heldout-supp}
+\small
+\begin{tabular}{lrl}
+\toprule
+Reason code & Count & Statements \\
+\midrule
+\HeldoutReasonTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Closure of the Fragment for a Governed Reporting Tier, and a Design Path}
+\label{sec:closure-supp}
+
+The fragment is not a subset of ad-hoc SQL chosen for convenience; it is
+closed under the operations a governed reporting tier performs on published
+Products. Such a tier serves curated Products with attested stable keys, so
+every join a report needs is an equi-join on those keys (connected graphs of
+2--16 roles are admitted); measures are published as Product columns, so
+derived measures that TPC-H and SSB compute inline
+(\code{lo_extendedprice * lo_discount}) become columns or single-Product
+exact derived cells; reporting filters are literal comparisons on published
+fields; and reporting aggregation is grouping with the admitted aggregates,
+\code{HAVING}, bounded union, and pagination. Under these operations the
+fragment is closed: every term built from admitted terms by an admitted
+operator is again admitted, and every such term has a total Dependency rule.
+What the fragment excludes is what a reporting tier delegates upstream to
+ETL (arbitrary expressions, subqueries, outer joins that materialize absence)
+or forbids (comparisons of one Product's cell with another's).
+
+Three excluded constructs dominate the rejections of all workloads and each
+has a rule sketch consistent with the algebra:
+\begin{itemize}
+\item \textbf{\code{OR} (disjunctive witnesses).} $b_1\vee b_2$ keeps a row
+when either disjunct is $\mathsf T$; its Dependency footprint is the
+predicate cells of every \emph{satisfied} disjunct (positive-output rule),
+merged by alternative union/max, and its Outcome atoms are those of both
+disjuncts plus a composite binding the disjunction. Conservation follows the
+union-distinct argument: one query per disjunct settles the same support.
+\item \textbf{Non-literal comparisons (two-cell atoms).} $a\;op\;b$ over two
+fields reads both cells, so both enter the footprint; the Outcome atom binds
+both field identities and no literal, so varying the compared pair is a new
+atom while re-spellings are not.
+\item \textbf{Outer joins (null-extended rows).} A preserved row without a
+match carries the preserved side's support only; null-extended cells release
+nothing and depend on nothing, and the row identity binds the absence of a
+match so that a later inner-join re-issue is a distinct Outcome.
+\end{itemize}
+Each sketch keeps $\operatorname{support}(W)=S$, the representation-closure
+induction, and the base-ledger conservation argument; none is implemented or
+evaluated here.
 
 \begin{table}[t]
 \centering

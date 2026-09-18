@@ -46,6 +46,7 @@
 \newtheorem{proposition}{Proposition}
 
 \input{generated/evidence.tex}
+\input{generated/p10.tex}
 % Internal evidence macro names preserve artifact compatibility and are not
 % exposed as system module versions in the paper.
 \newcommand{\RQFourVFourDependencyFacts}{\RQFourVFourInfluenceFacts}
@@ -1470,16 +1471,18 @@ privacy (channels and fresh capacity: Section~\ref{sec:model}). \textbf{Query an
 frozen, manifest-proven publications; the closed fragment is a
 reporting-Product fragment, not ad-hoc analytics: the production lowerer
 admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
-(comma joins rewritten to explicit joins; first rejections: subqueries
+(first rejections: subqueries
 \TPCHSubqueryQueries{}, arithmetic \TPCHArithmeticQueries{}, multi-product
 \code{LIMIT}), and
 \SSBLowerableExplicitJoin{} of the \SSBQueries{} Star Schema Benchmark
-reporting queries (star joins with grouped \code{SUM} lower; multi-source
-measures, \code{OR}, and alias ordering do not; supplement tables);
+reporting queries (supplement tables);
 LLM-written SQL from the Product sheet alone lowers unedited in
 \AgentWorkloadLowerable{} of \AgentWorkloadQueries{} cases
-(\AgentWorkloadLowerablePct\%; a development set adapted after its first
-pass, not held-out generalization);
+(\AgentWorkloadLowerablePct\%, a development set adapted after its first
+pass; a held-out set of \HeldoutQueries{} questions written after the freeze
+lowers \HeldoutLowerable{}, \HeldoutLowerablePct\%: \HeldoutEngineeringGaps{}
+rejections are engineering gaps, \HeldoutNewRule{} need new rules,
+\HeldoutAgentDefects{} is agent output; supplement);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. \code{HAVING}, \code{SELECT *},

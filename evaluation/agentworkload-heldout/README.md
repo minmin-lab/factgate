@@ -19,3 +19,5 @@ Protocol (frozen before any SQL was generated):
   -root evaluation/agentworkload-heldout -out evaluation/agentworkload-heldout/results.json`
   at the frozen commit; the lowerer is not changed afterwards.
 - Class: pilot (supplementary), not part of the sealed campaign.
+
+Note: the lowering tool globs `q*.sql`, so the SQL for question hNN is stored as `queries/qNN.sql` (same number); `questions.md` keeps its frozen text and digest.
