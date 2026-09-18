@@ -191,28 +191,28 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[arrow] (compiler) -- (sidecar);
 \draw[arrow] (compiler) -- (dictionary);
 \draw[arrow] (dictionary) -- (manifest);
-\draw[arrow] (sidecar.east) -- ++(.65,0) |- (manifest.east);
+\draw[arrow] (sidecar.east) -- ++(.4,0) |- (manifest.east);
 
 % divider
-\draw[gray!55] (6.95,.05) -- (6.95,3.65);
+\draw[gray!55] (7.2,.05) -- (7.2,3.65);
 
 % (b) Online path
-\node[font=\footnotesize\bfseries] at (13.0,4.1) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (8.0,3.0) {Agent\\plan / result};
-\node[decision] (cache) at (10.45,3.0) {authorize +\\semantic cache};
-\node[txnbox, minimum width=26mm] (execute) at (13.7,3.0)
+\node[font=\footnotesize\bfseries] at (13.4,4.1) {(b) Online exact set settlement};
+\node[box, fill=red!5, minimum width=14mm] (client) at (8.4,3.0) {Agent\\plan / result};
+\node[decision] (cache) at (10.85,3.0) {authorize +\\semantic cache};
+\node[txnbox, minimum width=26mm] (execute) at (14.1,3.0)
   {visible SQL + streamed\\ordinal companion};
-\node[txnbox, minimum width=23mm] (derive) at (17.1,3.0)
+\node[txnbox, minimum width=23mm] (derive) at (17.5,3.0)
   {bitmap + atom/\\composite effect};
-\node[txnbox, minimum width=25mm] (cached) at (13.7,1.75)
+\node[txnbox, minimum width=25mm] (cached) at (14.1,1.75)
   {committed observation\\reference};
-\node[txnbox, minimum width=21mm] (novelty) at (17.1,1.55)
+\node[txnbox, minimum width=21mm] (novelty) at (17.5,1.55)
   {exact novelty\\+ union};
-\node[txnbox, minimum width=21mm] (cas) at (15.1,.45)
+\node[txnbox, minimum width=21mm] (cas) at (15.5,.45)
   {three-ledger\\root-head CAS};
-\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (11.9,.45)
+\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (12.3,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (8.55,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (8.95,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 \draw[exchange] (client) -- (cache);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
