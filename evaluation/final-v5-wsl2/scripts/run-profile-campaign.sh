@@ -1126,6 +1126,20 @@ for alias in "${selected_profiles[@]}"; do
       fi
     fi
 
+    # Pilot-only post-experiment hook (P10.B2): a driver outside the campaign
+    # plan may use the still-running deployment with the exported adapter
+    # environment. Never available to the publication class; its output lands
+    # in the deployment directory and is recorded as pilot evidence only.
+    if [[ "$TASKGATE_EXPERIMENT_CLASS" == pilot && -n "${TASKGATE_PILOT_POST_EXPERIMENT_HOOK:-}" ]]; then
+      current_stage=pilot_hook
+      echo "P30-STAGE: pilot_post_experiment_hook_start deployment=$deployment_key hook=$TASKGATE_PILOT_POST_EXPERIMENT_HOOK"
+      hook_status=0
+      TASKGATE_PILOT_HOOK_DIR="$current_dir" TASKGATE_PILOT_HOOK_ADAPTER="$adapter" \
+        TASKGATE_PILOT_HOOK_DEPLOYMENT="$profile_execution_id" TASKGATE_PILOT_HOOK_REPETITION="$repetition" \
+        bash "$TASKGATE_PILOT_POST_EXPERIMENT_HOOK" >"$current_dir/pilot-hook.log" 2>&1 || hook_status=$?
+      echo "P30-STAGE: pilot_post_experiment_hook_exit=$hook_status"
+      [[ "$hook_status" -eq 0 ]] || { echo "pilot hook failed for $deployment_key" >&2; exit 1; }
+    fi
     current_stage=cleanup
     cleanup_rq5
     "${current_compose[@]}" down --volumes --remove-orphans >/dev/null
