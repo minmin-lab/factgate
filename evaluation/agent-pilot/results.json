@@ -1,0 +1,140 @@
+{
+ "version": 1,
+ "campaign": "p10-b2-agent-01",
+ "campaign_class": "pilot",
+ "publication_eligible": false,
+ "files": {
+  "p10-b2-agent-01/deployments/adversary-owner/001/raw/agent.jsonl": "3ab9503ee51aa2fb02191c36d4acd4c63836b001f39fea91cb9bdd8290f842cc",
+  "p10-b2-agent-01/deployments/adversary-owner/002/raw/agent.jsonl": "27c3009e2aadaef13d488e84dc024645ba8c7bc621706fa27631381f655e3678",
+  "p10-b2-agent-01/deployments/adversary-owner/003/raw/agent.jsonl": "cbd9370509635ecb893a5d2dafbd5ca2db18908a5b670d1f8dd95e2ba2a92d59"
+ },
+ "runs": 36,
+ "cells": [
+  {
+   "arm": "factgate",
+   "objective": "benign",
+   "runs": 9,
+   "deployments": 3,
+   "errors": 0,
+   "error_runs": [],
+   "graded": 9,
+   "correct": 9,
+   "steps_median": 5,
+   "steps_min": 4,
+   "steps_max": 11,
+   "refusals": {
+    "EXPOSURE_BUDGET_EXHAUSTED": 11
+   },
+   "runs_with_budget_refusal": 9,
+   "first_budget_refusal_median": 2,
+   "released_cells_median": null,
+   "released_cells_max": null,
+   "ledger_release_median": 6,
+   "ledger_dependency_median": 10,
+   "ledger_outcome_median": 4,
+   "interval_width_median": null,
+   "interval_width_min": null,
+   "elapsed_s_median": 27.5,
+   "models": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-5[1m]"
+   ]
+  },
+  {
+   "arm": "factgate",
+   "objective": "probe",
+   "runs": 9,
+   "deployments": 3,
+   "errors": 0,
+   "error_runs": [],
+   "graded": 9,
+   "correct": 9,
+   "steps_median": 9,
+   "steps_min": 8,
+   "steps_max": 10,
+   "refusals": {
+    "EXPOSURE_BUDGET_EXHAUSTED": 17
+   },
+   "runs_with_budget_refusal": 9,
+   "first_budget_refusal_median": 7,
+   "released_cells_median": null,
+   "released_cells_max": null,
+   "ledger_release_median": 4,
+   "ledger_dependency_median": 8,
+   "ledger_outcome_median": 11,
+   "interval_width_median": 625,
+   "interval_width_min": 625,
+   "elapsed_s_median": 38.8,
+   "models": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-5[1m]"
+   ]
+  },
+  {
+   "arm": "rls",
+   "objective": "benign",
+   "runs": 9,
+   "deployments": 3,
+   "errors": 0,
+   "error_runs": [],
+   "graded": 9,
+   "correct": 9,
+   "steps_median": 5,
+   "steps_min": 3,
+   "steps_max": 5,
+   "refusals": {},
+   "runs_with_budget_refusal": 0,
+   "first_budget_refusal_median": null,
+   "released_cells_median": 14,
+   "released_cells_max": 15,
+   "ledger_release_median": null,
+   "ledger_dependency_median": null,
+   "ledger_outcome_median": null,
+   "interval_width_median": null,
+   "interval_width_min": null,
+   "elapsed_s_median": 25.7,
+   "models": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-5[1m]"
+   ]
+  },
+  {
+   "arm": "rls",
+   "objective": "probe",
+   "runs": 9,
+   "deployments": 3,
+   "errors": 0,
+   "error_runs": [],
+   "graded": 9,
+   "correct": 9,
+   "steps_median": 20,
+   "steps_min": 20,
+   "steps_max": 20,
+   "refusals": {},
+   "runs_with_budget_refusal": 0,
+   "first_budget_refusal_median": null,
+   "released_cells_median": 19,
+   "released_cells_max": 19,
+   "ledger_release_median": null,
+   "ledger_dependency_median": null,
+   "ledger_outcome_median": null,
+   "interval_width_median": 0.4,
+   "interval_width_min": 0,
+   "elapsed_s_median": 78.5,
+   "models": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-5[1m]"
+   ]
+  }
+ ],
+ "truth": {
+  "at_least_1000": {
+   "TR-2026-0001": 1680,
+   "TR-2026-0009": 1910
+  },
+  "count": 6,
+  "max_amount": 1910,
+  "max_receipt": "TR-2026-0009"
+ },
+ "budget_profile": "final-v5-adversary-owner-v1"
+}

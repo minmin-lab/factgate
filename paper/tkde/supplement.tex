@@ -2684,6 +2684,91 @@ Reason code & Count & Statements \\
 \end{tabular}
 \end{table}
 
+\subsection{An LLM Agent Under Per-Query Authorization and Under FactGate}
+\label{sec:agent-pilot-supp}
+
+The workloads above test whether agent-written SQL is admitted. This pilot
+tests what an agent \emph{does} under the two controls when it has an
+objective and can read refusals: run \AgentCampaign{} (three fresh
+deployments of the adversary-owner profile; \AgentRuns{} agent runs; results
+digest \AgentResultsDigest{}; design frozen before execution in
+\filepath{docs/p10_b2_agent_experiment_design.md}). The agent is an
+off-the-shelf headless coding assistant (\AgentModels{}) invoked once per
+step with a fixed instruction, the Product's column sheet, the objective, and
+the transcript so far, and it answers with one SQL statement or a final
+JSON; nothing in the prompt describes the fragment or the budget, and no
+prompt was tuned after the first run. Two arms see the same ten-row expense
+fixture: \emph{RLS-only}, a PostgreSQL role under \code{FORCE ROW LEVEL
+SECURITY} scoped to the department with no cumulative accounting, and
+\emph{FactGate}, the governed \code{query_sql} path under the owner tier
+($B_R/B_D/B_O=10/18/12$). Two objectives: \emph{benign}, list the
+department's receipts of at least 1{,}000 with their amounts and give the
+department's receipt count; \emph{probe}, the auditing rule allows only
+\code{count(*)}, recover the department's maximum single amount (truth
+\AgentTruthMax{}) as precisely as possible. Three samples per cell and
+deployment; at most twenty steps; a run ends at the agent's final answer,
+graded against the fixture. Table~\ref{tab:agent-pilot-supp} reports the
+cells; no run failed for harness reasons.
+
+\begin{table}[t]
+\centering
+\caption{LLM-agent pilot (\AgentRuns{} runs over three deployments, three
+samples per cell and deployment): correct finals, median steps to the final,
+runs with a budget refusal and the median step of the first, total budget
+refusals, and what the agent obtained: for RLS-only the distinct cells it was
+shown (median), for FactGate the root ledger $R/D/O$ at the end (median);
+for the probe, the width of the agent's final interval (median, minimum).}
+\label{tab:agent-pilot-supp}
+\small
+\begin{tabular}{llcccccc}
+\toprule
+Objective & Arm & Correct & Steps & Refused runs / first & Refusals & Obtained & Width \\
+\midrule
+benign & RLS-only & \AgentRLSBenignCorrect/\AgentRLSBenignRuns & \AgentRLSBenignStepsMedian & \AgentRLSBenignBudgetRefusalRuns\,/\,-- & 0 & \AgentRLSBenignCells{} cells & -- \\
+benign & FactGate & \AgentFGBenignCorrect/\AgentFGBenignRuns & \AgentFGBenignStepsMedian & \AgentFGBenignBudgetRefusalRuns\,/\,\AgentFGBenignFirstBudgetRefusal & \AgentFGBenignBudgetRefusals & \AgentFGBenignLedger & -- \\
+probe & RLS-only & \AgentRLSProbeCorrect/\AgentRLSProbeRuns & \AgentRLSProbeStepsMedian & \AgentRLSProbeBudgetRefusalRuns\,/\,-- & 0 & \AgentRLSProbeCells{} cells & \AgentRLSProbeWidth{} (\AgentRLSProbeWidthMin) \\
+probe & FactGate & \AgentFGProbeCorrect/\AgentFGProbeRuns & \AgentFGProbeStepsMedian & \AgentFGProbeBudgetRefusalRuns\,/\,\AgentFGProbeFirstBudgetRefusal & \AgentFGProbeBudgetRefusals & \AgentFGProbeLedger & \AgentFGProbeWidth{} (\AgentFGProbeWidthMin) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Benign.}
+Both arms answer correctly in every run. The agent's first move is the
+same under both controls: count the rows, then list them all sorted by
+amount. RLS-only returns the listing (a median of \AgentRLSBenignCells{}
+distinct cells shown, more than the objective needs); FactGate refuses that
+listing on the Release floor in all \AgentFGBenignRuns{} runs at step
+\AgentFGBenignFirstBudgetRefusal{}, the agent reads the code and rewrites the
+query with the objective's own filter (\code{amount >= 1000}), which is
+admitted, and it finishes in a median of \AgentFGBenignStepsMedian{} steps
+with the root ledger at \AgentFGBenignLedger{}. The refusal cost one extra
+step and no correctness; the agent never saw the rows the objective did not
+ask for.
+
+\paragraph{Probe.}
+Under RLS-only every run recovers the maximum by threshold bisection on
+\code{count(*)}: nineteen to twenty probes, a final interval of median width
+\AgentRLSProbeWidth{} (exact in the best run), i.e., the aggregate-only rule
+does not protect the value. Under FactGate every run settles exactly six
+probes (each charges two Outcome facts, $B_O=12$) and every later probe is
+refused; the agents' finals are intervals of width \AgentFGProbeWidth{} in
+seven runs and 6{,}250 or 10{,}000 in two runs whose bisection started from
+$10^5$ or $10^6$ and had spent its six probes before reaching the data's
+range. The agent tried \AgentFGProbeBudgetRefusals{} further probes across
+the nine runs after the first refusal, none admitted. This is the
+$\lfloor B_O/2\rfloor$ bound of the adversary study
+(Section~\ref{sec:adversary-supp}) observed with an agent that was not told
+the bound, and the interval it reaches is the one the frozen bisection
+reaches at the same tier.
+
+\paragraph{What this shows and does not.}
+One agent, one fixture, one tier: the pilot shows that a current agent
+reads refusal codes and re-plans, that a set budget costs a legitimate task a
+step rather than its answer, and that a probing task is stopped at the
+budget's bit bound rather than by the rule the agent was given. It does not
+estimate the distribution of agent behaviour, and it does not compare
+prompts or models.
+
 \subsection{Closure of the Fragment for a Governed Reporting Tier, and a Design Path}
 \label{sec:closure-supp}
 

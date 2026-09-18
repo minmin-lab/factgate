@@ -1449,10 +1449,9 @@ a boundary that is asymmetric by construction and ranks nothing.
 
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
 PostgreSQL 16.14 image (supplement). The
-repository at the
-cited commits, the evidence pack, and the retained raw samples (48 JSONL
-files, 591~MB) form the artifact [artifact DOI/URL], from which every digest
-chain and macro is recomputable. Every campaign number above comes from
+repository at the cited commits, the evidence pack, and the retained raw
+samples (48 JSONL files, 591~MB) form the artifact [artifact DOI/URL];
+every digest chain and macro is recomputable from it. Every campaign number above comes from
 the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
 three executions per profile whose per-execution novel medians differ by at
@@ -1461,9 +1460,8 @@ most \FinalVFivePublicationNovelSpreadMaxPct\% of the pooled median (direct
 \FinalVFivePublicationConcurrencySpreadMaxPct\%); the supplement maps each
 number to its commit and raw file and alone cites the retained pilot
 (\FinalVFivePilotArtifactCommit{}). RQ1--RQ3 use small
-fixtures; ordinal/bitmap evidence is warm, single-host, and TPC-H-derived
-(not official); RQ5 sums three sequential warm child intervals behind an
-experiment controller. No result is generalized to cold-cache, multi-node,
+fixtures; ordinal/bitmap evidence is warm, single-host, TPC-H-derived (not
+official); RQ5 sums three sequential warm child intervals. No result is generalized to cold-cache, multi-node,
 or production-SLO behavior.
 
 \section{Limitations and Threats to Validity}
@@ -1488,20 +1486,21 @@ LLM-written SQL from the Product sheet alone lowers unedited in
 pass; a held-out set of \HeldoutQueries{} questions written after the freeze
 lowers \HeldoutLowerable{}, \HeldoutLowerablePct\%: \HeldoutEngineeringGaps{}
 rejections are engineering gaps, \HeldoutNewRule{} need new rules,
-\HeldoutAgentDefects{} is agent output; supplement);
+\HeldoutAgentDefects{} is agent output; supplement); an off-the-shelf agent
+completes a legitimate task under \system in every run after one refused
+listing, while its count-only probe stops at six probes where per-query
+authorization bisects to the value (supplement);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,
-\code{OR}, and outer joins need new rules (two-cell atoms, disjunctive
-witnesses, null-extended rows; sketched in the supplement). Stable keys and
+\code{OR}, and outer joins need new rules (sketched in the supplement). Stable keys and
 publications are trusted declarations, with View drift checked at request,
 approval, and execution.
 
 \textbf{Applicability envelope.} Publication artifacts cost
 \RQFiveBytesPerFact{}~B and \RQFiveBuildMicrosPerFact{}~$\mu$s per Fact
 (RQ5 Day~0); a $10^9$-Fact Product
-would need hundreds of gigabytes and hours per build and global aggregate,
-so the envelope is $10^5$--$10^6$-row Products, with a
+would need hundreds of gigabytes and hours per build, so the envelope is $10^5$--$10^6$-row Products, with a
 retained pilot ladder settling \FinalVFiveScaleSevenLargestDependency{}
 Dependency facts in one query (supplement). Same-root
 settlement serializes on the head (Section~\ref{sec:evaluation});
@@ -1521,9 +1520,8 @@ defence is each root's approval, not accounting.
 
 \system provides profile-relative exact accounting of Result, Dependency,
 and Outcome sets within one publication-bound root family, with theorems,
-bounded models, and executable tests behind one scoped claim: no governed
-artifact becomes \code{AVAILABLE} before atomic root-family settlement,
-enforcing an approved policy as querying unfolds without deciding it.
+models, and tests behind one scoped claim: no governed artifact becomes
+\code{AVAILABLE} before atomic root-family settlement.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
