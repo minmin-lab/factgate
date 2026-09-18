@@ -1418,9 +1418,9 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \begin{figure}[!t]
 \centering
 \begin{tikzpicture}
-\begin{axis}[width=0.98\columnwidth, height=0.24\columnwidth, font=\scriptsize,
+\begin{axis}[width=0.98\columnwidth, height=0.5\columnwidth, font=\scriptsize,
   xlabel={query index in the adaptive trace}, ylabel={distinct facts (oracle)},
-  xmin=1, xmax=100, ymin=0, ymax=30,
+  xmin=1, xmax=100, ymin=0, ymax=34,
   ytick={0,\FinalVFivePublicationRLSBudgetRelease,\FinalVFivePublicationRLSBudgetDependency,\FinalVFivePublicationRLSBudgetOutcome,30},
   legend pos=north west, legend columns=3,
   legend style={font=\scriptsize, draw=none, fill=none}, grid=major, grid style={gray!25}]
@@ -1431,8 +1431,8 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \addplot[blue, dashed] coordinates {(1,\FinalVFivePublicationRLSBudgetRelease) (100,\FinalVFivePublicationRLSBudgetRelease)};
 \addplot[red, dashed] coordinates {(1,\FinalVFivePublicationRLSBudgetDependency) (100,\FinalVFivePublicationRLSBudgetDependency)};
 \addplot[black!60!green, dashed] coordinates {(1,\FinalVFivePublicationRLSBudgetOutcome) (100,\FinalVFivePublicationRLSBudgetOutcome)};
-\draw[gray, thick] (axis cs:\FinalVFivePublicationRLSBoundedRefusalIndex,0) -- (axis cs:\FinalVFivePublicationRLSBoundedRefusalIndex,30)
-  node[pos=0.9, right, font=\scriptsize, align=left] {bounded arm\\refuses};
+\draw[gray, thick] (axis cs:\FinalVFivePublicationRLSBoundedRefusalIndex,0) -- (axis cs:\FinalVFivePublicationRLSBoundedRefusalIndex,34)
+  node[pos=0.065, right, font=\scriptsize, align=left] {bounded arm\\refuses};
 \end{axis}
 \end{tikzpicture}
 \caption{Distinct governed facts obtained by the adaptive trace by query
