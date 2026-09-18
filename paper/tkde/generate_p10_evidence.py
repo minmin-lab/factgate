@@ -221,5 +221,26 @@ if ap.exists():
         rf"\newcommand{{\AgentTruthMax}}{{{ag['truth'].get('max_amount', '--') if ag.get('truth') else '--'}}}",
     ]
 
+# --- B8: Passant (per-query data-flow control) on the adaptive trace -----
+pc = json.loads((ROOT / "evaluation/passant-comparison/results.json").read_text())
+ps = pc["summary"]; fam = ps["by_family"]
+lines += [
+    rf"\newcommand{{\PassantResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/passant-comparison/results.json')}}}}}",
+    rf"\newcommand{{\PassantTraceDigest}}{{\texttt{{{pc['trace_corpus_sha256'][:12]}}}}}",
+    rf"\newcommand{{\PassantCommit}}{{\texttt{{{ps['passant_commit']}}}}}",
+    rf"\newcommand{{\PassantVersion}}{{{ps['passant_package_version']}}}",
+    rf"\newcommand{{\PassantStatements}}{{{ps['statements']}}}",
+    rf"\newcommand{{\PassantAnswered}}{{{ps['answered']}}}",
+    rf"\newcommand{{\PassantErrors}}{{{ps['errors']}}}",
+    rf"\newcommand{{\PassantMatching}}{{{ps['answered_matching_expected']}}}",
+    rf"\newcommand{{\PassantPaginationMismatch}}{{{fam['pagination']['mismatches']}}}",
+    rf"\newcommand{{\PassantPaginationStatements}}{{{fam['pagination']['statements']}}}",
+    rf"\newcommand{{\PassantAggregateErrors}}{{{fam['repeated_aggregation']['errors'] + fam['adaptive_choice']['errors']}}}",
+    rf"\newcommand{{\PassantMedianMS}}{{{ps['passant_ms_median']:.2f}}}",
+    rf"\newcommand{{\PassantDirectMedianMS}}{{{ps['direct_ms_median']:.2f}}}",
+    rf"\newcommand{{\PassantOverhead}}{{{ps['overhead_ratio_median']:.1f}}}",
+    rf"\newcommand{{\PassantCells}}{{{ps['cumulative_cells']}}}",
+]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

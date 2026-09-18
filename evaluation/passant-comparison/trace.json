@@ -1,0 +1,2053 @@
+{
+ "corpus_id": "taskgate-final-v5-rls-corpus-v1",
+ "corpus_sha256": "39e86d75f10be47847e7db155f28c564c43f4d50d765a99605028b3fc6535b3b",
+ "policy_department": "销售部",
+ "rows": [
+  {
+   "receipt_no": "TR-2026-0001",
+   "employee_name": "张伟",
+   "department": "销售部",
+   "amount": 1680
+  },
+  {
+   "receipt_no": "TR-2026-0002",
+   "employee_name": "李娜",
+   "department": "销售部",
+   "amount": 880
+  },
+  {
+   "receipt_no": "TR-2026-0003",
+   "employee_name": "张伟",
+   "department": "销售部",
+   "amount": 553
+  },
+  {
+   "receipt_no": "TR-2026-0004",
+   "employee_name": "李娜",
+   "department": "销售部",
+   "amount": 320
+  },
+  {
+   "receipt_no": "TR-2026-0005",
+   "employee_name": "王强",
+   "department": "研发部",
+   "amount": 1450
+  },
+  {
+   "receipt_no": "TR-2026-0006",
+   "employee_name": "王强",
+   "department": "研发部",
+   "amount": 1260
+  },
+  {
+   "receipt_no": "TR-2026-0007",
+   "employee_name": "赵敏",
+   "department": "财务部",
+   "amount": 420
+  },
+  {
+   "receipt_no": "TR-2026-0008",
+   "employee_name": "张伟",
+   "department": "销售部",
+   "amount": 960
+  },
+  {
+   "receipt_no": "TR-2026-0009",
+   "employee_name": "李娜",
+   "department": "销售部",
+   "amount": 1910
+  },
+  {
+   "receipt_no": "TR-2026-0010",
+   "employee_name": "王强",
+   "department": "研发部",
+   "amount": 280
+  }
+ ],
+ "steps": [
+  {
+   "index": 1,
+   "id": "receipt-TR-2026-0001",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0001'",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 2,
+   "id": "receipt-TR-2026-0002",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0002'",
+   "expected_rows": [
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 3,
+   "id": "receipt-TR-2026-0003",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0003'",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 4,
+   "id": "receipt-TR-2026-0004",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0004'",
+   "expected_rows": [
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 5,
+   "id": "receipt-TR-2026-0008",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0008'",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 6,
+   "id": "receipt-TR-2026-0009",
+   "family": "equality",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE receipt_no = 'TR-2026-0009'",
+   "expected_rows": [
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 1,
+   "dependency_facts": 2,
+   "outcome_facts": 2
+  },
+  {
+   "index": 7,
+   "id": "page-01-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 8,
+   "id": "page-01-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 9,
+   "id": "page-01-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 10,
+   "id": "page-02-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 11,
+   "id": "page-02-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 12,
+   "id": "page-02-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 13,
+   "id": "page-03-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 14,
+   "id": "page-03-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 15,
+   "id": "page-03-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 16,
+   "id": "page-04-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 17,
+   "id": "page-04-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 18,
+   "id": "page-04-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 19,
+   "id": "page-05-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 20,
+   "id": "page-05-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 21,
+   "id": "page-05-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 22,
+   "id": "page-06-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 23,
+   "id": "page-06-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 24,
+   "id": "page-06-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 25,
+   "id": "page-07-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 26,
+   "id": "page-07-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 27,
+   "id": "page-07-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 28,
+   "id": "page-08-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 29,
+   "id": "page-08-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 30,
+   "id": "page-08-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 31,
+   "id": "page-09-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 32,
+   "id": "page-09-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 33,
+   "id": "page-09-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 34,
+   "id": "page-10-0",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 0",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 35,
+   "id": "page-10-2",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 2",
+   "expected_rows": [
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 36,
+   "id": "page-10-4",
+   "family": "pagination",
+   "variant": "limit-2-offset",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail ORDER BY receipt_no ASC LIMIT 2 OFFSET 4",
+   "expected_rows": [
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 2,
+   "dependency_facts": 4,
+   "outcome_facts": 1
+  },
+  {
+   "index": 37,
+   "id": "equiv-01-320-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 320 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 38,
+   "id": "equiv-01-320-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 320 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 39,
+   "id": "equiv-01-553-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 553 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 40,
+   "id": "equiv-01-553-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 553 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 41,
+   "id": "equiv-01-880-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 880 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 42,
+   "id": "equiv-01-880-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 880 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 43,
+   "id": "equiv-02-320-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 320 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 44,
+   "id": "equiv-02-320-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 320 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 45,
+   "id": "equiv-02-553-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 553 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 46,
+   "id": "equiv-02-553-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 553 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 47,
+   "id": "equiv-02-880-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 880 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 48,
+   "id": "equiv-02-880-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 880 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 49,
+   "id": "equiv-03-320-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 320 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 50,
+   "id": "equiv-03-320-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 320 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 51,
+   "id": "equiv-03-553-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 553 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 52,
+   "id": "equiv-03-553-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 553 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 53,
+   "id": "equiv-03-880-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 880 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 54,
+   "id": "equiv-03-880-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 880 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 55,
+   "id": "equiv-04-320-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 320 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 56,
+   "id": "equiv-04-320-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 320 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 57,
+   "id": "equiv-04-553-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 553 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 58,
+   "id": "equiv-04-553-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 553 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 59,
+   "id": "equiv-04-880-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 880 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 60,
+   "id": "equiv-04-880-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 880 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 61,
+   "id": "equiv-05-320-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 320 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 62,
+   "id": "equiv-05-320-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 320 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0004"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 6,
+   "dependency_facts": 18,
+   "outcome_facts": 2
+  },
+  {
+   "index": 63,
+   "id": "equiv-05-553-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 553 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 64,
+   "id": "equiv-05-553-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 553 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0003"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 5,
+   "dependency_facts": 15,
+   "outcome_facts": 2
+  },
+  {
+   "index": 65,
+   "id": "equiv-05-880-canonical",
+   "family": "equivalent_predicate",
+   "variant": "canonical",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE amount \u003e= 880 ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 66,
+   "id": "equiv-05-880-reversed",
+   "family": "equivalent_predicate",
+   "variant": "reversed",
+   "direct_sql": "SELECT receipt_no FROM final_v5_rls.expense_detail WHERE 880 \u003c= amount ORDER BY receipt_no ASC",
+   "expected_rows": [
+    [
+     "TR-2026-0001"
+    ],
+    [
+     "TR-2026-0002"
+    ],
+    [
+     "TR-2026-0008"
+    ],
+    [
+     "TR-2026-0009"
+    ]
+   ],
+   "release_facts": 4,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 67,
+   "id": "count-01-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 68,
+   "id": "count-01-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 69,
+   "id": "count-01-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 70,
+   "id": "count-02-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 71,
+   "id": "count-02-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 72,
+   "id": "count-02-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 73,
+   "id": "count-03-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 74,
+   "id": "count-03-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 75,
+   "id": "count-03-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 76,
+   "id": "count-04-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 77,
+   "id": "count-04-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 78,
+   "id": "count-04-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 79,
+   "id": "count-05-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 80,
+   "id": "count-05-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 81,
+   "id": "count-05-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 82,
+   "id": "count-06-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 83,
+   "id": "count-06-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 84,
+   "id": "count-06-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 85,
+   "id": "count-07-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 86,
+   "id": "count-07-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 87,
+   "id": "count-07-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 88,
+   "id": "count-08-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 89,
+   "id": "count-08-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 90,
+   "id": "count-08-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 91,
+   "id": "count-09-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 92,
+   "id": "count-09-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 93,
+   "id": "count-09-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 94,
+   "id": "count-10-300",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 300",
+   "expected_rows": [
+    [
+     "6"
+    ]
+   ],
+   "scalar": 6,
+   "release_facts": 1,
+   "dependency_facts": 12,
+   "outcome_facts": 2
+  },
+  {
+   "index": 95,
+   "id": "count-10-553",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 96,
+   "id": "count-10-960",
+   "family": "repeated_aggregation",
+   "variant": "canonical",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 960",
+   "expected_rows": [
+    [
+     "3"
+    ]
+   ],
+   "scalar": 3,
+   "release_facts": 1,
+   "dependency_facts": 6,
+   "outcome_facts": 2
+  },
+  {
+   "index": 97,
+   "id": "adaptive-01",
+   "family": "adaptive_choice",
+   "variant": "prior-scalar-parity",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 880",
+   "expected_rows": [
+    [
+     "4"
+    ]
+   ],
+   "scalar": 4,
+   "release_facts": 1,
+   "dependency_facts": 8,
+   "outcome_facts": 2
+  },
+  {
+   "index": 98,
+   "id": "adaptive-02",
+   "family": "adaptive_choice",
+   "variant": "prior-scalar-parity",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  },
+  {
+   "index": 99,
+   "id": "adaptive-03",
+   "family": "adaptive_choice",
+   "variant": "prior-scalar-parity",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 880",
+   "expected_rows": [
+    [
+     "4"
+    ]
+   ],
+   "scalar": 4,
+   "release_facts": 1,
+   "dependency_facts": 8,
+   "outcome_facts": 2
+  },
+  {
+   "index": 100,
+   "id": "adaptive-04",
+   "family": "adaptive_choice",
+   "variant": "prior-scalar-parity",
+   "direct_sql": "SELECT count(*) AS request_count FROM final_v5_rls.expense_detail WHERE amount \u003e= 553",
+   "expected_rows": [
+    [
+     "5"
+    ]
+   ],
+   "scalar": 5,
+   "release_facts": 1,
+   "dependency_facts": 10,
+   "outcome_facts": 2
+  }
+ ]
+}

@@ -2216,6 +2216,54 @@ tasks, and the multipliers other than $1$, $2$, $4$ (benign) and the three
 tiers (adversary) are not executed.
 
 
+\subsection{Per-query data-flow control on the adaptive trace: the Passant artifact}
+\label{sec:passant-supp}
+
+Data-flow control (cited in the main text) is the closest per-query
+comparator, and its open-source artifact, Passant (Rust core with a Python
+API; commit \PassantCommit{}, package \PassantVersion{}), runs against
+PostgreSQL. We replayed the sealed campaign's \PassantStatements{}-statement
+adaptive trace (corpus digest \PassantTraceDigest{}) through it on the same
+ten-row fixture in a standalone PostgreSQL~16, under one \code{REMOVE}
+policy stating the department scope the RLS and FactGate arms enforce
+(\filepath{evaluation/passant-comparison/replay.py}, results digest
+\PassantResultsDigest{}). Passant keeps no state across statements, so it
+refuses nothing by construction; the question is what its per-query
+semantics do with the trace.
+
+Three things happened. The \PassantAnswered{} row-returning statements
+executed, \PassantMatching{} of them with exactly the rows the
+department-scoped expectation lists: equality lookups and the
+equivalent-predicate rewrites become the statement with the scope predicate
+conjoined, at a median \PassantMedianMS{}~ms against \PassantDirectMedianMS{}~ms
+for the same statement executed directly with the scope folded in
+(\PassantOverhead{}$\times$, Python call path included), and the caller ends
+with the \PassantCells{} distinct receipt cells the trace's row statements
+can release, exactly as under RLS. The remaining \PassantPaginationMismatch{} of
+\PassantPaginationStatements{} pagination statements returned an empty page:
+the artifact applies \code{LIMIT}/\code{OFFSET} inside a CTE before the
+policy filter, so rows of other departments consume page slots (the offset-4
+page is empty where the scoped expectation has two rows). The
+\PassantAggregateErrors{} aggregate statements, every \code{count(*)} probe of
+the trace, did not execute at all: the artifact's rewrite for a
+source-comparison policy over an ungrouped aggregate appends a \code{HAVING}
+that references the non-aggregated column, which PostgreSQL and DuckDB both
+reject with a grouping error. Even as documented (all contributing rows must
+satisfy the constraint, checked by \code{COUNT(DISTINCT)}, \code{MIN} and
+\code{MAX} in \code{HAVING}), a count over the whole table would be removed
+as an output tuple rather than restricted to the department, so the trace's
+threshold probes are unanswerable under this policy shape.
+
+The comparison is of mechanism, not of engineering maturity: DFC decides per
+statement which rows may flow into which outputs, and on the row statements
+it decides as row-level security does; it has no quantity that grows across
+statements, so the adaptive trace's cumulative release is not something it
+measures or bounds, and the probes that FactGate refuses at its Outcome floor
+are, under Passant, either answered without limit (row form) or not
+executable (aggregate form) for reasons unrelated to how many have been
+asked. No latency here ranks one system over the other; the two ran in
+different processes against different servers.
+
 \section{ProvSQL Base-Tuple Cross-Check (Pilot)}
 \label{sec:provsql-leaves-supp}
 
