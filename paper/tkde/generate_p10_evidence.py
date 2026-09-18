@@ -163,5 +163,41 @@ lines += [
     rf"\newcommand{{\AlignedCounterZeroMax}}{{{max(cells[(a,o)]['nonnovel_refused'] for a in ('rows','queries') for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
 ]
 
+# --- B2: headless-agent pilot (present only after the campaign) ---------
+ap = ROOT / "evaluation/agent-pilot/results.json"
+if ap.exists():
+    ag = json.loads(ap.read_text())
+    cell = {f"{c['arm']}/{c['objective']}": c for c in ag["cells"]}
+    def cellmac(prefix, c):
+        return [
+            rf"\newcommand{{\{prefix}Runs}}{{{c['runs']}}}",
+            rf"\newcommand{{\{prefix}Correct}}{{{c['correct']}}}",
+            rf"\newcommand{{\{prefix}Graded}}{{{c['graded']}}}",
+            rf"\newcommand{{\{prefix}Errors}}{{{c['errors']}}}",
+            rf"\newcommand{{\{prefix}StepsMedian}}{{{c['steps_median']}}}",
+            rf"\newcommand{{\{prefix}StepsMax}}{{{c['steps_max']}}}",
+            rf"\newcommand{{\{prefix}BudgetRefusalRuns}}{{{c['runs_with_budget_refusal']}}}",
+            rf"\newcommand{{\{prefix}FirstBudgetRefusal}}{{{c['first_budget_refusal_median'] if c['first_budget_refusal_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}BudgetRefusals}}{{{c['refusals'].get('EXPOSURE_BUDGET_EXHAUSTED', 0)}}}",
+            rf"\newcommand{{\{prefix}OtherRefusals}}{{{sum(v for k, v in c['refusals'].items() if k != 'EXPOSURE_BUDGET_EXHAUSTED')}}}",
+            rf"\newcommand{{\{prefix}Cells}}{{{c['released_cells_median'] if c['released_cells_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}CellsMax}}{{{c['released_cells_max'] if c['released_cells_max'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}Ledger}}{{{'/'.join(str(int(x)) if x is not None else '--' for x in (c['ledger_release_median'], c['ledger_dependency_median'], c['ledger_outcome_median']))}}}",
+            rf"\newcommand{{\{prefix}Width}}{{{c['interval_width_median'] if c['interval_width_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}WidthMin}}{{{c['interval_width_min'] if c['interval_width_min'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}Seconds}}{{{c['elapsed_s_median']}}}",
+        ]
+    for key, prefix in (("rls/benign", "AgentRLSBenign"), ("factgate/benign", "AgentFGBenign"),
+                        ("rls/probe", "AgentRLSProbe"), ("factgate/probe", "AgentFGProbe")):
+        if key in cell:
+            lines += cellmac(prefix, cell[key])
+    lines += [
+        rf"\newcommand{{\AgentResultsDigest}}{{\texttt{{{sha12(ap)}}}}}",
+        rf"\newcommand{{\AgentCampaign}}{{\texttt{{{tex(ag['campaign'])}}}}}",
+        rf"\newcommand{{\AgentRuns}}{{{ag['runs']}}}",
+        rf"\newcommand{{\AgentModels}}{{{tex(', '.join(sorted({m for c in ag['cells'] for m in c['models']})))}}}",
+        rf"\newcommand{{\AgentTruthMax}}{{{ag['truth'].get('max_amount', '--') if ag.get('truth') else '--'}}}",
+    ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)
