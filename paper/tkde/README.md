@@ -179,19 +179,18 @@ single full experiment to run after the manuscript and protocol are frozen.
 
 ## Related-manuscript disclosure
 
-SessionBound and this TKDE manuscript have the same author. SessionBound is an
-unsubmitted working manuscript available as a preliminary arXiv preprint
-(arXiv:2607.00751, cited pinned to v1); it has not been submitted to or
-accepted by TDSC. The Introduction states that status explicitly. Submission
-materials must disclose the relationship and the database-specific
-contributions of this manuscript; the paper does not organize its technical
-content around that evolution history.
+SessionBound (arXiv:2607.00751v1) is the earlier version of this manuscript by
+the same author: an unsubmitted working draft that was never submitted to or
+accepted by TDSC. The Introduction cites it as "an earlier version of this
+article", pinned to v1, and states what is new in this version. Submission
+materials must disclose that relationship; the paper does not organize its
+technical content around that evolution history.
 
-Author decision (2026-09-07): the manuscript is submitted single-anonymous
-under the author's real name, is posted to arXiv under a new identifier before
-submission, and the SessionBound preprint receives a v2 whose only change is a
-front-page note that it is superseded by the new identifier. The SessionBound
-identifier is never replaced with this manuscript.
+Author decision (2026-09-18, replacing the 2026-09-07 plan): this manuscript
+is submitted single-anonymous under the author's real name and is posted as
+version 2 of arXiv:2607.00751, replacing the SessionBound preprint in place
+(title changes; v1 stays publicly accessible under the same identifier). No
+separate arXiv identifier is created.
 
 ## Submission-length check
 
