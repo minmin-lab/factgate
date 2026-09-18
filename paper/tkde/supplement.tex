@@ -241,6 +241,96 @@ Page & Stable total-order slice; annotations copied & Account selected output ro
 \end{tabular}
 \end{table}
 
+\subsection{Extensions: Derived Cells, Exact AVG, COUNT DISTINCT, and HAVING}
+\label{sec:supp-extensions}
+
+Four constructs were admitted after the rules above were written (the
+agent-written workload's first pass rejected them). Their typing and effect
+rules follow; Table~\ref{tab:extension-map-supp} maps each to its rule,
+implementation site, test, and evidence version.
+
+\textbf{Derived cells.} An arithmetic term is
+$x ::= a \mid n \mid x\oplus x$ with $\oplus\in\{+,-,\times\}$, $a$ a column of
+the single Product in scope, and $n$ an integer literal. Division, casts,
+functions, and multi-Product terms are undefined.
+\begingroup\small
+\begin{align*}
+\frac{\Pi\vdash e:\Gamma\quad |\mathcal B(e)|=1\quad
+      \forall a\in\operatorname{cols}(x):\Gamma(a)=\tau\quad
+      \tau\in\{\code{int2},\code{int4},\code{int8},\code{numeric}\}}
+ {\Pi\vdash \pi_{A;\,x{:}\tau}(e):\Gamma|_A\uplus\{x\mapsto\tau\}}
+&\;(T\text{-Derive})\\[1mm]
+[E\text{-Derive}]\quad
+&\frac{\Pi;D\vdash e\Downarrow R}
+ {\Pi;D\vdash\pi_{A;x}(e)\Downarrow
+  R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}]},\\[-1mm]
+&\hspace{5mm}d_x(t)=\langle\llbracket x\rrbracket_{\Pi,t},\tau,
+  \textstyle\bigoplus_{a\in\operatorname{cols}(x)}\alpha_a(t),N_{\mathrm{arith}}(x),\operatorname{mat}(R,t,x)\rangle .
+\end{align*}
+\endgroup
+Integer literals adopt $\tau$; the value is PostgreSQL's under exact
+arithmetic (NULL propagates; overflow makes evaluation undefined and
+settles nothing). $N_{\mathrm{arith}}$ sorts the operands of $+$ and
+$\times$ by stable identity, keeps the order of $-$, canonicalizes literals
+under $\tau$, and erases aliases, so the derived Release identity
+$f_d=\langle\varpi,\mathcal B,k_o,N_{\mathrm{arith}}(x),\tau,C_\tau(v),CW(W)\rangle$
+is the main text's derived identity with $N_\varpi:=N_{\mathrm{arith}}$. The
+Dependency footprint of the cell is the union of its argument cells'
+supports; the row's support is unchanged. Split/replay conservation is
+the derived-identity case of the base-ledger proposition: the same term over
+the same row yields the same $f_d$ in any spelling.
+
+\textbf{Exact AVG.} $\mathcal A$ gains \code{AVG} over
+$\tau\in\{\code{int2},\code{int4},\code{int8},\code{numeric}\}$ only, with
+output type \code{numeric}. PostgreSQL computes it as one exact
+\code{numeric} division of the exact sum by the count, so the value is
+fold-order independent; floating-point \code{AVG} is excluded for the same
+reason as floating-point \code{SUM}. Its E-Group clause is that of
+\code{SUM}: the aggregate cell's annotation is the complete argument bag of
+the group, and its identity binds $N(\code{avg}(a))$, the value, and $CW(W)$.
+
+\textbf{COUNT DISTINCT.} \code{COUNT(DISTINCT}~$a$\code{)} is admitted;
+\code{DISTINCT} under any other aggregate is undefined. PostgreSQL's value
+ignores NULL and repeated values, but the Dependency rule is that of
+\code{COUNT(}$a$\code{)}: every member row's argument cell, NULL and
+duplicates included, since each member positively contributed to the group.
+The result identity binds the \code{DISTINCT} flag inside $N(x_{a'})$, so
+\code{COUNT(}$a$\code{)} and \code{COUNT(DISTINCT}~$a$\code{)} over the same
+group are distinct Release facts and distinct Outcome composites.
+
+\textbf{HAVING.} A \code{HAVING} clause is $\sigma_{h;F_h}$ applied to the
+output of $\gamma_{G;\mathcal A}$, typed by T-Select with
+$\Gamma=\Gamma|_G\uplus\Gamma_{\mathcal A}$ and $h$ ranging over aggregate
+output aliases with typed literals only; its E-Select clause keeps the
+group rows whose $h$ is $\mathsf T$ and adds each read aggregate cell's
+annotation (already the complete argument bag) to the surviving row's
+annotation. Groups \code{HAVING} drops are non-output and contribute
+nothing (positive-output rule); PostgreSQL returns no row for them, and the
+production evaluator reconstructs group membership only for returned rows.
+\code{HAVING} predicates enter the typed normal form and the plan digest,
+hence the replay key and the Outcome composite.
+
+\begin{table}[h]
+\centering
+\caption{Extension constructs: rule, implementation site, test, and evidence
+version. Evidence commit \EvidenceChainCommit{}; the generated-plan campaign
+is seed \GeneratedSeed{}, \GeneratedPlans{} plans, digest
+\GeneratedResultsDigest{}.}
+\label{tab:extension-map-supp}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{L{0.13\textwidth}L{0.17\textwidth}L{0.30\textwidth}L{0.32\textwidth}}
+\toprule
+Construct & Rule & Implementation & Test and evidence \\
+\midrule
+Derived cell $\{+,-,\times\}$ & T/E-Derive; $N_{\mathrm{arith}}$ & \filepath{internal/sqllowering/lower_derived.go} (single-Product, exact type, no cast); \filepath{internal/exposure/algebra_v2.go} derived fact; \filepath{internal/queryplan} normal form & lowering fragment tests; generated-plan differential campaign (Section~\ref{sec:generated-supp}); agent-written workload (Section~\ref{sec:agent-workload-supp}) \\
+Exact \code{AVG} & E-Group (\code{SUM} clause), output \code{numeric} & \filepath{internal/exposure/algebra_v2.go} aggregate admission and result type; \filepath{internal/queryplan/normalform.go} & generated-plan campaign (exact \code{avg} plans); RQ1 oracle memberships \\
+\code{COUNT(DISTINCT)} & E-Group (\code{COUNT} clause); identity binds the flag & \filepath{internal/exposure/algebra_v2.go} \code{AggregateSpecV2.Distinct} & generated-plan campaign (\code{count(distinct)} plans) \\
+\code{HAVING} & $\sigma$ over $\gamma$ output; E-Select & \filepath{internal/exposure/algebra_v2.go} having-aware group reconstruction; \filepath{internal/queryplan/normalform.go} \code{Having} & generated-plan campaign (\code{HAVING} plans); benign-trace pilot (Section~\ref{sec:benign-supp}), which found and fixed the identity-list defect \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Restricted Semantic-View Front End}
 \label{sec:supp-view-front-end}
 
@@ -1841,11 +1931,15 @@ statements settle (\FinalVFiveCompareUniqueAccepted{} unique,
 \FinalVFiveCompareRepeatsAccepted{} repeats),
 \FinalVFiveCompareBudgetRefusals{} refuse once the release-facts recipe
 is spent, and every repeat charges exactly
-\FinalVFiveCompareRepeatCharges{} facts of any kind. Two shapes emerge:
-repeats are a \emph{discount} under DP provenance and \emph{free} under
-exact set accounting; and nested overlapping ranges advance FactGate's
-Dependency ledger only by their set difference (the ledger settles at
-$\max$-bound $\times$ 14 facts), where every DP answer spends budget.
+\FinalVFiveCompareRepeatCharges{} facts of any kind. Two shapes emerge, and neither
+ranks the systems. A byte-identical repeat is free under exact set
+accounting; under DP its cost depends on the mechanism (DProvDB discounts an
+overlapping query, while cache-based mechanisms such as CacheDP, cited in
+the main text, answer a cached query at zero new privacy loss). Nested
+overlapping ranges advance FactGate's Dependency ledger only by their set
+difference (the ledger settles at $\max$-bound $\times$ 14 facts), whereas
+a fresh DP answer to a new range spends privacy budget. The metered
+quantities differ: declared facts released versus privacy loss.
 The dual holds on refusal: DProvDB degrades accuracy as
 $\varepsilon$ thins, FactGate refuses exactly and charges nothing for the
 refusal.

@@ -77,20 +77,20 @@ predicates is not bounded. Accounting is exact with
 respect to the declared rules over a closed fragment (connected
 equijoins, grouping, bounded unions, nested Views, derived-cell arithmetic)
 that admits \AgentWorkloadLowerablePct\% of \AgentWorkloadQueries{}
-LLM-written statements unedited. Ordinals, bitmaps, and a
-Merkle-radix set keep novelty exact at $10^7$ facts. A sealed
+LLM-written statements after adaptation. Ordinals, bitmaps, and a
+Merkle-radix set keep novelty exact at $10^7$ facts. A
 single-host campaign (\FinalVFivePublicationMeasuredSamples{} samples)
 charges every scripted decomposition once, keeps an adaptive trace within
 its budgets, and costs
 \FinalVFivePublicationOverheadMin{}--\FinalVFivePublicationOverheadMax{}$\times$
-a direct query, with settlement alone at a median
-\FinalVFivePublicationScaleSettleMillionMS{}~ms at zero ledger overlap
-against a million-fact history.
+a direct query; settlement alone takes a median
+\FinalVFivePublicationScaleSettleMillionMS{}~ms against a million-fact
+history at zero overlap.
 \end{abstract}
 
 \begin{IEEEkeywords}
 data exposure, query auditing, provenance, adaptive workloads, cumulative
-budget, positive-output dependency footprint, query-outcome accounting
+budget, dependency footprint, outcome accounting
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -134,8 +134,8 @@ as a brownfield-compatible egress layer at the governed serving tier.
 The reporting pipeline supplies immutable publications, the Catalog
 supplies Products and attested keys, and identity/workflow
 systems supply subject, purpose, and approval; \system compiles these into a
-signed task contract settled at a model-independent database boundary;
-the raw lake is never exposed to the agent.
+signed task contract at the database boundary; the raw lake is never
+exposed to the agent.
 
 \system budgets the root task in three set-valued dimensions. \emph{Accounted
 result exposure} identifies selected result values (wire label \emph{release});
@@ -158,7 +158,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 \begin{figure*}[t]
 \centering
-\resizebox{0.8\textwidth}{!}{%
+\resizebox{0.78\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, minimum height=6mm,
@@ -230,7 +230,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 \end{tikzpicture}
 }
 \caption{(a) Offline publication fixes ordinals and the Merkle-radix Outcome
-set; (b) online exact settlement, promotion, and replay (Section~\ref{sec:online}).}
+set; (b) online exact settlement, promotion, and replay.}
 \label{fig:architecture-settlement}
 \end{figure*}
 
@@ -287,8 +287,7 @@ query pricing studies determinacy, history, and information gain
 reuse bound $\epsilon$ \cite{dwork2014foundations,mazmudar2022cachedp};
 DProvDB \cite{zhang2023dprovdb} is the closest shape---a persistent
 per-analyst cumulative budget---but meters DP loss over noised views, not
-an exact declared-identity set with zero-charge replay (reproduced
-side-by-side: supplement).
+an exact declared-identity set (reproduced side-by-side: supplement).
 Statistical-database inference control studied trackers, query-set overlap,
 and cumulative auditing
 \cite{dobkin1979secure,denning1980tracker,adam1989security,kleinberg2003auditing,nabar2006robustness};
@@ -617,11 +616,10 @@ language in the supplement (O1--O4): (O1) every selected cell of a successful re
 has its materialized identity in $\facts_R$; (O2) $\facts_D^\varpi$ is exactly
 the declared inductive footprint (retained predicate fields, join keys, group
 keys, complete aggregate arguments), excluding rejected rows and non-output
-pages; (O3) the listed rewrites, projection splits, complete page partitions,
-idempotent overlaps and retries, join support, and root-ledger delegation
-cannot reduce cumulative charge; (O4) each success creates one composite and
-its predicate atoms, exact replay reuses them, and a rejected attempt
-creates none, charged only to $B_Q$.
+pages; (O3) the listed rewrites, splits, page partitions, overlaps,
+retries, join support, and delegation cannot reduce cumulative charge;
+(O4) each success creates one composite and its atoms, exact replay reuses
+them, and a rejected attempt creates none, charged only to $B_Q$.
 
 Six obligations separate the assurance layers (O1--O4 semantic claims, O5
 models plus transaction tests, O6 binding); none alone proves the
@@ -681,7 +679,7 @@ supplemental.
 The complete core syntax is
 \begin{align*}
 e ::= {}& \operatorname{Scan}[\nu,s,r,\Gamma]
- \mid \sigma_{p;F}(e) \mid \pi_A(e) \mid e\bowtie_{\Theta}e \\
+ \mid \sigma_{p;F}(e) \mid \pi_A(e) \mid \pi_{A;x}(e) \mid e\bowtie_{\Theta}e \\
  &\mid e\cup_\delta e \mid \gamma_{G;\mathcal A}(e)
  \mid \operatorname{Page}_{O,K,o,l}(e),\\
 p ::= {}& b \mid p\wedge b,\qquad b ::= a\;op\;c,\\
@@ -689,9 +687,11 @@ op\in {}&\{=,\ne,<,\le,>,\ge\}
  \cup\{\code{LIKE},\code{IN},\code{NOT IN}\},
 \end{align*}
 where $F$ is exactly the fields read by $p$, $\Theta$ is a nonempty
-conjunction of equalities, $\cup_\delta$ is union-distinct, and
-$\mathcal A\subseteq\{\code{COUNT(*)},\code{COUNT},\code{SUM},\code{MIN},
-\code{MAX}\}$.  No implicit SQL construct is hidden in $e$: outer joins,
+conjunction of equalities, $\cup_\delta$ is union-distinct,
+$\mathcal A\subseteq\{\code{COUNT(*)},\code{COUNT},\code{COUNT DISTINCT},\code{SUM},\code{MIN},
+\code{MAX},\code{AVG}\}$ (\code{AVG} exact-numeric only), $\pi_{A;x}$ adds one
+single-Product exact $\{+,-,\times\}$ derived cell $x$, and \code{HAVING} is
+$\sigma$ over $\gamma$'s output (rules in the supplement).  No implicit SQL construct is hidden in $e$: outer joins,
 difference, negation beyond the listed scalar predicates, windows, recursion,
 subqueries, volatile functions, and \code{UNION ALL} are not terms.
 
@@ -1014,10 +1014,10 @@ Proposition~\ref{prop:probing-bound}, is set by approvals, not by the
 agent. \emph{Example (cont.).} A delegated
 child re-issuing the split $\pi_{id}$ replays at $0/0/0$ against the
 shared ledger; a child attempting $\sigma_{dept='T'}$ is refused by the
-same $\Delta_T$. Settlement checks the settling task's own signed ceiling against
-the shared family total, so a child with a lower ceiling adds novel facts only
-while the family total stays within it and otherwise settles only
-zero-novelty replays, as intended: a narrower child must not widen the family.
+same $\Delta_T$. Settlement checks the settling task's signed ceiling against the
+family total, so a lower-ceiling child adds novel facts only while the
+family total stays within it and otherwise settles only zero-novelty
+replays: a narrower child must not widen the family.
 
 Conservation stops at the root and at the publication epoch: a second root
 for the same principal, or a root approved on $P_{e+1}$, has an independent
@@ -1225,8 +1225,8 @@ of the 414,000-row exposure-scale Product; S4, the depth-4 semantic-View
 form of S2/SF1; S5, a two-branch union-distinct of S1's shape; S6,
 result-heavy releases of 100--100,000 rows with 4 or 16 columns. Modes
 are direct (the same SQL against PostgreSQL without \system), novel (the first
-governed execution), and the replays; ``publication-class'' is the frozen
-protocol's campaign class (pilot runs are never eligible). The frozen
+governed execution), and the replays; ``sealed campaign'' denotes the frozen
+protocol's runs (retained pilots are supplementary, never eligible). The frozen
 campaign (\FinalVFivePublicationCampaign{}, commit
 \FinalVFivePublicationCommit{}) executed all
 \FinalVFivePublicationTotalCells{} frozen cells
@@ -1257,20 +1257,20 @@ more per Fact than S2, so Release materialization is at least as expensive
 per Fact as Dependency derivation. Settlement is not where exactness is
 paid: the Scale profile below settles against a million-Fact history in
 \FinalVFivePublicationScaleSettleMillionMS{}~ms. A sub-phase pilot (\FinalVFiveSubphaseSamplesSTwoSFTen{} pilot sample per
-cell; not publication-class; supplement) splits execute-and-derive:
+cell; a supplementary pilot; supplement) splits execute-and-derive:
 single-threaded Go-side ordinal consumption and witness merging dominate
 (\FinalVFiveSubphaseGoSidePctSOneSFOne{}--\FinalVFiveSubphaseGoSidePctSSixHundredKByteSixteen\%
 of the phase,
 \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Fact), so multi-second governed latency suits batch, not
-interactive, agents.
+per Fact), so multi-second latency suits batch, not interactive, agents;
+the bottleneck is single-threaded implementation, and replay buys database
+silence, zero charge, and audit identity, not time.
 
 \begin{table}[t]
 \centering
-\caption{Core workloads per cell: rows, Release/Dependency Facts, medians
-(ms) of direct, novel, semantic and idempotent replay over
-\FinalVFivePublicationBaselinePerCell{} samples; overhead is novel/direct;
---: no such replay cell in the protocol.}
+\caption{Core workloads per cell (medians, ms, over
+\FinalVFivePublicationBaselinePerCell{} samples): rows, Facts, direct, novel,
+semantic and idempotent replay; overhead is novel/direct; --: no such cell.}
 \label{tab:baseline-main}
 \scriptsize
 \setlength{\tabcolsep}{1.4pt}
@@ -1283,9 +1283,9 @@ Cell & Rows & Rel. & Dep. & Direct & Novel & Sem. & Idem. & Over. \\
 \end{tabular}
 \end{table}
 All \FinalVFivePublicationReplayZeroSQLSamples{} replay samples issued zero
-business SQL and charged no Facts, but replay is no latency win here:
-semantic replay exceeds direct re-execution in every cell; only
-idempotent replay at S2/SF10 undercuts it (supplement).
+business SQL and charged no Facts (the row budget is still consumed), but
+replay is no latency win: semantic replay exceeds direct re-execution in
+every cell; only idempotent replay at S2/SF10 undercuts it.
 
 The supplement's phase table shows where that time goes: the Gateway
 reports six non-overlapping server phases per governed response, and the
@@ -1323,9 +1323,8 @@ execute-and-derive (per-cell table in the supplement).
 
 \begin{table}[t]
 \centering
-\caption{Scale profile (RQ4): settlement transaction p50 and full response
-p50 (ms) when one candidate settles against a pre-seeded Dependency history
-of the same size.}
+\caption{Scale profile (RQ4): settlement and full-response p50 (ms) for one
+candidate against a same-size pre-seeded Dependency history.}
 \label{tab:scale-main}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -1395,29 +1394,12 @@ fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit
 to the set ledger's stopping point), in three orders each,
 released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
 every order; the exact floors capped release at
-\FinalVFiveCounterExactMaxDep{} in every order
-(Table~\ref{tab:counter-executed-main}).
+\FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products, whose overflow
+semantics differ (counters truncate and archive; exposure refuses without
+archiving); the supplement's admission-arithmetic replay compares metering
+units under one refuse-only rule. Both leave the set floors as the only
+budget bounding the released set.
 
-\begin{table}[!t]
-\centering
-\caption{Executed comparator arms (retained pilot, not publication class;
-three fresh deployments realized this table identically): queries accepted,
-first refusal step, and final distinct Dependency facts in
-natural\,/\,shuffled\,/\,novelty-first order. An exposure refusal does not
-archive the task (a step-1 refusal coexists with later acceptances);
-row/query-counter crossings truncate and archive
-(supplement).}
-\label{tab:counter-executed-main}
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lccc}
-\toprule
-Arm & Accepted & First refusal & Distinct Dep. \\
-\midrule
-\FinalVFiveCounterTableBody
-\bottomrule
-\end{tabular}
-\end{table}
 
 
 \begin{figure}[!t]
@@ -1441,8 +1423,8 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \end{axis}
 \end{tikzpicture}
 \caption{Distinct governed facts by query index (trace-union oracle; solid)
-against the bounded arm's budgets (dashed); \system-bounded refuses at the
-first budget crossing, where the trace stops.}
+against the bounded arm's budgets (dashed); the bounded arm refuses at the
+first crossing.}
 \label{fig:rls-trace}
 \end{figure}
 
@@ -1454,9 +1436,7 @@ complete typed drain, and \system's full governed path: at 45k orders
 \FinalVFivePublicationProvSQLFortyFiveKProvSQLS{}~s, and
 \FinalVFivePublicationProvSQLFortyFiveKBDGS{}~s over
 \FinalVFivePublicationProvSQLFortyFiveKDependencyFacts{} Dependency Facts,
-so typed exact-set derivation plus settlement lies between ungoverned
-execution and general circuit capture; the boundary is asymmetric by
-construction and does not rank the systems.
+a boundary that is asymmetric by construction and ranks nothing.
 
 \subsection{Reproducibility Boundary}
 
@@ -1465,8 +1445,8 @@ PostgreSQL 16.14 image (supplement). The
 repository at the
 cited commits, the evidence pack, and the retained raw samples (48 JSONL
 files, 591~MB) form the artifact [artifact DOI/URL], from which every digest
-chain and macro is recomputable. Every campaign number above is
-publication-class: one submission commit (\FinalVFivePublicationCommit{}),
+chain and macro is recomputable. Every campaign number above comes from
+the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
 three executions per profile whose per-execution novel medians differ by at
 most \FinalVFivePublicationNovelSpreadMaxPct\% of the pooled median (direct
@@ -1498,20 +1478,21 @@ reporting queries (star joins with grouped \code{SUM} lower; multi-source
 measures, \code{OR}, and alias ordering do not; supplement tables);
 LLM-written SQL from the Product sheet alone lowers unedited in
 \AgentWorkloadLowerable{} of \AgentWorkloadQueries{} cases
-(\AgentWorkloadLowerablePct\%);
+(\AgentWorkloadLowerablePct\%; a development set adapted after its first
+pass, not held-out generalization);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. \code{HAVING}, \code{SELECT *},
 exact \code{AVG}, \code{COUNT(DISTINCT)}, and single-Product
 $\{+,-,\times\}$ projections are now admitted; non-literal comparisons,
 \code{OR}, and outer joins need new rules (two-cell atoms, disjunctive
-witnesses, null-extended rows; supplement table). Materialized Views are
-opaque leaves; stable keys and publications are trusted declarations, with
-View drift checked at request, approval, and execution.
+witnesses, null-extended rows; supplement table). Stable keys and
+publications are trusted declarations, with View drift checked at request,
+approval, and execution.
 
 \textbf{Applicability envelope.} Publication artifacts cost
 \RQFiveBytesPerFact{}~B and \RQFiveBuildMicrosPerFact{}~$\mu$s per Fact
-(RQ5 Day~0) plus derivation microseconds per Fact; a $10^9$-Fact Product
+(RQ5 Day~0); a $10^9$-Fact Product
 would need hundreds of gigabytes and hours per build and global aggregate,
 so the envelope is $10^5$--$10^6$-row Products, with a
 retained pilot ladder settling \FinalVFiveScaleSevenLargestDependency{}
@@ -1523,16 +1504,19 @@ multi-root throughput is unmeasured.
 trusted---\system validates bindings, semantics, and settlement, not policy
 appropriateness---and the single database path and demo approval adapter
 offer no production integration or budget-calibration study
-\cite{tonnarelli2026dataproductmcp}.
+\cite{tonnarelli2026dataproductmcp}. The guarantee composes with controls it
+does not supply: task-tree and refusal-rate caps (Proposition~\ref{prop:probing-bound}),
+timing padding, and root expiry; splitting one objective across
+independently approved roots is fresh capacity no ledger spans, so its
+defence is each root's approval, not accounting.
 
 \section{Conclusion}
 
-\system provides profile-relative exact accounting of modeled Result,
-Dependency, and Outcome sets within one publication-bound root
-family---theorems, bounded models, and executable tests behind one scoped
-claim: no governed artifact becomes \code{AVAILABLE} before atomic
-root-family settlement. It makes an approved policy enforceable as
-autonomous querying unfolds, without deciding what that policy should be.
+\system provides profile-relative exact accounting of Result, Dependency,
+and Outcome sets within one publication-bound root family, with theorems,
+bounded models, and executable tests behind one scoped claim: no governed
+artifact becomes \code{AVAILABLE} before atomic root-family settlement. It
+enforces an approved policy as querying unfolds without deciding the policy.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

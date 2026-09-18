@@ -7,22 +7,22 @@
 
 | # | 项目 | 出处 | 改哪里 | 成本 | 状态 |
 |---|---|---|---|---|---|
-| A1 | DP 对比措辞改正：删去「DP 下重复是折扣、每个 DP 回答花预算」的概括；改为「计量对象不同（声明事实集合 vs 隐私损失），CacheDP 支持缓存零新增预算」 | GPT M1 | supplement §compare7；main §8 若有同义句 | 小 | TODO |
-| A2 | 形式规则与新增语法同步：加派生单元格 {+,−,×} 的 T/E 规则（类型提升、溢出、NULL、表达式规范化）、exact AVG（类型/精度）、COUNT DISTINCT（NULL、重复、见证）、HAVING（过滤位置与三维一致性）；加「构造→规则→实现位置→测试→证据版本」对应表 | GPT M2 | supplement §1；main §3.4 一句指针 | 中（形式化写作） | TODO |
+| A1 | DP 对比措辞改正：删去「DP 下重复是折扣、每个 DP 回答花预算」的概括；改为「计量对象不同（声明事实集合 vs 隐私损失），CacheDP 支持缓存零新增预算」 | GPT M1 | supplement §compare7；main §8 若有同义句 | 小 | DONE |
+| A2 | 形式规则与新增语法同步：加派生单元格 {+,−,×} 的 T/E 规则（类型提升、溢出、NULL、表达式规范化）、exact AVG（类型/精度）、COUNT DISTINCT（NULL、重复、见证）、HAVING（过滤位置与三维一致性）；加「构造→规则→实现位置→测试→证据版本」对应表 | GPT M2 | supplement §1；main §3.4 一句指针 | 中（形式化写作） | DONE |
 | A3 | 填 `[artifact DOI/URL]` 占位符 | GPT 次要 1 | main §8.3 | 小，依赖 **作者裁决复现包位置**（DataPort/Zenodo/GitHub Release） | 待作者裁决 |
-| A4 | 「publication-class」改为中性三档说法：封存主实验 / 多部署补充实验 / 探索性试验 | GPT 次要 2 | main §8、supplement 多处 | 小 | TODO |
-| A5 | 互补控制清单：一句列出部署方必须另做的事（拒绝限速、时延填充、任务树规模上限、根任务过期），说明 bounded release 与之组合才成立 | DeepSeek2 #6 | main §9 Limitations 或 §3 威胁模型 | 小 | TODO |
-| A6 | 跨根任务拆分攻击写成显式场景：防线在每根任务的人工审批，账本不跨根 | DeepSeek1 #3 | main §9 | 小 | TODO |
-| A7 | 正面解释 B_O 为何部分像查询计数器（每成功一个复合、每页一个）以及为何这是正确单位 | DeepSeek2 小 1 | main §3.3 或 §5.2 | 小 | TODO |
-| A8 | 「重放消耗行预算但不消耗事实预算」进正文 | DeepSeek2 小 2 | main §8 replay 段 | 小 | TODO |
-| A9 | ⌊B_O/2⌋ 比特上限推导在正文写一次 | DeepSeek2 小 5 | main §8 攻击段 | 小 | TODO |
-| A10 | 标定配方补单 Product 聚合下 B_D 退化的处理 | DeepSeek2 #5 | main §5.2 | 小 | TODO |
+| A4 | 「publication-class」改为中性三档说法：封存主实验 / 多部署补充实验 / 探索性试验 | GPT 次要 2 | main §8、supplement 多处 | 小 | DONE |
+| A5 | 互补控制清单：一句列出部署方必须另做的事（拒绝限速、时延填充、任务树规模上限、根任务过期），说明 bounded release 与之组合才成立 | DeepSeek2 #6 | main §9 Limitations 或 §3 威胁模型 | 小 | DONE |
+| A6 | 跨根任务拆分攻击写成显式场景：防线在每根任务的人工审批，账本不跨根 | DeepSeek1 #3 | main §9 | 小 | DONE |
+| A7 | 正面解释 B_O 为何部分像查询计数器（每成功一个复合、每页一个）以及为何这是正确单位 | DeepSeek2 小 1 | main §3.3 或 §5.2 | 小 | DONE（已在 §3.3/§5.2：B_O 封顶成功查询数并解释） |
+| A8 | 「重放消耗行预算但不消耗事实预算」进正文 | DeepSeek2 小 2 | main §8 replay 段 | 小 | DONE |
+| A9 | ⌊B_O/2⌋ 比特上限推导在正文写一次 | DeepSeek2 小 5 | main §8 攻击段 | 小 | DONE（已在 §3：⌊B_O/2⌋ 推导） |
+| A10 | 标定配方补单 Product 聚合下 B_D 退化的处理 | DeepSeek2 #5 | main §5.2 | 小 | DONE（已在 §5.2：单 Product 聚合下 B_D 退化） |
 | A11 | 片段封闭性论证或设计路径：为什么受限片段对治理型报表层足够；OR（析取见证）、非字面量比较（两格原子）、外连接（空扩展行）的规则草图 | DeepSeek2 #2 / GPT M5 | main §9 + supplement Table constructs | 中 | TODO |
-| A12 | 延迟与重放的文本：重放买到什么（不碰业务库、零事实收费、审计可复算）；Go 侧序号消费是实现瓶颈，生产实现可去掉的部分 | DeepSeek2 #3 | main §8 | 小 | TODO |
-| A13 | 计数器对照分两种结论：产品行为比较 vs 机制比较；指出准入算术版已是对齐语义 | GPT M4 | main §8 Table 4 段 | 小 | TODO |
+| A12 | 延迟与重放的文本：重放买到什么（不碰业务库、零事实收费、审计可复算）；Go 侧序号消费是实现瓶颈，生产实现可去掉的部分 | DeepSeek2 #3 | main §8 | 小 | DONE |
+| A13 | 计数器对照分两种结论：产品行为比较 vs 机制比较；指出准入算术版已是对齐语义 | GPT M4 | main §8 Table 4 段 | 小 | DONE |
 | A14 | 引言贡献段按「三个困难」重组：从 SQL 导出 F(q)；哪些改写保持身份、哪些产生新 Outcome；并发/失败/重放下可取结果不脱离已结算事实 | GPT M1 | main §1 | 中（改写不加内容） | TODO |
-| A15 | 70% 的定性改为「需求发现/开发集」，不再当泛化证据（若 B1 完成则换成独立集数字） | GPT M5 | main 摘要、§9、supplement | 小 | TODO |
-| A16 | influence 与 Dependency 的命名对应在正文加一句 | DeepSeek2 小 4 | main §3.2 | 小 | TODO |
+| A15 | 70% 的定性改为「需求发现/开发集」，不再当泛化证据（若 B1 完成则换成独立集数字） | GPT M5 | main 摘要、§9、supplement | 小 | DONE |
+| A16 | influence 与 Dependency 的命名对应在正文加一句 | DeepSeek2 小 4 | main §3.2 | 小 | DONE（主稿无 influence 字样，无需改） |
 
 ## B. 实验项（新证据；按性价比排序；全部待作者裁决）
 
