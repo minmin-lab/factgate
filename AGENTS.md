@@ -5,7 +5,6 @@
 - 台账：`docs/codex_publication_execution_plan.md` §10——append-only，后行校正前行，以最新行为准。
 - 交接：最新 `docs/handoff_*.md`。
 - 环境与路径：`docs/agents/environment.md`（执行机、SSH、网络绕法、重启后核灾、campaign 期间硬约束）。
-- 通知命令与心跳格式：`docs/agents/catm-notify.md`。
 - 无人值守循环任务词与看守：`docs/agents/loop-prompt.md`。
 - 八条做法的案例出处：`docs/agents/verification-cases.md`。
 
@@ -74,9 +73,9 @@
 但**不在正在测时延的执行机上跑重活**。
 
 **只有三种情况停下等作者**：命中上面三类且等待期无其他可做项；环境故障自复失败；作者明确叫停。
-停之前必做两件事：状态与卡点写进台账或 handoff；`catm-notify say` 说清在等什么、需要作者做什么。
+停之前必做两件事：状态与卡点写进台账或 handoff；在对话里说清在等什么、需要作者做什么。
 
-## 心跳与循环靠机制，不靠自觉
+## 循环靠机制，不靠自觉
 
-里程碑即时发、连续工作每 30 分钟至少一条三行心跳、时间戳一律 UTC+8 且在命令内插值——格式与命令见 `docs/agents/catm-notify.md`。
+进度、里程碑与卡点一律写台账（时间戳 UTC+8，先 `date` 对表再写）；没有独立通知通道（CATM 已于 2026-09-07 废弃）。
 无人值守必须用 `/loop` 启动，任务词见 `docs/agents/loop-prompt.md`；长任务配 detached 看守。

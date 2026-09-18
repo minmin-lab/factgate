@@ -6,7 +6,12 @@ TKDE 评测（campaign / route-matrix live / SQL 门等 harness 活）在 **WSL2
 （无 go、无 pgrep、无 docker harness 依赖）。**WSL 与 NAS 两处仓库都要与 origin 同步。**
 
 - **WSL2 仓库**：`/home/wmm/worktrees/agent_task_gateway`
-- **NAS 仓库**：`/volume1/homes/wuminmin/github/wuminmin/agent_task_gateway`（= `/var/services/homes/...` 同一文件系统）
+- **NAS 仓库**：`/volume1/homes/wuminmin/github/minmin-lab/factgate`（= `/var/services/homes/...` 同一文件系统；2026-09-07 由
+  `github/wuminmin/agent_task_gateway` 改名而来，旧路径留符号链接指向新路径，供仍在跑的旧 Claude 会话与历史脚本使用；
+  `~/stage-e-nas/watch-{e1,campaign}-nas.sh` 的 `WS=` 已改新路径）
+- **origin（2026-09-07 起）**：两处仓库的 origin 都是 `https://github.com/minmin-lab/factgate.git`（原 wuminmin/agent_task_gateway，
+  GitHub 对旧 URL 自动跳转）。NAS 目录名未改。NAS 上 git 在 `/opt/bin`、gh 在 `~/.local/bin`，非登录 ssh 会话要用 `bash -lc`；
+  git 凭证走 `gh auth setup-git` 配的 helper，**不匿名访问 GitHub**（作者定，见全局 CLAUDE.md）。
 - **NAS→WSL2 连接**：Tailscale 节点 `wmm-wsl`（`100.73.90.49`），用户 `wmm`，专用密钥 `~/.ssh/id_ed25519_taskgate`
   ```sh
   ssh -i ~/.ssh/id_ed25519_taskgate -o StrictHostKeyChecking=accept-new \
@@ -15,7 +20,7 @@ TKDE 评测（campaign / route-matrix live / SQL 门等 harness 活）在 **WSL2
 - 远端长命令输出一律落远端文件再读；ssh 中继会随时断。后台任务用 `nohup setsid … &`，
   同一 ssh 会话内不要让后台进程持有 stdout（会挂住 ssh）。
 - 不在 git 里的驱动脚本：WSL `~/stage-e/`（E1/E2、qualification 链）、`~/formal-v111/`（正式 campaign 发射/叫停）、
-  NAS `~/stage-e-nas/`（看守脚本，`catm-notify say --workspace <repo>`）。
+  NAS `~/stage-e-nas/`（历史看守脚本；其中的 catm-notify 调用已随 CATM 废弃失效，重用前先删）。
 
 ## 网络（2026-08-27 实测）
 

@@ -75,8 +75,8 @@ ATTACK_STEP_KEYS = (
 ATTACK_EXHAUSTED_CODE = "EXPOSURE_BUDGET_EXHAUSTED"
 
 # The RLS profile replays one deterministic 100-query adaptive trace against
-# PostgreSQL row-level security (per-query), BDG with an unlimited ledger, and
-# BDG bounded at floor(70%) of the trace's distinct facts; the corpus package
+# PostgreSQL row-level security (per-query), FactGate with an unlimited ledger, and
+# FactGate bounded at floor(70%) of the trace's distinct facts; the corpus package
 # carries an independent trace-union oracle.
 RLS_TRACE_CELL = "adaptive-100-v1/100-queries"
 RLS_CONTROL_CELL = "policy-denied-control/single"
@@ -463,7 +463,7 @@ def _provsql_stats(samples):
                 if len(facts) != 1:
                     raise PublicationEvidenceError(f"provsql cell {scale}/taskgate observed varying Fact sets {sorted(facts)}")
                 entry["release_facts"], entry["dependency_facts"] = facts.pop()
-                # Every BDG sample of the pair carries the independent
+                # Every FactGate sample of the pair carries the independent
                 # semantic-set verification: the production Dependency set,
                 # resolved through the publication dictionaries, must equal the
                 # closed-form semantic oracle member by member.
@@ -497,7 +497,7 @@ def _provsql_stats(samples):
 
 
 def _rls_stats(samples):
-    """Adaptive 100-query trace under RLS, BDG unlimited, and BDG bounded.
+    """Adaptive 100-query trace under RLS, FactGate unlimited, and FactGate bounded.
 
     Every retained sample of an arm must report the same per-step outcome; the
     unlimited arm's final root ledger must equal the independent oracle's

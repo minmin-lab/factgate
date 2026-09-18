@@ -76,6 +76,7 @@ var (
 		"snapshot-index-detail",
 		"snapshot-index-exposure-scale",
 		"snapshot-index-result-heavy",
+		"snapshot-index-scale-e7",
 		"snapshot-index-summary",
 		"snapshot-sidecar-install",
 	}

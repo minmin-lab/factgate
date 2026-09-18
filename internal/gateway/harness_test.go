@@ -358,23 +358,36 @@ func (harness *gatewayHarness) installCatalogV4SnapshotRegistry(t *testing.T) ma
 		if closeErr != nil {
 			t.Fatalf("close snapshot compiler input %s: %v", publication.Name, closeErr)
 		}
-		if len(input.Snapshot.Rows) == 0 {
-			// The committed compiler input carries no rows: the source rows for
-			// this publication live in the Business database rather than in the
-			// repository. Scan them the way cmd/snapshot-index does, so the test
-			// consumes the same bundle production would activate.
-			if !fullSnapshotRegistryRequested() {
-				continue
+		var parsed *ordinal.HotDictionary
+		if prebuiltDir := strings.TrimSpace(os.Getenv("TASKGATE_GATEWAY_PREBUILT_SNAPSHOT_DIR")); prebuiltDir != "" {
+			// The evaluation gate compiles every publication once, from source,
+			// in the dedicated snapshot-index Compose services (each in its own
+			// memory cgroup) and shares the result on the snapshot-index volume.
+			// Re-parsing that already-pinned bundle activates exactly what the
+			// Gateway loads, without a second in-process compile whose scale-e7
+			// transient (~26 GiB) OOMs the shared host. The digest assertions
+			// below still bind it to the Catalog and the committed compiler input.
+			parsed = loadPrebuiltSnapshotIndex(t, prebuiltDir, publication.Name, publication.ManifestDigest)
+		} else {
+			if len(input.Snapshot.Rows) == 0 {
+				// The committed compiler input carries no rows: the source rows for
+				// this publication live in the Business database rather than in the
+				// repository. Scan them the way cmd/snapshot-index does, so the test
+				// consumes the same bundle production would activate.
+				if !fullSnapshotRegistryRequested() {
+					continue
+				}
+				input = scanLiveSnapshotRows(t, input, publication.Name)
 			}
-			input = scanLiveSnapshotRows(t, input, publication.Name)
-		}
-		bundle, compileErr := snapshotbundle.Compile(input)
-		if compileErr != nil {
-			t.Fatalf("compile snapshot publication %s: %v", publication.Name, compileErr)
-		}
-		parsed, parseErr := ordinal.ParseHotDictionary(bundle.Hot, publication.ManifestDigest)
-		if parseErr != nil {
-			t.Fatalf("parse snapshot publication %s: %v", publication.Name, parseErr)
+			bundle, compileErr := snapshotbundle.Compile(input)
+			if compileErr != nil {
+				t.Fatalf("compile snapshot publication %s: %v", publication.Name, compileErr)
+			}
+			var parseErr error
+			parsed, parseErr = ordinal.ParseHotDictionary(bundle.Hot, publication.ManifestDigest)
+			if parseErr != nil {
+				t.Fatalf("parse snapshot publication %s: %v", publication.Name, parseErr)
+			}
 		}
 		// The compiler input declares what the bundle must digest to, and the
 		// Catalog declares what the Gateway will accept. Both are checked: a
@@ -398,6 +411,36 @@ func (harness *gatewayHarness) installCatalogV4SnapshotRegistry(t *testing.T) ma
 	}
 	harness.service.snapshotRegistry = registry
 	return indexes
+}
+
+// loadPrebuiltSnapshotIndex parses a publication bundle the evaluation gate
+// already produced on the shared snapshot-index volume, the same layout and
+// primitives cmd/gateway's loader uses (<dir>/<name>/<name>.bundle.json plus
+// the HOT file the manifest names). ParseHotDictionary re-checks the manifest
+// digest, and the caller's assertions bind the result to the Catalog and the
+// committed compiler input, so this is the compile path's proof without its
+// in-process compile. Used only when TASKGATE_GATEWAY_PREBUILT_SNAPSHOT_DIR is
+// set (the Compose gate); host runs still compile from source.
+func loadPrebuiltSnapshotIndex(t *testing.T, baseDir, name, manifestDigest string) *ordinal.HotDictionary {
+	t.Helper()
+	directory := filepath.Join(baseDir, name)
+	manifestBytes, err := os.ReadFile(filepath.Join(directory, name+".bundle.json"))
+	if err != nil {
+		t.Fatalf("read prebuilt bundle manifest %s: %v", name, err)
+	}
+	bundleManifest, err := snapshotbundle.DecodeBundleManifest(bytes.NewReader(manifestBytes))
+	if err != nil {
+		t.Fatalf("decode prebuilt bundle manifest %s: %v", name, err)
+	}
+	hotBytes, err := os.ReadFile(filepath.Join(directory, bundleManifest.Hot.Name))
+	if err != nil {
+		t.Fatalf("read prebuilt HOT artifact %s: %v", name, err)
+	}
+	parsed, err := ordinal.ParseHotDictionary(hotBytes, manifestDigest)
+	if err != nil {
+		t.Fatalf("parse prebuilt HOT artifact %s: %v", name, err)
+	}
+	return parsed
 }
 
 func (harness *gatewayHarness) createSummaryTaskWithGrantAndExposureProfile(t *testing.T, taskID string, narrow func(*domain.TaskGrantCoreV1), exposureLimits control.ExposureLimits, profile string) {

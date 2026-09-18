@@ -1,3 +1,11 @@
+//go:build taskgate_scale
+
+// This case prepares an ordinal-program plan, and preparation resolves every
+// snapshot publication the Catalog declares (preparation_inputs.go:180). Most
+// of those are scanned out of the Business database, so like the callback
+// scale cases it lives behind taskgate_scale and runs where the full snapshot
+// registry is materialised.
+
 package gateway
 
 import (

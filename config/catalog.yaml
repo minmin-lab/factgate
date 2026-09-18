@@ -12,7 +12,7 @@ sources:
     # Live attested reporting-view digest. Adding the Final-V5 result-heavy
     # Product changes the source attestation, so it was regenerated with
     # evaluation/cmd/schema-digest against a fresh deployment.
-    schema_digest: 38bd70a2603f9fea0db4ac3b52fabac2069248585aa3acedecae6a7d7447b46d
+    schema_digest: f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48
     secretRef: GATEWAY_DB_PASSWORD
 
 snapshot_publications:

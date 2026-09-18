@@ -104,7 +104,8 @@ func GenerateCurrentDatasetBinding(ctx context.Context,
 		return summary, err
 	}
 	if catalogAttestation.Datasource.SchemaDigest != currentCatalog.Sources[0].SchemaDigest {
-		return summary, errors.New("current source-controlled Catalog schema digest differs from live PostgreSQL")
+		return summary, fmt.Errorf("current source-controlled Catalog schema digest %s differs from live PostgreSQL %s",
+			currentCatalog.Sources[0].SchemaDigest, catalogAttestation.Datasource.SchemaDigest)
 	}
 	datasetAgreement, err := finalv5dataset.VerifyBenchmarkPostgreSQL(ctx, options.BusinessDSN)
 	if err != nil {

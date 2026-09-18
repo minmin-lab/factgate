@@ -242,6 +242,7 @@ def validate_final_v5_pilot_evidence(root: Path) -> dict:
     artifact_runs, baseline_samples, subphase_samples, provsql_leaf_samples = [], [], [], []
     footprint_samples, benign_samples, counter_samples, adversary_samples = [], [], [], []
     scale7_samples = []
+    compare7_samples = []
     for entry in manifest["runs"]:
         if entry.get("superseded_by"):
             # A retained run whose measurements a later run of the same family
@@ -268,6 +269,9 @@ def validate_final_v5_pilot_evidence(root: Path) -> dict:
             continue
         if entry["family"] == "scale7":
             scale7_samples.extend(_load_profile_pilot(root, entry))
+            continue
+        if entry["family"] == "compare7":
+            compare7_samples.extend(_load_profile_pilot(root, entry))
             continue
         if entry["family"] == "adversary":
             adversary_samples.extend(_load_profile_pilot(root, entry))
@@ -379,7 +383,8 @@ def validate_final_v5_pilot_evidence(root: Path) -> dict:
     return {"subphase": subphase, "provsql_leaves": provsql_leaves, "artifact": artifact_stats,
             "baseline": baseline_stats, "footprint": footprint, "benign": benign, "counter": counter,
             "adversary": adversary,
-            "scale7": _scale7_stats(scale7_samples) if scale7_samples else None}
+            "scale7": _scale7_stats(scale7_samples) if scale7_samples else None,
+            "compare7": _compare7_stats(compare7_samples) if compare7_samples else None}
 
 # ---------------------------------------------------------------------------
 # The three P8 retained studies (docs/p8): the refused-footprint ladder, the
@@ -459,6 +464,38 @@ def _benign_stats(samples: list[dict]) -> dict:
     }
 
 
+def _compare7_stats(samples: list[dict]) -> dict:
+    """Exhaustion-trajectory statistics for the P9.F comparison: a
+    mixed-experiment run may carry scale7 samples, which are filtered out."""
+    steps_by_deployment = []
+    for sample in samples:
+        if sample.get("experiment_id") != "compare7":
+            continue
+        evidence = sample.get("compare7_verification") or {}
+        steps_by_deployment.append(evidence)
+    if not steps_by_deployment:
+        raise PilotEvidenceError("compare7 study retained no compare7 samples")
+    first = steps_by_deployment[0]
+    for other in steps_by_deployment[1:]:
+        if (other["accepted_statements"], other["budget_refusals"],
+                other.get("first_budget_refusal"), other["repeat_charges"]) != (
+                first["accepted_statements"], first["budget_refusals"],
+                first.get("first_budget_refusal"), first["repeat_charges"]):
+            raise PilotEvidenceError("compare7 deployments disagree on the trajectory")
+    unique_accepted = sum(1 for step in first["steps"]
+                          if step.get("accepted") and not step.get("repeat_of"))
+    repeats_accepted = sum(1 for step in first["steps"]
+                           if step.get("accepted") and step.get("repeat_of"))
+    return {"deployments": len(steps_by_deployment),
+            "accepted": first["accepted_statements"],
+            "unique_accepted": unique_accepted,
+            "repeats_accepted": repeats_accepted,
+            "budget_refusals": first["budget_refusals"],
+            "first_budget_refusal": first.get("first_budget_refusal"),
+            "repeat_charges": first["repeat_charges"],
+            "final_ledger_dependency": first["steps"][-1]["ledger_dependency"]}
+
+
 def _scale7_stats(samples: list[dict]) -> dict:
     """Per-arm ladder statistics for the P9.E scale point: rung latencies
     (client-observed medians across deployments), the exact charged
@@ -466,7 +503,7 @@ def _scale7_stats(samples: list[dict]) -> dict:
     arms: dict = {}
     for sample in samples:
         if sample.get("experiment_id") != "scale7":
-            raise PilotEvidenceError("scale7 study retained a foreign sample")
+            continue
         evidence = sample.get("scale7_verification") or {}
         rungs = evidence.get("rungs") or []
         arm = arms.setdefault(sample["mode"], {"rungs": {}})

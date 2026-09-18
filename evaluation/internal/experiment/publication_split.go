@@ -48,8 +48,8 @@ type SplitPublicationCampaignSummary struct {
 // The values are deliberately exact: changing any denominator or execution
 // model requires a new source-controlled plan rather than a permissive reader.
 func ValidateSplitPublicationPlan(plan finalv5profile.CampaignPlan) error {
-	if plan.ContractRelease != "final-v5-contracts-v1.11" {
-		return fmt.Errorf("publication plan names contract release %q, want final-v5-contracts-v1.11", plan.ContractRelease)
+	if plan.ContractRelease != "final-v5-contracts-v1.11" && plan.ContractRelease != "final-v5-contracts-v1.13" {
+		return fmt.Errorf("publication plan names contract release %q, want a reviewed publication release (v1.11 or v1.13)", plan.ContractRelease)
 	}
 	profileCells := 0
 	profileSeen := map[string]bool{}

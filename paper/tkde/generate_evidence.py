@@ -1625,6 +1625,15 @@ def main(argv: list[str] | None = None) -> None:
             rf"\newcommand{{\FinalVFiveScaleSevenLargestReplayMS}}{{{decimal(scale7['largest_rung_replay_ms'], 1)}}}",
             r"\newcommand{\FinalVFiveScaleSevenLadderTableBody}{%" + "\n" + "\n".join(scale7_rows) + "%\n}",
         ])
+    compare7 = pilot.get("compare7")
+    if compare7 is not None:
+        lines.extend([
+            rf"\newcommand{{\FinalVFiveCompareAccepted}}{{{compare7['accepted']}}}",
+            rf"\newcommand{{\FinalVFiveCompareUniqueAccepted}}{{{compare7['unique_accepted']}}}",
+            rf"\newcommand{{\FinalVFiveCompareRepeatsAccepted}}{{{compare7['repeats_accepted']}}}",
+            rf"\newcommand{{\FinalVFiveCompareBudgetRefusals}}{{{compare7['budget_refusals']}}}",
+            rf"\newcommand{{\FinalVFiveCompareRepeatCharges}}{{{compare7['repeat_charges']}}}",
+        ])
     adversary = pilot.get("adversary")
     if adversary is None:
         raise SystemExit("pilot evidence lacks the optimizing-adversary study")

@@ -79,6 +79,7 @@ func TestRepositoryCatalog(t *testing.T) {
 		"provsql-nonce-v1":           false,
 		"final-v5-result-heavy-v1":   false,
 		"final-v5-exposure-scale-v1": false,
+		"final-v5-scale-e7-v1":       false,
 	}
 	if len(parsed.SnapshotPublications) != len(wantPublications) {
 		t.Fatalf("repository snapshot publications = %d, want exact set of %d", len(parsed.SnapshotPublications), len(wantPublications))

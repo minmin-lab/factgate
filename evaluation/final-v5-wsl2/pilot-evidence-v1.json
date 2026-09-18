@@ -166,6 +166,16 @@
       "samples_sha256": "79c9572f10b62922fb2b1be07edb106743ce7531e9beb149a0256c0ce7d6645a",
       "submission_commit": "1aeb7b987038fc2e20fc0c1b3d4cfe80174e29c4",
       "measured_samples": 9
+    },
+    {
+      "id": "pilot-compare7-01",
+      "family": "compare7",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-compare7-01",
+      "campaign_evidence_sha256": "ce3706b127ae68b1d7e6e501165537344d1d8d5fed1086d9d68395a5cdde46cb",
+      "samples_sha256": "4d7671fcf50b9c8c3cf6788a9873c3ca91b126941d370ee3931e62a39d9e3b27",
+      "submission_commit": "a434c8cd835a2105cd34a91ddf74f9f64cf26a57",
+      "measured_samples": 12
     }
   ]
 }

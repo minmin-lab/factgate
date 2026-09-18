@@ -24,18 +24,21 @@
 \newcommand{\effect}{\mathcal E}
 \newcommand{\rieffect}{\mathcal E^{ri}}
 \input{generated/evidence.tex}
+\input{generated/p10.tex}
 
-\title{Supplement to ``Bonded Data Gate: Task-Scoped Clearance and Cumulative
-Exposure Accounting for AI Agents''}
-\author{Anonymous Author(s)}
+\title{Supplement to ``FactGate: A Task-Scoped Data Gateway for AI Agents
+with Cumulative Exposure Accounting''}
+\author{Minmin~Wu\thanks{M.~Wu is with China Telecom Global Limited. E-mail: \mbox{wuminmin@chinatelecomglobal.com}.}}
 \date{}
 
 \begin{document}
 \maketitle
 
-Throughout, BDG abbreviates Bonded Data Gate. The bonded-warehouse phrasing is
-a narrative analogy; the formal objects and artifact states retain the names
-defined in the main paper.
+Throughout, FactGate names the system of the main paper. The sealed
+evaluation contracts, evidence files, and prototype identifiers label the
+same system \code{bdg} (an earlier internal name); those labels are
+digest-pinned and are quoted verbatim where a contract is cited. The formal
+objects and artifact states retain the names defined in the main paper.
 
 \section{Complete Inference Rules}
 
@@ -235,6 +238,96 @@ Inner join & Every matching child-row pair at one binary fold step under Postgre
 Union-distinct & Classes under componentwise \code{IS NOT DISTINCT FROM} & Include every candidate and every distinctness field, including hidden fields; max-merge alternative witnesses \\
 \shortstack[l]{Group/\\aggregate} & One output per key class; global empty input yields one row & Include group-key inputs and every declared aggregate argument; \code{COUNT(*)} uses member rows, and NULL/non-extreme inputs remain dependencies \\
 Page & Stable total-order slice; annotations copied & Account selected output rows only; non-output rows and rank are outside the profile; ORDER BY columns must be selected, so only the Catalog tie-break suffix is order-only \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Extensions: Derived Cells, Exact AVG, COUNT DISTINCT, and HAVING}
+\label{sec:supp-extensions}
+
+Four constructs were admitted after the rules above were written (the
+agent-written workload's first pass rejected them). Their typing and effect
+rules follow; Table~\ref{tab:extension-map-supp} maps each to its rule,
+implementation site, test, and evidence version.
+
+\textbf{Derived cells.} An arithmetic term is
+$x ::= a \mid n \mid x\oplus x$ with $\oplus\in\{+,-,\times\}$, $a$ a column of
+the single Product in scope, and $n$ an integer literal. Division, casts,
+functions, and multi-Product terms are undefined.
+\begingroup\small
+\begin{align*}
+\frac{\Pi\vdash e:\Gamma\quad |\mathcal B(e)|=1\quad
+      \forall a\in\operatorname{cols}(x):\Gamma(a)=\tau\quad
+      \tau\in\{\code{int2},\code{int4},\code{int8},\code{numeric}\}}
+ {\Pi\vdash \pi_{A;\,x{:}\tau}(e):\Gamma|_A\uplus\{x\mapsto\tau\}}
+&\;(T\text{-Derive})\\[1mm]
+[E\text{-Derive}]\quad
+&\frac{\Pi;D\vdash e\Downarrow R}
+ {\Pi;D\vdash\pi_{A;x}(e)\Downarrow
+  R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}]},\\[-1mm]
+&\hspace{5mm}d_x(t)=\langle\llbracket x\rrbracket_{\Pi,t},\tau,
+  \textstyle\bigoplus_{a\in\operatorname{cols}(x)}\alpha_a(t),N_{\mathrm{arith}}(x),\operatorname{mat}(R,t,x)\rangle .
+\end{align*}
+\endgroup
+Integer literals adopt $\tau$; the value is PostgreSQL's under exact
+arithmetic (NULL propagates; overflow makes evaluation undefined and
+settles nothing). $N_{\mathrm{arith}}$ sorts the operands of $+$ and
+$\times$ by stable identity, keeps the order of $-$, canonicalizes literals
+under $\tau$, and erases aliases, so the derived Release identity
+$f_d=\langle\varpi,\mathcal B,k_o,N_{\mathrm{arith}}(x),\tau,C_\tau(v),CW(W)\rangle$
+is the main text's derived identity with $N_\varpi:=N_{\mathrm{arith}}$. The
+Dependency footprint of the cell is the union of its argument cells'
+supports; the row's support is unchanged. Split/replay conservation is
+the derived-identity case of the base-ledger proposition: the same term over
+the same row yields the same $f_d$ in any spelling.
+
+\textbf{Exact AVG.} $\mathcal A$ gains \code{AVG} over
+$\tau\in\{\code{int2},\code{int4},\code{int8},\code{numeric}\}$ only, with
+output type \code{numeric}. PostgreSQL computes it as one exact
+\code{numeric} division of the exact sum by the count, so the value is
+fold-order independent; floating-point \code{AVG} is excluded for the same
+reason as floating-point \code{SUM}. Its E-Group clause is that of
+\code{SUM}: the aggregate cell's annotation is the complete argument bag of
+the group, and its identity binds $N(\code{avg}(a))$, the value, and $CW(W)$.
+
+\textbf{COUNT DISTINCT.} \code{COUNT(DISTINCT}~$a$\code{)} is admitted;
+\code{DISTINCT} under any other aggregate is undefined. PostgreSQL's value
+ignores NULL and repeated values, but the Dependency rule is that of
+\code{COUNT(}$a$\code{)}: every member row's argument cell, NULL and
+duplicates included, since each member positively contributed to the group.
+The result identity binds the \code{DISTINCT} flag inside $N(x_{a'})$, so
+\code{COUNT(}$a$\code{)} and \code{COUNT(DISTINCT}~$a$\code{)} over the same
+group are distinct Release facts and distinct Outcome composites.
+
+\textbf{HAVING.} A \code{HAVING} clause is $\sigma_{h;F_h}$ applied to the
+output of $\gamma_{G;\mathcal A}$, typed by T-Select with
+$\Gamma=\Gamma|_G\uplus\Gamma_{\mathcal A}$ and $h$ ranging over aggregate
+output aliases with typed literals only; its E-Select clause keeps the
+group rows whose $h$ is $\mathsf T$ and adds each read aggregate cell's
+annotation (already the complete argument bag) to the surviving row's
+annotation. Groups \code{HAVING} drops are non-output and contribute
+nothing (positive-output rule); PostgreSQL returns no row for them, and the
+production evaluator reconstructs group membership only for returned rows.
+\code{HAVING} predicates enter the typed normal form and the plan digest,
+hence the replay key and the Outcome composite.
+
+\begin{table}[h]
+\centering
+\caption{Extension constructs: rule, implementation site, test, and evidence
+version. Evidence commit \EvidenceChainCommit{}; the generated-plan campaign
+is seed \GeneratedSeed{}, \GeneratedPlans{} plans, digest
+\GeneratedResultsDigest{}.}
+\label{tab:extension-map-supp}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{L{0.13\textwidth}L{0.17\textwidth}L{0.30\textwidth}L{0.32\textwidth}}
+\toprule
+Construct & Rule & Implementation & Test and evidence \\
+\midrule
+Derived cell $\{+,-,\times\}$ & T/E-Derive; $N_{\mathrm{arith}}$ & \filepath{internal/sqllowering/lower_derived.go} (single-Product, exact type, no cast); \filepath{internal/exposure/algebra_v2.go} derived fact; \filepath{internal/queryplan} normal form & lowering fragment tests; generated-plan differential campaign (Section~\ref{sec:generated-supp}); agent-written workload (Section~\ref{sec:agent-workload-supp}) \\
+Exact \code{AVG} & E-Group (\code{SUM} clause), output \code{numeric} & \filepath{internal/exposure/algebra_v2.go} aggregate admission and result type; \filepath{internal/queryplan/normalform.go} & generated-plan campaign (exact \code{avg} plans); RQ1 oracle memberships \\
+\code{COUNT(DISTINCT)} & E-Group (\code{COUNT} clause); identity binds the flag & \filepath{internal/exposure/algebra_v2.go} \code{AggregateSpecV2.Distinct} & generated-plan campaign (\code{count(distinct)} plans) \\
+\code{HAVING} & $\sigma$ over $\gamma$ output; E-Select & \filepath{internal/exposure/algebra_v2.go} having-aware group reconstruction; \filepath{internal/queryplan/normalform.go} \code{Having} & generated-plan campaign (\code{HAVING} plans); benign-trace pilot (Section~\ref{sec:benign-supp}), which found and fixed the identity-list defect \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -811,7 +904,7 @@ public-path same-root batches of widths \RQFourVFourConcurrencyWidths{} through
 \RQFourVFourConcurrencyGateways{} enforcement-layer replicas, and an offline
 derivation-independent comparison of all \RQFourVFourOracleFacts{} facts.
 
-The layout result is a bitmap-kernel measurement, not BDG end-to-end
+The layout result is a bitmap-kernel measurement, not FactGate end-to-end
 latency: \RQFourVFourDistributionRoundTrips{} exact portable complete-set
 round-trip checks pass at their actual cardinalities, and the worst
 ANDNOT--popcount--OR p95 is
@@ -951,7 +1044,7 @@ or paper-reported scopes, not a feature score).}
 \toprule
 System/family & Controlled object and decision & Horizon and persistent subject & Enforcement/release coupling \\
 \midrule
-BDG & Declared Result, Dependency, and Outcome FactID set novelty:
+FactGate & Declared Result, Dependency, and Outcome FactID set novelty:
 does the next release fit the budget? & One signed, publication-bound root
 family; descendants share its persistent ledger & One three-dimensional
 root-head CAS co-commits ledger, audit, receipt, and PENDING intent; availability
@@ -1524,7 +1617,7 @@ Sequence & \# & Step & Task & Result & Actual $R$/$D$/$O$ & Charged $R$/$D$/$O$ 
 \label{sec:provsql-publication-supp}
 
 The ProvSQL profile of the same campaign pairs three real systems on the same
-host and byte-identical SQL (every BDG sample's committed Dependency set is
+host and byte-identical SQL (every FactGate sample's committed Dependency set is
 also linked member by member to the independent oracle's closed-form
 semantic set for that scale and nonce, as in the Scale profile:
 \FinalVFivePublicationProvSQLDependencyLinksVerified{} verifications, up to
@@ -1533,7 +1626,7 @@ missing or extra ordinal; in the sealed campaign ProvSQL's own circuit is
 drained only to its per-output-row roots, so the pairing there is a cost
 reference; Section~\ref{sec:provsql-leaves-supp} expands the circuit to base
 tuples in a pilot-class rerun): PostgreSQL~16.14 from a digest-pinned image,
-ProvSQL~1.11.0 built on that exact base image, and BDG's public
+ProvSQL~1.11.0 built on that exact base image, and FactGate's public
 \code{query_sql} path with settlement, receipt, and AVAILABLE delivery. The
 query is the orders--lineitem equijoin over the first 1,000, 10,000, or 45,000
 orders of a deterministic 50,000-order, 250,000-line fixture (TPC-H-shaped,
@@ -1544,7 +1637,7 @@ execution so that ProvSQL builds a novel circuit each time. The timed interval
 on every arm is the client's complete drain of the ordered result; on ProvSQL
 it therefore includes query rewriting, aggregate-token construction, and
 persistent circuit construction, and excludes semiring evaluation,
-probability computation, and Shapley values; on BDG it includes derivation,
+probability computation, and Shapley values; on FactGate it includes derivation,
 settlement, publication, and delivery. Warm business-data cache, disabled
 parallel gather, the simple text protocol, and a recorded per-statement
 timeout hold on both database sessions; execution order within each pair is
@@ -1556,13 +1649,13 @@ against general circuit capture; they do not rank the systems.
 
 \begin{table}[t]
 \centering
-\caption{ProvSQL-paired cells: rows returned, BDG Dependency Facts settled,
+\caption{ProvSQL-paired cells: rows returned, FactGate Dependency Facts settled,
 median complete-drain time per system, and ratios.}
 \label{tab:provsql-publication}
 \small
 \begin{tabular}{lrrrrrrrr}
 \toprule
-Scale & Rows & Dep.\ Facts & PostgreSQL (ms) & ProvSQL (s) & BDG (s) & ProvSQL/PG & BDG/PG & ProvSQL/BDG \\
+Scale & Rows & Dep.\ Facts & PostgreSQL (ms) & ProvSQL (s) & FactGate (s) & ProvSQL/PG & FactGate/PG & ProvSQL/FactGate \\
 \midrule
 \FinalVFivePublicationProvSQLTableBody
 \bottomrule
@@ -1579,7 +1672,7 @@ pages, 30 equivalent predicate spellings, 30 repeated aggregations, and four
 branches chosen from prior scalars) through three arms on the same
 \code{expense_detail} Product: PostgreSQL row-level security (a permissive
 department policy with \code{FORCE ROW LEVEL SECURITY} and column grants for a
-non-owner, non-superuser role), BDG with an unlimited exposure ledger, and BDG
+non-owner, non-superuser role), FactGate with an unlimited exposure ledger, and FactGate
 bounded at $\lfloor 0.7\,U\rfloor$ of the trace's distinct facts, where
 $U$ is computed before any bounded run by the corpus package's trace-union
 oracle. That package deliberately imports no production Gateway, Control,
@@ -1594,7 +1687,7 @@ summarizes the arms; the main text's trace figure plots the oracle's prefix
 cardinalities. The policy-denied control targets a receipt
 outside the policy department together with a column outside the grant: both
 controls return zero rows and refuse at the column (RLS
-\FinalVFivePublicationRLSControlErrorRLS{}, BDG
+\FinalVFivePublicationRLSControlErrorRLS{}, FactGate
 \FinalVFivePublicationRLSControlErrorBDG{}).
 
 Counter arms are additionally executed end to end as a retained pilot
@@ -1641,7 +1734,8 @@ Arm & Budget & Admitted & Refused at & Non-novel refused & Novel refused & Relea
 \caption{Adaptive trace, per arm: queries answered, first refusal, rows
 returned, final ledger (Release/Dependency/Outcome), and stop reason. Oracle
 union $U=\FinalVFivePublicationRLSUnionRelease{}/\FinalVFivePublicationRLSUnionDependency{}/\FinalVFivePublicationRLSUnionOutcome{}$;
-bounded budgets $\FinalVFivePublicationRLSBudgetRelease{}/\FinalVFivePublicationRLSBudgetDependency{}/\FinalVFivePublicationRLSBudgetOutcome{}$.}
+bounded budgets $\FinalVFivePublicationRLSBudgetRelease{}/\FinalVFivePublicationRLSBudgetDependency{}/\FinalVFivePublicationRLSBudgetOutcome{}$. The two \emph{BDG} rows are the FactGate arms; BDG is the sealed evidence's
+internal label for the system (see the note on page~1).}
 \label{tab:rls-arms-supp}
 \small
 \begin{tabular}{lrrrll}
@@ -1817,6 +1911,40 @@ discussion states. Artifact cost is part of the claim: the publication's
 compiled bundle is 14~GB (about 1.2~KB per declared fact) and compiles
 in 28 minutes at a 21~GB peak; \code{campaign\_class} stays pilot.
 
+\subsection{Budget semantics beside a DP provenance system}
+\label{sec:compare7-supp}
+
+DProvDB (cited in the main text) and FactGate guard incomparable quantities: a
+differential-privacy loss over noised views versus an exact count of
+declared released facts. No latency or utility number below ranks one
+system over the other; the comparison is of \emph{budget-mechanism
+shape} on repeated workloads. We reproduced DProvDB's SIGMOD'24 artifact
+end to end on the same host (its four experiment arms, thirteen result
+files, TPC-H SF1 and Adult loaded per its scripts): under one fixed
+privacy budget its provenance-aware mechanism answers up to 571
+range-count queries where a naive Gaussian baseline answers 35 --
+provenance lets it \emph{discount, but not eliminate}, the cost of
+overlapping queries. The FactGate side runs a frozen sixty-statement
+range-\code{SUM} sequence (thirty unique, thirty byte-identical repeats)
+against the scale-point Product's a-priori recipe on three fresh
+deployments, which agree exactly: \FinalVFiveCompareAccepted{} of 60
+statements settle (\FinalVFiveCompareUniqueAccepted{} unique,
+\FinalVFiveCompareRepeatsAccepted{} repeats),
+\FinalVFiveCompareBudgetRefusals{} refuse once the release-facts recipe
+is spent, and every repeat charges exactly
+\FinalVFiveCompareRepeatCharges{} facts of any kind. Two shapes emerge, and neither
+ranks the systems. A byte-identical repeat is free under exact set
+accounting; under DP its cost depends on the mechanism (DProvDB discounts an
+overlapping query, while cache-based mechanisms such as CacheDP, cited in
+the main text, answer a cached query at zero new privacy loss). Nested
+overlapping ranges advance FactGate's Dependency ledger only by their set
+difference (the ledger settles at $\max$-bound $\times$ 14 facts), whereas
+a fresh DP answer to a new range spends privacy budget. The metered
+quantities differ: declared facts released versus privacy loss.
+The dual holds on refusal: DProvDB degrades accuracy as
+$\varepsilon$ thins, FactGate refuses exactly and charges nothing for the
+refusal.
+
 \subsection{An optimizing adversary under owner-derived budgets}
 \label{sec:adversary-supp}
 
@@ -1868,6 +1996,75 @@ Tier & Probes & Bits & Recovered & Greedy & Distinct Dep. \\
 \end{tabular}
 \end{table}
 
+\subsection{Budget--Utility Trade-off by Admission Arithmetic}
+\label{sec:sweep-supp}
+
+The two studies above fix one recipe each. To show how benign completion and
+adversarial extraction move together with the recipe, both are swept over a
+multiplier $m$ of the owner-derived budgets by admission arithmetic
+(\filepath{evaluation/cmd/budget-utility-sweep}, results digest
+\SweepResultsDigest{}); nothing here is executed at a multiplier other than
+the pilots' own. Benign: the \SweepBenignAuthorized{} authorized statements
+of the benign trace run in order under $m\times$ the recipe; a statement is
+admitted iff every dimension stays within budget and a refused statement
+adds nothing. Two curves bound the answer, because the corpus's closed-form
+footprints over-approximate the production rule (they count a page's scanned
+rows where the rule counts output cells; e.g., the executed ledger charged
+845,000 Dependency facts for the statement the corpus models at 1,450,000):
+the \emph{executed-increment} curve replays the charged novelty the deployed
+system recorded per statement in the $4\times$ arm (every statement
+accepted), an upper bound on acceptance because a refused statement leaves
+later novelty at least as large; the \emph{corpus-model} curve unions the
+closed-form sets exactly and is a conservative lower bound. Adversary: the
+bisection ladder and greedy extraction replay their data-independent per-step
+charges under $m\times$ the owner tier ($10/18/12/24$).
+Figure~\ref{fig:sweep-supp} plots all four.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.8\textwidth, height=0.42\textwidth, font=\small,
+  xlabel={budget multiplier $m$ of the owner-derived recipe},
+  ylabel={percent of maximum}, xmin=0.2, xmax=4.2, ymin=0, ymax=105,
+  xtick={0.25,0.5,0.75,1,1.5,2,3,4}, xticklabels={.25,.5,.75,1,1.5,2,3,4},
+  legend style={at={(0.5,-0.22)}, anchor=north, legend columns=2, font=\small, draw=none, fill=none},
+  grid=major, grid style={gray!25}]
+\addplot[blue, thick, mark=*] coordinates {\SweepBenignExecutedCoords};
+\addplot[blue, dashed, mark=o] coordinates {\SweepBenignCorpusCoords};
+\addplot[red, thick, mark=square*] coordinates {\SweepBitsCoords};
+\addplot[black!60!green, thick, mark=triangle*] coordinates {\SweepGreedyCoords};
+\legend{benign admitted (executed increments), benign admitted (corpus model), secret bits recovered (of 11), greedy distinct Dependency (of 18)}
+\draw[gray, thick] (axis cs:1,0) -- (axis cs:1,105) node[pos=0.12, right, font=\small] {owner recipe};
+\end{axis}
+\end{tikzpicture}
+\caption{Benign completion versus adversarial extraction as the owner recipe
+is scaled by $m$ (admission arithmetic over the frozen corpora). Executed
+points: benign $1\times$ admits \SweepBenignOneAccepted{}/\SweepBenignAuthorized{}
+(pilot: 22/23, first refusal q26) and $2\times$/$4\times$ all; adversary
+owner tier \SweepBitsOne{} bits and greedy \SweepGreedyOne{}, loosened
+11 bits (pilots realized these tables).}
+\label{fig:sweep-supp}
+\end{figure}
+
+Three readings follow. First, under the owner recipe ($m=1$) the benign trace
+loses one statement while the adversary recovers \SweepBitsOne{} of 11 bits
+and greedy extraction reaches the granted universe (\SweepGreedyOne{}); at
+$m=\SweepRecoverAt{}$ the benign trace is complete and the secret is fully
+recovered, so on this trace the useful operating range is
+$1\le m<\SweepRecoverAt{}$. Second, the bits curve is linear in $m$ because
+each probe's Outcome charge is data-independent, which is the
+$\lfloor B_O/2\rfloor$ bound of the adversary study seen across budgets,
+whereas benign completion saturates once the largest single-statement
+footprint fits. Third, the gap between the two benign curves is the cost of
+a conservative recipe model: at $m=1$ it predicts
+\SweepBenignCorpusOneAccepted{} where the system admits
+\SweepBenignOneAccepted{}; a recipe derived from the production rule would
+sit on the solid curve. This is a study of one benign trace and one hidden
+scalar under closed-form charges; it is not a utility measurement across
+tasks, and the multipliers other than $1$, $2$, $4$ (benign) and the three
+tiers (adversary) are not executed.
+
+
 \section{ProvSQL Base-Tuple Cross-Check (Pilot)}
 \label{sec:provsql-leaves-supp}
 
@@ -1890,10 +2087,10 @@ of a base row from its key, and no production package is involved. The
 expansion runs outside every timing boundary. Table~\ref{tab:provsql-leaves}
 reports, per scale, the roots, the input gates reached, the mapped rows per
 relation, the ProvSQL-derived row-Fact count, and the oracle's count; every
-sample matched with no unmapped gate. Since the campaign's BDG Dependency
+sample matched with no unmapped gate. Since the campaign's FactGate Dependency
 sets are linked member by member to the same oracle
 (Section~\ref{sec:provsql-publication-supp}), ProvSQL's base tuples and
-BDG's base-row Dependency facts coincide transitively on these cells. The
+FactGate's base-row Dependency facts coincide transitively on these cells. The
 check covers base rows, not predicate-cell facts, which ProvSQL does not
 represent.
 
@@ -2098,7 +2295,7 @@ key-construction audit verifies the Catalog/schema/dictionary-set components.
 This supplement reports a campaign intentionally separated from the main
 paper's exposure-invariance evidence.  It asks only whether each generated
 PostgreSQL rewrite returns the same rows as its baseline.  Most templates lie
-outside BDG's closed structured-plan algebra; therefore the campaign does
+outside FactGate's closed structured-plan algebra; therefore the campaign does
 \emph{not} establish equal release FactSets, equal positive-output-dependency
 FactSets, equal incremental charges, or online compiler coverage.
 
@@ -2288,6 +2485,95 @@ gaps) and those that would need a new rule (fundamental to the accounting).
 The questions were written by the authors; the SQL was not; no rewrite loop
 was run.
 
+\subsection{Held-Out Agent-Written Workload (Frozen Language)}
+\label{sec:heldout-supp}
+
+The workload above is a development set: \code{HAVING}, exact \code{AVG},
+\code{COUNT(DISTINCT)}, and derived cells were admitted after its first
+pass, so its \AgentWorkloadLowerablePct\% measures fit after adaptation.
+To measure fit without adaptation, \HeldoutQueries{} new questions over the
+same three Product families, in the same style and Product mix (20 expense,
+8 orders/line-item, 7 result-heavy, 5 mixed), were written and committed
+(\filepath{evaluation/agentworkload-heldout/questions.md}, digest
+\HeldoutQuestionsDigest{}, commit \HeldoutFreezeCommit{}) before any SQL was
+generated, with the language and lowerer frozen from that commit on. The same
+off-the-shelf assistant (Claude via headless Claude Code, one call per
+question, given only the unchanged product sheet and the question, no hint of
+the fragment, output unedited) wrote one statement each; the frozen lowerer
+admits \HeldoutLowerable{} of \HeldoutQueries{} (\HeldoutLowerablePct\%;
+results digest \HeldoutResultsDigest{}). Table~\ref{tab:heldout-supp} names
+the first rejection of the rest.
+
+Of the \HeldoutRejected{} rejections, \HeldoutEngineeringGaps{} are
+engineering gaps whose Dependency rule already exists: typed date literals
+(\code{DATE '2026-04-01'}), which the literal parser does not yet spell;
+\code{to_char}/\code{date_trunc} bucketing, which the product sheet handed to
+the agent advertises as allowed functions although the closed fragment has no
+scalar-function rule (a sheet/lowerer mismatch this study exposed; the sheet
+likewise advertises \code{/}); and the alias rules (a derived projection
+needs an alias, a \code{HAVING} or \code{ORDER BY} aggregate must be
+selected). \HeldoutNewRule{} need a new rule (column-to-column and
+arithmetic comparisons, division and conditional arithmetic in projections,
+a correlated subquery), and \HeldoutAgentDefects{} statement failed to parse
+because the assistant appended prose to its SQL. The held-out rate is the
+number to cite for generalization; the development-set rate is not.
+
+\begin{table}[t]
+\centering
+\caption{Held-out agent-written workload: first rejection reason per
+statement (frozen lowerer).}
+\label{tab:heldout-supp}
+\small
+\begin{tabular}{lrl}
+\toprule
+Reason code & Count & Statements \\
+\midrule
+\HeldoutReasonTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Closure of the Fragment for a Governed Reporting Tier, and a Design Path}
+\label{sec:closure-supp}
+
+The fragment is not a subset of ad-hoc SQL chosen for convenience; it is
+closed under the operations a governed reporting tier performs on published
+Products. Such a tier serves curated Products with attested stable keys, so
+every join a report needs is an equi-join on those keys (connected graphs of
+2--16 roles are admitted); measures are published as Product columns, so
+derived measures that TPC-H and SSB compute inline
+(\code{lo_extendedprice * lo_discount}) become columns or single-Product
+exact derived cells; reporting filters are literal comparisons on published
+fields; and reporting aggregation is grouping with the admitted aggregates,
+\code{HAVING}, bounded union, and pagination. Under these operations the
+fragment is closed: every term built from admitted terms by an admitted
+operator is again admitted, and every such term has a total Dependency rule.
+What the fragment excludes is what a reporting tier delegates upstream to
+ETL (arbitrary expressions, subqueries, outer joins that materialize absence)
+or forbids (comparisons of one Product's cell with another's).
+
+Three excluded constructs dominate the rejections of all workloads and each
+has a rule sketch consistent with the algebra:
+\begin{itemize}
+\item \textbf{\code{OR} (disjunctive witnesses).} $b_1\vee b_2$ keeps a row
+when either disjunct is $\mathsf T$; its Dependency footprint is the
+predicate cells of every \emph{satisfied} disjunct (positive-output rule),
+merged by alternative union/max, and its Outcome atoms are those of both
+disjuncts plus a composite binding the disjunction. Conservation follows the
+union-distinct argument: one query per disjunct settles the same support.
+\item \textbf{Non-literal comparisons (two-cell atoms).} $a\;op\;b$ over two
+fields reads both cells, so both enter the footprint; the Outcome atom binds
+both field identities and no literal, so varying the compared pair is a new
+atom while re-spellings are not.
+\item \textbf{Outer joins (null-extended rows).} A preserved row without a
+match carries the preserved side's support only; null-extended cells release
+nothing and depend on nothing, and the row identity binds the absence of a
+match so that a later inner-join re-issue is a distinct Outcome.
+\end{itemize}
+Each sketch keeps $\operatorname{support}(W)=S$, the representation-closure
+induction, and the base-ledger conservation argument; none is implemented or
+evaluated here.
+
 \begin{table}[t]
 \centering
 \caption{Rejected constructs across the TPC-H, SSB, and agent-written
@@ -2328,10 +2614,10 @@ Construct & Reason code & Count & Statements \\
 \label{sec:supp-enterprise-vision}
 
 This section describes a brownfield-compatible, incremental deployment vision,
-not an evaluated production deployment. BDG preserves existing enterprise
+not an evaluated production deployment. FactGate preserves existing enterprise
 systems and places a shared logical data-egress contract after curated products
 at the governed serving tier. Table~\ref{tab:supp-enterprise-interfaces}
-separates the inputs BDG consumes, the contract checks it adds, and
+separates the inputs FactGate consumes, the contract checks it adds, and
 responsibilities that remain with each system and its operators.
 
 \begin{table}[h]
@@ -2343,7 +2629,7 @@ not production-integration evidence.}
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{L{0.13\textwidth}L{0.23\textwidth}L{0.27\textwidth}L{0.27\textwidth}}
 \toprule
-Existing system & Supplies to BDG & BDG validates or adds & Outside BDG responsibility \\
+Existing system & Supplies to FactGate & FactGate validates or adds & Outside FactGate responsibility \\
 \midrule
 Lake / warehouse & Curated snapshot or governed serving Product & Immutable publication and version binding & Raw-lake access, ETL, source quality, and stewardship \\
 Data Catalog & Product, schema, owner, lineage, classification, and candidate business keys & Structural and version binding of attested stable identities and the signed Product, field, profile, and supported-semantics contract & Business ownership, classification, and business-key stability \\
@@ -2365,13 +2651,13 @@ small-cohort disclosure matters, a separate policy, such as a
 minimum-contributor threshold, statistical disclosure control, differential
 privacy, or DFC, remains necessary. An enterprise-wide salary query would
 require a separate HR-leader-approved task. Operations personnel could use a
-distinct equipment-and-facility Product, but the present analytical BDG path would not
+distinct equipment-and-facility Product, but the present analytical FactGate path would not
 control a network in real time. In banking, branch staff
 could analyze regional aggregates, while risk or fraud casework uses a
 short-lived, high-sensitivity, independently approved task. This does not make
-BDG a regulatory-compliance decision maker. In an electric utility, regional
+FactGate a regulatory-compliance decision maker. In an electric utility, regional
 load, loss, and equipment-health Products could remain
-separate from marketing and finance domains; BDG would not perform subsecond
+separate from marketing and finance domains; FactGate would not perform subsecond
 control, protection actions, or equipment-configuration writes. The scenarios
 only illustrate how Product, scope, approval, and the task-bound root-family
 Exposure Ledger compose.
@@ -2384,7 +2670,7 @@ tests $\rightarrow$ shadow execution $\rightarrow$ multi-role approval
 $\rightarrow$ signed profile publication. Data owners would decide purpose and
 releasable scope; security/privacy teams would define sensitive boundaries;
 IAM/OA would attest identity and approval; DBAs/data engineers would validate
-database facts and performance mappings; BDG would compile and enforce the
+database facts and performance mappings; FactGate would compile and enforce the
 published contract; and auditors would reconcile approval, settlement, and
 AVAILABLE evidence. Multi-engine connectors, DFC/Passant composition,
 principal/tenant-wide policy, differential privacy, and cross-tool IFC remain

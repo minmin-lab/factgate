@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"taskbound.local/agent-data-gateway/evaluation/internal/experiment"
 )
@@ -103,7 +104,25 @@ func main() {
 	capabilities := flag.Bool("capabilities", false, "print implemented experiment capabilities")
 	validateBinding := flag.Bool("validate-binding", false, "strictly validate the complete private deployment binding")
 	validateObserver := flag.Bool("validate-observer-runtime", false, "validate the frozen observer executable and build manifest")
+	agentPilot := flag.Bool("agent-pilot", false, "P10.B2: run the LLM-agent pilot against the live deployment (outside the campaign plan)")
+	agentOut := flag.String("agent-out", "", "agent pilot JSONL output path")
+	agentDeployment := flag.String("agent-deployment", "deployment-01", "agent pilot deployment id")
+	agentArms := flag.String("agent-arms", "rls,factgate", "agent pilot arms")
+	agentObjectiveIDs := flag.String("agent-objectives", "benign,probe", "agent pilot objectives")
+	agentSamples := flag.Int("agent-samples", 3, "agent pilot samples per arm and objective")
 	flag.Parse()
+	if *agentPilot {
+		if *agentOut == "" {
+			fmt.Fprintln(os.Stderr, "-agent-out is required")
+			os.Exit(2)
+		}
+		if err := runAgentPilot(context.Background(), *agentOut, *agentDeployment,
+			strings.Split(*agentArms, ","), strings.Split(*agentObjectiveIDs, ","), *agentSamples); err != nil {
+			fmt.Fprintln(os.Stderr, "agent-pilot:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	selectedModes := 0
 	for _, selected := range []bool{*capabilities, *validateBinding, *validateObserver} {
 		if selected {
