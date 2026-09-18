@@ -110,7 +110,26 @@ func main() {
 	agentArms := flag.String("agent-arms", "rls,factgate", "agent pilot arms")
 	agentObjectiveIDs := flag.String("agent-objectives", "benign,probe", "agent pilot objectives")
 	agentSamples := flag.Int("agent-samples", 3, "agent pilot samples per arm and objective")
+	throughputPilot := flag.Bool("throughput-pilot", false, "P10.B6: successful-throughput pilot of shared and independent roots under an ample budget (outside the campaign plan)")
+	throughputOut := flag.String("throughput-out", "", "throughput pilot JSONL output path")
+	throughputDeployment := flag.String("throughput-deployment", "deployment-01", "throughput pilot deployment id")
+	throughputRoots := flag.String("throughput-roots", "1,4", "throughput pilot independent root counts")
+	throughputWidths := flag.String("throughput-widths", "10,50", "throughput pilot contenders per root")
+	throughputOverlapList := flag.String("throughput-overlaps", "disjoint,nested,identical", "throughput pilot footprint overlaps")
+	throughputRounds := flag.Int("throughput-rounds", 2, "throughput pilot rounds per cell")
 	flag.Parse()
+	if *throughputPilot {
+		if *throughputOut == "" {
+			fmt.Fprintln(os.Stderr, "-throughput-out is required")
+			os.Exit(2)
+		}
+		if err := runThroughputPilot(context.Background(), *throughputOut, *throughputDeployment,
+			parseIntList(*throughputRoots), parseIntList(*throughputWidths), strings.Split(*throughputOverlapList, ","), *throughputRounds); err != nil {
+			fmt.Fprintln(os.Stderr, "throughput-pilot:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *agentPilot {
 		if *agentOut == "" {
 			fmt.Fprintln(os.Stderr, "-agent-out is required")
@@ -202,4 +221,15 @@ func main() {
 	if scanner.Err() != nil {
 		os.Exit(1)
 	}
+}
+
+func parseIntList(text string) []int {
+	var out []int
+	for _, part := range strings.Split(text, ",") {
+		var v int
+		if _, err := fmt.Sscanf(strings.TrimSpace(part), "%d", &v); err == nil {
+			out = append(out, v)
+		}
+	}
+	return out
 }

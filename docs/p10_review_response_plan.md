@@ -33,9 +33,9 @@
 | B3 | **预算效用曲线**：若干独立任务族，预算按 owner 配方事先定，扫 0.5×/1×/2×/4×；画合法任务完成率 vs 秘密恢复率两条曲线，附重试次数与延迟 | 预算是否有治理价值 | GPT M6 | pilot-benign-05（1×/2×）、pilot-adversary-04（三档）已是曲线上的点 | 中（补 2–3 个倍率） | DONE（准入算术扫描 m∈{.25…4}：benign 实测增量上界曲线 + 语料模型下界曲线，adversary 闭式；1×/2×/4× 与三档实测校验一致；supplement §Budget–Utility 图；主稿 §8 一句；未执行新倍率）|
 | B4 | **对齐语义的计数器对照**：行/查询计数器改为整条拒绝、不截断、不归档，与集合预算同语义比较 | 差异来自计量单位还是失败策略 | GPT M4 | pilot-counter-rigor-02 harness；需改 harness 失败策略 | 中 | DONE（准入算术而非重跑：四臂同先验预算、同三序，统一「整条拒绝、任务存活」策略，基于封存 unlimited 样本的逐语句 oracle 事实集回放；exact 臂对齐回放与执行期望三序全等作校验。结果：只有行计数器变动（natural 58→59、shuffled 73→75 admitted；释放 6/18/21→8/18/24），两条结论不变（计数器三序均到 18 事实全并集，set floors 封顶 12）；新增「零收益拒绝」代价 9–29/序 vs set floors 0。supplement §The same comparator arms under one failure policy + 表；主稿 §8 一句，12 页）|
 | B5 | **公共路径消融**：同工作负载四层——治理与发布路径不记账 / 加事实推导不限预算 / 朴素精确集合账本（Go map 或 PG 集合表）/ 完整实现 | 21.8–144.5× 里多少是公共成本、表示优化贡献多少 | GPT M3 | Baseline 剖面；需加运行时开关与朴素账本实现 | 高（代码+三部署重跑） | 待作者裁决 |
-| B6 | **成功吞吐量**：预算充足的共享根（不重叠/部分重叠/高度重叠）与多独立根，报成功提交吞吐、尾延迟、冲突重试；按部署与批次展示变化 | 能否持续完成合法新查询 | GPT M7 | concurrency 剖面 | 中高 | 待作者裁决 |
+| B6 | **成功吞吐量**：预算充足的共享根（不重叠/部分重叠/高度重叠）与多独立根，报成功提交吞吐、尾延迟、冲突重试；按部署与批次展示变化 | 能否持续完成合法新查询 | GPT M7 | concurrency 剖面 | 中高 | DOING（先验设计冻结 docs/p10_b6_throughput_experiment_design.md；adapter -throughput-pilot 模式 + 钩子已就绪、单测绿；benign-x4 剖面 3 部署，K∈{1,4}×N∈{10,50}×overlap∈{disjoint,nested,identical}×2 轮；待 B2 正式试点跑完后发射）|
 | B7 | 时延通道实测带宽（每次拒绝可辨多少比特） | 拒绝时延通道有多宽 | DeepSeek2 Q5 | footprint ladder 数据 | 低（分析已有数据） | DONE（只分析留存数据：执行后拒绝 762 次，时延对未释放足迹平坦 0.071±0.038 ms/行，噪声 σ=2.01 ms；速率 0.68 µs/事实；行护栏 500 行下容量上界 0.007 bit/次，语料 0.000，若 7×10^5 事实扫描到达执行后站点为 6.1 bit；supplement §Bandwidth of the Refusal Timing Channel + 主稿威胁模型一句）|
-| B8 | Passant 头对头 | 最近比较者的直接对比 | 三家 | 需先查 Passant 有无可跑工件 | 未知 | 待查 |
+| B8 | Passant 头对头 | 最近比较者的直接对比 | 三家 | 需先查 Passant 有无可跑工件 | 未知 | 已查（gh 认证）：工件存在 github.com/dataflowcontrol/data-flow-control（Rust 核心 + Python API，MIT，DuckDB 为主、PostgreSQL 为 basic 级；逐查询策略重写 REMOVE/KILL，无累计预算，不支持聚合策略）；本机无 cargo/rustc，需 rustup；方案：同一 Postgres 上用 Passant 施加部门范围策略重放 100 步 adaptive trace，报逐查询重写+执行时延与「全部放行」（定义性），作为机制形状对照；B6 之后做 |
 
 不做：多机与冷缓存（无硬件）；重新扩大 SQL 片段（工程量与 A11 论证二选一，选 A11）。
 
