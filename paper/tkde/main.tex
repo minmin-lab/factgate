@@ -63,32 +63,29 @@ E-mail: \mbox{wuminmin@chinatelecomglobal.com}.}}
 
 \begin{abstract}
 Per-query authorization does not compose across an adaptive agent's pages,
-retries, rewrites, and delegated subtasks, and query, row, or byte counters
-are order-dependent. \system is a release layer for immutable
-reporting publications that turns one approved task into a cumulative
-contract: three set-valued budgets over declared identities (result facts,
-positive-output dependency facts, canonical query outcomes) shared by the
-root task and its descendants. A visible query and a provenance companion
-run on one PostgreSQL snapshot; exact set novelty against the root-family
-ledger is settled atomically before any result becomes retrievable. The
-guarantee is bounded \emph{release}: within one root family and publication
-epoch no more than the approved number of distinct declared facts of each
-kind becomes available, whatever admitted sequence the agent issues; it does
-not bound inference from answered or refused predicates. Accounting is exact
-with respect to the declared rules---verified as consistency with our
-reference implementations plus one third-party base-tuple check---over a
-closed reporting fragment (connected equijoins, grouping, bounded unions,
-nested Views, derived-cell arithmetic) that admits
-\AgentWorkloadLowerablePct\% of \AgentWorkloadQueries{} LLM-written
-reporting statements unedited. Immutable ordinals, compressed
-bitmaps, and a Merkle-radix set make novelty exact at $10^7$ facts. A sealed
+retries, rewrites, and delegated subtasks, and row or query counters are
+order-dependent. \system is a release layer for immutable reporting
+publications that turns one approved task into a cumulative contract: three
+set-valued budgets over declared identities (result, positive-output
+dependency, and outcome facts) shared by the root task and its descendants.
+Exact set novelty against the root-family ledger is settled atomically on one
+PostgreSQL snapshot before any result becomes retrievable. The guarantee is bounded
+\emph{release}: within one root family and publication epoch, at most
+the approved number of distinct declared facts of each kind becomes
+available for every admitted sequence; inference from answered or refused
+predicates is not bounded. Accounting is exact with
+respect to the declared rules over a closed fragment (connected
+equijoins, grouping, bounded unions, nested Views, derived-cell arithmetic)
+that admits \AgentWorkloadLowerablePct\% of \AgentWorkloadQueries{}
+LLM-written statements unedited. Ordinals, bitmaps, and a
+Merkle-radix set keep novelty exact at $10^7$ facts. A sealed
 single-host campaign (\FinalVFivePublicationMeasuredSamples{} samples)
-charges every scripted decomposition exactly once, keeps an adaptive trace
-within its set budgets, and costs
+charges every scripted decomposition once, keeps an adaptive trace within
+its budgets, and costs
 \FinalVFivePublicationOverheadMin{}--\FinalVFivePublicationOverheadMax{}$\times$
-a direct query (per-cell medians over sixteen workload/scale pairs), with
-settlement alone at a median \FinalVFivePublicationScaleSettleMillionMS{}~ms
-at zero ledger overlap against a million-fact history.
+a direct query, with settlement alone at a median
+\FinalVFivePublicationScaleSettleMillionMS{}~ms at zero ledger overlap
+against a million-fact history.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -161,7 +158,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 \begin{figure*}[t]
 \centering
-\resizebox{0.94\textwidth}{!}{%
+\resizebox{0.84\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, minimum height=6mm,
@@ -233,8 +230,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 \end{tikzpicture}
 }
 \caption{(a) Offline publication fixes ordinals and the Merkle-radix Outcome
-set; (b) online exact settlement, fail-closed promotion, and replay
-(Section~\ref{sec:online}).}
+set; (b) online exact settlement, promotion, and replay (Section~\ref{sec:online}).}
 \label{fig:architecture-settlement}
 \end{figure*}
 
@@ -387,16 +383,15 @@ management; and object-store access control.
 \subsection{Publication Epochs and Task Binding}
 
 \system's upstream boundary is a completed reporting synchronization, not a
-mutable transactional database; we model its compiled output as follows.
+mutable transactional database.
 
 \begin{definition}[Publication epoch]
 A publication epoch $P_e$ binds a datasource, its schema, the snapshot
 bundle mapping every stable role to its immutable reporting publication,
-the Catalog, and the ordinal dictionaries (the five-component descriptor
-and its digest $h_e$ are in the supplement); the signed Catalog SHA
-transitively commits them, the upstream synchronization cutoff is a
-trusted ETL premise, and a new synchronization creates a new $P_{e+1}$
-rather than mutating $P_e$.
+the Catalog, and the ordinal dictionaries (descriptor and digest $h_e$ in
+the supplement); the signed Catalog SHA transitively commits them, the
+upstream synchronization cutoff is a trusted ETL premise, and a new
+synchronization creates $P_{e+1}$ rather than mutating $P_e$.
 \end{definition}
 
 A deployment alias such as \code{latest publication} resolves to a concrete
@@ -625,14 +620,12 @@ keys, complete aggregate arguments), excluding rejected rows and non-output
 pages; (O3) the listed rewrites, projection splits, complete page partitions,
 idempotent overlaps and retries, join support, and root-ledger delegation
 cannot reduce cumulative charge; (O4) each success creates one composite and
-its canonical predicate atoms, exact replay reuses them, and a rejected
-attempt creates none and is charged only to $B_Q$.
+its predicate atoms, exact replay reuses them, and a rejected attempt
+creates none, charged only to $B_Q$.
 
 Six obligations separate the assurance layers (O1--O4 semantic claims, O5
 models plus transaction tests, O6 binding); none alone proves the
 implementation.
-
-The safety obligation is stated here.
 
 \begin{property}[O5: No unaccounted governed release]
 \label{prop:no-unaccounted-release}
@@ -644,9 +637,11 @@ Let $\mathsf{AVAILABLE}(q)$ mean that $q$'s canonical artifact has reached the
  \ \wedge\ |\accounted_T^X|\leq B_X.
 \]
 \end{property}
+It is the release-side counterpart of consumable credentials and quotas
+\cite{bowers2007consumable,pollack2007quota}.
 Execution and private staging are not release; settlement may leave an
-artifact \code{PENDING}, so the converse fails, and rejection cannot
-create \code{AVAILABLE}. Evidence: the bounded artifact and ledger models plus
+artifact \code{PENDING}, so the converse fails and rejection cannot
+create \code{AVAILABLE}. Evidence: bounded artifact/ledger models plus
 Control-PG fault-injection, receipt, and availability tests, not a
 mechanized proof.
 
@@ -704,10 +699,10 @@ The partial judgment $\Pi\vdash e:\Gamma$ enforces child-local fields,
 role-disjoint typed joins, identical distinctable union schemas, typed
 grouping, and a proven total page order; undefined premises reject.
 
-The nested-View front end lowers a bounded acyclic DAG of projection/rename,
+The View front end lowers a bounded acyclic DAG of projections,
 inner equijoins, literal conjunctions, and at most one grouping barrier into
-this core, rejecting richer SQL or unsafe dependencies; no general
-View-equivalence result is claimed.
+this core, rejecting richer SQL or unsafe dependencies; no general View
+equivalence is claimed.
 
 Predicates use PostgreSQL three-valued logic and retain only true rows, whereas
 grouping/distinct use typed \code{IS NOT DISTINCT FROM}. The closed canonical
@@ -721,9 +716,10 @@ nothing; the complete type domain and encoders are supplemental.
 \label{sec:effect-extraction}
 
 A relation is a typed PostgreSQL bag with unique occurrence keys and optional
-proven total order; rows and cells carry support $S$, positive witness
-multiset $W$, canonical lineage, and optional materialized release identity,
-and every operator preserves
+proven total order; rows and cells carry support $S$ (lineage
+\cite{cui2001lineage,buneman2001why}), a positive witness multiset $W$
+(how-provenance \cite{green2007provenance}), canonical lineage, and optional
+materialized release identity, and every operator preserves
 \begin{equation}
  \operatorname{support}(W_r)=S_r,\qquad
  \operatorname{support}(W_a)=S_a.                 \label{eq:anninv}
@@ -783,8 +779,8 @@ restricted selection--projection invariance the rewrite tests use.
 
 \begin{definition}[Profile-indexed typed normal form $NF_{\Pi,\varpi}$]
 \label{def:nf}
-$NF_{\Pi,\varpi}$ maps accepted, well-typed inputs to canonical terms under the
-one normal-form profile the task contract binds (rules R1--R6 below);
+$NF_{\Pi,\varpi}$ maps accepted, well-typed inputs to canonical terms under
+the normal-form profile the contract binds (rules R1--R6 below);
 equality is syntactic. Its typed digest is the query-semantic component of
 replay/outcome identity, distinct from final-ledger Fact-set
 $\operatorname{normalize}$.
@@ -844,7 +840,9 @@ page partition equals observing the combined result. Overlapping pages and
 repeated terminal observations charge each release/dependency FactID at most
 once; join fanout changes witness multiplicity but not the union of dependency
 support; predicate atoms are reused exactly when their canonical footprint
-components agree (proof in the supplement).
+components agree (proof in the supplement; the support/multiplicity split is
+the lineage projection of semiring provenance
+\cite{green2007provenance,amsterdamer2011aggregate}).
 \end{proposition}
 
 \section{Online Accounting}
@@ -910,7 +908,8 @@ prefix, chunk, block, or root changes a verified digest barring
 SHA-256 collision.
 \end{proposition}
 \emph{Argument in the supplement} (prefix routing partitions the full-hash
-universe; comparison is over all 256 bits).
+universe; comparison is over all 256 bits; digests form a Merkle tree
+\cite{merkle1987signature} over radix blocks).
 
 \subsection{Atomic Ledger Settlement and Fail-Closed Artifact Publication}
 
@@ -958,9 +957,8 @@ ambiguous connector outcomes charge resources but no exposure, and terminal
 replay returns the first status without re-executing.
 
 A rejected attempt returns only the code
-\code{EXPOSURE_BUDGET_EXHAUSTED}---no dimension, count, or row (the
-dimension named in the evaluation tables is the oracle's projection, not a
-response field); it charges no exposure, in particular no Outcome atom, and
+\code{EXPOSURE_BUDGET_EXHAUSTED}---no dimension, count, or row (evaluation
+tables name the oracle's projection, not a response field); it charges no exposure, in particular no Outcome atom, and
 is recorded as a failed query (contributing no set,
 Definition~\ref{def:task-exposure}) consuming $B_Q$ and its admission
 reservation (Section~\ref{sec:model}); $B_Q$ is an exposure parameter,
@@ -977,6 +975,8 @@ of $B_R$, $B_D$, and $B_O$. Each successful novel query additionally
 returns its charge $|\Delta_X|$, the size of its footprint outside the
 ledger; at most $B_O$ such counts exist per root family.
 \end{proposition}
+That a refusal itself answers a query is the classical auditing observation
+\cite{denning1980tracker,kenthapadi2005simulatable,nabar2006robustness}.
 The bound is on the response payload: execution and derivation precede
 settlement (Section~\ref{sec:online}), so a refused query's latency is
 proportional to the footprint that was not released, a timing channel the
@@ -1047,7 +1047,8 @@ property is unchanged when $K_X$ is represented by dictionary bitmaps or the
 Merkle-radix set (Proposition~\ref{thm:outcome-radix-refinement} and the
 supplement's bitmap-refinement proposition).
 \end{property}
-\emph{Argument.} Induct on successful swaps in linearization order: the
+\emph{Argument.} Induct on successful swaps in linearization order
+\cite{herlihy1990linearizability}: the
 initial head is empty, each successful swap extends the head by exactly the
 effect it computed against the head it read, and the bound check precedes
 the swap; the \code{ExposureLedger} model (Section~\ref{sec:formal}) and
@@ -1269,7 +1270,7 @@ interactive, agents.
 \caption{Core workloads per cell: rows, Release/Dependency Facts, medians
 (ms) of direct, novel, semantic and idempotent replay over
 \FinalVFivePublicationBaselinePerCell{} samples; overhead is novel/direct;
---: the protocol defines no such replay cell for that workload.}
+--: no such replay cell in the protocol.}
 \label{tab:baseline-main}
 \scriptsize
 \setlength{\tabcolsep}{1.4pt}
@@ -1399,13 +1400,12 @@ every order; the exact floors capped release at
 
 \begin{table}[!t]
 \centering
-\caption{Executed comparator arms (retained pilot, three fresh
-deployments each realizing this table identically; campaign class pilot,
-not the sealed protocol's publication class): queries accepted, first
-refusal step, and final distinct Dependency facts, as
-natural\,/\,shuffled\,/\,novelty-first order. An exposure refusal does
-not archive the task, so a first refusal at step 1 coexists with later
-acceptances; row/query-counter crossings instead truncate and archive
+\caption{Executed comparator arms (retained pilot; three fresh
+deployments realized this table identically; campaign class pilot, not
+publication class): queries accepted, first refusal step, and final
+distinct Dependency facts in natural\,/\,shuffled\,/\,novelty-first
+order. An exposure refusal does not archive the task, so a step-1 refusal
+coexists with later acceptances; row/query-counter crossings truncate and archive
 (supplement).}
 \label{tab:counter-executed-main}
 \scriptsize
@@ -1423,7 +1423,7 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \begin{figure}[!t]
 \centering
 \begin{tikzpicture}
-\begin{axis}[width=0.98\columnwidth, height=0.5\columnwidth, font=\scriptsize,
+\begin{axis}[width=0.98\columnwidth, height=0.33\columnwidth, font=\scriptsize,
   xlabel={query index in the adaptive trace}, ylabel={distinct facts (oracle)},
   xmin=1, xmax=100, ymin=0, ymax=34,
   ytick={0,\FinalVFivePublicationRLSBudgetRelease,\FinalVFivePublicationRLSBudgetDependency,\FinalVFivePublicationRLSBudgetOutcome,30},
@@ -1440,9 +1440,9 @@ Arm & Accepted & First refusal & Distinct Dep. \\
   node[pos=0.065, right, font=\scriptsize, align=left] {bounded arm\\refuses};
 \end{axis}
 \end{tikzpicture}
-\caption{Distinct governed facts by query index (trace-union oracle; solid,
-marked) against the bounded arm's budgets (dashed, at the marked y ticks);
-\system-bounded refuses at the first budget crossing, where the trace stops.}
+\caption{Distinct governed facts by query index (trace-union oracle; solid)
+against the bounded arm's budgets (dashed); \system-bounded refuses at the
+first budget crossing, where the trace stops.}
 \label{fig:rls-trace}
 \end{figure}
 
@@ -1461,7 +1461,7 @@ construction and does not rank the systems.
 \subsection{Reproducibility Boundary}
 
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
-PostgreSQL 16.14 image (hardware and versions in the supplement). The
+PostgreSQL 16.14 image (supplement). The
 repository at the
 cited commits, the evidence pack, and the retained raw samples (48 JSONL
 files, 591~MB) form the artifact [artifact DOI/URL], from which every digest
@@ -1471,9 +1471,9 @@ publication-class: one submission commit (\FinalVFivePublicationCommit{}),
 three executions per profile whose per-execution novel medians differ by at
 most \FinalVFivePublicationNovelSpreadMaxPct\% of the pooled median (direct
 \FinalVFivePublicationDirectSpreadMaxPct\%, concurrency
-\FinalVFivePublicationConcurrencySpreadMaxPct\%); the supplement's evidence
-table maps each number to its commit and raw file, and the retained pilot
-(\FinalVFivePilotArtifactCommit{}) is cited only there. RQ1--RQ3 use small
+\FinalVFivePublicationConcurrencySpreadMaxPct\%); the supplement maps each
+number to its commit and raw file and alone cites the retained pilot
+(\FinalVFivePilotArtifactCommit{}). RQ1--RQ3 use small
 fixtures; ordinal/bitmap evidence is warm, single-host, and TPC-H-derived
 (not official); RQ5 sums three sequential warm child intervals behind an
 experiment controller. No result is generalized to cold-cache, multi-node,
