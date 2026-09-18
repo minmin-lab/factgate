@@ -183,7 +183,7 @@ object and a second transaction records AVAILABLE/CONSUMED
   {Snapshot Index\\Compiler};
 \node[box, fill=green!7, minimum width=22mm] (sidecar) at (4.0,2.8)
   {PG sidecar\\entity $\to$ handle};
-\node[box, fill=green!7, minimum width=22mm] (dictionary) at (4.0,1.6)
+\node[box, fill=green!7, minimum width=22mm] (dictionary) at (1.2,.45)
   {FactID $\leftrightarrow$ ordinal\\hot hash / cold payload};
 \node[box, fill=green!10, minimum width=22mm] (manifest) at (4.0,.45)
   {Catalog publication\\binds all digests};
@@ -191,31 +191,31 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[arrow] (compiler) -- (sidecar);
 \draw[arrow] (compiler) -- (dictionary);
 \draw[arrow] (dictionary) -- (manifest);
-\draw[arrow] (sidecar.east) -- ++(.3,0) |- (manifest.east);
+\draw[arrow] (sidecar) -- (manifest);
 
 
 % (b) Online path
-\node[font=\footnotesize\bfseries] at (12.35,4.3) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (7.35,2.65) {Agent\\plan / result};
-\node[decision] (cache) at (9.8,2.65) {authorize +\\semantic cache};
-\node[txnbox, minimum width=26mm] (execute) at (13.05,2.65)
+\node[font=\footnotesize\bfseries] at (12.05,4.3) {(b) Online exact set settlement};
+\node[box, fill=red!5, minimum width=14mm] (client) at (7.05,2.65) {Agent\\plan / result};
+\node[decision] (cache) at (9.5,2.65) {authorize +\\semantic cache};
+\node[txnbox, minimum width=26mm] (execute) at (12.75,2.65)
   {visible SQL + streamed\\ordinal companion};
-\node[txnbox, minimum width=23mm] (derive) at (16.45,2.65)
+\node[txnbox, minimum width=23mm] (derive) at (16.15,2.65)
   {bitmap + atom/\\composite effect};
-\node[txnbox, minimum width=25mm] (cached) at (13.05,1.55)
+\node[txnbox, minimum width=25mm] (cached) at (12.75,1.55)
   {committed observation\\reference};
-\node[txnbox, minimum width=21mm] (novelty) at (16.45,1.45)
+\node[txnbox, minimum width=21mm] (novelty) at (16.15,1.45)
   {exact novelty\\+ union};
-\node[txnbox, minimum width=21mm] (cas) at (14.45,.45)
+\node[txnbox, minimum width=21mm] (cas) at (14.15,.45)
   {three-ledger\\root-head CAS};
-\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (11.25,.45)
+\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (10.95,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.9,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.6,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 % one snapshot: the publication feeds the online visible query
-\draw[arrow] (manifest.south) -- ++(0,-.3) -- (6.2,-.15) -- (6.2,3.5) -- (13.05,3.5) -- (execute.north);
-\node[font=\scriptsize, above] at (8.45,3.5) {one snapshot};
-\coordinate (snapcorner) at (6.0,3.9);
+\draw[arrow] (manifest.south) -- ++(0,-.3) -- (5.9,-.15) -- (5.9,3.5) -- (12.75,3.5) -- (execute.north);
+\node[font=\scriptsize, above] at (8.15,3.5) {one snapshot};
+\coordinate (snapcorner) at (5.7,3.9);
 \draw[exchange] (client) -- (cache);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
 \draw[arrow] (cache) |- node[near start,left]{hit} (cached);
