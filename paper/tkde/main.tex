@@ -196,7 +196,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 % (b) Online path
 \node[font=\footnotesize\bfseries] at (12.5,4.3) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (7.6,2.65) {Agent\\plan / result};
+\node[box, fill=red!5, minimum width=14mm] (client) at (7.35,2.65) {Agent\\plan / result};
 \node[decision] (cache) at (10.4,2.65) {authorize +\\semantic cache};
 \node[txnbox, minimum width=26mm] (execute) at (13.65,2.65)
   {visible SQL + streamed\\ordinal companion};
@@ -210,12 +210,12 @@ object and a second transaction records AVAILABLE/CONSUMED
   {three-ledger\\root-head CAS};
 \node[txnbox, fill=green!10, minimum width=26mm] (commit) at (12.45,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.6,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.35,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 % one snapshot: the publication feeds the online visible query
-\draw[arrow] (manifest.east) -- (5.9,1.6) -- (5.9,3.5) -- (13.65,3.5) -- (execute.north);
+\draw[arrow] (manifest.east) -- (5.4,1.6) -- (5.4,3.5) -- (13.65,3.5) -- (execute.north);
 \node[font=\scriptsize, above] at (8.15,3.5) {one snapshot};
-\coordinate (snapcorner) at (5.7,3.9);
+\coordinate (snapcorner) at (7.0,3.9);
 \draw[arrow] (client) -- node[above, font=\scriptsize]{submit} (cache);
 \draw[return] (cache.south west) |- node[pos=.7, below, font=\scriptsize]{refuse} ([xshift=4mm,yshift=-4.5mm]client.south) -- ([xshift=4mm]client.south);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
