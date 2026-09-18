@@ -158,7 +158,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 \begin{figure*}[t]
 \centering
-\resizebox{0.84\textwidth}{!}{%
+\resizebox{0.8\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, minimum height=6mm,
@@ -1400,12 +1400,12 @@ every order; the exact floors capped release at
 
 \begin{table}[!t]
 \centering
-\caption{Executed comparator arms (retained pilot; three fresh
-deployments realized this table identically; campaign class pilot, not
-publication class): queries accepted, first refusal step, and final
-distinct Dependency facts in natural\,/\,shuffled\,/\,novelty-first
-order. An exposure refusal does not archive the task, so a step-1 refusal
-coexists with later acceptances; row/query-counter crossings truncate and archive
+\caption{Executed comparator arms (retained pilot, not publication class;
+three fresh deployments realized this table identically): queries accepted,
+first refusal step, and final distinct Dependency facts in
+natural\,/\,shuffled\,/\,novelty-first order. An exposure refusal does not
+archive the task (a step-1 refusal coexists with later acceptances);
+row/query-counter crossings truncate and archive
 (supplement).}
 \label{tab:counter-executed-main}
 \scriptsize
@@ -1423,7 +1423,7 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \begin{figure}[!t]
 \centering
 \begin{tikzpicture}
-\begin{axis}[width=0.98\columnwidth, height=0.33\columnwidth, font=\scriptsize,
+\begin{axis}[width=0.98\columnwidth, height=0.5\columnwidth, font=\scriptsize,
   xlabel={query index in the adaptive trace}, ylabel={distinct facts (oracle)},
   xmin=1, xmax=100, ymin=0, ymax=34,
   ytick={0,\FinalVFivePublicationRLSBudgetRelease,\FinalVFivePublicationRLSBudgetDependency,\FinalVFivePublicationRLSBudgetOutcome,30},
