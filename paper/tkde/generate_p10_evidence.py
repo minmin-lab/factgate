@@ -64,5 +64,30 @@ lines += [
     rf"\newcommand{{\HeldoutNewRule}}{{{counts['new']}}}",
     rf"\newcommand{{\HeldoutAgentDefects}}{{{counts['agent']}}}",
 ]
+
+# --- B3: budget-utility sweep (admission arithmetic) -------------------
+sw = json.loads((ROOT / "evaluation/budget-utility-sweep/results.json").read_text())
+def coords(rows, key, total=None):
+    return " ".join(f"({r['multiplier']},{round(100*r[key]/total,1) if total else round(r[key],1)})" for r in rows)
+ex, cm, ad = sw["benign_executed_increments"], sw["benign_corpus_model"], sw["adversary"]
+lines += [
+    rf"\newcommand{{\SweepResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/budget-utility-sweep/results.json')}}}}}",
+    rf"\newcommand{{\SweepBenignExecutedCoords}}{{{coords(ex,'completion_pct')}}}",
+    rf"\newcommand{{\SweepBenignCorpusCoords}}{{{coords(cm,'completion_pct')}}}",
+    rf"\newcommand{{\SweepBitsCoords}}{{{coords(ad,'recovered_bits',11)}}}",
+    rf"\newcommand{{\SweepGreedyCoords}}{{{coords(ad,'greedy_distinct_dependency',18)}}}",
+]
+by = {r["multiplier"]: r for r in ex}
+byc = {r["multiplier"]: r for r in cm}
+bya = {r["multiplier"]: r for r in ad}
+for m, tag in ((0.5, "Half"), (0.75, "ThreeQuarter"), (1, "One"), (1.5, "OneHalf"), (2, "Two")):
+    lines += [
+        rf"\newcommand{{\SweepBenign{tag}Accepted}}{{{by[m]['accepted']}}}",
+        rf"\newcommand{{\SweepBenignCorpus{tag}Accepted}}{{{byc[m]['accepted']}}}",
+        rf"\newcommand{{\SweepBits{tag}}}{{{bya[m]['recovered_bits']}}}",
+        rf"\newcommand{{\SweepGreedy{tag}}}{{{bya[m]['greedy_distinct_dependency']}}}",
+    ]
+lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{ex[0]['authorized']}}}")
+lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

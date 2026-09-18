@@ -1996,6 +1996,75 @@ Tier & Probes & Bits & Recovered & Greedy & Distinct Dep. \\
 \end{tabular}
 \end{table}
 
+\subsection{Budget--Utility Trade-off by Admission Arithmetic}
+\label{sec:sweep-supp}
+
+The two studies above fix one recipe each. To show how benign completion and
+adversarial extraction move together with the recipe, both are swept over a
+multiplier $m$ of the owner-derived budgets by admission arithmetic
+(\filepath{evaluation/cmd/budget-utility-sweep}, results digest
+\SweepResultsDigest{}); nothing here is executed at a multiplier other than
+the pilots' own. Benign: the \SweepBenignAuthorized{} authorized statements
+of the benign trace run in order under $m\times$ the recipe; a statement is
+admitted iff every dimension stays within budget and a refused statement
+adds nothing. Two curves bound the answer, because the corpus's closed-form
+footprints over-approximate the production rule (they count a page's scanned
+rows where the rule counts output cells; e.g., the executed ledger charged
+845,000 Dependency facts for the statement the corpus models at 1,450,000):
+the \emph{executed-increment} curve replays the charged novelty the deployed
+system recorded per statement in the $4\times$ arm (every statement
+accepted), an upper bound on acceptance because a refused statement leaves
+later novelty at least as large; the \emph{corpus-model} curve unions the
+closed-form sets exactly and is a conservative lower bound. Adversary: the
+bisection ladder and greedy extraction replay their data-independent per-step
+charges under $m\times$ the owner tier ($10/18/12/24$).
+Figure~\ref{fig:sweep-supp} plots all four.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.8\textwidth, height=0.42\textwidth, font=\small,
+  xlabel={budget multiplier $m$ of the owner-derived recipe},
+  ylabel={percent of maximum}, xmin=0.2, xmax=4.2, ymin=0, ymax=105,
+  xtick={0.25,0.5,0.75,1,1.5,2,3,4}, xticklabels={.25,.5,.75,1,1.5,2,3,4},
+  legend style={at={(0.5,-0.22)}, anchor=north, legend columns=2, font=\small, draw=none, fill=none},
+  grid=major, grid style={gray!25}]
+\addplot[blue, thick, mark=*] coordinates {\SweepBenignExecutedCoords};
+\addplot[blue, dashed, mark=o] coordinates {\SweepBenignCorpusCoords};
+\addplot[red, thick, mark=square*] coordinates {\SweepBitsCoords};
+\addplot[black!60!green, thick, mark=triangle*] coordinates {\SweepGreedyCoords};
+\legend{benign admitted (executed increments), benign admitted (corpus model), secret bits recovered (of 11), greedy distinct Dependency (of 18)}
+\draw[gray, thick] (axis cs:1,0) -- (axis cs:1,105) node[pos=0.12, right, font=\small] {owner recipe};
+\end{axis}
+\end{tikzpicture}
+\caption{Benign completion versus adversarial extraction as the owner recipe
+is scaled by $m$ (admission arithmetic over the frozen corpora). Executed
+points: benign $1\times$ admits \SweepBenignOneAccepted{}/\SweepBenignAuthorized{}
+(pilot: 22/23, first refusal q26) and $2\times$/$4\times$ all; adversary
+owner tier \SweepBitsOne{} bits and greedy \SweepGreedyOne{}, loosened
+11 bits (pilots realized these tables).}
+\label{fig:sweep-supp}
+\end{figure}
+
+Three readings follow. First, under the owner recipe ($m=1$) the benign trace
+loses one statement while the adversary recovers \SweepBitsOne{} of 11 bits
+and greedy extraction reaches the granted universe (\SweepGreedyOne{}); at
+$m=\SweepRecoverAt{}$ the benign trace is complete and the secret is fully
+recovered, so on this trace the useful operating range is
+$1\le m<\SweepRecoverAt{}$. Second, the bits curve is linear in $m$ because
+each probe's Outcome charge is data-independent, which is the
+$\lfloor B_O/2\rfloor$ bound of the adversary study seen across budgets,
+whereas benign completion saturates once the largest single-statement
+footprint fits. Third, the gap between the two benign curves is the cost of
+a conservative recipe model: at $m=1$ it predicts
+\SweepBenignCorpusOneAccepted{} where the system admits
+\SweepBenignOneAccepted{}; a recipe derived from the production rule would
+sit on the solid curve. This is a study of one benign trace and one hidden
+scalar under closed-form charges; it is not a utility measurement across
+tasks, and the multipliers other than $1$, $2$, $4$ (benign) and the three
+tiers (adversary) are not executed.
+
+
 \section{ProvSQL Base-Tuple Cross-Check (Pilot)}
 \label{sec:provsql-leaves-supp}
 

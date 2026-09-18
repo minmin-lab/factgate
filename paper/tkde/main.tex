@@ -1362,6 +1362,8 @@ so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
 bit while the direct arm answered all three (supplement); the corpus is
 preregistered and the adversary study above probes the strategy space.
+A recipe sweep (supplement) completes the benign trace and recovers the
+secret at $\SweepRecoverAt{}\times$: the useful range is $1\le m<\SweepRecoverAt{}$.
 
 \textbf{Adaptive trace against per-query control.} The RLS profile replays
 one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace
@@ -1431,8 +1433,8 @@ first crossing.}
 
 
 \textbf{Provenance-capture cost.} The ProvSQL profile (supplement) pairs
-byte-identical grouped SQL on pinned PostgreSQL~16.14, ProvSQL~1.11.0's
-complete typed drain, and \system's full governed path: at 45k orders
+byte-identical grouped SQL on pinned PostgreSQL~16.14, ProvSQL~1.11.0, and
+\system's full governed path: at 45k orders
 \FinalVFivePublicationProvSQLFortyFiveKPostgreSQLMS{}~ms,
 \FinalVFivePublicationProvSQLFortyFiveKProvSQLS{}~s, and
 \FinalVFivePublicationProvSQLFortyFiveKBDGS{}~s over
@@ -1467,7 +1469,7 @@ or production-SLO behavior.
 governance units, not bits; \system omits rejected rows, non-output
 groups/pages, rank-only inputs, correlations, background knowledge, and
 physical reads, and provides neither minimal causality nor differential
-privacy (channels and fresh capacity: Section~\ref{sec:model}). \textbf{Query and identity scope.} Evidence uses
+privacy (Section~\ref{sec:model}). \textbf{Query and identity scope.} Evidence uses
 frozen, manifest-proven publications; the closed fragment is a
 reporting-Product fragment, not ad-hoc analytics: the production lowerer
 admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
@@ -1485,9 +1487,7 @@ rejections are engineering gaps, \HeldoutNewRule{} need new rules,
 \HeldoutAgentDefects{} is agent output; supplement);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
-\code{LEFT JOIN}, or \code{LIMIT} over a join. \code{HAVING}, \code{SELECT *},
-exact \code{AVG}, \code{COUNT(DISTINCT)}, and single-Product
-$\{+,-,\times\}$ projections are now admitted; non-literal comparisons,
+\code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,
 \code{OR}, and outer joins need new rules (two-cell atoms, disjunctive
 witnesses, null-extended rows; sketched in the supplement). Stable keys and
 publications are trusted declarations, with View drift checked at request,
@@ -1518,8 +1518,8 @@ defence is each root's approval, not accounting.
 \system provides profile-relative exact accounting of Result, Dependency,
 and Outcome sets within one publication-bound root family, with theorems,
 bounded models, and executable tests behind one scoped claim: no governed
-artifact becomes \code{AVAILABLE} before atomic root-family settlement. It
-enforces an approved policy as querying unfolds without deciding the policy.
+artifact becomes \code{AVAILABLE} before atomic root-family settlement,
+enforcing an approved policy as querying unfolds without deciding it.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

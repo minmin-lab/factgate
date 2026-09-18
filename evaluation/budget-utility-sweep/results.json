@@ -1,0 +1,387 @@
+{
+  "adversary": [
+    {
+      "multiplier": 0.25,
+      "budget": {
+        "R": 3,
+        "D": 5,
+        "O": 3,
+        "Q": 6
+      },
+      "bisection_accepted": 1,
+      "recovered_bits": 1,
+      "secret_recovered": false,
+      "greedy_distinct_dependency": 3
+    },
+    {
+      "multiplier": 0.5,
+      "budget": {
+        "R": 5,
+        "D": 9,
+        "O": 6,
+        "Q": 12
+      },
+      "bisection_accepted": 3,
+      "recovered_bits": 3,
+      "secret_recovered": false,
+      "greedy_distinct_dependency": 9
+    },
+    {
+      "multiplier": 0.75,
+      "budget": {
+        "R": 8,
+        "D": 14,
+        "O": 9,
+        "Q": 18
+      },
+      "bisection_accepted": 4,
+      "recovered_bits": 4,
+      "secret_recovered": false,
+      "greedy_distinct_dependency": 12
+    },
+    {
+      "multiplier": 1,
+      "budget": {
+        "R": 10,
+        "D": 18,
+        "O": 12,
+        "Q": 24
+      },
+      "bisection_accepted": 6,
+      "recovered_bits": 6,
+      "secret_recovered": false,
+      "greedy_distinct_dependency": 18
+    },
+    {
+      "multiplier": 1.5,
+      "budget": {
+        "R": 15,
+        "D": 27,
+        "O": 18,
+        "Q": 36
+      },
+      "bisection_accepted": 9,
+      "recovered_bits": 9,
+      "secret_recovered": false,
+      "greedy_distinct_dependency": 18
+    },
+    {
+      "multiplier": 2,
+      "budget": {
+        "R": 20,
+        "D": 36,
+        "O": 24,
+        "Q": 48
+      },
+      "bisection_accepted": 11,
+      "recovered_bits": 11,
+      "secret_recovered": true,
+      "greedy_distinct_dependency": 18
+    },
+    {
+      "multiplier": 3,
+      "budget": {
+        "R": 30,
+        "D": 54,
+        "O": 36,
+        "Q": 72
+      },
+      "bisection_accepted": 11,
+      "recovered_bits": 11,
+      "secret_recovered": true,
+      "greedy_distinct_dependency": 18
+    },
+    {
+      "multiplier": 4,
+      "budget": {
+        "R": 40,
+        "D": 72,
+        "O": 48,
+        "Q": 96
+      },
+      "bisection_accepted": 11,
+      "recovered_bits": 11,
+      "secret_recovered": true,
+      "greedy_distinct_dependency": 18
+    }
+  ],
+  "adversary_corpus_sha256": "d59b8bb42b028b0c24b161b6964fc4c10d8a74fc0baf0fee8fd3cd3753f94aca",
+  "adversary_owner_budget": {
+    "R": 10,
+    "D": 18,
+    "O": 12,
+    "Q": 24
+  },
+  "benign_corpus_model": [
+    {
+      "multiplier": 0.25,
+      "budget": {
+        "R": 6727,
+        "D": 362500,
+        "O": 14,
+        "Q": 56
+      },
+      "authorized": 23,
+      "accepted": 6,
+      "budget_refusals": 17,
+      "policy_refusals": 5,
+      "completion_pct": 26.08695652173913,
+      "ledger_dependency": 70,
+      "first_budget_refusal": "q07",
+      "binding_dimension": "O"
+    },
+    {
+      "multiplier": 0.5,
+      "budget": {
+        "R": 13454,
+        "D": 725000,
+        "O": 28,
+        "Q": 112
+      },
+      "authorized": 23,
+      "accepted": 13,
+      "budget_refusals": 10,
+      "policy_refusals": 5,
+      "completion_pct": 56.52173913043478,
+      "ledger_dependency": 200150,
+      "first_budget_refusal": "q22",
+      "binding_dimension": "O"
+    },
+    {
+      "multiplier": 0.75,
+      "budget": {
+        "R": 20181,
+        "D": 1087500,
+        "O": 42,
+        "Q": 168
+      },
+      "authorized": 23,
+      "accepted": 17,
+      "budget_refusals": 6,
+      "policy_refusals": 5,
+      "completion_pct": 73.91304347826087,
+      "ledger_dependency": 225262,
+      "first_budget_refusal": "q23",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 1,
+      "budget": {
+        "R": 26907,
+        "D": 1450000,
+        "O": 56,
+        "Q": 224
+      },
+      "authorized": 23,
+      "accepted": 21,
+      "budget_refusals": 2,
+      "policy_refusals": 5,
+      "completion_pct": 91.30434782608695,
+      "ledger_dependency": 1207313,
+      "first_budget_refusal": "q23",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 1.5,
+      "budget": {
+        "R": 40361,
+        "D": 2175000,
+        "O": 84,
+        "Q": 336
+      },
+      "authorized": 23,
+      "accepted": 22,
+      "budget_refusals": 1,
+      "policy_refusals": 5,
+      "completion_pct": 95.65217391304348,
+      "ledger_dependency": 1475232,
+      "first_budget_refusal": "q30",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 2,
+      "budget": {
+        "R": 53814,
+        "D": 2900000,
+        "O": 112,
+        "Q": 448
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 2432313
+    },
+    {
+      "multiplier": 3,
+      "budget": {
+        "R": 80721,
+        "D": 4350000,
+        "O": 168,
+        "Q": 672
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 2432313
+    },
+    {
+      "multiplier": 4,
+      "budget": {
+        "R": 107628,
+        "D": 5800000,
+        "O": 224,
+        "Q": 896
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 2432313
+    }
+  ],
+  "benign_corpus_sha256": "fa33b3132224b8397b67d5e323aa016ef9f71f8c4c80a9498983573102fd8b7f",
+  "benign_executed_increments": [
+    {
+      "multiplier": 0.25,
+      "budget": {
+        "R": 6727,
+        "D": 362500,
+        "O": 14,
+        "Q": 56
+      },
+      "authorized": 23,
+      "accepted": 5,
+      "budget_refusals": 18,
+      "policy_refusals": 5,
+      "completion_pct": 21.73913043478261,
+      "ledger_dependency": 16,
+      "first_budget_refusal": "q08",
+      "binding_dimension": "O"
+    },
+    {
+      "multiplier": 0.5,
+      "budget": {
+        "R": 13454,
+        "D": 725000,
+        "O": 28,
+        "Q": 112
+      },
+      "authorized": 23,
+      "accepted": 15,
+      "budget_refusals": 8,
+      "policy_refusals": 5,
+      "completion_pct": 65.21739130434783,
+      "ledger_dependency": 115110,
+      "first_budget_refusal": "q23",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 0.75,
+      "budget": {
+        "R": 20181,
+        "D": 1087500,
+        "O": 42,
+        "Q": 168
+      },
+      "authorized": 23,
+      "accepted": 19,
+      "budget_refusals": 4,
+      "policy_refusals": 5,
+      "completion_pct": 82.6086956521739,
+      "ledger_dependency": 961823,
+      "first_budget_refusal": "q26",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 1,
+      "budget": {
+        "R": 26907,
+        "D": 1450000,
+        "O": 56,
+        "Q": 224
+      },
+      "authorized": 23,
+      "accepted": 22,
+      "budget_refusals": 1,
+      "policy_refusals": 5,
+      "completion_pct": 95.65217391304348,
+      "ledger_dependency": 981433,
+      "first_budget_refusal": "q26",
+      "binding_dimension": "D"
+    },
+    {
+      "multiplier": 1.5,
+      "budget": {
+        "R": 40361,
+        "D": 2175000,
+        "O": 84,
+        "Q": 336
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 1476433
+    },
+    {
+      "multiplier": 2,
+      "budget": {
+        "R": 53814,
+        "D": 2900000,
+        "O": 112,
+        "Q": 448
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 1476433
+    },
+    {
+      "multiplier": 3,
+      "budget": {
+        "R": 80721,
+        "D": 4350000,
+        "O": 168,
+        "Q": 672
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 1476433
+    },
+    {
+      "multiplier": 4,
+      "budget": {
+        "R": 107628,
+        "D": 5800000,
+        "O": 224,
+        "Q": 896
+      },
+      "authorized": 23,
+      "accepted": 23,
+      "budget_refusals": 0,
+      "policy_refusals": 5,
+      "completion_pct": 100,
+      "ledger_dependency": 1476433
+    }
+  ],
+  "benign_note": "corpus_model: exact set union of the corpus's closed-form footprints (a conservative over-approximation of the production rule, see ledger); executed_increments: the system's own charged novelty per statement from the executed x4 arm in natural order, an upper bound on acceptance under smaller budgets because a refused statement's facts leave later novelty at least as large",
+  "benign_recipe": {
+    "R": 26907,
+    "D": 1450000,
+    "O": 56,
+    "Q": 224
+  },
+  "method": "admission arithmetic over frozen corpora and independent oracles; not measured",
+  "schema_version": 1
+}
