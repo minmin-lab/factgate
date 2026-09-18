@@ -130,5 +130,38 @@ lines += [
     rf"\newcommand{{\TimingPreLargeSpanMS}}{{{min(v['min_ms'] for v in large)}--{max(v['max_ms'] for v in large)}}}",
 ]
 
+# --- B4: counter comparators under one aligned failure policy -----------
+ca = json.loads((ROOT / "evaluation/counter-aligned/results.json").read_text())
+label = {"exact": "exact set floors", "release": "release-set only", "rows": "cumulative row counter", "queries": "query counter"}
+cells = {(c["arm"], c["order"]): c for c in ca["aligned"]}
+ex = ca["executed_default_products"]
+rows_tbl = []
+for arm in ("exact", "release", "rows", "queries"):
+    adm = "/".join(str(cells[(arm, o)]["admitted"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    exadm = "/".join(str(ex[f"{arm}/{o}"]["admitted"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    zero = "/".join(str(cells[(arm, o)]["nonnovel_refused"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    dep = "/".join(str(cells[(arm, o)]["released"][1]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    rel = "; ".join("/".join(str(x) for x in cells[(arm, o)]["released"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    rows_tbl.append(f"{label[arm]} & {adm} & {exadm} & {zero} & {dep}")
+lines.append(r"\newcommand{\AlignedCounterTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")
+b = ca["sources"]["budgets"]
+lines += [
+    rf"\newcommand{{\AlignedResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/counter-aligned/results.json')}}}}}",
+    rf"\newcommand{{\AlignedSealedDigest}}{{\texttt{{{ca['sources']['sealed_sha256'][:12]}}}}}",
+    rf"\newcommand{{\AlignedRowsBudget}}{{{b['rows']['max_rows']}}}",
+    rf"\newcommand{{\AlignedQueriesBudget}}{{{b['queries']['max_queries']}}}",
+    rf"\newcommand{{\AlignedReleaseBudget}}{{{b['release']['max_release_facts']}}}",
+    rf"\newcommand{{\AlignedFullDep}}{{{ca['trace']['full_union'][1]}}}",
+    rf"\newcommand{{\AlignedExactDep}}{{{max(cells[('exact', o)]['released'][1] for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+    rf"\newcommand{{\AlignedRowsNaturalAdmitted}}{{{cells[('rows','natural')]['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsNaturalExecuted}}{{{ex['rows/natural']['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsShuffledAdmitted}}{{{cells[('rows','shuffled-v1')]['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsShuffledExecuted}}{{{ex['rows/shuffled-v1']['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsNaturalReleased}}{{{'/'.join(str(x) for x in cells[('rows','natural')]['released'])}}}",
+    rf"\newcommand{{\AlignedRowsNaturalExecutedReleased}}{{{'/'.join(str(x) for x in ex['rows/natural']['released'])}}}",
+    rf"\newcommand{{\AlignedCounterZeroMin}}{{{min(cells[(a,o)]['nonnovel_refused'] for a in ('rows','queries') for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+    rf"\newcommand{{\AlignedCounterZeroMax}}{{{max(cells[(a,o)]['nonnovel_refused'] for a in ('rows','queries') for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

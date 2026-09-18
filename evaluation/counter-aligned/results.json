@@ -1,0 +1,412 @@
+{
+ "version": 1,
+ "policy": "refuse the crossing query whole, release nothing, keep the task alive, keep evaluating",
+ "sources": {
+  "sealed_sample": "evaluation/final-v5-wsl2/raw/formal-v113-publication-03/deployments/rls-unlimited/001/raw/rls.jsonl",
+  "sealed_sha256": "b5058ef1c4730c44f285bc631db99a55704c3a9e9c87039032d678760f1c5ee6",
+  "counter_corpus_sha256": "c9b2300307337b2de0bffdcdb6e2c1ebeb9fdeddac10b0ab8c2a67a878f4f22b",
+  "budgets": {
+   "exact": {
+    "max_queries": 110,
+    "max_rows": 500,
+    "max_release_facts": 7,
+    "max_influence_facts": 12,
+    "max_outcome_facts": 18
+   },
+   "rows": {
+    "max_queries": 110,
+    "max_rows": 175,
+    "max_release_facts": 1000000,
+    "max_influence_facts": 1000000,
+    "max_outcome_facts": 1000000
+   },
+   "queries": {
+    "max_queries": 70,
+    "max_rows": 500,
+    "max_release_facts": 1000000,
+    "max_influence_facts": 1000000,
+    "max_outcome_facts": 1000000
+   },
+   "release": {
+    "max_queries": 110,
+    "max_rows": 500,
+    "max_release_facts": 7,
+    "max_influence_facts": 1000000,
+    "max_outcome_facts": 1000000
+   }
+  }
+ },
+ "trace": {
+  "statements": 100,
+  "rows_total": 250,
+  "full_union": [
+   10,
+   18,
+   27
+  ]
+ },
+ "aligned": [
+  {
+   "arm": "exact",
+   "order": "natural",
+   "admitted": 36,
+   "refused": 64,
+   "first_refusal": 37,
+   "nonnovel_refused": 0,
+   "novel_refused": 64,
+   "rows_released": 66,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "full_union": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "arm": "exact",
+   "order": "shuffled-v1",
+   "admitted": 36,
+   "refused": 64,
+   "first_refusal": 1,
+   "nonnovel_refused": 0,
+   "novel_refused": 64,
+   "rows_released": 66,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "full_union": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "arm": "exact",
+   "order": "novelty-first-v1",
+   "admitted": 46,
+   "refused": 54,
+   "first_refusal": 1,
+   "nonnovel_refused": 0,
+   "novel_refused": 54,
+   "rows_released": 96,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "full_union": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "arm": "release",
+   "order": "natural",
+   "admitted": 76,
+   "refused": 24,
+   "first_refusal": 68,
+   "nonnovel_refused": 0,
+   "novel_refused": 24,
+   "rows_released": 226,
+   "released": [
+    7,
+    18,
+    23
+   ],
+   "full_union": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "release",
+   "order": "shuffled-v1",
+   "admitted": 78,
+   "refused": 22,
+   "first_refusal": 10,
+   "nonnovel_refused": 0,
+   "novel_refused": 22,
+   "rows_released": 228,
+   "released": [
+    7,
+    18,
+    22
+   ],
+   "full_union": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "release",
+   "order": "novelty-first-v1",
+   "admitted": 76,
+   "refused": 24,
+   "first_refusal": 41,
+   "nonnovel_refused": 0,
+   "novel_refused": 24,
+   "rows_released": 226,
+   "released": [
+    7,
+    18,
+    23
+   ],
+   "full_union": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "rows",
+   "order": "natural",
+   "admitted": 59,
+   "refused": 41,
+   "first_refusal": 58,
+   "nonnovel_refused": 29,
+   "novel_refused": 12,
+   "rows_released": 175,
+   "released": [
+    8,
+    18,
+    24
+   ],
+   "full_union": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "rows",
+   "order": "shuffled-v1",
+   "admitted": 75,
+   "refused": 25,
+   "first_refusal": 73,
+   "nonnovel_refused": 23,
+   "novel_refused": 2,
+   "rows_released": 175,
+   "released": [
+    10,
+    18,
+    23
+   ],
+   "full_union": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "rows",
+   "order": "novelty-first-v1",
+   "admitted": 55,
+   "refused": 45,
+   "first_refusal": 56,
+   "nonnovel_refused": 9,
+   "novel_refused": 36,
+   "rows_released": 175,
+   "released": [
+    10,
+    18,
+    12
+   ],
+   "full_union": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "queries",
+   "order": "natural",
+   "admitted": 70,
+   "refused": 30,
+   "first_refusal": 71,
+   "nonnovel_refused": 28,
+   "novel_refused": 2,
+   "rows_released": 220,
+   "released": [
+    9,
+    18,
+    26
+   ],
+   "full_union": [
+    false,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "queries",
+   "order": "shuffled-v1",
+   "admitted": 70,
+   "refused": 30,
+   "first_refusal": 71,
+   "nonnovel_refused": 28,
+   "novel_refused": 2,
+   "rows_released": 169,
+   "released": [
+    10,
+    18,
+    23
+   ],
+   "full_union": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "arm": "queries",
+   "order": "novelty-first-v1",
+   "admitted": 70,
+   "refused": 30,
+   "first_refusal": 71,
+   "nonnovel_refused": 24,
+   "novel_refused": 6,
+   "rows_released": 196,
+   "released": [
+    10,
+    18,
+    15
+   ],
+   "full_union": [
+    true,
+    true,
+    false
+   ]
+  }
+ ],
+ "executed_default_products": {
+  "exact/natural": {
+   "admitted": 36,
+   "first_refusal": 37,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "rows_released": 66
+  },
+  "rows/natural": {
+   "admitted": 58,
+   "first_refusal": 59,
+   "released": [
+    6,
+    18,
+    21
+   ],
+   "rows_released": 175
+  },
+  "queries/natural": {
+   "admitted": 70,
+   "first_refusal": 71,
+   "released": [
+    9,
+    18,
+    26
+   ],
+   "rows_released": 220
+  },
+  "release/natural": {
+   "admitted": 76,
+   "first_refusal": 68,
+   "released": [
+    7,
+    18,
+    23
+   ],
+   "rows_released": 226
+  },
+  "exact/shuffled-v1": {
+   "admitted": 36,
+   "first_refusal": 1,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "rows_released": 66
+  },
+  "rows/shuffled-v1": {
+   "admitted": 73,
+   "first_refusal": 74,
+   "released": [
+    10,
+    18,
+    23
+   ],
+   "rows_released": 175
+  },
+  "queries/shuffled-v1": {
+   "admitted": 70,
+   "first_refusal": 71,
+   "released": [
+    10,
+    18,
+    23
+   ],
+   "rows_released": 169
+  },
+  "release/shuffled-v1": {
+   "admitted": 78,
+   "first_refusal": 10,
+   "released": [
+    7,
+    18,
+    22
+   ],
+   "rows_released": 228
+  },
+  "exact/novelty-first-v1": {
+   "admitted": 46,
+   "first_refusal": 1,
+   "released": [
+    6,
+    12,
+    15
+   ],
+   "rows_released": 96
+  },
+  "rows/novelty-first-v1": {
+   "admitted": 55,
+   "first_refusal": 56,
+   "released": [
+    10,
+    18,
+    12
+   ],
+   "rows_released": 175
+  },
+  "queries/novelty-first-v1": {
+   "admitted": 70,
+   "first_refusal": 71,
+   "released": [
+    10,
+    18,
+    15
+   ],
+   "rows_released": 196
+  },
+  "release/novelty-first-v1": {
+   "admitted": 76,
+   "first_refusal": 41,
+   "released": [
+    7,
+    18,
+    23
+   ],
+   "rows_released": 226
+  }
+ }
+}

@@ -1821,6 +1821,63 @@ Arm & Accepted & First refusal & Distinct Dep. \\
 \end{tabular}
 \end{table}
 
+\subsection{The same comparator arms under one failure policy}
+\label{sec:counter-aligned-supp}
+
+The executed arms above compare default products, and the products differ
+in more than their metering unit: a row- or query-budget crossing truncates
+the crossing query, settles it and archives the task, while an exposure
+crossing refuses the whole query uncharged and leaves the task alive. A
+reviewer rightly asked for the mechanism comparison with that confound
+removed. Table~\ref{tab:counter-aligned-supp} replays the four arms, with the
+same a-priori budgets (\AlignedReleaseBudget{} Release facts;
+\AlignedRowsBudget{} rows; \AlignedQueriesBudget{} queries; the exact floors)
+and the same three frozen orders, under one policy for every arm: refuse the
+crossing query whole, release nothing, keep the task alive, keep evaluating.
+The replay is admission arithmetic
+(\filepath{evaluation/counter-aligned/replay.py}, results digest
+\AlignedResultsDigest{}) over the sealed campaign's unlimited sample
+(\AlignedSealedDigest{}), whose independent oracle records every statement's
+Release, Dependency and Outcome fact sets and row count; the exact-floor arm
+already has this policy in production, and its replay reproduces the
+executed expectation in all three orders, which is the check that the
+arithmetic matches the deployed semantics.
+
+\begin{table}[t]
+\centering
+\caption{Comparator arms under one aligned failure policy (refuse whole,
+keep the task alive), natural\,/\,shuffled\,/\,novelty-first order: queries
+admitted (aligned replay, then the executed default product), refusals whose
+facts lie entirely inside the arm's own final released set (requests the agent
+paid for and would have gained nothing from), and final distinct Dependency
+facts of \AlignedFullDep{} in the trace.}
+\label{tab:counter-aligned-supp}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Arm & Admitted & Executed & Zero-gain refusals & Distinct Dep. \\
+\midrule
+\AlignedCounterTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+Aligning the policy changes only the row counter, and only slightly: kept
+alive, it admits \AlignedRowsNaturalAdmitted{} queries in the natural order
+against \AlignedRowsNaturalExecuted{} archived, and
+\AlignedRowsShuffledAdmitted{} against \AlignedRowsShuffledExecuted{} shuffled,
+releasing \AlignedRowsNaturalReleased{} rather than
+\AlignedRowsNaturalExecutedReleased{} facts in the natural order. Both
+conclusions of the executed study survive with the confound removed: every
+counter still ends at the full \AlignedFullDep{}-fact Dependency union in
+every order, and the exact floors still cap release at \AlignedExactDep{}
+in every order. The aligned replay adds a cost the executed products hid
+behind archiving: a live counter keeps refusing requests that would have
+released nothing new against what it has already released,
+\AlignedCounterZeroMin{}--\AlignedCounterZeroMax{} such refusals per order for
+the row and query counters, whereas the set floors refuse no such request,
+because a query inside the released set is by definition within budget.
+
 \subsection{A benign agent trace under a conservative recipe budget}
 \label{sec:benign-supp}
 
