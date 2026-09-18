@@ -530,7 +530,7 @@ $\facts_O=A(q)\cup\{c_q\}$ contains the predicate footprint and composite
 query/result identity from Eqs.~\eqref{eq:predicate-atoms}--\eqref{eq:outcome-fact}.
 \end{definition}
 
-\emph{Example (charged by the operator rules below).} Over a five-row Product with fields $(id,dept,amt)$, the
+\emph{Example (charged by the operator rules of Section~\ref{sec:effect-extraction}).} Over a five-row Product with fields $(id,dept,amt)$, the
 query $\pi_{id,amt}\sigma_{dept='S'}$ selects rows $r_1$--$r_3$ and charges
 $6$ Result cells, $12$ Dependency facts (each selected row's row fact, its
 $dept$ cell read by the predicate, and its two visible cells), and $2$
@@ -718,6 +718,7 @@ floating SUM, unsupported casts, and overflow are undefined and settle
 nothing; the complete type domain and encoders are supplemental.
 
 \subsection{Annotated-Bag Evaluation and Effect Extraction}
+\label{sec:effect-extraction}
 
 A relation is a typed PostgreSQL bag with unique occurrence keys and optional
 proven total order; rows and cells carry support $S$, positive witness
