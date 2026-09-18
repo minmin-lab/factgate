@@ -185,7 +185,7 @@ object and a second transaction records AVAILABLE/CONSUMED
   {PG sidecar\\entity $\to$ handle};
 \node[box, fill=green!7, minimum width=22mm] (dictionary) at (1.2,.45)
   {FactID $\leftrightarrow$ ordinal\\hot hash / cold payload};
-\node[box, fill=green!10, minimum width=22mm] (manifest) at (4.0,.45)
+\node[box, fill=green!10, minimum width=22mm] (manifest) at (4.0,1.6)
   {Catalog publication\\binds all digests};
 \draw[arrow] (snapshot) -- (compiler);
 \draw[arrow] (compiler) -- (sidecar);
@@ -213,7 +213,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 \node[box, fill=blue!7, minimum width=25mm] (promote) at (7.6,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 % one snapshot: the publication feeds the online visible query
-\draw[arrow] (manifest.south) -- ++(0,-.3) -- (5.9,-.15) -- (5.9,3.5) -- (12.75,3.5) -- (execute.north);
+\draw[arrow] (manifest.east) -- (5.9,1.6) -- (5.9,3.5) -- (12.75,3.5) -- (execute.north);
 \node[font=\scriptsize, above] at (8.15,3.5) {one snapshot};
 \coordinate (snapcorner) at (5.7,3.9);
 \draw[exchange] (client) -- (cache);
