@@ -196,7 +196,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 % (b) Online path
 \node[font=\footnotesize\bfseries] at (12.25,4.3) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (7.05,2.65) {Agent\\plan / result};
+\node[box, fill=red!5, minimum width=14mm] (client) at (7.6,2.65) {Agent\\plan / result};
 \node[decision] (cache) at (9.9,2.65) {authorize +\\semantic cache};
 \node[txnbox, minimum width=26mm] (execute) at (13.15,2.65)
   {visible SQL + streamed\\ordinal companion};
@@ -217,7 +217,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 \node[font=\scriptsize, above] at (8.15,3.5) {one snapshot};
 \coordinate (snapcorner) at (5.7,3.9);
 \draw[arrow] (client) -- (cache);
-\draw[return] (cache.south west) |- node[pos=.7, below, font=\scriptsize]{refuse} ([xshift=3.5mm,yshift=-2mm]client.south) -- ([xshift=3.5mm]client.south);
+\draw[return] (cache.south west) |- node[pos=.7, below, font=\scriptsize]{refuse} ([xshift=4mm,yshift=-4.5mm]client.south) -- ([xshift=4mm]client.south);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
 \draw[arrow] (cache) |- node[near start,left]{hit} (cached);
 \draw[arrow] (execute) -- (derive);
@@ -226,7 +226,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[arrow] (novelty.south) |- (cas.east);
 \draw[arrow] (cas) -- (commit);
 \draw[arrow] (commit) -- (promote);
-\draw[return] (promote.north) -- node[pos=.35, right, font=\scriptsize]{result\_id} ([xshift=-2mm]client.south);
+\draw[return] (promote.north) -- node[pos=.3, left, font=\scriptsize]{result\_id} (promote.north |- client.south);
 \node[draw, dashed, rounded corners, inner sep=2mm,
   fit=(cache)(execute)(cached)(derive)(novelty)(cas)(commit)(promote)(snapcorner),
   label={[font=\footnotesize]below:trusted enforcement boundary}] {};
