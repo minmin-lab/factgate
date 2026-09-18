@@ -89,5 +89,46 @@ for m, tag in ((0.5, "Half"), (0.75, "ThreeQuarter"), (1, "One"), (1.5, "OneHalf
     ]
 lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{ex[0]['authorized']}}}")
 lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
+# --- B7: refusal timing-channel bandwidth (retained data only) ----------
+tc = json.loads((ROOT / "evaluation/timing-channel/results.json").read_text())
+po, bd, rt = tc["post_execution"], tc["bound"], tc["rate"]
+lines += [
+    rf"\newcommand{{\TimingResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/timing-channel/results.json')}}}}}",
+    rf"\newcommand{{\TimingRefusals}}{{{po['refusals']}}}",
+    rf"\newcommand{{\TimingWithinStepGroups}}{{{po['within_step_groups']}}}",
+    rf"\newcommand{{\TimingRefusedMedianMS}}{{{po['median_ms']}}}",
+    rf"\newcommand{{\TimingRefusedPTenMS}}{{{po['p10_ms']}}}",
+    rf"\newcommand{{\TimingRefusedPNinetyMS}}{{{po['p90_ms']}}}",
+    rf"\newcommand{{\TimingRefusedMinMS}}{{{po['min_ms']}}}",
+    rf"\newcommand{{\TimingRefusedMaxMS}}{{{po['max_ms']}}}",
+    rf"\newcommand{{\TimingPooledSDMS}}{{{po['pooled_sd_ms']}}}",
+    rf"\newcommand{{\TimingWithinStepSDMS}}{{{po['within_step_sd_median_ms']}}}",
+    rf"\newcommand{{\TimingWithinStepSDPNinetyMS}}{{{po['within_step_sd_p90_ms']}}}",
+    rf"\newcommand{{\TimingSlopeMSPerRow}}{{{po['ols_ms_per_row']:.3f}}}",
+    rf"\newcommand{{\TimingSlopeSEMSPerRow}}{{{po['ols_se_ms_per_row']:.3f}}}",
+    rf"\newcommand{{\TimingAcceptedFirstMS}}{{{po['accepted_position_one_median_ms']}}}",
+    rf"\newcommand{{\TimingAcceptedLaterMS}}{{{po['accepted_later_median_ms']}}}",
+    rf"\newcommand{{\TimingMicrosPerFact}}{{{rt['micros_per_fact']:.2f}}}",
+    rf"\newcommand{{\TimingMicrosPerFactSE}}{{{rt['se_micros_per_fact']:.2f}}}",
+    rf"\newcommand{{\TimingResolutionFacts}}{{{bd['resolution_facts']:,}}}",
+    rf"\newcommand{{\TimingFactsPerRow}}{{{bd['facts_per_row']}}}",
+    rf"\newcommand{{\TimingRowGuard}}{{{bd['max_rows_guard']}}}",
+    rf"\newcommand{{\TimingCorpusFMax}}{{{bd['corpus']['F_max']}}}",
+    rf"\newcommand{{\TimingCorpusBits}}{{{bd['corpus']['bits']:.3f}}}",
+    rf"\newcommand{{\TimingRowGuardFMax}}{{{bd['row_guard']['F_max']:,}}}",
+    rf"\newcommand{{\TimingRowGuardBits}}{{{bd['row_guard']['bits']:.3f}}}",
+    rf"\newcommand{{\TimingLadderFMax}}{{{bd['ladder_scale']['F_max']:,}}}",
+    rf"\newcommand{{\TimingLadderBits}}{{{bd['ladder_scale']['bits']:.1f}}}",
+]
+body = " \\\\\n".join(f"{g['rows']} & {g['n']} & {g['median_ms']} & {g['p10_ms']} & {g['p90_ms']}" for g in po["by_rows"])
+lines.append(r"\newcommand{\TimingByRowsTableBody}{%" + "\n" + body + r" \\%" + "\n}")
+pre = tc["pre_execution"]["by_row_span"]
+small = [v for k, v in pre.items() if int(k) < 100000]
+large = [v for k, v in pre.items() if int(k) >= 100000]
+lines += [
+    rf"\newcommand{{\TimingPreSmallSpanMS}}{{{min(v['min_ms'] for v in small)}--{max(v['max_ms'] for v in small)}}}",
+    rf"\newcommand{{\TimingPreLargeSpanMS}}{{{min(v['min_ms'] for v in large)}--{max(v['max_ms'] for v in large)}}}",
+]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

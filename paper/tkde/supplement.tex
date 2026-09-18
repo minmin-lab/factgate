@@ -1871,6 +1871,100 @@ across the whole ladder, while accepted unlimited rungs grow to
 footprint derivation, so refusal latency does not scale with the refused
 footprint at these sites.
 
+\subsection{Bandwidth of the Refusal Timing Channel}
+\label{sec:timing-supp}
+
+The main text's threat model names a timing channel: execution and
+derivation precede settlement, so a query refused at settlement has already
+paid for the footprint it did not release. This section measures that channel
+on the retained refusals rather than modelling it. No new run was made; the
+analysis script (\filepath{evaluation/timing-channel/analyze.py}, results
+digest \TimingResultsDigest{}) reads the retained pilot records and the frozen
+corpora, and every number below is reproducible from them.
+
+\paragraph{Two sites.}
+The Gateway refuses on budget at two places. The pre-execution guards
+(\code{DeriveLimits} and the reservation checks in
+\filepath{internal/gateway/query.go}) refuse before any SQL runs; the
+refused-footprint ladder above exercises them. The post-execution site is the
+settlement novelty check (\code{ordinal_exposure_v5.go}): the visible and
+companion statements ran, facts were derived, novelty against the root
+ledger was computed, and only then was the query refused. Only the second
+site can leak the unreleased footprint through latency, and it is the site
+every adaptive-trace refusal in the paper hits.
+
+\paragraph{Post-execution refusals.}
+The retained runs contain \TimingRefusals{} post-execution refusals with a
+known footprint: the counter-comparator traces (\code{pilot-counter-rigor-02},
+exact and release arms, three deployments, three samples each) and the
+adversary tiers (\code{pilot-adversary-04}, owner and tightened). The refused
+statement's footprint in rows is the row count the same statement releases
+when accepted elsewhere in the corpus. Position-one steps are excluded: the
+first query on a fresh root costs \TimingAcceptedFirstMS{}~ms accepted against
+\TimingAcceptedLaterMS{}~ms later, a cold-start effect unrelated to footprint.
+Table~\ref{tab:timing-supp} groups the refusals by footprint.
+
+\begin{table}[t]
+\centering
+\caption{Post-execution refusal latency by the footprint that was not
+released (\TimingRefusals{} refusals, ms). The footprint is in released rows
+of the expense Product; each row charges \TimingFactsPerRow{} Dependency
+Facts.}
+\label{tab:timing-supp}
+\small
+\begin{tabular}{rrrrr}
+\toprule
+Rows & $n$ & Median & p10 & p90 \\
+\midrule
+\TimingByRowsTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+The medians move by less than half a millisecond across a six-fold change in
+footprint. An ordinary least-squares fit gives
+\TimingSlopeMSPerRow{}~ms per row (standard error
+\TimingSlopeSEMSPerRow{}), not distinguishable from zero at two standard
+errors and thirty times smaller than the noise: the pooled standard deviation
+is \TimingPooledSDMS{}~ms, and the same statement refused repeatedly across
+runs (\TimingWithinStepGroups{} statements with at least six refusals each)
+has a median within-statement standard deviation of \TimingWithinStepSDMS{}~ms
+(p90 \TimingWithinStepSDPNinetyMS{}). At the footprints an adaptive trace
+reaches under these budgets, the channel is below the noise floor.
+
+\paragraph{Rate and bound.}
+The channel exists in principle because execution time grows with the
+footprint. The unlimited ladder arm gives the rate: an OLS fit of latency on
+charged Dependency Facts over its twelve accepted rungs is
+\TimingMicrosPerFact{}~$\mu$s per Fact (standard error
+\TimingMicrosPerFactSE{}), consistent with the
+\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}--\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}~$\mu$s
+per Fact of the sub-phase pilot. With noise $\sigma=\TimingPooledSDMS{}$~ms,
+one refusal resolves the unreleased footprint to about
+$\pm\sigma/r\approx\TimingResolutionFacts{}$ Facts. Treating the channel as
+Gaussian with the footprint uniform on $[0,F_{\max}]$ gives the capacity
+upper bound $C\le\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/12\sigma^2\bigr)$
+bits per refusal; the bound is what an optimal receiver could extract under
+that prior, not what the adversary of Section~\ref{sec:adversary-supp}
+recovers. On this Product $F_{\max}$ is set by the pre-execution row guard
+(\code{max_rows}$=\TimingRowGuard{}$, \TimingRowGuardFMax{} Facts), which
+gives $C\le\TimingRowGuardBits{}$ bits; at the corpus's own maximum
+(\TimingCorpusFMax{} Facts) it is \TimingCorpusBits{}. The
+\TimingLadderBits{}-bit figure for a \TimingLadderFMax{}-Fact scan is the
+capacity that would exist if such a scan reached the post-execution site; under
+the bounded profile it does not, because the ladder shows the guards refusing
+it before execution. The channel is therefore governed by the row guard, which
+is the deployment control the main text's limitations section asks for, and the leak an
+unguarded deployment would accept is the \TimingLadderBits{}-bit line.
+
+\paragraph{Pre-execution site.}
+The ladder's refusals carry a second, weaker signal that is not about
+unreleased data: their latency depends on the row span the agent itself
+wrote. The eleven bounded-arm refusals (one deployment) fall into two levels,
+\TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows and
+\TimingPreLargeSpanMS{}~ms for the $10^5$-row rungs: at most one bit per
+refusal, and it describes the query, not the ledger.
+
 \subsection{A SUM ladder past $10^7$ Dependency facts in one query}
 \label{sec:scale7-supp}
 

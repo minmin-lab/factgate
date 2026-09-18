@@ -1,0 +1,275 @@
+{
+ "version": 1,
+ "sources": {
+  "counter_corpus_sha256": "c9b2300307337b2de0bffdcdb6e2c1ebeb9fdeddac10b0ab8c2a67a878f4f22b",
+  "rls_corpus_sha256": "39e86d75f10be47847e7db155f28c564c43f4d50d765a99605028b3fc6535b3b",
+  "campaigns": [
+   "pilot-counter-rigor-02",
+   "pilot-adversary-04",
+   "pilot-footprint-07"
+  ]
+ },
+ "post_execution": {
+  "site": "internal/gateway/query.go finalize -> control.ErrExposureBudgetExhausted (ordinal_exposure_v5.go novelty check)",
+  "refusals": 762,
+  "excluded_position_one": true,
+  "arms": [
+   [
+    "pilot-adversary-04",
+    "adversary-owner"
+   ],
+   [
+    "pilot-adversary-04",
+    "adversary-tightened"
+   ],
+   [
+    "pilot-counter-rigor-02",
+    "counter-exact"
+   ],
+   [
+    "pilot-counter-rigor-02",
+    "counter-release"
+   ]
+  ],
+  "median_ms": 29.5,
+  "p10_ms": 27.8,
+  "p90_ms": 32.2,
+  "min_ms": 26.2,
+  "max_ms": 43.5,
+  "pooled_sd_ms": 2.01,
+  "within_step_sd_median_ms": 1.54,
+  "within_step_sd_p90_ms": 2.35,
+  "within_step_groups": 88,
+  "by_rows": [
+   {
+    "rows": 1,
+    "n": 492,
+    "median_ms": 29.4,
+    "p10_ms": 27.8,
+    "p90_ms": 32.2
+   },
+   {
+    "rows": 2,
+    "n": 39,
+    "median_ms": 29.5,
+    "p10_ms": 27.6,
+    "p90_ms": 32.2
+   },
+   {
+    "rows": 4,
+    "n": 60,
+    "median_ms": 29.5,
+    "p10_ms": 28.2,
+    "p90_ms": 32.2
+   },
+   {
+    "rows": 5,
+    "n": 81,
+    "median_ms": 29.8,
+    "p10_ms": 28.1,
+    "p90_ms": 33.2
+   },
+   {
+    "rows": 6,
+    "n": 90,
+    "median_ms": 29.5,
+    "p10_ms": 27.7,
+    "p90_ms": 32.3
+   }
+  ],
+  "ols_ms_per_row": 0.071,
+  "ols_se_ms_per_row": 0.038,
+  "accepted_position_one_median_ms": 75.0,
+  "accepted_later_median_ms": 42.1
+ },
+ "pre_execution": {
+  "site": "internal/gateway/physical_derivation.go DeriveLimits / reservation guards; nothing executed",
+  "refusals": [
+   {
+    "rung": "rung-02-100x2",
+    "rows": 100,
+    "columns": 2,
+    "expected_dependency": 500,
+    "code": "EXPOSURE_BUDGET_EXHAUSTED",
+    "ms": 44.5
+   },
+   {
+    "rung": "rung-03-100x4",
+    "rows": 100,
+    "columns": 4,
+    "expected_dependency": 700,
+    "code": "EXPOSURE_BUDGET_EXHAUSTED",
+    "ms": 48.5
+   },
+   {
+    "rung": "rung-04-1000x1",
+    "rows": 1000,
+    "columns": 1,
+    "expected_dependency": 4000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 27.6
+   },
+   {
+    "rung": "rung-05-1000x2",
+    "rows": 1000,
+    "columns": 2,
+    "expected_dependency": 5000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 35.6
+   },
+   {
+    "rung": "rung-06-1000x4",
+    "rows": 1000,
+    "columns": 4,
+    "expected_dependency": 7000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 27.7
+   },
+   {
+    "rung": "rung-07-10000x1",
+    "rows": 10000,
+    "columns": 1,
+    "expected_dependency": 40000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 31.6
+   },
+   {
+    "rung": "rung-08-10000x2",
+    "rows": 10000,
+    "columns": 2,
+    "expected_dependency": 50000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 31.2
+   },
+   {
+    "rung": "rung-09-10000x4",
+    "rows": 10000,
+    "columns": 4,
+    "expected_dependency": 70000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 34.4
+   },
+   {
+    "rung": "rung-10-100000x1",
+    "rows": 100000,
+    "columns": 1,
+    "expected_dependency": 400000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 75.6
+   },
+   {
+    "rung": "rung-11-100000x2",
+    "rows": 100000,
+    "columns": 2,
+    "expected_dependency": 500000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 79.8
+   },
+   {
+    "rung": "rung-12-100000x4",
+    "rows": 100000,
+    "columns": 4,
+    "expected_dependency": 700000,
+    "code": "EXPOSURE_EVIDENCE_REQUIRED",
+    "ms": 80.7
+   }
+  ],
+  "by_row_span": {
+   "100": {
+    "n": 2,
+    "min_ms": 44.5,
+    "max_ms": 48.5
+   },
+   "1000": {
+    "n": 3,
+    "min_ms": 27.6,
+    "max_ms": 35.6
+   },
+   "10000": {
+    "n": 3,
+    "min_ms": 31.2,
+    "max_ms": 34.4
+   },
+   "100000": {
+    "n": 3,
+    "min_ms": 75.6,
+    "max_ms": 80.7
+   }
+  }
+ },
+ "rate": {
+  "source": "pilot-footprint-07 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
+  "micros_per_fact": 0.681,
+  "se_micros_per_fact": 0.021,
+  "points": [
+   {
+    "facts": 400,
+    "ms": 104.6
+   },
+   {
+    "facts": 500,
+    "ms": 79.3
+   },
+   {
+    "facts": 700,
+    "ms": 77.2
+   },
+   {
+    "facts": 4000,
+    "ms": 65.3
+   },
+   {
+    "facts": 5000,
+    "ms": 69.0
+   },
+   {
+    "facts": 7000,
+    "ms": 74.6
+   },
+   {
+    "facts": 40000,
+    "ms": 107.7
+   },
+   {
+    "facts": 50000,
+    "ms": 112.2
+   },
+   {
+    "facts": 70000,
+    "ms": 135.8
+   },
+   {
+    "facts": 400000,
+    "ms": 383.5
+   },
+   {
+    "facts": 500000,
+    "ms": 426.5
+   },
+   {
+    "facts": 700000,
+    "ms": 534.2
+   }
+  ]
+ },
+ "bound": {
+  "model": "latency = a + r*F + N(0, sigma^2); C <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max]",
+  "sigma_ms": 2.01,
+  "resolution_facts": 2955,
+  "facts_per_row": 2,
+  "max_rows_guard": 500,
+  "corpus": {
+   "F_max": 6,
+   "bits": 0.0
+  },
+  "row_guard": {
+   "F_max": 1000,
+   "bits": 0.007
+  },
+  "ladder_scale": {
+   "F_max": 700000,
+   "bits": 6.1,
+   "note": "never reaches the post-execution site under the bounded profile: refused pre-execution"
+  }
+ }
+}

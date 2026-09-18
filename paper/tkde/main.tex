@@ -370,7 +370,10 @@ B_X\rceil$ bits of query-set-overlap information across the three
 dimensions; a third, timing channel exists because execution precedes
 settlement, so a refused query's latency grows with the footprint it did
 not release (\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Dependency Fact in the sub-phase pilot), and
+per Dependency Fact in the sub-phase pilot; on the retained refusals its
+latency is flat in the refused footprint, \TimingSlopeMSPerRow{}~ms per row
+against \TimingPooledSDMS{}~ms noise, and the row guard caps it at
+\TimingRowGuardBits{} bits per refusal, supplement), and
 Proposition~\ref{prop:probing-bound} bounds the response payload only;
 returning only the
 remaining budget would be a planning convenience, not a smaller channel
