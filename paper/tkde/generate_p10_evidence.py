@@ -89,5 +89,115 @@ for m, tag in ((0.5, "Half"), (0.75, "ThreeQuarter"), (1, "One"), (1.5, "OneHalf
     ]
 lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{ex[0]['authorized']}}}")
 lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
+# --- B7: refusal timing-channel bandwidth (retained data only) ----------
+tc = json.loads((ROOT / "evaluation/timing-channel/results.json").read_text())
+po, bd, rt = tc["post_execution"], tc["bound"], tc["rate"]
+lines += [
+    rf"\newcommand{{\TimingResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/timing-channel/results.json')}}}}}",
+    rf"\newcommand{{\TimingRefusals}}{{{po['refusals']}}}",
+    rf"\newcommand{{\TimingWithinStepGroups}}{{{po['within_step_groups']}}}",
+    rf"\newcommand{{\TimingRefusedMedianMS}}{{{po['median_ms']}}}",
+    rf"\newcommand{{\TimingRefusedPTenMS}}{{{po['p10_ms']}}}",
+    rf"\newcommand{{\TimingRefusedPNinetyMS}}{{{po['p90_ms']}}}",
+    rf"\newcommand{{\TimingRefusedMinMS}}{{{po['min_ms']}}}",
+    rf"\newcommand{{\TimingRefusedMaxMS}}{{{po['max_ms']}}}",
+    rf"\newcommand{{\TimingPooledSDMS}}{{{po['pooled_sd_ms']}}}",
+    rf"\newcommand{{\TimingWithinStepSDMS}}{{{po['within_step_sd_median_ms']}}}",
+    rf"\newcommand{{\TimingWithinStepSDPNinetyMS}}{{{po['within_step_sd_p90_ms']}}}",
+    rf"\newcommand{{\TimingSlopeMSPerRow}}{{{po['ols_ms_per_row']:.3f}}}",
+    rf"\newcommand{{\TimingSlopeSEMSPerRow}}{{{po['ols_se_ms_per_row']:.3f}}}",
+    rf"\newcommand{{\TimingAcceptedFirstMS}}{{{po['accepted_position_one_median_ms']}}}",
+    rf"\newcommand{{\TimingAcceptedLaterMS}}{{{po['accepted_later_median_ms']}}}",
+    rf"\newcommand{{\TimingMicrosPerFact}}{{{rt['micros_per_fact']:.2f}}}",
+    rf"\newcommand{{\TimingMicrosPerFactSE}}{{{rt['se_micros_per_fact']:.2f}}}",
+    rf"\newcommand{{\TimingResolutionFacts}}{{{bd['resolution_facts']:,}}}",
+    rf"\newcommand{{\TimingFactsPerRow}}{{{bd['facts_per_row']}}}",
+    rf"\newcommand{{\TimingRowGuard}}{{{bd['max_rows_guard']}}}",
+    rf"\newcommand{{\TimingCorpusFMax}}{{{bd['corpus']['F_max']}}}",
+    rf"\newcommand{{\TimingCorpusBits}}{{{bd['corpus']['bits']:.3f}}}",
+    rf"\newcommand{{\TimingRowGuardFMax}}{{{bd['row_guard']['F_max']:,}}}",
+    rf"\newcommand{{\TimingRowGuardBits}}{{{bd['row_guard']['bits']:.3f}}}",
+    rf"\newcommand{{\TimingLadderFMax}}{{{bd['ladder_scale']['F_max']:,}}}",
+    rf"\newcommand{{\TimingLadderBits}}{{{bd['ladder_scale']['bits']:.1f}}}",
+]
+body = " \\\\\n".join(f"{g['rows']} & {g['n']} & {g['median_ms']} & {g['p10_ms']} & {g['p90_ms']}" for g in po["by_rows"])
+lines.append(r"\newcommand{\TimingByRowsTableBody}{%" + "\n" + body + r" \\%" + "\n}")
+pre = tc["pre_execution"]["by_row_span"]
+small = [v for k, v in pre.items() if int(k) < 100000]
+large = [v for k, v in pre.items() if int(k) >= 100000]
+lines += [
+    rf"\newcommand{{\TimingPreSmallSpanMS}}{{{min(v['min_ms'] for v in small)}--{max(v['max_ms'] for v in small)}}}",
+    rf"\newcommand{{\TimingPreLargeSpanMS}}{{{min(v['min_ms'] for v in large)}--{max(v['max_ms'] for v in large)}}}",
+]
+
+# --- B4: counter comparators under one aligned failure policy -----------
+ca = json.loads((ROOT / "evaluation/counter-aligned/results.json").read_text())
+label = {"exact": "exact set floors", "release": "release-set only", "rows": "cumulative row counter", "queries": "query counter"}
+cells = {(c["arm"], c["order"]): c for c in ca["aligned"]}
+ex = ca["executed_default_products"]
+rows_tbl = []
+for arm in ("exact", "release", "rows", "queries"):
+    adm = "/".join(str(cells[(arm, o)]["admitted"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    exadm = "/".join(str(ex[f"{arm}/{o}"]["admitted"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    zero = "/".join(str(cells[(arm, o)]["nonnovel_refused"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    dep = "/".join(str(cells[(arm, o)]["released"][1]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    rel = "; ".join("/".join(str(x) for x in cells[(arm, o)]["released"]) for o in ("natural", "shuffled-v1", "novelty-first-v1"))
+    rows_tbl.append(f"{label[arm]} & {adm} & {exadm} & {zero} & {dep}")
+lines.append(r"\newcommand{\AlignedCounterTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")
+b = ca["sources"]["budgets"]
+lines += [
+    rf"\newcommand{{\AlignedResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/counter-aligned/results.json')}}}}}",
+    rf"\newcommand{{\AlignedSealedDigest}}{{\texttt{{{ca['sources']['sealed_sha256'][:12]}}}}}",
+    rf"\newcommand{{\AlignedRowsBudget}}{{{b['rows']['max_rows']}}}",
+    rf"\newcommand{{\AlignedQueriesBudget}}{{{b['queries']['max_queries']}}}",
+    rf"\newcommand{{\AlignedReleaseBudget}}{{{b['release']['max_release_facts']}}}",
+    rf"\newcommand{{\AlignedFullDep}}{{{ca['trace']['full_union'][1]}}}",
+    rf"\newcommand{{\AlignedExactDep}}{{{max(cells[('exact', o)]['released'][1] for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+    rf"\newcommand{{\AlignedRowsNaturalAdmitted}}{{{cells[('rows','natural')]['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsNaturalExecuted}}{{{ex['rows/natural']['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsShuffledAdmitted}}{{{cells[('rows','shuffled-v1')]['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsShuffledExecuted}}{{{ex['rows/shuffled-v1']['admitted']}}}",
+    rf"\newcommand{{\AlignedRowsNaturalReleased}}{{{'/'.join(str(x) for x in cells[('rows','natural')]['released'])}}}",
+    rf"\newcommand{{\AlignedRowsNaturalExecutedReleased}}{{{'/'.join(str(x) for x in ex['rows/natural']['released'])}}}",
+    rf"\newcommand{{\AlignedCounterZeroMin}}{{{min(cells[(a,o)]['nonnovel_refused'] for a in ('rows','queries') for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+    rf"\newcommand{{\AlignedCounterZeroMax}}{{{max(cells[(a,o)]['nonnovel_refused'] for a in ('rows','queries') for o in ('natural','shuffled-v1','novelty-first-v1'))}}}",
+]
+
+# --- B2: headless-agent pilot (present only after the campaign) ---------
+ap = ROOT / "evaluation/agent-pilot/results.json"
+if ap.exists():
+    ag = json.loads(ap.read_text())
+    cell = {f"{c['arm']}/{c['objective']}": c for c in ag["cells"]}
+    def cellmac(prefix, c):
+        return [
+            rf"\newcommand{{\{prefix}Runs}}{{{c['runs']}}}",
+            rf"\newcommand{{\{prefix}Correct}}{{{c['correct']}}}",
+            rf"\newcommand{{\{prefix}Graded}}{{{c['graded']}}}",
+            rf"\newcommand{{\{prefix}Errors}}{{{c['errors']}}}",
+            rf"\newcommand{{\{prefix}StepsMedian}}{{{c['steps_median']}}}",
+            rf"\newcommand{{\{prefix}StepsMax}}{{{c['steps_max']}}}",
+            rf"\newcommand{{\{prefix}BudgetRefusalRuns}}{{{c['runs_with_budget_refusal']}}}",
+            rf"\newcommand{{\{prefix}FirstBudgetRefusal}}{{{c['first_budget_refusal_median'] if c['first_budget_refusal_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}BudgetRefusals}}{{{c['refusals'].get('EXPOSURE_BUDGET_EXHAUSTED', 0)}}}",
+            rf"\newcommand{{\{prefix}OtherRefusals}}{{{sum(v for k, v in c['refusals'].items() if k != 'EXPOSURE_BUDGET_EXHAUSTED')}}}",
+            rf"\newcommand{{\{prefix}Cells}}{{{c['released_cells_median'] if c['released_cells_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}CellsMax}}{{{c['released_cells_max'] if c['released_cells_max'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}Ledger}}{{{'/'.join(str(int(x)) if x is not None else '--' for x in (c['ledger_release_median'], c['ledger_dependency_median'], c['ledger_outcome_median']))}}}",
+            rf"\newcommand{{\{prefix}Width}}{{{c['interval_width_median'] if c['interval_width_median'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}WidthMin}}{{{c['interval_width_min'] if c['interval_width_min'] is not None else '--'}}}",
+            rf"\newcommand{{\{prefix}Seconds}}{{{c['elapsed_s_median']}}}",
+        ]
+    for key, prefix in (("rls/benign", "AgentRLSBenign"), ("factgate/benign", "AgentFGBenign"),
+                        ("rls/probe", "AgentRLSProbe"), ("factgate/probe", "AgentFGProbe")):
+        if key in cell:
+            lines += cellmac(prefix, cell[key])
+    lines += [
+        rf"\newcommand{{\AgentResultsDigest}}{{\texttt{{{sha12(ap)}}}}}",
+        rf"\newcommand{{\AgentCampaign}}{{\texttt{{{tex(ag['campaign'])}}}}}",
+        rf"\newcommand{{\AgentRuns}}{{{ag['runs']}}}",
+        rf"\newcommand{{\AgentModels}}{{{tex(', '.join(sorted({m for c in ag['cells'] for m in c['models']})))}}}",
+        rf"\newcommand{{\AgentTruthMax}}{{{ag['truth'].get('max_amount', '--') if ag.get('truth') else '--'}}}",
+    ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

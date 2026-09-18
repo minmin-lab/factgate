@@ -370,7 +370,10 @@ B_X\rceil$ bits of query-set-overlap information across the three
 dimensions; a third, timing channel exists because execution precedes
 settlement, so a refused query's latency grows with the footprint it did
 not release (\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Dependency Fact in the sub-phase pilot), and
+per Dependency Fact in the sub-phase pilot; on the retained refusals its
+latency is flat in the refused footprint, \TimingSlopeMSPerRow{}~ms per row
+against \TimingPooledSDMS{}~ms noise, and the row guard caps it at
+\TimingRowGuardBits{} bits per refusal, supplement), and
 Proposition~\ref{prop:probing-bound} bounds the response payload only;
 returning only the
 remaining budget would be a planning convenience, not a smaller channel
@@ -1397,11 +1400,12 @@ fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit
 to the set ledger's stopping point), in three orders each,
 released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
 every order; the exact floors capped release at
-\FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products, whose overflow
-semantics differ (counters truncate and archive; exposure refuses without
-archiving); the supplement's admission-arithmetic replay compares metering
-units under one refuse-only rule. Both leave the set floors as the only
-budget bounding the released set.
+\FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products
+(counters truncate and archive; exposure refuses without archiving);
+replayed under one refuse-whole, task-alive rule, only the row counter
+moves (\AlignedRowsNaturalExecuted{}$\to$\AlignedRowsNaturalAdmitted{}
+admitted) and the set floors remain the only budget bounding the released
+set (supplement).
 
 
 
