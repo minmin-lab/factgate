@@ -177,43 +177,45 @@ object and a second transaction records AVAILABLE/CONSUMED
   return/.style={-{Latex[length=2mm]}, semithick, dashed}
 ]
 % (a) Offline publication
-\node[font=\footnotesize\bfseries] at (3.35,4.1) {(a) Offline immutable publication};
+\node[font=\footnotesize\bfseries] at (3.35,4.55) {(a) Offline immutable publication};
 \node[box] (snapshot) at (.75,2.55) {frozen business\\snapshot + Catalog};
 \node[box, minimum width=20mm] (compiler) at (3.05,2.55)
   {Snapshot Index\\Compiler};
-\node[box, fill=green!7, minimum width=19mm] (sidecar) at (5.55,3.15)
+\node[box, fill=green!7, minimum width=19mm] (sidecar) at (5.85,2.95)
   {PG sidecar\\entity $\to$ handle};
-\node[box, fill=green!7, minimum width=25mm] (dictionary) at (5.55,1.85)
+\node[box, fill=green!7, minimum width=22mm] (dictionary) at (5.85,1.7)
   {FactID $\leftrightarrow$ ordinal\\hot hash / cold payload};
-\node[box, fill=green!10, minimum width=22mm] (manifest) at (5.55,.45)
+\node[box, fill=green!10, minimum width=22mm] (manifest) at (5.85,.45)
   {Catalog publication\\binds all digests};
 \draw[arrow] (snapshot) -- (compiler);
 \draw[arrow] (compiler) -- (sidecar);
 \draw[arrow] (compiler) -- (dictionary);
 \draw[arrow] (dictionary) -- (manifest);
-\draw[arrow] (sidecar.east) -- ++(.4,0) |- (manifest.east);
+\draw[arrow] (sidecar.east) -- ++(.25,0) |- (manifest.east);
 
-% divider
-\draw[gray!55] (7.2,.05) -- (7.2,3.65);
 
 % (b) Online path
-\node[font=\footnotesize\bfseries] at (13.4,4.1) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (8.4,3.0) {Agent\\plan / result};
-\node[decision] (cache) at (10.85,3.0) {authorize +\\semantic cache};
-\node[txnbox, minimum width=26mm] (execute) at (14.1,3.0)
+\node[font=\footnotesize\bfseries] at (13.9,4.55) {(b) Online exact set settlement};
+\node[box, fill=red!5, minimum width=14mm] (client) at (8.9,2.8) {Agent\\plan / result};
+\node[decision] (cache) at (11.35,2.8) {authorize +\\semantic cache};
+\node[txnbox, minimum width=26mm] (execute) at (14.6,2.8)
   {visible SQL + streamed\\ordinal companion};
-\node[txnbox, minimum width=23mm] (derive) at (17.5,3.0)
+\node[txnbox, minimum width=23mm] (derive) at (18.0,2.8)
   {bitmap + atom/\\composite effect};
-\node[txnbox, minimum width=25mm] (cached) at (14.1,1.75)
+\node[txnbox, minimum width=25mm] (cached) at (14.6,1.65)
   {committed observation\\reference};
-\node[txnbox, minimum width=21mm] (novelty) at (17.5,1.55)
+\node[txnbox, minimum width=21mm] (novelty) at (18.0,1.5)
   {exact novelty\\+ union};
-\node[txnbox, minimum width=21mm] (cas) at (15.5,.45)
+\node[txnbox, minimum width=21mm] (cas) at (16.0,.45)
   {three-ledger\\root-head CAS};
-\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (12.3,.45)
+\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (12.8,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (8.95,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (9.45,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
+% one snapshot: the publication feeds the online visible query
+\draw[arrow] (manifest.south) -- ++(0,-.3) -- (7.75,-.15) -- (7.75,3.7) -- (14.6,3.7) -- (execute.north);
+\node[font=\scriptsize, above] at (10.0,3.7) {one snapshot};
+\coordinate (snapcorner) at (7.55,4.1);
 \draw[exchange] (client) -- (cache);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
 \draw[arrow] (cache) |- node[near start,left]{hit} (cached);
@@ -225,14 +227,13 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[arrow] (commit) -- (promote);
 \draw[return] (promote.north) -- (client.south);
 \node[draw, dashed, rounded corners, inner sep=2mm,
-  fit=(cache)(execute)(cached)(derive)(novelty)(cas)(commit)(promote),
+  fit=(cache)(execute)(cached)(derive)(novelty)(cas)(commit)(promote)(snapcorner),
   label={[font=\footnotesize]below:trusted enforcement boundary}] {};
 \end{tikzpicture}
 }
-\caption{(a) Publication-time ordinals fix Release/Dependency identities and an
-exact Merkle-radix set holds Outcome hashes; (b) atomic root-family settlement,
-fail-closed PENDING$\to$AVAILABLE promotion, and replay hits reusing a committed
-observation (Section~\ref{sec:online}).}
+\caption{(a) Offline publication fixes ordinals and the Merkle-radix Outcome
+set; (b) online exact settlement, fail-closed promotion, and replay
+(Section~\ref{sec:online}).}
 \label{fig:architecture-settlement}
 \end{figure*}
 
@@ -461,7 +462,7 @@ where $\mathcal B=\operatorname{sort}\{(\nu,s)\}$ is the relation's snapshot
 bundle, $k_o$ is the canonical output-row entity key, $N_\varpi(x)$ erases aliases
 and normalizes the supported expression, and
 $W:\facts_{base}\rightharpoonup\mathbb N^+$
-is a finite-support witness multiset (the empty support is allowed); the
+is a finite-support witness multiset (empty support allowed); the
 product identity is the namespace projection of $\mathcal B$, not a
 caller-supplied name. $CW(W)$ length-prefixes the sorted
 $(\operatorname{FactHash}(f),W(f))$ pairs, the durable key is
@@ -561,11 +562,11 @@ The task exposure is
  \end{aligned}
  \label{eq:task-exposure}
 \end{equation}
-The components are respectively accounted result exposure (wire label
+The components are accounted result exposure (wire label
 \code{release}), positive-output dependency
 footprint, and query-outcome exposure. Failed or rejected attempts contribute
-no set because \system releases and commits none of their effects; this model
-does not account the rejection bit. We abbreviate the singleton history by
+no set because \system releases and commits none of their effects; the
+rejection bit is not accounted here. We abbreviate the singleton history by
 $E(T,q)$.
 \end{definition}
 
@@ -838,9 +839,8 @@ page partition equals observing the combined result. Overlapping pages and
 repeated terminal observations charge each release/dependency FactID at most
 once; join fanout changes witness multiplicity but not the union of dependency
 support; predicate atoms are reused exactly when their canonical footprint
-components agree.
+components agree (proof in the supplement).
 \end{proposition}
-\emph{Proof in the supplement.}
 
 \section{Online Accounting}
 \label{sec:online}
@@ -888,16 +888,16 @@ Decoding is exact: within one dictionary segment, bitmap OR, ANDNOT, and
 popcount correspond to set union, difference, and cardinality, and for
 every successful query in the closed online algebra the streamed bitmap
 components decode to exactly the release and dependency components of
-$\effect(q,D_s)$ (proposition and proof in the supplement).
-For Outcome, hash prefixes route immutable, content-addressed leaves and
-blocks, but membership always compares the full SHA-256 value; physical
-leaf/block encodings are supplemental.
+$\effect(q,D_s)$ (proof in the supplement).
+For Outcome, hash prefixes route immutable content-addressed leaves and
+blocks, but membership always compares the full SHA-256 value; leaf/block
+encodings are supplemental.
 
 \begin{proposition}[Exact incremental Outcome-set refinement]
 \label{thm:outcome-radix-refinement}
-Let $K_O$ be a valid Outcome root and $C_O$ a canonical candidate. Loading every
+Let $K_O$ be a valid Outcome root and $C_O$ a candidate. Loading every
 leaf family whose 16-bit prefix occurs in $C_O$, performing exact full-hash
-difference/union in those families, rebuilding only their blocks, and
+difference/union there, rebuilding only their blocks, and
 reusing all other references yields
 $\operatorname{Decode}(K'_O)=\operatorname{Decode}(K_O)\cup C_O$ and charges
 $C_O\setminus\operatorname{Decode}(K_O)$ exactly. Any changed member, count,
@@ -1435,10 +1435,9 @@ Arm & Accepted & First refusal & Distinct Dep. \\
   node[pos=0.065, right, font=\scriptsize, align=left] {bounded arm\\refuses};
 \end{axis}
 \end{tikzpicture}
-\caption{Distinct governed facts obtained by the adaptive trace by query
-index (separate trace-union oracle; solid, marked) against the bounded
-arm's budgets (dashed, at the marked y ticks); \system-bounded refuses at the
-first query whose prefix crosses a budget, where the trace stops.}
+\caption{Distinct governed facts by query index (trace-union oracle; solid,
+marked) against the bounded arm's budgets (dashed, at the marked y ticks);
+\system-bounded refuses at the first budget crossing, where the trace stops.}
 \label{fig:rls-trace}
 \end{figure}
 
@@ -1509,9 +1508,9 @@ View drift checked at request, approval, and execution.
 \RQFiveBytesPerFact{}~B and \RQFiveBuildMicrosPerFact{}~$\mu$s per Fact
 (RQ5 Day~0) plus derivation microseconds per Fact; a $10^9$-Fact Product
 would need hundreds of gigabytes and hours per build and global aggregate,
-so the evaluated envelope is $10^5$--$10^6$-row Products, with a
+so the envelope is $10^5$--$10^6$-row Products, with a
 retained pilot ladder settling \FinalVFiveScaleSevenLargestDependency{}
-Dependency facts in one admitted query (supplement). Same-root
+Dependency facts in one query (supplement). Same-root
 settlement serializes on the head (Section~\ref{sec:evaluation});
 multi-root throughput is unmeasured.
 
