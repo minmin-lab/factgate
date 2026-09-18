@@ -802,6 +802,10 @@ set $V$,
 This is not completeness for arbitrary equivalent SQL: normalization neither
 invents nor removes transitive/redundant equalities.
 \end{theorem}
+The theorem is the analogue, for the release/dependency effect and rules
+R1--R6, of the invariance of semiring provenance under equivalent
+positive-algebra rewrites \cite{green2007provenance,amsterdamer2011aggregate};
+what is new is the effect function it preserves, not the proof pattern.
 The rewrite set is exactly: (R1) erase aliases and display names to Catalog
 stable roles; (R2) canonicalize qualified field, function, and operator
 spellings and typed literals; (R3) sort commutative components---AND
