@@ -242,5 +242,37 @@ lines += [
     rf"\newcommand{{\PassantCells}}{{{ps['cumulative_cells']}}}",
 ]
 
+# --- B6: throughput pilot (present only after the campaign) ---------------
+tp = ROOT / "evaluation/throughput-pilot/results.json"
+if tp.exists():
+    th = json.loads(tp.read_text())
+    rows_tbl = []
+    for c in th["cells"]:
+        rows_tbl.append(f"{c['roots']} & {c['width']} & {c['overlap']} & {c['rounds']} & {c['novel']}/{c['settled']} & "
+                        f"{c['settled_per_s_median']:.0f} & {c['novel_per_s_median']:.0f} & {c['client_p50_ms_median']:.0f} & {c['client_p95_ms_median']:.0f} & "
+                        f"{c['cas_conflicts']}/{c['cas_attempts']} & {'yes' if c['ledger_matches'] else 'NO'}")
+    lines.append(r"\newcommand{\ThroughputTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")
+    def cellval(roots, width, overlap, key):
+        for c in th["cells"]:
+            if c["roots"] == roots and c["width"] == width and c["overlap"] == overlap:
+                return c[key]
+        return None
+    lines += [
+        rf"\newcommand{{\ThroughputResultsDigest}}{{\texttt{{{sha12(tp)}}}}}",
+        rf"\newcommand{{\ThroughputCampaign}}{{\texttt{{{tex(th['campaign'])}}}}}",
+        rf"\newcommand{{\ThroughputRounds}}{{{th['rounds']}}}",
+        rf"\newcommand{{\ThroughputErrorRounds}}{{{sum(c['error_rounds'] for c in th['cells'])}}}",
+        rf"\newcommand{{\ThroughputRefused}}{{{sum(c['refused'] for c in th['cells'])}}}",
+        rf"\newcommand{{\ThroughputLedgerAllMatch}}{{{'all' if all(c['ledger_matches'] for c in th['cells']) else 'NOT all'}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyDisjointNPS}}{{{cellval(1,50,'disjoint','novel_per_s_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputFourRootFiftyDisjointNPS}}{{{cellval(4,50,'disjoint','novel_per_s_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputOneRootTenDisjointNPS}}{{{cellval(1,10,'disjoint','novel_per_s_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyDisjointPNinetyFive}}{{{cellval(1,50,'disjoint','client_p95_ms_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputFourRootFiftyDisjointPNinetyFive}}{{{cellval(4,50,'disjoint','client_p95_ms_median'):.0f}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyDisjointConflicts}}{{{cellval(1,50,'disjoint','cas_conflicts')}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyDisjointAttempts}}{{{cellval(1,50,'disjoint','cas_attempts')}}}",
+        rf"\newcommand{{\ThroughputOneRootFiftyIdenticalSPS}}{{{cellval(1,50,'identical','settled_per_s_median'):.0f}}}",
+    ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)
