@@ -205,7 +205,7 @@ make logs
 
 `make verify` 执行格式检查、`go vet`、真实 PostgreSQL `go test -race ./...`、镜像构建和隔离 Compose 端到端验收。`make formal` 检查抽象 ledger 与 bitmap refinement artifacts。
 
-`make paper` 以草稿模式校验已归档 evidence（schema-3 源文件、Catalog 和 evidence-tooling 从其记录的历史 submission commit Git blobs 重算）、生成对应 LaTeX 宏并编译 substantially revised TKDE working manuscript，不执行实验，也不要求当前草稿源码冻结。如需显式刷新 exposure evidence，可运行 `make paper-refresh-exposure`；该入口会调用 `evaluation/run-exposure.sh`，且不属于默认论文构建依赖。定稿并审阅 evidence 后，使用独立的 `make paper-final-check` 要求工作树已 clean、当前 measured paths 与记录的 submission commit 一致、生成宏与 `HEAD` 一致，然后以 final 模式编译；它不刷新实验。同一作者的早期预印本 SessionBound（arXiv:2607.00751v1，从未投稿、未被接收）不在本仓库构建；本稿以真名单匿名投稿，并作为 arXiv:2607.00751 的 v2 就地替换该预印本（v1 永久可访问，正文钉引 v1 为「本文早期版本」）。
+`make paper` 以草稿模式校验已归档 evidence（schema-3 源文件、Catalog 和 evidence-tooling 从其记录的历史 submission commit Git blobs 重算）、生成对应 LaTeX 宏并编译 substantially revised TKDE working manuscript，不执行实验，也不要求当前草稿源码冻结。如需显式刷新 exposure evidence，可运行 `make paper-refresh-exposure`；该入口会调用 `evaluation/run-exposure.sh`，且不属于默认论文构建依赖。定稿并审阅 evidence 后，使用独立的 `make paper-final-check` 要求工作树已 clean、当前 measured paths 与记录的 submission commit 一致、生成宏与 `HEAD` 一致，然后以 final 模式编译；它不刷新实验。同一作者的早期预印本 SessionBound（arXiv:2607.00751v1，从未投稿、未被接收）不在本仓库构建；本稿以真名单匿名投稿，并作为 arXiv:2607.00751 的 v2 就地替换该预印本（v1 永久可访问；正文不引 v1，关系在 cover letter 披露）。
 
 `make eval-exposure` 覆盖 ground-truth FactID、独立 oracle、split/merge、overlapping pagination、retry、join multiplicity、snapshot update 和 anti-arbitrage cases。它还执行 1,024 个唯一规范化 PostgreSQL baseline/rewrite SQL pair；这些 pair 是补充性等价改写压力测试，不应表述为 1,024 个独立数据集或 exposure invariance 的单独证明。
 

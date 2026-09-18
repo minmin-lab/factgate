@@ -181,10 +181,12 @@ single full experiment to run after the manuscript and protocol are frozen.
 
 SessionBound (arXiv:2607.00751v1) is the earlier version of this manuscript by
 the same author: an unsubmitted working draft that was never submitted to or
-accepted by TDSC. The Introduction cites it as "an earlier version of this
-article", pinned to v1, and states what is new in this version. Submission
-materials must disclose that relationship; the paper does not organize its
-technical content around that evolution history.
+accepted by TDSC. The manuscript does not cite it (author decision
+2026-09-18: a version of the same arXiv record is not a separate reference);
+the Introduction instead describes the authorization substrate as the base
+layer and states this article's contribution. The cover letter discloses the
+relationship; the paper does not organize its technical content around that
+evolution history.
 
 Author decision (2026-09-18, replacing the 2026-09-07 plan): this manuscript
 is submitted single-anonymous under the author's real name and is posted as

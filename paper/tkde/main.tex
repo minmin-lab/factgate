@@ -236,11 +236,11 @@ observation (Section~\ref{sec:online}).}
 \label{fig:architecture-settlement}
 \end{figure*}
 
-An earlier version of this article \cite{wu2026sessionbound} introduced the
-task-scoped authorization substrate: a control plane that turns an approved task into a
-signed, budgeted, auditable database session with safe views, row scope,
-denied fields, operation limits, per-session counters, and receipts.
-Everything that makes the budget a set rather than a counter is new in this version: the typed FactID semantics and closed
+Beneath the accounting sits a task-scoped authorization substrate: a control
+plane that turns an approved task into a signed, budgeted, auditable database
+session with safe views, row scope, denied fields, operation limits,
+per-session counters, and receipts. Everything that makes the budget a set
+rather than a counter is this article's contribution: the typed FactID semantics and closed
 algebra, the same-snapshot ordinal companion and bitmap/Merkle-radix ledgers,
 canonical Outcome atoms and composites, exact novelty with atomic
 three-budget settlement before \code{AVAILABLE}, root-family delegation
