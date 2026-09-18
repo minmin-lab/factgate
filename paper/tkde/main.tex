@@ -161,7 +161,7 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 \begin{figure*}[t]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{0.94\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, minimum height=6mm,
@@ -177,45 +177,45 @@ object and a second transaction records AVAILABLE/CONSUMED
   return/.style={-{Latex[length=2mm]}, semithick, dashed}
 ]
 % (a) Offline publication
-\node[font=\footnotesize\bfseries] at (3.35,4.55) {(a) Offline immutable publication};
-\node[box] (snapshot) at (.75,2.55) {frozen business\\snapshot + Catalog};
-\node[box, minimum width=20mm] (compiler) at (3.05,2.55)
+\node[font=\footnotesize\bfseries] at (2.6,4.3) {(a) Offline immutable publication};
+\node[box] (snapshot) at (1.2,2.8) {frozen business\\snapshot + Catalog};
+\node[box, minimum width=20mm] (compiler) at (1.2,1.6)
   {Snapshot Index\\Compiler};
-\node[box, fill=green!7, minimum width=19mm] (sidecar) at (5.85,2.95)
+\node[box, fill=green!7, minimum width=22mm] (sidecar) at (4.0,2.8)
   {PG sidecar\\entity $\to$ handle};
-\node[box, fill=green!7, minimum width=22mm] (dictionary) at (5.85,1.7)
+\node[box, fill=green!7, minimum width=22mm] (dictionary) at (4.0,1.6)
   {FactID $\leftrightarrow$ ordinal\\hot hash / cold payload};
-\node[box, fill=green!10, minimum width=22mm] (manifest) at (5.85,.45)
+\node[box, fill=green!10, minimum width=22mm] (manifest) at (4.0,.45)
   {Catalog publication\\binds all digests};
 \draw[arrow] (snapshot) -- (compiler);
 \draw[arrow] (compiler) -- (sidecar);
 \draw[arrow] (compiler) -- (dictionary);
 \draw[arrow] (dictionary) -- (manifest);
-\draw[arrow] (sidecar.east) -- ++(.25,0) |- (manifest.east);
+\draw[arrow] (sidecar.east) -- ++(.3,0) |- (manifest.east);
 
 
 % (b) Online path
-\node[font=\footnotesize\bfseries] at (13.9,4.55) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (8.9,2.8) {Agent\\plan / result};
-\node[decision] (cache) at (11.35,2.8) {authorize +\\semantic cache};
-\node[txnbox, minimum width=26mm] (execute) at (14.6,2.8)
+\node[font=\footnotesize\bfseries] at (12.35,4.3) {(b) Online exact set settlement};
+\node[box, fill=red!5, minimum width=14mm] (client) at (7.35,2.65) {Agent\\plan / result};
+\node[decision] (cache) at (9.8,2.65) {authorize +\\semantic cache};
+\node[txnbox, minimum width=26mm] (execute) at (13.05,2.65)
   {visible SQL + streamed\\ordinal companion};
-\node[txnbox, minimum width=23mm] (derive) at (18.0,2.8)
+\node[txnbox, minimum width=23mm] (derive) at (16.45,2.65)
   {bitmap + atom/\\composite effect};
-\node[txnbox, minimum width=25mm] (cached) at (14.6,1.65)
+\node[txnbox, minimum width=25mm] (cached) at (13.05,1.55)
   {committed observation\\reference};
-\node[txnbox, minimum width=21mm] (novelty) at (18.0,1.5)
+\node[txnbox, minimum width=21mm] (novelty) at (16.45,1.45)
   {exact novelty\\+ union};
-\node[txnbox, minimum width=21mm] (cas) at (16.0,.45)
+\node[txnbox, minimum width=21mm] (cas) at (14.45,.45)
   {three-ledger\\root-head CAS};
-\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (12.8,.45)
+\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (11.25,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (9.45,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.9,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 % one snapshot: the publication feeds the online visible query
-\draw[arrow] (manifest.south) -- ++(0,-.3) -- (7.75,-.15) -- (7.75,3.7) -- (14.6,3.7) -- (execute.north);
-\node[font=\scriptsize, above] at (10.0,3.7) {one snapshot};
-\coordinate (snapcorner) at (7.55,4.1);
+\draw[arrow] (manifest.south) -- ++(0,-.3) -- (6.2,-.15) -- (6.2,3.5) -- (13.05,3.5) -- (execute.north);
+\node[font=\scriptsize, above] at (8.45,3.5) {one snapshot};
+\coordinate (snapcorner) at (6.0,3.9);
 \draw[exchange] (client) -- (cache);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
 \draw[arrow] (cache) |- node[near start,left]{hit} (cached);
@@ -467,7 +467,7 @@ product identity is the namespace projection of $\mathcal B$, not a
 caller-supplied name. $CW(W)$ length-prefixes the sorted
 $(\operatorname{FactHash}(f),W(f))$ pairs, the durable key is
 $\mathrm{SHA256}(d_R\|\operatorname{Canon}(f))$ under the release/dependency
-domain separator $d_R$, Control PostgreSQL stores $\operatorname{Canon}(f)$
+separator $d_R$, Control PostgreSQL stores $\operatorname{Canon}(f)$
 and aborts on a same-hash, different-payload row, and Outcome facts use
 disjoint tagged kinds under separator $d_O$.
 
@@ -512,9 +512,9 @@ atoms, and payloads before settlement.
 \label{thm:fact-identity}
 For every value in the supported PostgreSQL type domain, canonical encoding
 is deterministic and injective over the typed semantic payload (that is, over
-PostgreSQL semantic-value equivalence, not raw float NaN bit patterns).
+PostgreSQL semantic-value equivalence, not raw float NaN bit patterns; proof
+in the supplement).
 \end{proposition}
-\emph{Proof in the supplement.}
 
 \begin{definition}[Exposure effect]
 For query $q$ over snapshot $D_s$, the exposure effect
@@ -565,8 +565,8 @@ The task exposure is
 The components are accounted result exposure (wire label
 \code{release}), positive-output dependency
 footprint, and query-outcome exposure. Failed or rejected attempts contribute
-no set because \system releases and commits none of their effects; the
-rejection bit is not accounted here. We abbreviate the singleton history by
+no set because \system commits none of their effects; the
+rejection bit is not accounted here. We write the singleton history as
 $E(T,q)$.
 \end{definition}
 
@@ -668,9 +668,9 @@ zero incremental Outcome charge. Changing one canonical predicate component
 changes that atom except with a SHA-256 collision; changing the complete normal
 form or result observation changes the composite except with a collision.
 Consequently related probes reuse unchanged atoms but charge each novel atom
-and novel composite exactly once, including for zero/empty answers.
+and novel composite exactly once, including for zero/empty answers (proof in
+the supplement).
 \end{proposition}
-\emph{Proof in the supplement.}
 
 \subsection{Closed Typed Query Language}
 
@@ -829,8 +829,7 @@ hence all three effect sets, so exact replay has zero novelty; the converse is
 not claimed outside the stated rules. A semantic-View root compiles to a
 closed core term with a binding $\beta_v$; DAG expansion retaining
 $\beta_v$ preserves the visible bag and all three effect sets (proof in the
-supplement), while a direct terminal query can carry different Outcome
-FactIDs.
+supplement); a direct terminal query can carry different Outcome FactIDs.
 
 \begin{proposition}[Base-ledger split/page/join conservation]
 \label{thm:base-conservation}
