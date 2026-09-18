@@ -132,10 +132,10 @@ retries, pages, and delegated subtasks. Marketplace-integrated agents close the 
 gap (Data Product MCP
 \cite{tonnarelli2026dataproductmcp,dietz2025automating,bitol2025odcs}), but
 once a purpose is approved, per-query checks still do not state how much
-governed data the task has cumulatively released. \system starts at that boundary
-as a brownfield-compatible data-egress layer at the governed serving tier.
+governed data the task has released. \system starts at that boundary
+as a brownfield-compatible egress layer at the governed serving tier.
 The reporting pipeline supplies immutable publications, the Catalog
-supplies Products and attested stable keys, and identity/workflow
+supplies Products and attested keys, and identity/workflow
 systems supply subject, purpose, and approval; \system compiles these into a
 signed task contract settled at a model-independent database boundary;
 the raw lake is never exposed to the agent.
@@ -161,9 +161,9 @@ object and a second transaction records AVAILABLE/CONSUMED
 
 \begin{figure*}[t]
 \centering
-\resizebox{0.36\textwidth}{!}{%
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  font=\tiny,
+  font=\scriptsize,
   box/.style={draw, rounded corners=1.5pt, align=center, minimum height=6mm,
     inner xsep=3pt, fill=blue!5},
   store/.style={draw, cylinder, shape border rotate=90, aspect=.25,
@@ -177,7 +177,7 @@ object and a second transaction records AVAILABLE/CONSUMED
   return/.style={-{Latex[length=2mm]}, semithick, dashed}
 ]
 % (a) Offline publication
-\node[font=\scriptsize\bfseries] at (3.35,4.05) {(a) Offline immutable publication};
+\node[font=\footnotesize\bfseries] at (3.35,4.1) {(a) Offline immutable publication};
 \node[box] (snapshot) at (.75,2.55) {frozen business\\snapshot + Catalog};
 \node[box, minimum width=20mm] (compiler) at (3.05,2.55)
   {Snapshot Index\\Compiler};
@@ -194,25 +194,25 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[arrow] (sidecar.east) -- ++(.65,0) |- (manifest.east);
 
 % divider
-\draw[gray!55] (7.05,.05) -- (7.05,3.85);
+\draw[gray!55] (6.95,.05) -- (6.95,3.65);
 
 % (b) Online path
-\node[font=\scriptsize\bfseries] at (12.45,4.05) {(b) Online exact set settlement};
-\node[box, fill=red!5, minimum width=14mm] (client) at (7.85,3.0) {Agent\\plan / result};
-\node[decision] (cache) at (10.0,3.0) {authorize +\\semantic cache};
-\node[txnbox, minimum width=26mm] (execute) at (13.0,3.0)
+\node[font=\footnotesize\bfseries] at (13.0,4.1) {(b) Online exact set settlement};
+\node[box, fill=red!5, minimum width=14mm] (client) at (8.0,3.0) {Agent\\plan / result};
+\node[decision] (cache) at (10.45,3.0) {authorize +\\semantic cache};
+\node[txnbox, minimum width=26mm] (execute) at (13.7,3.0)
   {visible SQL + streamed\\ordinal companion};
-\node[txnbox, minimum width=23mm] (derive) at (16.0,3.0)
+\node[txnbox, minimum width=23mm] (derive) at (17.1,3.0)
   {bitmap + atom/\\composite effect};
-\node[txnbox, minimum width=25mm] (cached) at (13.0,1.75)
+\node[txnbox, minimum width=25mm] (cached) at (13.7,1.75)
   {committed observation\\reference};
-\node[txnbox, minimum width=21mm] (novelty) at (16.0,1.55)
+\node[txnbox, minimum width=21mm] (novelty) at (17.1,1.55)
   {exact novelty\\+ union};
-\node[txnbox, minimum width=21mm] (cas) at (13.0,.45)
+\node[txnbox, minimum width=21mm] (cas) at (15.1,.45)
   {three-ledger\\root-head CAS};
-\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (10.15,.45)
+\node[txnbox, fill=green!10, minimum width=26mm] (commit) at (11.9,.45)
   {commit ledgers/audit/receipt\\+ PENDING intent};
-\node[box, fill=blue!7, minimum width=25mm] (promote) at (7.65,.45)
+\node[box, fill=blue!7, minimum width=25mm] (promote) at (8.55,.45)
   {promote + verify\\AVAILABLE/CONSUMED};
 \draw[exchange] (client) -- (cache);
 \draw[arrow] (cache) -- node[above, pos=.25]{miss} (execute);
@@ -226,13 +226,12 @@ object and a second transaction records AVAILABLE/CONSUMED
 \draw[return] (promote.north) -- (client.south);
 \node[draw, dashed, rounded corners, inner sep=2mm,
   fit=(cache)(execute)(cached)(derive)(novelty)(cas)(commit)(promote),
-  label={[font=\scriptsize]below:trusted enforcement boundary}] {};
+  label={[font=\footnotesize]below:trusted enforcement boundary}] {};
 \end{tikzpicture}
 }
-\caption{Publication-time ordinals identify frozen Release/Dependency
-facts and an exact Merkle-radix set holds Outcome hashes; root-family
-accounting is atomic, Parquet publication is recoverable and fail-closed
-between PENDING and AVAILABLE, and a replay hit reuses a committed
+\caption{(a) Publication-time ordinals fix Release/Dependency identities and an
+exact Merkle-radix set holds Outcome hashes; (b) atomic root-family settlement,
+fail-closed PENDING$\to$AVAILABLE promotion, and replay hits reusing a committed
 observation (Section~\ref{sec:online}).}
 \label{fig:architecture-settlement}
 \end{figure*}
@@ -308,7 +307,7 @@ and the GProM/ProvSQL capture mechanisms
 effects before release.
 
 \textbf{Data-flow policy enforcement.} FlowGuard and DFC/Passant are the
-closest database-layer comparators \cite{summers2026dataflow,summers2026passant}.
+closest comparators \cite{summers2026dataflow,summers2026passant}.
 Passant enforces optimizer-invariant aggregate predicates over each output
 tuple's provenance monomials (flow shapes \system does not subsume);
 trajectory policy is its future work. \system differs in temporal unit: DFC asks whether a flow is
@@ -463,13 +462,13 @@ bundle, $k_o$ is the canonical output-row entity key, $N_\varpi(x)$ erases alias
 and normalizes the supported expression, and
 $W:\facts_{base}\rightharpoonup\mathbb N^+$
 is a finite-support witness multiset (the empty support is allowed); the
-product identity is the namespace projection of $\mathcal B$, never a
+product identity is the namespace projection of $\mathcal B$, not a
 caller-supplied name. $CW(W)$ length-prefixes the sorted
 $(\operatorname{FactHash}(f),W(f))$ pairs, the durable key is
 $\mathrm{SHA256}(d_R\|\operatorname{Canon}(f))$ under the release/dependency
 domain separator $d_R$, Control PostgreSQL stores $\operatorname{Canon}(f)$
 and aborts on a same-hash, different-payload row, and Outcome facts use
-disjoint tagged kinds under a separate separator $d_O$.
+disjoint tagged kinds under separator $d_O$.
 
 Let $N(q)$ be the accepted query normal form, $h_N$ its SHA-256, $m$ the
 visible row count, $h_y$ the canonical result-observation commitment, and
@@ -644,10 +643,10 @@ Let $\mathsf{AVAILABLE}(q)$ mean that $q$'s canonical artifact has reached the
 \]
 \end{property}
 Execution and private staging are not release; settlement may leave an
-artifact \code{PENDING}, so the converse is false, and rejection cannot
-create \code{AVAILABLE}. Evidence combines the bounded artifact and ledger
-models with Control-PG fault-injection, receipt, and availability tests, not
-a mechanized composition.
+artifact \code{PENDING}, so the converse fails, and rejection cannot
+create \code{AVAILABLE}. Evidence: the bounded artifact and ledger models plus
+Control-PG fault-injection, receipt, and availability tests, not a
+mechanized proof.
 
 \textbf{O6: Profile binding.} $C$ binds effect/normal-form profiles,
 type/collation, View contract, replay identity, and result handling;
@@ -878,9 +877,9 @@ changes representation, not membership \cite{chambi2016roaring}); a sidecar
 maps entity keys to ordinals, payloads stay cold, and one manifest binds
 snapshot, schemas, sidecar, dictionaries, and digests, so any collision
 blocks publication.
-Online, visible SQL and the ordinal companion run in one read-only
-\code{REPEATABLE READ} transaction; the companion retains every dependency
-the rules require, a k-way hash merge reproduces the witness commitment,
+Online, visible SQL and the companion run in one read-only
+\code{REPEATABLE READ} transaction; the companion retains every required
+dependency, a k-way hash merge reproduces the witness commitment,
 Release/Dependency use segmented Roaring bitmaps, Outcome hashes enter an
 exact Merkle-radix set, and invalid handles, manifests, encodings, overflow,
 or truncation fail closed.
@@ -897,12 +896,12 @@ leaf/block encodings are supplemental.
 \begin{proposition}[Exact incremental Outcome-set refinement]
 \label{thm:outcome-radix-refinement}
 Let $K_O$ be a valid Outcome root and $C_O$ a canonical candidate. Loading every
-leaf family whose 16-bit prefix occurs in $C_O$, performing full-hash exact
-difference/union within those families, rebuilding only their containing
-blocks, and reusing all other references yields
+leaf family whose 16-bit prefix occurs in $C_O$, performing exact full-hash
+difference/union in those families, rebuilding only their blocks, and
+reusing all other references yields
 $\operatorname{Decode}(K'_O)=\operatorname{Decode}(K_O)\cup C_O$ and charges
 $C_O\setminus\operatorname{Decode}(K_O)$ exactly. Any changed member, count,
-prefix, chunk, block, or root manifest changes a verified digest except with a
+prefix, chunk, block, or root changes a verified digest barring
 SHA-256 collision.
 \end{proposition}
 \emph{Argument in the supplement} (prefix routing partitions the full-hash
@@ -995,8 +994,8 @@ approval mode is manual), so autonomous delegation is not supported and
 conservation is evaluated for human-approved trees. A child authorization
 signs both \code{root_task_id} and \code{parent_task_id}. Its human subject, catalog, datasource, schema, and
 profile remain fixed, while products, columns, scopes, sensitivity, expiry, and
-all budget dimensions may only narrow; every execution revalidates the signed
-parent grant and active ancestor chain; View-bound descendants inherit
+budgets may only narrow; every execution revalidates the signed
+parent grant and ancestor chain; View-bound descendants inherit
 the parent's contracts and cannot add or replace one.
 
 All descendants resolve to one root ledger: if a parent and child request
@@ -1030,9 +1029,9 @@ $(K,e)$: three decoded sets and an epoch. A settlement transaction for
 $q$ reads $(K,e)$, computes $\Delta_X=\facts_X(q,S)\setminus K_X$, and
 attempts one compare-and-swap that publishes $(K\cup\facts(q,S),e+1)$ only if
 the swap sees epoch $e$ and $|K_X|+|\Delta_X|\le B_X$ for all $X$; a swap
-that sees $e'\neq e$ rereads and recomputes; a rejected or failed attempt
-publishes nothing. Root-family transactions, including every
-descendant's, interleave arbitrarily but each swap is atomic.
+that sees $e'\neq e$ rereads; a rejected or failed attempt
+publishes nothing. Root-family transactions, descendants included,
+interleave arbitrarily but each swap is atomic.
 
 \begin{property}[Atomic root-family budget safety]
 \label{thm:root-family-safety}
@@ -1160,8 +1159,7 @@ archived V4 run is reported only in the supplement), and RQ5 daily
 publication and retained routing
 (RQ1--RQ3 regenerate digest-bound corpus \ExposureCorpusHash{}); every call
 uses a complete signed profile. Medians and p95 are Type-7
-(linear-interpolation) quantiles \cite{hyndman1996quantiles} over the
-stated samples; ProvSQL
+quantiles \cite{hyndman1996quantiles} over the stated samples; ProvSQL
 provenance capture is the same-host cost reference
 (Section~\ref{sec:attack-provsql}).
 
@@ -1253,13 +1251,13 @@ more per Fact than S2, so Release materialization is at least as expensive
 per Fact as Dependency derivation. Settlement is not where exactness is
 paid: the Scale profile below settles against a million-Fact history in
 \FinalVFivePublicationScaleSettleMillionMS{}~ms. A sub-phase pilot (\FinalVFiveSubphaseSamplesSTwoSFTen{} pilot sample per
-cell; not publication-class; supplement table) splits execute-and-derive:
+cell; not publication-class; supplement) splits execute-and-derive:
 single-threaded Go-side ordinal consumption and witness merging dominate
 (\FinalVFiveSubphaseGoSidePctSOneSFOne{}--\FinalVFiveSubphaseGoSidePctSSixHundredKByteSixteen\%
 of the phase,
 \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Fact), so multi-second governed latency suits batch reporting agents,
-not interactive ones.
+per Fact), so multi-second governed latency suits batch, not
+interactive, agents.
 
 \begin{table}[t]
 \centering
@@ -1279,9 +1277,9 @@ Cell & Rows & Rel. & Dep. & Direct & Novel & Sem. & Idem. & Over. \\
 \end{tabular}
 \end{table}
 All \FinalVFivePublicationReplayZeroSQLSamples{} replay samples issued zero
-business SQL and charged no Facts, but replay is not a latency win at these
-scales: semantic replay exceeds direct re-execution in every cell, and only
-idempotent replay at S2/SF10 undercuts it (supplement per-cell table).
+business SQL and charged no Facts, but replay is no latency win here:
+semantic replay exceeds direct re-execution in every cell; only
+idempotent replay at S2/SF10 undercuts it (supplement).
 
 The supplement's phase table shows where that time goes: the Gateway
 reports six non-overlapping server phases per governed response, and the
@@ -1357,8 +1355,7 @@ probe is refused with \FinalVFivePublicationAttackThresholdRejectionCode{},
 so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
 bit while the direct arm answered all three (supplement); the corpus is
-preregistered and the strategy space is probed by the adversary
-study above.
+preregistered and the adversary study above probes the strategy space.
 
 \textbf{Adaptive trace against per-query control.} The RLS profile replays
 one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace
