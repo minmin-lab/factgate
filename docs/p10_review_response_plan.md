@@ -17,10 +17,10 @@
 | A8 | 「重放消耗行预算但不消耗事实预算」进正文 | DeepSeek2 小 2 | main §8 replay 段 | 小 | DONE |
 | A9 | ⌊B_O/2⌋ 比特上限推导在正文写一次 | DeepSeek2 小 5 | main §8 攻击段 | 小 | DONE（已在 §3：⌊B_O/2⌋ 推导） |
 | A10 | 标定配方补单 Product 聚合下 B_D 退化的处理 | DeepSeek2 #5 | main §5.2 | 小 | DONE（已在 §5.2：单 Product 聚合下 B_D 退化） |
-| A11 | 片段封闭性论证或设计路径：为什么受限片段对治理型报表层足够；OR（析取见证）、非字面量比较（两格原子）、外连接（空扩展行）的规则草图 | DeepSeek2 #2 / GPT M5 | main §9 + supplement Table constructs | 中 | TODO |
+| A11 | 片段封闭性论证或设计路径：为什么受限片段对治理型报表层足够；OR（析取见证）、非字面量比较（两格原子）、外连接（空扩展行）的规则草图 | DeepSeek2 #2 / GPT M5 | main §9 + supplement Table constructs | 中 | DONE |
 | A12 | 延迟与重放的文本：重放买到什么（不碰业务库、零事实收费、审计可复算）；Go 侧序号消费是实现瓶颈，生产实现可去掉的部分 | DeepSeek2 #3 | main §8 | 小 | DONE |
 | A13 | 计数器对照分两种结论：产品行为比较 vs 机制比较；指出准入算术版已是对齐语义 | GPT M4 | main §8 Table 4 段 | 小 | DONE |
-| A14 | 引言贡献段按「三个困难」重组：从 SQL 导出 F(q)；哪些改写保持身份、哪些产生新 Outcome；并发/失败/重放下可取结果不脱离已结算事实 | GPT M1 | main §1 | 中（改写不加内容） | TODO |
+| A14 | 引言贡献段按「三个困难」重组：从 SQL 导出 F(q)；哪些改写保持身份、哪些产生新 Outcome；并发/失败/重放下可取结果不脱离已结算事实 | GPT M1 | main §1 | 中（改写不加内容） | DONE |
 | A15 | 70% 的定性改为「需求发现/开发集」，不再当泛化证据（若 B1 完成则换成独立集数字） | GPT M5 | main 摘要、§9、supplement | 小 | DONE |
 | A16 | influence 与 Dependency 的命名对应在正文加一句 | DeepSeek2 小 4 | main §3.2 | 小 | DONE（主稿无 influence 字样，无需改） |
 
@@ -28,7 +28,7 @@
 
 | # | 实验 | 回答的问题 | 出处 | 可复用 | 估计成本 | 状态 |
 |---|---|---|---|---|---|---|
-| B1 | **独立 agent 工作负载**：冻结语言与实现，LLM 对一组未参与开发的新问题写 SQL，只跑 lowering，报独立集接受率 | 70% 是否泛化 | GPT M5 | evaluation/agentworkload 全套 | 低（半天） | 待作者裁决 |
+| B1 | **独立 agent 工作负载**：冻结语言与实现，LLM 对一组未参与开发的新问题写 SQL，只跑 lowering，报独立集接受率 | 70% 是否泛化 | GPT M5 | evaluation/agentworkload 全套 | 低（半天） | DOING（问题集冻结 cf49c49；SQL 生成中）|
 | B2 | **端到端 agent 任务实验**：MCP 驱动的 LLM agent 带任务目标在 expense Product 上跑，RLS 臂 vs FactGate 臂；允许读拒绝原因重试；报语法失败/政策拒绝/预算拒绝/任务完成率，并用 oracle 记录两臂累计事实 | 「面向 AI agent」是否有实验支撑；逐查询授权是否放出更多 | DeepSeek2 #1 / GPT M5 | query_sql MCP 路径、finalv5rls oracle 包、三部署流程 | 中（2–3 天含语料冻结） | 待作者裁决 |
 | B3 | **预算效用曲线**：若干独立任务族，预算按 owner 配方事先定，扫 0.5×/1×/2×/4×；画合法任务完成率 vs 秘密恢复率两条曲线，附重试次数与延迟 | 预算是否有治理价值 | GPT M6 | pilot-benign-05（1×/2×）、pilot-adversary-04（三档）已是曲线上的点 | 中（补 2–3 个倍率） | 待作者裁决 |
 | B4 | **对齐语义的计数器对照**：行/查询计数器改为整条拒绝、不截断、不归档，与集合预算同语义比较 | 差异来自计量单位还是失败策略 | GPT M4 | pilot-counter-rigor-02 harness；需改 harness 失败策略 | 中 | 待作者裁决 |
