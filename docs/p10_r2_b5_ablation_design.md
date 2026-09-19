@@ -73,6 +73,19 @@ charged. What (iii) does not reproduce is a CAS head (it locks the root row
 instead); this is stated, and the (iii)/(iv-ledger) comparison is run
 single-writer so the difference is representation, not contention.
 
+## Amendment after the arm (i) smoke (2026-09-19, before the formal runs)
+
+On the exposure-free path the frozen S2/SF10 statement (the orders–lineitem
+join) is refused before execution with `SQL_NOT_LOWERABLE` ("当前 exposure
+profile 不支持在线多产品计划"): the Gateway's online multi-product plan is
+coupled to the V5 exposure profile, so arm (i) cannot execute S2 at all. This
+is a property of the frozen system, not of the harness. The cross-arm
+comparison therefore uses S1/SF1 and S6/100k-x16; S2/SF10 is run and reported
+for arm (iv) only, with this refusal stated. The S1/SF1 and S2/SF10 cells here
+are the master-Catalog Baseline cells over the deterministic provsql fixture
+(50,000 orders, 250,000 lineitems), not the TPC-H analytics-orders profiles of
+the retained sub-phase pilot, whose data is not on this host.
+
 ## Cells, repetitions, stop rule
 
 - End-to-end arms (i) and (iv): the sub-phase pilot's three cells S1/SF1,
