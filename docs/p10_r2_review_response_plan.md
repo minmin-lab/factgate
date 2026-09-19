@@ -28,7 +28,7 @@
 |---|---|---|---|
 | E0 | 设计写台账后再动手 | 四臂：(i) 同治理与发布路径、不记账；(ii) 加事实推导、不做历史预算限制；(iii) 同语义朴素精确集合账本（同事实身份、同预算语义、同持久化、同失败语义——不得用仅内存 set）；(iv) 当前完整实现。同工作负载（benign 23 语句 + footprint ladder 选段）、三部署、每臂同轮数；停止规则用保守先验；指标：每语句端到端延迟分解、settle 子阶段、账本存储；预期表先写 | DESIGNED（docs/p10_r2_b5_ablation_design.md） |
 | E1 | 不改 V5_MEASURED_PATHS 的实现路线 | `evaluation/cmd/b5-ablation/` 独立二进制复用 internal 包，开关在该二进制内组装；朴素账本在 `evaluation/internal/naiveledger/` 实现（PG 集合表或持久化 Go map + WAL），走同一 settle 接口；若实证必须改 internal/ → 记台账「待作者裁决：解冻 measured paths 并重封」并转做其他项 | DOING（naiveledger + 良性轨迹重放已实测；-b5-ablation 驱动、run-b5-ablation.sh、三份+主 catalog 无记账孪生、analyze.py 就绪；未改 internal/） |
-| E2 | 执行 pilot、登记、入 supplement 新小节 + 主稿一表 | campaign_class pilot、publication_eligible false；回答四问：公共路径成本 / 事实推导成本 / 朴素正确实现成本 / 优化增量收益；主稿 21.8–144.5× 的解读随之校准（改主张适配证据） | TODO |
+| E2 | 执行 pilot、登记、入 supplement 新小节 + 主稿一表 | campaign_class pilot、publication_eligible false；回答四问：公共路径成本 / 事实推导成本 / 朴素正确实现成本 / 优化增量收益；主稿 21.8–144.5× 的解读随之校准（改主张适配证据） | DOING（6 次部署结果在 evaluation/b5-ablation/results.json；supplement §ablation-supp 与主稿一段已写、宏已入生成器；待原始目录恢复后构建验证） |
 
 ## 执行顺序
 

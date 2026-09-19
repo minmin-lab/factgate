@@ -2324,6 +2324,93 @@ does not model an agent that rewrites its next statement after a refusal
 other than $1$, $2$, $4$ (benign) and the three tiers (adversary) are not
 executed.
 
+\subsection{Where the governed cost goes: common path, derivation, history set (pilot)}
+\label{sec:ablation-supp}
+
+The main text's governed overhead is one number per cell; a reviewer
+asked what share of it every governance system would pay, what fact
+derivation adds, what the history set adds, and what the optimised
+representation buys over a simple correct one. A pilot (design frozen before
+execution in \filepath{docs/p10\_r2\_b5\_ablation\_design.md}, results digest
+\BFiveResultsDigest{}) answers it with four arms on the frozen Baseline
+statements, without changing a measured path. Arm~(i) runs the deployed
+Gateway on an exposure-free twin of the master Catalog (same sources,
+Products, operators, routes and resource budgets; no snapshot publications
+and no fact limits, so \code{ExposureGrant.Enabled()} is false and the
+Gateway takes its native no-accounting path: authorization, execution,
+artifact publication, execution binding and signed receipt, nothing else).
+Arm~(iv) is the master Catalog with V5 accounting. Both run as fresh
+isolated topologies (\BFiveDeployments{} each), each sample a fresh Task
+through the real request/OA/grant path so every query is novel,
+\BFiveSamplesPerCell{} samples per cell, and the measurement is the Gateway's
+own disjoint component timing, the same map the sub-phase pilot retains.
+Arm~(ii), derivation without history-set processing, has no seam in the
+frozen code and is composed: arm~(iv) minus its measured ledger leaves
+(reservation lock, ledger lock, fact store, Outcome-radix load/difference/
+persist); the composition is audited by checking that arm~(ii) minus arm~(i)
+equals the derivation leaves (provenance query, ordinal stream consumer,
+visible preparation, ordinal finish) up to a stated residual. Arm~(iii), the
+naive exact-set ledger, is a separate measurement described below.
+Table~\ref{tab:ablation-supp} reports medians.
+
+\begin{table}[t]
+\centering
+\caption{Cost ablation on the frozen Baseline statements (medians over
+\BFiveSamplesPerCell{} novel samples on \BFiveDeployments{} fresh
+deployments per arm; ms): Gateway \code{server\_total} under the
+exposure-free twin (arm~i), composed arm~ii, and the V5 Catalog (arm~iv);
+arm~iv's derivation leaves and ledger leaves; the business PostgreSQL and
+result-encoding leaves for scale; settled samples i/iv. S2/SF10 is refused on
+the exposure-free path (\code{SQL\_NOT\_LOWERABLE}: the online multi-Product
+plan is coupled to the V5 exposure profile), so it has no arm~i.}
+\label{tab:ablation-supp}
+\small
+\begin{tabular}{lrrrrrrrl}
+\toprule
+Cell & i & ii (comp.) & iv & Derivation & Ledger & Business PG & Result enc. & Settled i/iv \\
+\midrule
+\BFiveTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three readings. First, the common path is \BFiveSOneCommonPct\% of the
+governed total at S1/SF1 (\BFiveSOneArmI{} of \BFiveSOneArmIV{}~ms) and
+\BFiveSSixCommonPct\% at S6/100k-x16 (\BFiveSSixArmI{} of
+\BFiveSSixArmIV{}~ms): on a small footprint about half of what the paper
+reports as overhead is authorization, artifact publication and receipts that
+any governed path pays; on the 1.7-million-Fact result it is about a fifth.
+Second, fact derivation is the dominant accounted cost: \BFiveSSixDerivation{}~ms
+of the \BFiveSSixArmIV{}~ms at S6 and \BFiveSTwoDerivation{} of
+\BFiveSTwoArmIV{}~ms at S2, while the history-set leaves are
+\BFiveSSixLedger{}~ms at S6, i.e., with the ordinal dictionaries, segment
+bitmaps and radix set the ledger is a small fraction of the accounted cost
+at $10^6$ Facts. The composition check leaves a residual of
+\BFiveSOneIminusIvsDeriv{}~ms (S1) and \BFiveSSixIminusIvsDeriv{}~ms (S6)
+between arm~(ii)$-$arm~(i) and the derivation leaves, attributable to the
+leaves that differ between the two Catalogs without being derivation
+(reservation sizing, policy preparation, a larger response); it is reported,
+not absorbed. Third, the naive arm: an exact-set ledger with one PostgreSQL
+row per (root, dimension, fact hash), novelty by insert conflict, the same
+per-dimension rule and the same all-or-nothing transaction
+(\filepath{evaluation/internal/naiveledger}), replaying the benign trace's
+closed-form footprints at the owner recipe admits \NaiveAdmitted{} of 23
+statements with the same refusals as the exact sweep replay
+(\NaiveSweepCrossCheck{}), settles the whole trace in
+\NaiveTotalSettleSecMin{}--\NaiveTotalSettleSecMax{}~s over \NaiveTrials{}
+trials, spends \NaiveLargestInsertSecMin{}--\NaiveLargestInsertSecMax{}~s on
+its largest admitted statement (971,431 candidate facts), and holds
+\NaiveFactRows{} fact rows in \NaiveTotalMBMin{}--\NaiveTotalMBMax{}~MB
+(about \NaiveBytesPerFact{} bytes per fact, index included). Against the
+\BFiveSSixLedger{}~ms ledger leaves the V5 representation needs at 1.7
+million Facts, this is a difference of two orders of magnitude in time and
+storage, with the caveat that the inputs differ (the benign trace's
+Dependency sets versus the S6 statement): a same-input replay of the V5
+observations through both ledgers was designed but not executed in this
+revision. Limits: one host, pilot class, S2 measured under accounting only,
+arm~(ii) composed rather than executed, and the S1/S2 cells here are the
+master-Catalog Baseline cells over the deterministic fixture, not the
+TPC-H-derived profiles of the sub-phase pilot.
 
 \subsection{Per-query data-flow control on the adaptive trace: the Passant artifact}
 \label{sec:passant-supp}

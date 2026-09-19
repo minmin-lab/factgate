@@ -1271,7 +1271,16 @@ of the phase,
 \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
 per Fact), so multi-second latency suits batch, not interactive, agents;
 the bottleneck is single-threaded implementation, and replay buys database
-silence, zero charge, and audit identity, not time.
+silence, zero charge, and audit identity, not time. A four-arm cost
+ablation on fresh deployments (supplement) splits the governed total
+further: an exposure-free twin of the Catalog that keeps authorization,
+artifact publication and receipts but no fact accounting costs
+\BFiveSOneCommonPct\% of the governed S1/SF1 total and \BFiveSSixCommonPct\%
+of the 1.7-million-Fact S6 total, fact derivation is the largest accounted
+share (\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6), and the
+history-set leaves are \BFiveSSixLedger{}~ms there, where a naive one-row-per-fact
+exact-set ledger needs seconds per million-fact statement and hundreds of
+bytes per fact (different inputs; supplement states the caveat).
 
 \begin{table}[t]
 \centering
