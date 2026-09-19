@@ -1,0 +1,13 @@
+# P10-R2 B5 arm (i) overlay: the Gateway serves the exposure-free twin Catalog,
+# which declares no snapshot publications, so it must not be pointed at the
+# snapshot-index artifact volume (the loader refuses a directory that holds
+# publications the Catalog does not declare, cmd/gateway/snapshot_loader.go).
+# An empty GATEWAY_SNAPSHOT_ARTIFACT_DIR makes snapshotRegistryFromEnv return
+# no registry, which is the legal state for a Catalog without publications.
+# Everything else (services, volumes, ports, secrets) stays as compose.yaml
+# and the pilot overlays define it. Evaluation-owned; never used for a
+# publication-class deployment.
+services:
+  gateway:
+    environment:
+      GATEWAY_SNAPSHOT_ARTIFACT_DIR: ""

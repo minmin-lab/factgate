@@ -61,7 +61,13 @@ export COMPOSE_PROJECT_NAME="$(
   bash evaluation/final-v5-wsl2/scripts/deployment-project-name.sh \
     "$TASKGATE_CAMPAIGN_ID" "$TASKGATE_DEPLOYMENT_ID"
 )"
-export TASKGATE_COMPOSE_FILES=compose.yaml:compose.debug.yaml:evaluation/final-v5-wsl2/compose.real-pilot.yaml
+compose_file_list=(compose.yaml compose.debug.yaml evaluation/final-v5-wsl2/compose.real-pilot.yaml)
+if [[ "$ARM" == i ]]; then
+  # The twin declares no snapshot publications; detach the Gateway from the
+  # snapshot-index artifact volume (see the overlay's header).
+  compose_file_list+=(evaluation/final-v5-wsl2/compose.b5-no-exposure.yaml)
+fi
+export TASKGATE_COMPOSE_FILES="$(IFS=:; printf '%s' "${compose_file_list[*]}")"
 export TASKGATE_FRESH_PROOF_OUTPUT="$run_dir/environment/deployment-01.fresh.json"
 if [[ "$ARM" == i ]]; then
   export TASKGATE_PROFILE_CATALOG="./$twin_catalog"
@@ -80,7 +86,10 @@ else
   unset TASKGATE_PROFILE_CATALOG TASKGATE_FINAL_V5_PROFILE_REGISTRY
 fi
 
-compose=(docker compose --project-name "$COMPOSE_PROJECT_NAME" --file compose.yaml --file compose.debug.yaml --file evaluation/final-v5-wsl2/compose.real-pilot.yaml)
+compose=(docker compose --project-name "$COMPOSE_PROJECT_NAME")
+for compose_file in "${compose_file_list[@]}"; do
+  compose+=(--file "$compose_file")
+done
 compose_json="$("${compose[@]}" config --format json)"
 service_env() { jq -r --arg service "$1" --arg name "$2" '.services[$service].environment[$name] // empty' <<< "$compose_json"; }
 urlencode() { printf '%s' "$1" | jq -sRr '@uri'; }
