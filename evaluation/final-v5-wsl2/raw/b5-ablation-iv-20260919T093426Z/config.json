@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "b5_ablation",
+  "arm": "iv",
+  "cells": [
+    "S1/SF1",
+    "S2/SF10",
+    "S6/100k-x16"
+  ],
+  "samples": 10,
+  "catalog": "config/catalog.yaml",
+  "catalog_sha256": "9c0fbe0ec0f043c91a4e04df0ed24f54e89e9eb8197983a019cf2f1986ae69f5",
+  "submission_commit": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+  "design": "docs/p10_r2_b5_ablation_design.md"
+}

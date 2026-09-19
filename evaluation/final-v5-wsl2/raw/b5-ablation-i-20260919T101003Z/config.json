@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "b5_ablation",
+  "arm": "i",
+  "cells": [
+    "S1/SF1",
+    "S2/SF10",
+    "S6/100k-x16"
+  ],
+  "samples": 10,
+  "catalog": "evaluation/config/b5/master-no-exposure.catalog.yaml",
+  "catalog_sha256": "c9cc194bb95f839251277bd1ccdbc2d18aa597e5972dddae7c5f9b16517aa134",
+  "submission_commit": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+  "design": "docs/p10_r2_b5_ablation_design.md"
+}

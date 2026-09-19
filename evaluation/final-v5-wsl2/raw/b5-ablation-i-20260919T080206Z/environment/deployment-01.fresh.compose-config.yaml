@@ -1,0 +1,672 @@
+name: taskgate-final-v5-deployment-01-f608d0874da312a5af79
+networks:
+  business-data:
+    internal: true
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_business-data
+  control-plane:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_control-plane
+  debug-host:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_debug-host
+  public-edge:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_public-edge
+  result-storage:
+    internal: true
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_result-storage
+services:
+  business-postgres:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - compute_query_id=on
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - pg_stat_statements.max=10000
+    environment:
+      GATEWAY_DB_PASSWORD: ${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-travel_demo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    healthcheck:
+      interval: 3s
+      retries: 60
+      test:
+        - CMD-SHELL
+        - pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      timeout: 3s
+    image: postgres:16-bookworm
+    networks:
+      business-data: null
+      debug-host: null
+    ports:
+      - 127.0.0.1:${POSTGRES_PORT:-25434}:5432
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - source: business-pg-data
+        target: /var/lib/postgresql/data
+        type: volume
+        volume: {}
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/db/init
+        target: /docker-entrypoint-initdb.d
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/sql/datasets
+        target: /opt/taskgate/final-v5-sql
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/sql/observer/pg-stat-statements.sql
+        target: /docker-entrypoint-initdb.d/09-final-v5-pg-stat-statements.sql
+        type: bind
+  control-postgres:
+    environment:
+      CONTROL_DB_PASSWORD: ${CONTROL_DB_PASSWORD:?set CONTROL_DB_PASSWORD in .env}
+      POSTGRES_DB: ${CONTROL_POSTGRES_DB:-taskbound_gateway}
+      POSTGRES_PASSWORD: ${CONTROL_POSTGRES_ADMIN_PASSWORD:?set CONTROL_POSTGRES_ADMIN_PASSWORD in .env}
+      POSTGRES_USER: postgres
+    healthcheck:
+      interval: 3s
+      retries: 20
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres -d $${POSTGRES_DB}
+      timeout: 3s
+    image: postgres:16-bookworm
+    networks:
+      control-plane: null
+    ports:
+      - 127.0.0.1:${CONTROL_POSTGRES_PORT:-25433}:5432
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - source: control-pg-data
+        target: /var/lib/postgresql/data
+        type: volume
+        volume: {}
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/db/control-init
+        target: /docker-entrypoint-initdb.d
+        type: bind
+  gateway:
+    build:
+      args:
+        TARGET: gateway
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      control-postgres:
+        condition: service_healthy
+        required: true
+      oa-demo:
+        condition: service_healthy
+        required: true
+      result-object-store-init:
+        condition: service_completed_successfully
+        required: true
+      snapshot-index-detail:
+        condition: service_completed_successfully
+        required: true
+      snapshot-index-summary:
+        condition: service_completed_successfully
+        required: true
+      snapshot-sidecar-install:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      - CATALOG_PATH=/etc/taskbound/catalog.yaml
+      - CONTROL_POSTGRES_DSN=postgres://gateway_control:${CONTROL_DB_PASSWORD:?set CONTROL_DB_PASSWORD in .env}@control-postgres:5432/${CONTROL_POSTGRES_DB:-taskbound_gateway}?sslmode=disable
+      - GATEWAY_ADDR=:8082
+      - GATEWAY_ADMIN_TOKEN=${GATEWAY_ADMIN_TOKEN:-}
+      - GATEWAY_AUDIT_ANCHOR_INTERVAL=${GATEWAY_AUDIT_ANCHOR_INTERVAL:-5m}
+      - GATEWAY_AUDIT_ANCHOR_KEY_ID=${GATEWAY_AUDIT_ANCHOR_KEY_ID:-}
+      - GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY=${GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY:-}
+      - GATEWAY_AUDIT_ANCHOR_URL=${GATEWAY_AUDIT_ANCHOR_URL:-}
+      - GATEWAY_CONNECTOR_MAX_CONNECTIONS=${GATEWAY_CONNECTOR_MAX_CONNECTIONS:-4}
+      - GATEWAY_CONNECTOR_MAX_ROWS=${GATEWAY_CONNECTOR_MAX_ROWS:-1200000}
+      - GATEWAY_CONNECTOR_STATEMENT_TIMEOUT=${GATEWAY_CONNECTOR_STATEMENT_TIMEOUT:-10m}
+      - GATEWAY_CONTROL_CONNECTION_MAX_LIFETIME=${GATEWAY_CONTROL_CONNECTION_MAX_LIFETIME:-30m}
+      - GATEWAY_CONTROL_MAX_IDLE_CONNECTIONS=${GATEWAY_CONTROL_MAX_IDLE_CONNECTIONS:-4}
+      - GATEWAY_CONTROL_MAX_OPEN_CONNECTIONS=${GATEWAY_CONTROL_MAX_OPEN_CONNECTIONS:-10}
+      - GATEWAY_DATA_KEY=${GATEWAY_DATA_KEY:?set GATEWAY_DATA_KEY in .env}
+      - GATEWAY_DATA_KEY_ID=${GATEWAY_DATA_KEY_ID:-local-aes256-gcm-v1}
+      - GATEWAY_DB_PASSWORD=${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}
+      - GATEWAY_DELIVERY_SIGNING_KEY=${GATEWAY_DELIVERY_SIGNING_KEY:-}
+      - GATEWAY_EVALUATION_CONCURRENCY_HTTP_ACTIVE=${GATEWAY_EVALUATION_CONCURRENCY_HTTP_ACTIVE:-10}
+      - GATEWAY_EVALUATION_CONCURRENCY_HTTP_QUEUE=${GATEWAY_EVALUATION_CONCURRENCY_HTTP_QUEUE:-512}
+      - GATEWAY_EVALUATION_CONCURRENCY_TOKEN=${TASKGATE_FINAL_V5_CONCURRENCY_TOKEN:-}
+      - GATEWAY_OBJECT_STORE_ACCESS_KEY=${GATEWAY_OBJECT_STORE_ACCESS_KEY:?set GATEWAY_OBJECT_STORE_ACCESS_KEY in .env}
+      - GATEWAY_OBJECT_STORE_BUCKET=${GATEWAY_OBJECT_STORE_BUCKET:-taskgate-results}
+      - GATEWAY_OBJECT_STORE_ENDPOINT=${GATEWAY_OBJECT_STORE_ENDPOINT:-http://result-object-store:9000}
+      - GATEWAY_OBJECT_STORE_PATH_STYLE=${GATEWAY_OBJECT_STORE_PATH_STYLE:-true}
+      - GATEWAY_OBJECT_STORE_REGION=${GATEWAY_OBJECT_STORE_REGION:-us-east-1}
+      - GATEWAY_OBJECT_STORE_SECRET_KEY=${GATEWAY_OBJECT_STORE_SECRET_KEY:?set GATEWAY_OBJECT_STORE_SECRET_KEY in .env}
+      - GATEWAY_PUBLIC_BASE_URL=${GATEWAY_PUBLIC_BASE_URL:-http://127.0.0.1:8082}
+      - GATEWAY_RECEIPT_KEYRING_JSON=${GATEWAY_RECEIPT_KEYRING_JSON:-}
+      - GATEWAY_RECEIPT_KEY_ID=${GATEWAY_RECEIPT_KEY_ID:?set GATEWAY_RECEIPT_KEY_ID in .env}
+      - GATEWAY_RECEIPT_PRIVATE_KEY=${GATEWAY_RECEIPT_PRIVATE_KEY:?set GATEWAY_RECEIPT_PRIVATE_KEY in .env}
+      - GATEWAY_RESULT_DELIVERY_TTL=${GATEWAY_RESULT_DELIVERY_TTL:-5m}
+      - GATEWAY_RESULT_DOWNLOAD_CONCURRENCY=${GATEWAY_RESULT_DOWNLOAD_CONCURRENCY:-4}
+      - GATEWAY_RESULT_DOWNLOAD_TIMEOUT=${GATEWAY_RESULT_DOWNLOAD_TIMEOUT:-30m}
+      - GATEWAY_RESULT_PREVIEW_MAX_BYTES=${GATEWAY_RESULT_PREVIEW_MAX_BYTES:-67108864}
+      - GATEWAY_RESULT_PROMOTION_TIMEOUT=${GATEWAY_RESULT_PROMOTION_TIMEOUT:-30m}
+      - GATEWAY_RESULT_RETENTION_SWEEP_INTERVAL=${GATEWAY_RESULT_RETENTION_SWEEP_INTERVAL:-1h}
+      - GATEWAY_RESULT_RETENTION_TTL=${GATEWAY_RESULT_RETENTION_TTL:-}
+      - GATEWAY_RESULT_STAGING_ORPHAN_TTL=${GATEWAY_RESULT_STAGING_ORPHAN_TTL:-24h}
+      - GATEWAY_RESULT_TEMP_DIR=${GATEWAY_RESULT_TEMP_DIR:-/tmp/taskgate-result-artifacts}
+      - GATEWAY_SNAPSHOT_ARTIFACT_DIR=
+      - OA_BASE_URL=http://oa-demo:8092
+      - OA_CALLBACK_SECRET=${OA_CALLBACK_SECRET:?set OA_CALLBACK_SECRET in .env}
+      - OA_RECEIPT_KEYRING_JSON=${OA_RECEIPT_KEYRING_JSON:-}
+      - OA_RECEIPT_KEY_ID=${OA_RECEIPT_KEY_ID:-}
+      - OA_RECEIPT_PUBLIC_KEY=${OA_RECEIPT_PUBLIC_KEY:-}
+      - OA_SERVICE_TOKEN=${OA_SERVICE_TOKEN:?set OA_SERVICE_TOKEN in .env}
+      - PUBLIC_OA_BASE_URL=http://127.0.0.1:8092
+      - TASKBOUND_ALICE_TOKEN=${TASKBOUND_ALICE_TOKEN:?set TASKBOUND_ALICE_TOKEN in .env}
+      - TASKBOUND_CAROL_TOKEN=${TASKBOUND_CAROL_TOKEN:?set TASKBOUND_CAROL_TOKEN in .env}
+      - TASKGATE_CALLBACK_PHASE_TIMING=${TASKGATE_CALLBACK_PHASE_TIMING:-}
+      - TASKGATE_EXPERIMENT_CLASS=${TASKGATE_EXPERIMENT_CLASS:-}
+    healthcheck:
+      interval: 3s
+      retries: 30
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - http://127.0.0.1:8082/health/ready
+      timeout: 3s
+    mem_limit: 12g
+    networks:
+      business-data: null
+      control-plane: null
+      public-edge: null
+      result-storage: null
+    ports:
+      - host_ip: 127.0.0.1
+        mode: ingress
+        protocol: tcp
+        published: "8082"
+        target: 8082
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - read_only: true
+        source: ${TASKGATE_PROFILE_CATALOG:-./config/catalog.yaml}
+        target: /etc/taskbound/catalog.yaml
+        type: volume
+        volume: {}
+      - read_only: true
+        source: ${TASKGATE_PROFILE_ARTIFACT_DIR:-snapshot-index-artifacts}
+        target: /var/lib/taskgate/snapshot-index
+        type: volume
+        volume: {}
+      - source: gateway-encrypted-spool
+        target: /tmp
+        type: volume
+        volume: {}
+  oa-demo:
+    build:
+      args:
+        TARGET: oa-demo
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    environment:
+      GATEWAY_CALLBACK_URL: http://gateway:8082/api/v1/oa/callback
+      OA_ADDR: :8092
+      OA_ALICE_PASSWORD: ${OA_ALICE_PASSWORD:?set OA_ALICE_PASSWORD in .env}
+      OA_BOB_PASSWORD: ${OA_BOB_PASSWORD:?set OA_BOB_PASSWORD in .env}
+      OA_CALLBACK_SECRET: ${OA_CALLBACK_SECRET:?set OA_CALLBACK_SECRET in .env}
+      OA_RECEIPT_KEY_ID: ${OA_RECEIPT_KEY_ID:?set OA_RECEIPT_KEY_ID in .env}
+      OA_RECEIPT_PRIVATE_KEY: ${OA_RECEIPT_PRIVATE_KEY:?set OA_RECEIPT_PRIVATE_KEY in .env}
+      OA_SERVICE_TOKEN: ${OA_SERVICE_TOKEN:?set OA_SERVICE_TOKEN in .env}
+      OA_SESSION_SECRET: ${OA_SESSION_SECRET:?set OA_SESSION_SECRET in .env}
+      PUBLIC_OA_BASE_URL: http://127.0.0.1:8092
+    healthcheck:
+      interval: 3s
+      retries: 20
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - http://127.0.0.1:8092/health/ready
+      timeout: 3s
+    networks:
+      public-edge: null
+    ports:
+      - host_ip: 127.0.0.1
+        mode: ingress
+        protocol: tcp
+        published: "8092"
+        target: 8092
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+  result-object-store:
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+    healthcheck:
+      interval: 3s
+      retries: 30
+      test:
+        - CMD
+        - mc
+        - ready
+        - local
+      timeout: 3s
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    networks:
+      debug-host: null
+      result-storage: null
+    ports:
+      - 127.0.0.1:${MINIO_API_PORT:-29000}:9000
+      - 127.0.0.1:${MINIO_CONSOLE_PORT:-29001}:9001
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - source: result-object-data
+        target: /data
+        type: volume
+        volume: {}
+  result-object-store-init:
+    command:
+      - |
+        printf '%s\n%s\n' "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" |
+          mc alias set taskgate http://result-object-store:9000
+        mc mb --ignore-existing --region "$${GATEWAY_OBJECT_STORE_REGION}" "taskgate/$${GATEWAY_OBJECT_STORE_BUCKET}"
+        mc anonymous set none "taskgate/$${GATEWAY_OBJECT_STORE_BUCKET}"
+        # Do not install a time-only staging lifecycle: a committed PENDING
+        # artifact may still need its staging object for crash recovery.
+        while IFS= read -r policy_line || [ -n "$${policy_line}" ]; do
+          case "$${policy_line}" in
+            *__TASKGATE_RESULT_BUCKET__*)
+              policy_prefix=$${policy_line%%__TASKGATE_RESULT_BUCKET__*}
+              policy_suffix=$${policy_line#*__TASKGATE_RESULT_BUCKET__}
+              printf '%s%s%s\n' "$${policy_prefix}" "$${GATEWAY_OBJECT_STORE_BUCKET}" "$${policy_suffix}"
+              ;;
+            *) printf '%s\n' "$${policy_line}" ;;
+          esac
+        done < /config/taskgate-results-policy.json > /tmp/taskgate-results-policy.json
+        printf '%s\n%s\n' "$${GATEWAY_OBJECT_STORE_ACCESS_KEY}" "$${GATEWAY_OBJECT_STORE_SECRET_KEY}" |
+          mc admin user add taskgate
+        mc admin policy create taskgate taskgate-result-artifacts /tmp/taskgate-results-policy.json
+        mc admin policy attach taskgate taskgate-result-artifacts --user "$${GATEWAY_OBJECT_STORE_ACCESS_KEY}"
+    depends_on:
+      result-object-store:
+        condition: service_healthy
+        required: true
+    entrypoint:
+      - /bin/sh
+      - -ec
+    environment:
+      GATEWAY_OBJECT_STORE_ACCESS_KEY: ${GATEWAY_OBJECT_STORE_ACCESS_KEY:?set GATEWAY_OBJECT_STORE_ACCESS_KEY in .env}
+      GATEWAY_OBJECT_STORE_BUCKET: ${GATEWAY_OBJECT_STORE_BUCKET:-taskgate-results}
+      GATEWAY_OBJECT_STORE_REGION: ${GATEWAY_OBJECT_STORE_REGION:-us-east-1}
+      GATEWAY_OBJECT_STORE_SECRET_KEY: ${GATEWAY_OBJECT_STORE_SECRET_KEY:?set GATEWAY_OBJECT_STORE_SECRET_KEY in .env}
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    networks:
+      result-storage: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/object-store/taskgate-results-policy.json
+        target: /config/taskgate-results-policy.json
+        type: bind
+  snapshot-index-detail:
+    build:
+      args:
+        TARGET: snapshot-index
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -input
+      - /input/expense-detail-v1.json
+      - -output-dir
+      - /data/snapshot-index
+      - -allow-existing-identical
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      SNAPSHOT_POSTGRES_DSN: postgres://gateway_reader:${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 4g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/expense-detail-v1.json
+        target: /input/expense-detail-v1.json
+        type: bind
+      - source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+  snapshot-index-exposure-scale:
+    build:
+      args:
+        TARGET: snapshot-index
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -input
+      - /input/final-v5-exposure-scale-v1.json
+      - -output-dir
+      - /data/snapshot-index
+      - -allow-existing-identical
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      snapshot-index-result-heavy:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      SNAPSHOT_POSTGRES_DSN: postgres://gateway_reader:${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 16g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-exposure-scale-v1.json
+        target: /input/final-v5-exposure-scale-v1.json
+        type: bind
+      - source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+  snapshot-index-result-heavy:
+    build:
+      args:
+        TARGET: snapshot-index
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -input
+      - /input/final-v5-result-heavy-v1.json
+      - -output-dir
+      - /data/snapshot-index
+      - -allow-existing-identical
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      snapshot-index-summary:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      SNAPSHOT_POSTGRES_DSN: postgres://gateway_reader:${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 16g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-result-heavy-v1.json
+        target: /input/final-v5-result-heavy-v1.json
+        type: bind
+      - source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+  snapshot-index-scale-e7:
+    build:
+      args:
+        TARGET: snapshot-index
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -input
+      - /input/final-v5-scale-e7-v1.json
+      - -output-dir
+      - /data/snapshot-index
+      - -allow-existing-identical
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      snapshot-index-exposure-scale:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      GOMEMLIMIT: 17GiB
+      SNAPSHOT_POSTGRES_DSN: postgres://gateway_reader:${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 24g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-scale-e7-v1.json
+        target: /input/final-v5-scale-e7-v1.json
+        type: bind
+      - source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+  snapshot-index-summary:
+    build:
+      args:
+        TARGET: snapshot-index
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -input
+      - /input/expense-summary-v1.json
+      - -input
+      - /input/provsql-orders-v1.json
+      - -input
+      - /input/provsql-lineitem-v1.json
+      - -input
+      - /input/provsql-nonce-v1.json
+      - -output-dir
+      - /data/snapshot-index
+      - -allow-existing-identical
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      snapshot-index-detail:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      SNAPSHOT_POSTGRES_DSN: postgres://gateway_reader:${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 4g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/expense-summary-v1.json
+        target: /input/expense-summary-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-orders-v1.json
+        target: /input/provsql-orders-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-lineitem-v1.json
+        target: /input/provsql-lineitem-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-nonce-v1.json
+        target: /input/provsql-nonce-v1.json
+        type: bind
+      - source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+  snapshot-sidecar-install:
+    build:
+      args:
+        TARGET: snapshot-sidecar-install
+      context: /home/wmm/worktrees/factgate
+      dockerfile: Dockerfile
+    command:
+      - -artifact-dir
+      - /data/snapshot-index
+      - -input
+      - /input/expense-detail-v1.json
+      - -input
+      - /input/expense-summary-v1.json
+      - -input
+      - /input/provsql-orders-v1.json
+      - -input
+      - /input/provsql-lineitem-v1.json
+      - -input
+      - /input/provsql-nonce-v1.json
+      - -input
+      - /input/final-v5-result-heavy-v1.json
+      - -input
+      - /input/final-v5-exposure-scale-v1.json
+      - -input
+      - /input/final-v5-scale-e7-v1.json
+    depends_on:
+      business-postgres:
+        condition: service_healthy
+        required: true
+      snapshot-index-scale-e7:
+        condition: service_completed_successfully
+        required: true
+    environment:
+      SNAPSHOT_INSTALL_POSTGRES_DSN: postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@business-postgres:5432/${POSTGRES_DB:-travel_demo}?sslmode=disable
+    mem_limit: 16g
+    networks:
+      business-data: null
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    volumes:
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/expense-detail-v1.json
+        target: /input/expense-detail-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/expense-summary-v1.json
+        target: /input/expense-summary-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-orders-v1.json
+        target: /input/provsql-orders-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-lineitem-v1.json
+        target: /input/provsql-lineitem-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/provsql-nonce-v1.json
+        target: /input/provsql-nonce-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-result-heavy-v1.json
+        target: /input/final-v5-result-heavy-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-exposure-scale-v1.json
+        target: /input/final-v5-exposure-scale-v1.json
+        type: bind
+      - bind:
+          create_host_path: true
+        read_only: true
+        source: /home/wmm/worktrees/factgate/config/snapshots/final-v5-scale-e7-v1.json
+        target: /input/final-v5-scale-e7-v1.json
+        type: bind
+      - read_only: true
+        source: snapshot-index-artifacts
+        target: /data/snapshot-index
+        type: volume
+        volume: {}
+volumes:
+  business-pg-data:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_business-pg-data
+  control-pg-data:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_control-pg-data
+  gateway-encrypted-spool:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_gateway-encrypted-spool
+  result-object-data:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_result-object-data
+  snapshot-index-artifacts:
+    name: taskgate-final-v5-deployment-01-f608d0874da312a5af79_snapshot-index-artifacts

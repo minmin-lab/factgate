@@ -1,0 +1,3 @@
+S1/SF1	n=10	settled=10	server_total_p50_ms=110.637254
+S2/SF10	n=10	settled=10	server_total_p50_ms=2810.940303
+S6/100k-x16	n=10	settled=10	server_total_p50_ms=3173.592143

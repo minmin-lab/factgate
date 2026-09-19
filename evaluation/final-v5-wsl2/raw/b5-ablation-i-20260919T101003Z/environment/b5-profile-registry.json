@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "note": "P10-R2 B5 arm (i): run-local registry pinning the exposure-free twin; not the source-controlled profile registry",
+  "profiles": [
+    {
+      "alias": "b5-master-no-exposure",
+      "catalog_path": "evaluation/config/b5/master-no-exposure.catalog.yaml",
+      "catalog_sha256": "c9cc194bb95f839251277bd1ccdbc2d18aa597e5972dddae7c5f9b16517aa134"
+    }
+  ]
+}

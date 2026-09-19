@@ -1,0 +1,2540 @@
+{
+  "version": 1,
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "design": "docs/p10_r2_b5_ablation_design.md",
+  "runs": [
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-iv-20260919T073045Z",
+      "arm": "iv",
+      "catalog_sha256": "9c0fbe0ec0f043c91a4e04df0ed24f54e89e9eb8197983a019cf2f1986ae69f5",
+      "submission_commit": "8bbf0b5c24848b956e7dc49a56cb4d80bf087c68",
+      "records": 30,
+      "raw_sha256": "277abffafbed0b6291ca330e90443c0abd6e6834f49df65818c3d481acf9689f"
+    },
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-i-20260919T080206Z",
+      "arm": "i",
+      "catalog_sha256": "c9cc194bb95f839251277bd1ccdbc2d18aa597e5972dddae7c5f9b16517aa134",
+      "submission_commit": "ce59b8d45b6a1e84eeedee03e30ba3a2d3eedc85",
+      "records": 30,
+      "raw_sha256": "104231e2bfe6a7e186abff157406d521110066da738b48c34d509751a08d478c"
+    },
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-iv-20260919T083146Z",
+      "arm": "iv",
+      "catalog_sha256": "9c0fbe0ec0f043c91a4e04df0ed24f54e89e9eb8197983a019cf2f1986ae69f5",
+      "submission_commit": "ce59b8d45b6a1e84eeedee03e30ba3a2d3eedc85",
+      "records": 30,
+      "raw_sha256": "61f859110d5b00d3538c3b73aea0772a073e10db66551900769673af34fc7d6d"
+    },
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-i-20260919T090120Z",
+      "arm": "i",
+      "catalog_sha256": "c9cc194bb95f839251277bd1ccdbc2d18aa597e5972dddae7c5f9b16517aa134",
+      "submission_commit": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+      "records": 30,
+      "raw_sha256": "9a600c72702219011a8611e2d4c82c5fd695421bab1c1335cac78a9c32744b15"
+    },
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-iv-20260919T093426Z",
+      "arm": "iv",
+      "catalog_sha256": "9c0fbe0ec0f043c91a4e04df0ed24f54e89e9eb8197983a019cf2f1986ae69f5",
+      "submission_commit": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+      "records": 30,
+      "raw_sha256": "87fdeaf5332fdebf005c4c04e3aff744e03d7ab95738318ca92d6b59c402072b"
+    },
+    {
+      "run": "evaluation/final-v5-wsl2/raw/b5-ablation-i-20260919T101003Z",
+      "arm": "i",
+      "catalog_sha256": "c9cc194bb95f839251277bd1ccdbc2d18aa597e5972dddae7c5f9b16517aa134",
+      "submission_commit": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+      "records": 30,
+      "raw_sha256": "1c13373ff3e760b538e56272017bce579404f05de9f99c89c40009324730e9e6"
+    }
+  ],
+  "arms": {
+    "iv": {
+      "S1/SF1": {
+        "deployments": 3,
+        "settled": 30,
+        "refused": 0,
+        "errors": 0,
+        "client_ms": {
+          "median": 112.01,
+          "min": 102.69,
+          "max": 246.94,
+          "n": 30
+        },
+        "pipeline_ms": {
+          "artifact_publication": {
+            "median": 18.74,
+            "min": 14.38,
+            "max": 44.01,
+            "n": 30
+          },
+          "artifact_stage": {
+            "median": 8.32,
+            "min": 6.7,
+            "max": 19.13,
+            "n": 30
+          },
+          "control_settlement": {
+            "median": 25.88,
+            "min": 22.41,
+            "max": 70.78,
+            "n": 30
+          },
+          "execute_and_derive": {
+            "median": 34.34,
+            "min": 31.58,
+            "max": 68.98,
+            "n": 30
+          },
+          "prepare": {
+            "median": 23.73,
+            "min": 20.49,
+            "max": 42.91,
+            "n": 30
+          },
+          "response_finalize": {
+            "median": 0.74,
+            "min": 0.46,
+            "max": 1.83,
+            "n": 30
+          },
+          "server_total": {
+            "median": 110.69,
+            "min": 101.51,
+            "max": 244.77,
+            "n": 30
+          }
+        },
+        "component_ms": {
+          "authorization": {
+            "median": 7.91,
+            "min": 6.72,
+            "max": 17.7,
+            "n": 30
+          },
+          "bitmap_derivation": {
+            "median": 18.44,
+            "min": 16.7,
+            "max": 29.18,
+            "n": 30
+          },
+          "business_postgresql": {
+            "median": 2.96,
+            "min": 2.64,
+            "max": 6.89,
+            "n": 30
+          },
+          "connector_overhead": {
+            "median": 5.46,
+            "min": 4.47,
+            "max": 12.6,
+            "n": 30
+          },
+          "exposure_derivation": {
+            "median": 6.27,
+            "min": 5.67,
+            "max": 9.46,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 6.11,
+            "min": 5.1,
+            "max": 21.35,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.13,
+            "min": 0.09,
+            "max": 0.5,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.15,
+            "min": 0.1,
+            "max": 0.88,
+            "n": 30
+          },
+          "ordinal_finish": {
+            "median": 6.27,
+            "min": 5.67,
+            "max": 9.46,
+            "n": 30
+          },
+          "ordinal_stream": {
+            "median": 18.71,
+            "min": 17.17,
+            "max": 40.97,
+            "n": 30
+          },
+          "ordinal_stream_consumer": {
+            "median": 11.94,
+            "min": 10.77,
+            "max": 21.39,
+            "n": 30
+          },
+          "ordinal_visible_preparation": {
+            "median": 0.04,
+            "min": 0.03,
+            "max": 0.07,
+            "n": 30
+          },
+          "parse_policy": {
+            "median": 1.84,
+            "min": 1.44,
+            "max": 3.18,
+            "n": 30
+          },
+          "provenance_postgresql": {
+            "median": 6.67,
+            "min": 6.16,
+            "max": 19.59,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 3.09,
+            "min": 2.58,
+            "max": 6.62,
+            "n": 30
+          },
+          "reserve": {
+            "median": 3.12,
+            "min": 2.14,
+            "max": 9.31,
+            "n": 30
+          },
+          "result_encoding": {
+            "median": 8.32,
+            "min": 6.7,
+            "max": 19.12,
+            "n": 30
+          },
+          "semantic_replay_lookup": {
+            "median": 1.32,
+            "min": 0.61,
+            "max": 3.19,
+            "n": 30
+          },
+          "settle_persist": {
+            "median": 25.49,
+            "min": 22.04,
+            "max": 69.93,
+            "n": 30
+          }
+        },
+        "diagnostic_ms": {
+          "canonical_object_copy": {
+            "median": 13.19,
+            "min": 10.5,
+            "max": 31.62,
+            "n": 30
+          },
+          "canonical_object_hash_verify": {
+            "median": 13.19,
+            "min": 10.5,
+            "max": 31.62,
+            "n": 30
+          },
+          "canonical_object_stat": {
+            "median": 0.8,
+            "min": 0.6,
+            "max": 3.71,
+            "n": 30
+          },
+          "canonical_object_verify": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.01,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 6.11,
+            "min": 5.1,
+            "max": 21.35,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.13,
+            "min": 0.09,
+            "max": 0.5,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.15,
+            "min": 0.1,
+            "max": 0.88,
+            "n": 30
+          },
+          "local_staging_sync": {
+            "median": 2.03,
+            "min": 1.28,
+            "max": 4.35,
+            "n": 30
+          },
+          "mark_available": {
+            "median": 2.37,
+            "min": 1.68,
+            "max": 4.65,
+            "n": 30
+          },
+          "outcome_radix_difference_union": {
+            "median": 0.01,
+            "min": 0.01,
+            "max": 0.02,
+            "n": 30
+          },
+          "outcome_radix_load": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.01,
+            "n": 30
+          },
+          "outcome_radix_persist": {
+            "median": 0.86,
+            "min": 0.55,
+            "max": 1.47,
+            "n": 30
+          },
+          "parquet_encode_encrypt": {
+            "median": 1.14,
+            "min": 0.92,
+            "max": 1.8,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 3.09,
+            "min": 2.58,
+            "max": 6.62,
+            "n": 30
+          },
+          "staging_object_delete": {
+            "median": 1.1,
+            "min": 0.71,
+            "max": 2.49,
+            "n": 30
+          },
+          "staging_object_put": {
+            "median": 4.19,
+            "min": 3.34,
+            "max": 14.36,
+            "n": 30
+          }
+        },
+        "charged_facts_median": [
+          10000.0,
+          20000.0,
+          3.0
+        ],
+        "row_count": 5000.0,
+        "ledger_leaves_ms": {
+          "median": 7.26,
+          "min": 5.96,
+          "max": 23.73,
+          "n": 30
+        },
+        "derivation_leaves_ms": {
+          "median": 25.08,
+          "min": 23.02,
+          "max": 48.77,
+          "n": 30
+        },
+        "settle_persist_residual_ms": {
+          "median": 18.87,
+          "min": 16.5,
+          "max": 47.68,
+          "n": 30
+        },
+        "arm_ii_composed_server_total_ms": {
+          "median": 103.74,
+          "min": 95.04,
+          "max": 221.03,
+          "n": 30
+        }
+      },
+      "S2/SF10": {
+        "deployments": 3,
+        "settled": 30,
+        "refused": 0,
+        "errors": 0,
+        "client_ms": {
+          "median": 2624.17,
+          "min": 2413.37,
+          "max": 3009.25,
+          "n": 30
+        },
+        "pipeline_ms": {
+          "artifact_publication": {
+            "median": 16.1,
+            "min": 13.32,
+            "max": 24.35,
+            "n": 30
+          },
+          "artifact_stage": {
+            "median": 6.05,
+            "min": 4.74,
+            "max": 16.36,
+            "n": 30
+          },
+          "control_settlement": {
+            "median": 118.47,
+            "min": 102.95,
+            "max": 146.67,
+            "n": 30
+          },
+          "execute_and_derive": {
+            "median": 2452.04,
+            "min": 2265.78,
+            "max": 2825.8,
+            "n": 30
+          },
+          "prepare": {
+            "median": 26.32,
+            "min": 22.03,
+            "max": 33.03,
+            "n": 30
+          },
+          "response_finalize": {
+            "median": 0.57,
+            "min": 0.42,
+            "max": 1.09,
+            "n": 30
+          },
+          "server_total": {
+            "median": 2622.88,
+            "min": 2412.31,
+            "max": 3008.04,
+            "n": 30
+          }
+        },
+        "component_ms": {
+          "authorization": {
+            "median": 9.28,
+            "min": 8.32,
+            "max": 12.29,
+            "n": 30
+          },
+          "bitmap_derivation": {
+            "median": 1851.77,
+            "min": 1706.6,
+            "max": 2191.58,
+            "n": 30
+          },
+          "business_postgresql": {
+            "median": 32.59,
+            "min": 28.57,
+            "max": 40.86,
+            "n": 30
+          },
+          "connector_overhead": {
+            "median": 7.55,
+            "min": 5.85,
+            "max": 10.79,
+            "n": 30
+          },
+          "exposure_derivation": {
+            "median": 232.09,
+            "min": 199.49,
+            "max": 304.87,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 27.53,
+            "min": 23.92,
+            "max": 33.68,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.1,
+            "min": 0.07,
+            "max": 0.17,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.13,
+            "min": 0.06,
+            "max": 0.23,
+            "n": 30
+          },
+          "ordinal_finish": {
+            "median": 232.09,
+            "min": 199.49,
+            "max": 304.87,
+            "n": 30
+          },
+          "ordinal_stream": {
+            "median": 2177.94,
+            "min": 2013.2,
+            "max": 2537.53,
+            "n": 30
+          },
+          "ordinal_stream_consumer": {
+            "median": 1618.38,
+            "min": 1495.14,
+            "max": 1961.81,
+            "n": 30
+          },
+          "ordinal_visible_preparation": {
+            "median": 0.09,
+            "min": 0.07,
+            "max": 0.22,
+            "n": 30
+          },
+          "parse_policy": {
+            "median": 2.85,
+            "min": 2.56,
+            "max": 4.16,
+            "n": 30
+          },
+          "provenance_postgresql": {
+            "median": 559.51,
+            "min": 514.85,
+            "max": 649.01,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.56,
+            "min": 2.09,
+            "max": 10.73,
+            "n": 30
+          },
+          "reserve": {
+            "median": 2.66,
+            "min": 2.06,
+            "max": 4.13,
+            "n": 30
+          },
+          "result_encoding": {
+            "median": 6.05,
+            "min": 4.74,
+            "max": 16.36,
+            "n": 30
+          },
+          "semantic_replay_lookup": {
+            "median": 0.77,
+            "min": 0.56,
+            "max": 1.69,
+            "n": 30
+          },
+          "settle_persist": {
+            "median": 117.96,
+            "min": 102.61,
+            "max": 146.27,
+            "n": 30
+          }
+        },
+        "diagnostic_ms": {
+          "canonical_object_copy": {
+            "median": 11.65,
+            "min": 9.28,
+            "max": 19.9,
+            "n": 30
+          },
+          "canonical_object_hash_verify": {
+            "median": 11.65,
+            "min": 9.28,
+            "max": 19.9,
+            "n": 30
+          },
+          "canonical_object_stat": {
+            "median": 0.7,
+            "min": 0.58,
+            "max": 0.9,
+            "n": 30
+          },
+          "canonical_object_verify": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.01,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 27.53,
+            "min": 23.92,
+            "max": 33.68,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.1,
+            "min": 0.07,
+            "max": 0.17,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.13,
+            "min": 0.06,
+            "max": 0.23,
+            "n": 30
+          },
+          "local_staging_sync": {
+            "median": 2.18,
+            "min": 1.42,
+            "max": 3.93,
+            "n": 30
+          },
+          "mark_available": {
+            "median": 2.19,
+            "min": 1.8,
+            "max": 3.48,
+            "n": 30
+          },
+          "outcome_radix_difference_union": {
+            "median": 0.01,
+            "min": 0.01,
+            "max": 0.02,
+            "n": 30
+          },
+          "outcome_radix_load": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "outcome_radix_persist": {
+            "median": 0.78,
+            "min": 0.57,
+            "max": 1.57,
+            "n": 30
+          },
+          "parquet_encode_encrypt": {
+            "median": 0.16,
+            "min": 0.13,
+            "max": 0.28,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.56,
+            "min": 2.09,
+            "max": 10.73,
+            "n": 30
+          },
+          "staging_object_delete": {
+            "median": 0.81,
+            "min": 0.59,
+            "max": 1.23,
+            "n": 30
+          },
+          "staging_object_put": {
+            "median": 3.35,
+            "min": 2.72,
+            "max": 13.84,
+            "n": 30
+          }
+        },
+        "charged_facts_median": [
+          9.0,
+          1200000.0,
+          4.0
+        ],
+        "row_count": 3.0,
+        "ledger_leaves_ms": {
+          "median": 28.83,
+          "min": 24.66,
+          "max": 35.0,
+          "n": 30
+        },
+        "derivation_leaves_ms": {
+          "median": 2413.35,
+          "min": 2224.66,
+          "max": 2783.85,
+          "n": 30
+        },
+        "settle_persist_residual_ms": {
+          "median": 90.89,
+          "min": 78.25,
+          "max": 112.62,
+          "n": 30
+        },
+        "arm_ii_composed_server_total_ms": {
+          "median": 2593.15,
+          "min": 2387.06,
+          "max": 2979.16,
+          "n": 30
+        }
+      },
+      "S6/100k-x16": {
+        "deployments": 3,
+        "settled": 30,
+        "refused": 0,
+        "errors": 0,
+        "client_ms": {
+          "median": 3218.48,
+          "min": 3097.64,
+          "max": 4715.94,
+          "n": 30
+        },
+        "pipeline_ms": {
+          "artifact_publication": {
+            "median": 63.81,
+            "min": 55.07,
+            "max": 149.15,
+            "n": 30
+          },
+          "artifact_stage": {
+            "median": 381.61,
+            "min": 357.45,
+            "max": 493.86,
+            "n": 30
+          },
+          "control_settlement": {
+            "median": 289.71,
+            "min": 277.44,
+            "max": 394.22,
+            "n": 30
+          },
+          "execute_and_derive": {
+            "median": 2462.59,
+            "min": 2340.3,
+            "max": 3729.95,
+            "n": 30
+          },
+          "prepare": {
+            "median": 24.19,
+            "min": 21.8,
+            "max": 30.57,
+            "n": 30
+          },
+          "response_finalize": {
+            "median": 0.53,
+            "min": 0.43,
+            "max": 1.2,
+            "n": 30
+          },
+          "server_total": {
+            "median": 3216.86,
+            "min": 3096.47,
+            "max": 4714.47,
+            "n": 30
+          }
+        },
+        "component_ms": {
+          "authorization": {
+            "median": 8.1,
+            "min": 7.51,
+            "max": 9.77,
+            "n": 30
+          },
+          "bitmap_derivation": {
+            "median": 2090.33,
+            "min": 1982.23,
+            "max": 3236.63,
+            "n": 30
+          },
+          "business_postgresql": {
+            "median": 145.67,
+            "min": 138.43,
+            "max": 220.01,
+            "n": 30
+          },
+          "connector_overhead": {
+            "median": 5.42,
+            "min": 4.44,
+            "max": 7.38,
+            "n": 30
+          },
+          "exposure_derivation": {
+            "median": 1203.48,
+            "min": 1087.22,
+            "max": 2011.08,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 70.5,
+            "min": 63.15,
+            "max": 105.08,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.09,
+            "min": 0.07,
+            "max": 0.33,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.12,
+            "min": 0.09,
+            "max": 0.32,
+            "n": 30
+          },
+          "ordinal_finish": {
+            "median": 1203.48,
+            "min": 1087.22,
+            "max": 2011.08,
+            "n": 30
+          },
+          "ordinal_stream": {
+            "median": 1106.58,
+            "min": 1021.74,
+            "max": 1722.76,
+            "n": 30
+          },
+          "ordinal_stream_consumer": {
+            "median": 903.38,
+            "min": 853.77,
+            "max": 1456.98,
+            "n": 30
+          },
+          "ordinal_visible_preparation": {
+            "median": 0.07,
+            "min": 0.05,
+            "max": 0.11,
+            "n": 30
+          },
+          "parse_policy": {
+            "median": 2.76,
+            "min": 2.51,
+            "max": 3.91,
+            "n": 30
+          },
+          "provenance_postgresql": {
+            "median": 185.63,
+            "min": 167.97,
+            "max": 265.77,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.4,
+            "min": 2.13,
+            "max": 3.37,
+            "n": 30
+          },
+          "reserve": {
+            "median": 2.44,
+            "min": 2.02,
+            "max": 4.77,
+            "n": 30
+          },
+          "result_encoding": {
+            "median": 381.61,
+            "min": 357.45,
+            "max": 493.85,
+            "n": 30
+          },
+          "semantic_replay_lookup": {
+            "median": 0.68,
+            "min": 0.53,
+            "max": 1.7,
+            "n": 30
+          },
+          "settle_persist": {
+            "median": 289.23,
+            "min": 277.11,
+            "max": 393.7,
+            "n": 30
+          }
+        },
+        "diagnostic_ms": {
+          "canonical_object_copy": {
+            "median": 58.73,
+            "min": 50.78,
+            "max": 143.61,
+            "n": 30
+          },
+          "canonical_object_hash_verify": {
+            "median": 58.73,
+            "min": 50.78,
+            "max": 143.61,
+            "n": 30
+          },
+          "canonical_object_stat": {
+            "median": 0.7,
+            "min": 0.58,
+            "max": 0.99,
+            "n": 30
+          },
+          "canonical_object_verify": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.01,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 70.5,
+            "min": 63.15,
+            "max": 105.08,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.09,
+            "min": 0.07,
+            "max": 0.33,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.12,
+            "min": 0.09,
+            "max": 0.32,
+            "n": 30
+          },
+          "local_staging_sync": {
+            "median": 14.24,
+            "min": 10.64,
+            "max": 52.57,
+            "n": 30
+          },
+          "mark_available": {
+            "median": 2.32,
+            "min": 1.86,
+            "max": 3.88,
+            "n": 30
+          },
+          "outcome_radix_difference_union": {
+            "median": 0.02,
+            "min": 0.01,
+            "max": 0.04,
+            "n": 30
+          },
+          "outcome_radix_load": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.02,
+            "n": 30
+          },
+          "outcome_radix_persist": {
+            "median": 0.82,
+            "min": 0.62,
+            "max": 1.23,
+            "n": 30
+          },
+          "parquet_encode_encrypt": {
+            "median": 301.36,
+            "min": 283.24,
+            "max": 409.43,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.4,
+            "min": 2.13,
+            "max": 3.37,
+            "n": 30
+          },
+          "staging_object_delete": {
+            "median": 0.87,
+            "min": 0.69,
+            "max": 2.63,
+            "n": 30
+          },
+          "staging_object_put": {
+            "median": 52.63,
+            "min": 48.18,
+            "max": 102.7,
+            "n": 30
+          }
+        },
+        "charged_facts_median": [
+          1600000.0,
+          1700000.0,
+          6.0
+        ],
+        "row_count": 100000.0,
+        "ledger_leaves_ms": {
+          "median": 71.51,
+          "min": 64.17,
+          "max": 106.42,
+          "n": 30
+        },
+        "derivation_leaves_ms": {
+          "median": 2313.04,
+          "min": 2190.66,
+          "max": 3502.4,
+          "n": 30
+        },
+        "settle_persist_residual_ms": {
+          "median": 218.21,
+          "min": 211.0,
+          "max": 288.33,
+          "n": 30
+        },
+        "arm_ii_composed_server_total_ms": {
+          "median": 3146.27,
+          "min": 3024.56,
+          "max": 4608.05,
+          "n": 30
+        }
+      }
+    },
+    "i": {
+      "S1/SF1": {
+        "deployments": 3,
+        "settled": 30,
+        "refused": 0,
+        "errors": 0,
+        "client_ms": {
+          "median": 59.79,
+          "min": 50.0,
+          "max": 165.34,
+          "n": 30
+        },
+        "pipeline_ms": {
+          "artifact_publication": {
+            "median": 19.83,
+            "min": 15.21,
+            "max": 72.24,
+            "n": 30
+          },
+          "artifact_stage": {
+            "median": 7.8,
+            "min": 6.47,
+            "max": 26.55,
+            "n": 30
+          },
+          "control_settlement": {
+            "median": 7.01,
+            "min": 6.0,
+            "max": 15.64,
+            "n": 30
+          },
+          "execute_and_derive": {
+            "median": 7.88,
+            "min": 6.79,
+            "max": 18.01,
+            "n": 30
+          },
+          "prepare": {
+            "median": 14.13,
+            "min": 12.82,
+            "max": 30.28,
+            "n": 30
+          },
+          "response_finalize": {
+            "median": 0.64,
+            "min": 0.5,
+            "max": 1.71,
+            "n": 30
+          },
+          "server_total": {
+            "median": 58.73,
+            "min": 49.11,
+            "max": 164.05,
+            "n": 30
+          }
+        },
+        "component_ms": {
+          "authorization": {
+            "median": 4.28,
+            "min": 3.25,
+            "max": 15.67,
+            "n": 30
+          },
+          "business_postgresql": {
+            "median": 2.45,
+            "min": 2.26,
+            "max": 12.05,
+            "n": 30
+          },
+          "connector_overhead": {
+            "median": 5.09,
+            "min": 4.17,
+            "max": 6.58,
+            "n": 30
+          },
+          "parse_policy": {
+            "median": 0.5,
+            "min": 0.42,
+            "max": 1.95,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.13,
+            "min": 1.7,
+            "max": 4.49,
+            "n": 30
+          },
+          "reserve": {
+            "median": 3.67,
+            "min": 2.78,
+            "max": 7.77,
+            "n": 30
+          },
+          "result_encoding": {
+            "median": 7.8,
+            "min": 6.47,
+            "max": 26.55,
+            "n": 30
+          },
+          "settle_persist": {
+            "median": 6.65,
+            "min": 5.7,
+            "max": 15.05,
+            "n": 30
+          }
+        },
+        "diagnostic_ms": {
+          "canonical_object_copy": {
+            "median": 14.38,
+            "min": 10.42,
+            "max": 51.52,
+            "n": 30
+          },
+          "canonical_object_hash_verify": {
+            "median": 14.38,
+            "min": 10.42,
+            "max": 51.52,
+            "n": 30
+          },
+          "canonical_object_stat": {
+            "median": 0.79,
+            "min": 0.53,
+            "max": 6.2,
+            "n": 30
+          },
+          "canonical_object_verify": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.15,
+            "min": 0.1,
+            "max": 0.59,
+            "n": 30
+          },
+          "local_staging_sync": {
+            "median": 1.8,
+            "min": 1.26,
+            "max": 2.39,
+            "n": 30
+          },
+          "mark_available": {
+            "median": 2.35,
+            "min": 1.8,
+            "max": 3.98,
+            "n": 30
+          },
+          "outcome_radix_difference_union": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "outcome_radix_load": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "outcome_radix_persist": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "parquet_encode_encrypt": {
+            "median": 1.18,
+            "min": 0.66,
+            "max": 2.38,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 2.13,
+            "min": 1.7,
+            "max": 4.49,
+            "n": 30
+          },
+          "staging_object_delete": {
+            "median": 1.35,
+            "min": 0.82,
+            "max": 8.51,
+            "n": 30
+          },
+          "staging_object_put": {
+            "median": 4.53,
+            "min": 3.55,
+            "max": 21.09,
+            "n": 30
+          }
+        },
+        "charged_facts_median": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_count": 5000.0
+      },
+      "S2/SF10": {
+        "deployments": 3,
+        "settled": 0,
+        "refused": 30,
+        "errors": 0,
+        "client_ms": null,
+        "pipeline_ms": {},
+        "component_ms": {},
+        "diagnostic_ms": {},
+        "charged_facts_median": [
+          null,
+          null,
+          null
+        ],
+        "row_count": null
+      },
+      "S6/100k-x16": {
+        "deployments": 3,
+        "settled": 30,
+        "refused": 0,
+        "errors": 0,
+        "client_ms": {
+          "median": 702.55,
+          "min": 643.19,
+          "max": 857.65,
+          "n": 30
+        },
+        "pipeline_ms": {
+          "artifact_publication": {
+            "median": 67.54,
+            "min": 61.14,
+            "max": 92.84,
+            "n": 30
+          },
+          "artifact_stage": {
+            "median": 426.55,
+            "min": 390.88,
+            "max": 579.9,
+            "n": 30
+          },
+          "control_settlement": {
+            "median": 7.5,
+            "min": 6.57,
+            "max": 8.71,
+            "n": 30
+          },
+          "execute_and_derive": {
+            "median": 174.65,
+            "min": 152.71,
+            "max": 224.04,
+            "n": 30
+          },
+          "prepare": {
+            "median": 14.07,
+            "min": 12.31,
+            "max": 26.25,
+            "n": 30
+          },
+          "response_finalize": {
+            "median": 0.47,
+            "min": 0.35,
+            "max": 0.92,
+            "n": 30
+          },
+          "server_total": {
+            "median": 701.45,
+            "min": 642.22,
+            "max": 856.56,
+            "n": 30
+          }
+        },
+        "component_ms": {
+          "authorization": {
+            "median": 3.99,
+            "min": 3.62,
+            "max": 6.32,
+            "n": 30
+          },
+          "business_postgresql": {
+            "median": 168.19,
+            "min": 147.06,
+            "max": 219.51,
+            "n": 30
+          },
+          "connector_overhead": {
+            "median": 5.34,
+            "min": 4.3,
+            "max": 7.99,
+            "n": 30
+          },
+          "parse_policy": {
+            "median": 1.05,
+            "min": 0.89,
+            "max": 2.07,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 1.9,
+            "min": 1.54,
+            "max": 2.5,
+            "n": 30
+          },
+          "reserve": {
+            "median": 2.94,
+            "min": 2.08,
+            "max": 7.54,
+            "n": 30
+          },
+          "result_encoding": {
+            "median": 426.55,
+            "min": 390.88,
+            "max": 579.9,
+            "n": 30
+          },
+          "settle_persist": {
+            "median": 7.11,
+            "min": 6.26,
+            "max": 8.31,
+            "n": 30
+          }
+        },
+        "diagnostic_ms": {
+          "canonical_object_copy": {
+            "median": 62.76,
+            "min": 56.52,
+            "max": 89.02,
+            "n": 30
+          },
+          "canonical_object_hash_verify": {
+            "median": 62.76,
+            "min": 56.52,
+            "max": 89.02,
+            "n": 30
+          },
+          "canonical_object_stat": {
+            "median": 0.68,
+            "min": 0.51,
+            "max": 0.96,
+            "n": 30
+          },
+          "canonical_object_verify": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_fact_store": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_ledger_lock": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "exposure_reservation_lock": {
+            "median": 0.12,
+            "min": 0.07,
+            "max": 0.17,
+            "n": 30
+          },
+          "local_staging_sync": {
+            "median": 13.83,
+            "min": 8.88,
+            "max": 15.56,
+            "n": 30
+          },
+          "mark_available": {
+            "median": 2.34,
+            "min": 1.32,
+            "max": 4.07,
+            "n": 30
+          },
+          "outcome_radix_difference_union": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "outcome_radix_load": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "outcome_radix_persist": {
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "n": 30
+          },
+          "parquet_encode_encrypt": {
+            "median": 338.95,
+            "min": 314.51,
+            "max": 495.17,
+            "n": 30
+          },
+          "receipt_signing": {
+            "median": 1.9,
+            "min": 1.54,
+            "max": 2.5,
+            "n": 30
+          },
+          "staging_object_delete": {
+            "median": 1.04,
+            "min": 0.78,
+            "max": 1.69,
+            "n": 30
+          },
+          "staging_object_put": {
+            "median": 54.55,
+            "min": 50.98,
+            "max": 105.97,
+            "n": 30
+          }
+        },
+        "charged_facts_median": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "row_count": 100000.0
+      }
+    }
+  },
+  "checks": {
+    "S1/SF1": {
+      "arm_i_server_total_ms": 58.73,
+      "arm_ii_composed_ms": 103.74,
+      "arm_iv_server_total_ms": 110.69,
+      "common_path_share_of_iv_pct": 53.1,
+      "ii_minus_i_ms": 45.01,
+      "derivation_leaves_ms": 25.08,
+      "ii_minus_i_vs_derivation_ms": 19.93
+    },
+    "S6/100k-x16": {
+      "arm_i_server_total_ms": 701.45,
+      "arm_ii_composed_ms": 3146.27,
+      "arm_iv_server_total_ms": 3216.86,
+      "common_path_share_of_iv_pct": 21.8,
+      "ii_minus_i_ms": 2444.82,
+      "derivation_leaves_ms": 2313.04,
+      "ii_minus_i_vs_derivation_ms": 131.78
+    }
+  },
+  "naive_benign_replay": {
+    "benign_corpus_sha256": "fa33b3132224b8397b67d5e323aa016ef9f71f8c4c80a9498983573102fd8b7f",
+    "campaign_class": "pilot",
+    "git_head": "44c9533d323aaf23a17dd18b2832d3930e457060",
+    "host": "wmm",
+    "limits": {
+      "Release": 26907,
+      "Influence": 1450000,
+      "Outcome": 56
+    },
+    "method": "naive exact-set ledger (evaluation/internal/naiveledger) replaying the benign corpus's closed-form footprints; Dependency = corpus fact hashes, Release/Outcome = statement-scoped synthetic hashes (counts); single host, not a deployment",
+    "multiplier": 1,
+    "postgres_version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "publication_eligible": false,
+    "schema_version": 1,
+    "sweep_cross_check": {
+      "naive_admitted": 21,
+      "naive_first_refusal": "q23",
+      "naive_refusals": 2,
+      "status": "match",
+      "sweep_admitted": 21,
+      "sweep_first_refusal": "q23",
+      "sweep_refusals": 2
+    },
+    "trials": [
+      {
+        "trial": 1,
+        "statements": [
+          {
+            "index": 1,
+            "id": "q01",
+            "candidate_dependency_facts": 20,
+            "novel_dependency_facts": 20,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.725,
+            "insert_ms": 1.48,
+            "commit_ms": 1.37,
+            "total_ms": 3.576,
+            "rows_inserted": 29,
+            "insert_micros_per_candidate_fact": 74
+          },
+          {
+            "index": 2,
+            "id": "q02",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.301,
+            "insert_ms": 0.287,
+            "commit_ms": 0.849,
+            "total_ms": 1.439,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 3,
+            "id": "q03",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.363,
+            "insert_ms": 0.283,
+            "commit_ms": 0.792,
+            "total_ms": 1.439,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 5,
+            "id": "q05",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 30,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.26,
+            "insert_ms": 0.675,
+            "commit_ms": 1.026,
+            "total_ms": 1.963,
+            "rows_inserted": 33,
+            "insert_micros_per_candidate_fact": 13.5
+          },
+          {
+            "index": 6,
+            "id": "q07",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.571,
+            "insert_ms": 0.229,
+            "commit_ms": 0.814,
+            "total_ms": 1.616,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 7,
+            "id": "q08",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.277,
+            "insert_ms": 1.056,
+            "commit_ms": 0.781,
+            "total_ms": 2.115,
+            "rows_inserted": 35,
+            "insert_micros_per_candidate_fact": 21.12
+          },
+          {
+            "index": 8,
+            "id": "q11",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.252,
+            "insert_ms": 0.876,
+            "commit_ms": 0.961,
+            "total_ms": 2.09,
+            "rows_inserted": 17,
+            "insert_micros_per_candidate_fact": 21.9
+          },
+          {
+            "index": 9,
+            "id": "q12",
+            "candidate_dependency_facts": 70,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.286,
+            "insert_ms": 0.771,
+            "commit_ms": 0.813,
+            "total_ms": 1.872,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 11.014285714285714
+          },
+          {
+            "index": 10,
+            "id": "q13",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 12,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.261,
+            "insert_ms": 0.74,
+            "commit_ms": 0.758,
+            "total_ms": 1.761,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 18.5
+          },
+          {
+            "index": 11,
+            "id": "q15",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.27,
+            "insert_ms": 0.437,
+            "commit_ms": 0.755,
+            "total_ms": 1.464,
+            "rows_inserted": 12,
+            "insert_micros_per_candidate_fact": 8.74
+          },
+          {
+            "index": 13,
+            "id": "q17",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.276,
+            "insert_ms": 0.15,
+            "commit_ms": 0.748,
+            "total_ms": 1.176,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 14,
+            "id": "q18",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 60,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.262,
+            "insert_ms": 1.286,
+            "commit_ms": 0.808,
+            "total_ms": 2.357,
+            "rows_inserted": 70,
+            "insert_micros_per_candidate_fact": 21.433333333333334
+          },
+          {
+            "index": 15,
+            "id": "q21",
+            "candidate_dependency_facts": 200000,
+            "novel_dependency_facts": 200000,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.262,
+            "insert_ms": 1552.966,
+            "commit_ms": 54.542,
+            "total_ms": 1607.771,
+            "rows_inserted": 200007,
+            "insert_micros_per_candidate_fact": 7.76483
+          },
+          {
+            "index": 16,
+            "id": "q22",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 25000,
+            "novel_release_facts": 1,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.404,
+            "insert_ms": 194.611,
+            "commit_ms": 12.184,
+            "total_ms": 207.2,
+            "rows_inserted": 25003,
+            "insert_micros_per_candidate_fact": 7.78444
+          },
+          {
+            "index": 17,
+            "id": "q23",
+            "candidate_dependency_facts": 1450000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.428,
+            "insert_ms": 11264.319,
+            "commit_ms": 0,
+            "total_ms": 11264.748,
+            "rows_inserted": 1225007,
+            "insert_micros_per_candidate_fact": 7.768495862068965
+          },
+          {
+            "index": 19,
+            "id": "q26",
+            "candidate_dependency_facts": 1250000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.463,
+            "insert_ms": 13598.187,
+            "commit_ms": 0,
+            "total_ms": 13598.651,
+            "rows_inserted": 1225004,
+            "insert_micros_per_candidate_fact": 10.8785496
+          },
+          {
+            "index": 21,
+            "id": "q29",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.684,
+            "insert_ms": 0.251,
+            "commit_ms": 1.256,
+            "total_ms": 2.192,
+            "rows_inserted": 3,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 22,
+            "id": "q30",
+            "candidate_dependency_facts": 971431,
+            "novel_dependency_facts": 971431,
+            "novel_release_facts": 1700,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.315,
+            "insert_ms": 10799.389,
+            "commit_ms": 329.637,
+            "total_ms": 11129.343,
+            "rows_inserted": 973134,
+            "insert_micros_per_candidate_fact": 11.116990295759555
+          },
+          {
+            "index": 23,
+            "id": "q32",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 10710,
+            "novel_release_facts": 25000,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.478,
+            "insert_ms": 410.814,
+            "commit_ms": 16.331,
+            "total_ms": 427.624,
+            "rows_inserted": 35712,
+            "insert_micros_per_candidate_fact": 16.43256
+          },
+          {
+            "index": 25,
+            "id": "q35",
+            "candidate_dependency_facts": 102,
+            "novel_dependency_facts": 12,
+            "novel_release_facts": 102,
+            "novel_outcome_facts": 7,
+            "admitted": true,
+            "lock_ms": 0.284,
+            "insert_ms": 2.526,
+            "commit_ms": 0.956,
+            "total_ms": 3.767,
+            "rows_inserted": 121,
+            "insert_micros_per_candidate_fact": 24.764705882352942
+          },
+          {
+            "index": 26,
+            "id": "q36",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.236,
+            "insert_ms": 1.468,
+            "commit_ms": 0.966,
+            "total_ms": 2.671,
+            "rows_inserted": 27,
+            "insert_micros_per_candidate_fact": 24.466666666666665
+          },
+          {
+            "index": 27,
+            "id": "q37",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.308,
+            "insert_ms": 0.222,
+            "commit_ms": 0.781,
+            "total_ms": 1.312,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 28,
+            "id": "q38",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.246,
+            "insert_ms": 0.782,
+            "commit_ms": 0.755,
+            "total_ms": 1.785,
+            "rows_inserted": 20,
+            "insert_micros_per_candidate_fact": 15.64
+          }
+        ],
+        "admitted": 21,
+        "budget_refused": 2,
+        "storage": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342867968,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619585536
+        },
+        "storage_after_vacuum": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342876160,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619593728
+        },
+        "total_settlement_ms": 38269.93200000001
+      },
+      {
+        "trial": 2,
+        "statements": [
+          {
+            "index": 1,
+            "id": "q01",
+            "candidate_dependency_facts": 20,
+            "novel_dependency_facts": 20,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.314,
+            "insert_ms": 0.799,
+            "commit_ms": 1.076,
+            "total_ms": 2.19,
+            "rows_inserted": 29,
+            "insert_micros_per_candidate_fact": 39.95
+          },
+          {
+            "index": 2,
+            "id": "q02",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.28,
+            "insert_ms": 0.19,
+            "commit_ms": 1.265,
+            "total_ms": 1.737,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 3,
+            "id": "q03",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.273,
+            "insert_ms": 0.227,
+            "commit_ms": 0.921,
+            "total_ms": 1.422,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 5,
+            "id": "q05",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 30,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.248,
+            "insert_ms": 0.513,
+            "commit_ms": 0.956,
+            "total_ms": 1.719,
+            "rows_inserted": 33,
+            "insert_micros_per_candidate_fact": 10.26
+          },
+          {
+            "index": 6,
+            "id": "q07",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.281,
+            "insert_ms": 0.179,
+            "commit_ms": 1.241,
+            "total_ms": 1.702,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 7,
+            "id": "q08",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.302,
+            "insert_ms": 0.766,
+            "commit_ms": 0.895,
+            "total_ms": 1.965,
+            "rows_inserted": 35,
+            "insert_micros_per_candidate_fact": 15.32
+          },
+          {
+            "index": 8,
+            "id": "q11",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.393,
+            "insert_ms": 0.685,
+            "commit_ms": 0.868,
+            "total_ms": 1.948,
+            "rows_inserted": 17,
+            "insert_micros_per_candidate_fact": 17.125
+          },
+          {
+            "index": 9,
+            "id": "q12",
+            "candidate_dependency_facts": 70,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.264,
+            "insert_ms": 0.515,
+            "commit_ms": 1.024,
+            "total_ms": 1.804,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 7.357142857142857
+          },
+          {
+            "index": 10,
+            "id": "q13",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 12,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.242,
+            "insert_ms": 0.64,
+            "commit_ms": 0.871,
+            "total_ms": 1.755,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 16
+          },
+          {
+            "index": 11,
+            "id": "q15",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.303,
+            "insert_ms": 0.422,
+            "commit_ms": 1.103,
+            "total_ms": 1.83,
+            "rows_inserted": 12,
+            "insert_micros_per_candidate_fact": 8.44
+          },
+          {
+            "index": 13,
+            "id": "q17",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.292,
+            "insert_ms": 0.16,
+            "commit_ms": 0.925,
+            "total_ms": 1.379,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 14,
+            "id": "q18",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 60,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.244,
+            "insert_ms": 0.866,
+            "commit_ms": 0.825,
+            "total_ms": 1.937,
+            "rows_inserted": 70,
+            "insert_micros_per_candidate_fact": 14.433333333333334
+          },
+          {
+            "index": 15,
+            "id": "q21",
+            "candidate_dependency_facts": 200000,
+            "novel_dependency_facts": 200000,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.256,
+            "insert_ms": 1382.874,
+            "commit_ms": 46.038,
+            "total_ms": 1429.169,
+            "rows_inserted": 200007,
+            "insert_micros_per_candidate_fact": 6.91437
+          },
+          {
+            "index": 16,
+            "id": "q22",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 25000,
+            "novel_release_facts": 1,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.521,
+            "insert_ms": 175.501,
+            "commit_ms": 10.474,
+            "total_ms": 186.507,
+            "rows_inserted": 25003,
+            "insert_micros_per_candidate_fact": 7.02004
+          },
+          {
+            "index": 17,
+            "id": "q23",
+            "candidate_dependency_facts": 1450000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.275,
+            "insert_ms": 11108.672,
+            "commit_ms": 0,
+            "total_ms": 11108.949,
+            "rows_inserted": 1225007,
+            "insert_micros_per_candidate_fact": 7.661153103448276
+          },
+          {
+            "index": 19,
+            "id": "q26",
+            "candidate_dependency_facts": 1250000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.489,
+            "insert_ms": 13620.677,
+            "commit_ms": 0,
+            "total_ms": 13621.167,
+            "rows_inserted": 1225004,
+            "insert_micros_per_candidate_fact": 10.8965416
+          },
+          {
+            "index": 21,
+            "id": "q29",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.76,
+            "insert_ms": 3.183,
+            "commit_ms": 1.835,
+            "total_ms": 5.779,
+            "rows_inserted": 3,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 22,
+            "id": "q30",
+            "candidate_dependency_facts": 971431,
+            "novel_dependency_facts": 971431,
+            "novel_release_facts": 1700,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.313,
+            "insert_ms": 10443.421,
+            "commit_ms": 290.115,
+            "total_ms": 10733.851,
+            "rows_inserted": 973134,
+            "insert_micros_per_candidate_fact": 10.75055356479256
+          },
+          {
+            "index": 23,
+            "id": "q32",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 10710,
+            "novel_release_facts": 25000,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.677,
+            "insert_ms": 370.081,
+            "commit_ms": 9.908,
+            "total_ms": 380.667,
+            "rows_inserted": 35712,
+            "insert_micros_per_candidate_fact": 14.80324
+          },
+          {
+            "index": 25,
+            "id": "q35",
+            "candidate_dependency_facts": 102,
+            "novel_dependency_facts": 12,
+            "novel_release_facts": 102,
+            "novel_outcome_facts": 7,
+            "admitted": true,
+            "lock_ms": 0.277,
+            "insert_ms": 2.911,
+            "commit_ms": 0.996,
+            "total_ms": 4.184,
+            "rows_inserted": 121,
+            "insert_micros_per_candidate_fact": 28.53921568627451
+          },
+          {
+            "index": 26,
+            "id": "q36",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.337,
+            "insert_ms": 1.319,
+            "commit_ms": 1.207,
+            "total_ms": 2.865,
+            "rows_inserted": 27,
+            "insert_micros_per_candidate_fact": 21.983333333333334
+          },
+          {
+            "index": 27,
+            "id": "q37",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.376,
+            "insert_ms": 0.316,
+            "commit_ms": 0.943,
+            "total_ms": 1.636,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 28,
+            "id": "q38",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.603,
+            "insert_ms": 0.909,
+            "commit_ms": 0.864,
+            "total_ms": 2.378,
+            "rows_inserted": 20,
+            "insert_micros_per_candidate_fact": 18.18
+          }
+        ],
+        "admitted": 21,
+        "budget_refused": 2,
+        "storage": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342867968,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619585536
+        },
+        "storage_after_vacuum": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342876160,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619593728
+        },
+        "total_settlement_ms": 37498.53999999999
+      },
+      {
+        "trial": 3,
+        "statements": [
+          {
+            "index": 1,
+            "id": "q01",
+            "candidate_dependency_facts": 20,
+            "novel_dependency_facts": 20,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.393,
+            "insert_ms": 1.333,
+            "commit_ms": 1.052,
+            "total_ms": 2.78,
+            "rows_inserted": 29,
+            "insert_micros_per_candidate_fact": 66.65
+          },
+          {
+            "index": 2,
+            "id": "q02",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.247,
+            "insert_ms": 0.162,
+            "commit_ms": 0.916,
+            "total_ms": 1.326,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 3,
+            "id": "q03",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.241,
+            "insert_ms": 0.164,
+            "commit_ms": 0.769,
+            "total_ms": 1.175,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 5,
+            "id": "q05",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 30,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.278,
+            "insert_ms": 0.541,
+            "commit_ms": 0.822,
+            "total_ms": 1.642,
+            "rows_inserted": 33,
+            "insert_micros_per_candidate_fact": 10.82
+          },
+          {
+            "index": 6,
+            "id": "q07",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.273,
+            "insert_ms": 0.332,
+            "commit_ms": 0.829,
+            "total_ms": 1.435,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 7,
+            "id": "q08",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.306,
+            "insert_ms": 0.965,
+            "commit_ms": 0.821,
+            "total_ms": 2.094,
+            "rows_inserted": 35,
+            "insert_micros_per_candidate_fact": 19.3
+          },
+          {
+            "index": 8,
+            "id": "q11",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.256,
+            "insert_ms": 0.782,
+            "commit_ms": 0.844,
+            "total_ms": 1.883,
+            "rows_inserted": 17,
+            "insert_micros_per_candidate_fact": 19.55
+          },
+          {
+            "index": 9,
+            "id": "q12",
+            "candidate_dependency_facts": 70,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.279,
+            "insert_ms": 0.543,
+            "commit_ms": 0.792,
+            "total_ms": 1.615,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 7.757142857142857
+          },
+          {
+            "index": 10,
+            "id": "q13",
+            "candidate_dependency_facts": 40,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 12,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.265,
+            "insert_ms": 0.581,
+            "commit_ms": 0.927,
+            "total_ms": 1.775,
+            "rows_inserted": 13,
+            "insert_micros_per_candidate_fact": 14.525
+          },
+          {
+            "index": 11,
+            "id": "q15",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.287,
+            "insert_ms": 0.534,
+            "commit_ms": 0.81,
+            "total_ms": 1.633,
+            "rows_inserted": 12,
+            "insert_micros_per_candidate_fact": 10.68
+          },
+          {
+            "index": 13,
+            "id": "q17",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.24,
+            "insert_ms": 0.15,
+            "commit_ms": 0.874,
+            "total_ms": 1.265,
+            "rows_inserted": 2,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 14,
+            "id": "q18",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 60,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.256,
+            "insert_ms": 0.972,
+            "commit_ms": 0.786,
+            "total_ms": 2.015,
+            "rows_inserted": 70,
+            "insert_micros_per_candidate_fact": 16.2
+          },
+          {
+            "index": 15,
+            "id": "q21",
+            "candidate_dependency_facts": 200000,
+            "novel_dependency_facts": 200000,
+            "novel_release_facts": 6,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.263,
+            "insert_ms": 1513.881,
+            "commit_ms": 54.72,
+            "total_ms": 1568.879,
+            "rows_inserted": 200007,
+            "insert_micros_per_candidate_fact": 7.569405
+          },
+          {
+            "index": 16,
+            "id": "q22",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 25000,
+            "novel_release_facts": 1,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.614,
+            "insert_ms": 209.769,
+            "commit_ms": 10.721,
+            "total_ms": 221.106,
+            "rows_inserted": 25003,
+            "insert_micros_per_candidate_fact": 8.39076
+          },
+          {
+            "index": 17,
+            "id": "q23",
+            "candidate_dependency_facts": 1450000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.414,
+            "insert_ms": 11071.487,
+            "commit_ms": 0,
+            "total_ms": 11071.903,
+            "rows_inserted": 1225007,
+            "insert_micros_per_candidate_fact": 7.635508275862069
+          },
+          {
+            "index": 19,
+            "id": "q26",
+            "candidate_dependency_facts": 1250000,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 0,
+            "admitted": false,
+            "lock_ms": 0.602,
+            "insert_ms": 13690.761,
+            "commit_ms": 0,
+            "total_ms": 13691.364,
+            "rows_inserted": 1225004,
+            "insert_micros_per_candidate_fact": 10.9526088
+          },
+          {
+            "index": 21,
+            "id": "q29",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.584,
+            "insert_ms": 0.341,
+            "commit_ms": 1.441,
+            "total_ms": 2.367,
+            "rows_inserted": 3,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 22,
+            "id": "q30",
+            "candidate_dependency_facts": 971431,
+            "novel_dependency_facts": 971431,
+            "novel_release_facts": 1700,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.292,
+            "insert_ms": 10710.272,
+            "commit_ms": 279.067,
+            "total_ms": 10989.633,
+            "rows_inserted": 973134,
+            "insert_micros_per_candidate_fact": 11.025252436868907
+          },
+          {
+            "index": 23,
+            "id": "q32",
+            "candidate_dependency_facts": 25000,
+            "novel_dependency_facts": 10710,
+            "novel_release_facts": 25000,
+            "novel_outcome_facts": 2,
+            "admitted": true,
+            "lock_ms": 0.65,
+            "insert_ms": 364.942,
+            "commit_ms": 11.068,
+            "total_ms": 376.661,
+            "rows_inserted": 35712,
+            "insert_micros_per_candidate_fact": 14.59768
+          },
+          {
+            "index": 25,
+            "id": "q35",
+            "candidate_dependency_facts": 102,
+            "novel_dependency_facts": 12,
+            "novel_release_facts": 102,
+            "novel_outcome_facts": 7,
+            "admitted": true,
+            "lock_ms": 0.383,
+            "insert_ms": 2.467,
+            "commit_ms": 1.059,
+            "total_ms": 3.911,
+            "rows_inserted": 121,
+            "insert_micros_per_candidate_fact": 24.186274509803923
+          },
+          {
+            "index": 26,
+            "id": "q36",
+            "candidate_dependency_facts": 60,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 24,
+            "novel_outcome_facts": 3,
+            "admitted": true,
+            "lock_ms": 0.263,
+            "insert_ms": 1.151,
+            "commit_ms": 1.21,
+            "total_ms": 2.626,
+            "rows_inserted": 27,
+            "insert_micros_per_candidate_fact": 19.183333333333334
+          },
+          {
+            "index": 27,
+            "id": "q37",
+            "candidate_dependency_facts": 0,
+            "novel_dependency_facts": 0,
+            "novel_release_facts": 0,
+            "novel_outcome_facts": 4,
+            "admitted": true,
+            "lock_ms": 0.322,
+            "insert_ms": 0.239,
+            "commit_ms": 1.215,
+            "total_ms": 1.778,
+            "rows_inserted": 4,
+            "insert_micros_per_candidate_fact": 0
+          },
+          {
+            "index": 28,
+            "id": "q38",
+            "candidate_dependency_facts": 50,
+            "novel_dependency_facts": 10,
+            "novel_release_facts": 9,
+            "novel_outcome_facts": 1,
+            "admitted": true,
+            "lock_ms": 0.274,
+            "insert_ms": 0.873,
+            "commit_ms": 1.016,
+            "total_ms": 2.164,
+            "rows_inserted": 20,
+            "insert_micros_per_candidate_fact": 17.46
+          }
+        ],
+        "admitted": 21,
+        "budget_refused": 2,
+        "storage": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342859776,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619577344
+        },
+        "storage_after_vacuum": {
+          "FactRows": 1234265,
+          "FactTableBytes": 342876160,
+          "FactIndexBytes": 276652032,
+          "TotalBytes": 619593728
+        },
+        "total_settlement_ms": 37953.02999999999
+      }
+    ]
+  }
+}

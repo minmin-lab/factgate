@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "record_kind": "taskgate-pilot-gateway-image-observation-v1",
+  "experiment_class": "pilot",
+  "provenance_assertion": "observation_only_not_publication_verification",
+  "formal_gateway_built": false,
+  "formal_build_label": null,
+  "captured_at": "2026-09-19T08:58:55Z",
+  "container_id": "f16cfd295a1f5288eeb917909f9342b2a0b3830723d5246a58ef7cf5154defa4",
+  "image_reference": "taskgate-final-v5-deployment-01-cba0978c88978376c590-gateway",
+  "container_image_id": "sha256:7db78fc88b5b77a7820d1a65c00281d1dc3378b132c2a95fc0b91949ace604c4",
+  "image_id": "sha256:7db78fc88b5b77a7820d1a65c00281d1dc3378b132c2a95fc0b91949ace604c4",
+  "repo_digests": [
+    "taskgate-final-v5-deployment-01-cba0978c88978376c590-gateway@sha256:7db78fc88b5b77a7820d1a65c00281d1dc3378b132c2a95fc0b91949ace604c4"
+  ],
+  "created": "2026-09-19T13:23:13.695325237+08:00",
+  "platform": "linux/amd64",
+  "source_provenance": {
+    "submission_commit": null,
+    "build_context_sha256": null,
+    "source_manifest_sha256": null,
+    "build_target": null,
+    "builder_base_image": null,
+    "runtime_base_image": null,
+    "clean_tree_at_build": null
+  },
+  "repository_at_capture": {
+    "head": "34882527fcd5fc3b1b6da4ceccf3bbcb303963da",
+    "worktree_clean": true,
+    "image_source_equivalence_asserted": false
+  }
+}

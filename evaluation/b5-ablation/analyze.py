@@ -21,7 +21,7 @@ are summed per sample as the derivation cost, and the check
   (arm ii - arm i) versus derivation
 is printed per cell. Nothing is dropped; refused or errored samples are counted.
 """
-import argparse, json, pathlib, statistics as st
+import argparse, hashlib, json, pathlib, statistics as st
 
 LEDGER_COMPONENTS = ("exposure_reservation_lock", "exposure_ledger_lock", "exposure_fact_store")
 LEDGER_DIAGNOSTICS = ("outcome_radix_load", "outcome_radix_difference_union", "outcome_radix_persist")
@@ -60,8 +60,10 @@ def main():
     for r in a.run:
         config, records = load_run(r)
         arm = config["arm"]
+        raw_path = pathlib.Path(r) / "raw" / "b5-ablation.jsonl"
         runs_meta.append({"run": str(r), "arm": arm, "catalog_sha256": config.get("catalog_sha256"),
-                          "submission_commit": config.get("submission_commit"), "records": len(records)})
+                          "submission_commit": config.get("submission_commit"), "records": len(records),
+                          "raw_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest()})
         for rec in records:
             cell = arms.setdefault(arm, {}).setdefault(rec["cell"], {"settled": [], "refused": 0, "errors": 0, "runs": set()})
             cell["runs"].add(str(r))

@@ -1,0 +1,72 @@
+[
+  {
+    "CreatedAt": "2026-09-19T18:10:19+08:00",
+    "Driver": "local",
+    "Labels": {
+      "com.docker.compose.config-hash": "d37fb23071a3da58c74350845364b4b9d51e65fc8e39a6ea24e8869e0fd2aa15",
+      "com.docker.compose.project": "taskgate-final-v5-deployment-01-f608d0874da312a5af79",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.compose.volume": "control-pg-data"
+    },
+    "Mountpoint": "/var/lib/docker/volumes/taskgate-final-v5-deployment-01-f608d0874da312a5af79_control-pg-data/_data",
+    "Name": "taskgate-final-v5-deployment-01-f608d0874da312a5af79_control-pg-data",
+    "Options": null,
+    "Scope": "local"
+  },
+  {
+    "CreatedAt": "2026-09-19T18:10:19+08:00",
+    "Driver": "local",
+    "Labels": {
+      "com.docker.compose.config-hash": "37cc24a7361d7dfcdb5a6f5cf519c7875f7d02967184c552f7a00c5e790ec0b8",
+      "com.docker.compose.project": "taskgate-final-v5-deployment-01-f608d0874da312a5af79",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.compose.volume": "business-pg-data"
+    },
+    "Mountpoint": "/var/lib/docker/volumes/taskgate-final-v5-deployment-01-f608d0874da312a5af79_business-pg-data/_data",
+    "Name": "taskgate-final-v5-deployment-01-f608d0874da312a5af79_business-pg-data",
+    "Options": null,
+    "Scope": "local"
+  },
+  {
+    "CreatedAt": "2026-09-19T18:10:19+08:00",
+    "Driver": "local",
+    "Labels": {
+      "com.docker.compose.config-hash": "51b2781c5e6bde425eb8a0cb8a1eb693106e1e3c94f577e299471b26b700f108",
+      "com.docker.compose.project": "taskgate-final-v5-deployment-01-f608d0874da312a5af79",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.compose.volume": "result-object-data"
+    },
+    "Mountpoint": "/var/lib/docker/volumes/taskgate-final-v5-deployment-01-f608d0874da312a5af79_result-object-data/_data",
+    "Name": "taskgate-final-v5-deployment-01-f608d0874da312a5af79_result-object-data",
+    "Options": null,
+    "Scope": "local"
+  },
+  {
+    "CreatedAt": "2026-09-19T18:10:19+08:00",
+    "Driver": "local",
+    "Labels": {
+      "com.docker.compose.config-hash": "72848d905538d17078b146dd8690d928b2d6e5107b750c513619d5d4121a8c01",
+      "com.docker.compose.project": "taskgate-final-v5-deployment-01-f608d0874da312a5af79",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.compose.volume": "snapshot-index-artifacts"
+    },
+    "Mountpoint": "/var/lib/docker/volumes/taskgate-final-v5-deployment-01-f608d0874da312a5af79_snapshot-index-artifacts/_data",
+    "Name": "taskgate-final-v5-deployment-01-f608d0874da312a5af79_snapshot-index-artifacts",
+    "Options": null,
+    "Scope": "local"
+  },
+  {
+    "CreatedAt": "2026-09-19T18:10:19+08:00",
+    "Driver": "local",
+    "Labels": {
+      "com.docker.compose.config-hash": "99d3245cb63fde116916b61097b9ed78b48a9dff6193d72a9d0bc6f60ee18f1d",
+      "com.docker.compose.project": "taskgate-final-v5-deployment-01-f608d0874da312a5af79",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.compose.volume": "gateway-encrypted-spool"
+    },
+    "Mountpoint": "/var/lib/docker/volumes/taskgate-final-v5-deployment-01-f608d0874da312a5af79_gateway-encrypted-spool/_data",
+    "Name": "taskgate-final-v5-deployment-01-f608d0874da312a5af79_gateway-encrypted-spool",
+    "Options": null,
+    "Scope": "local"
+  }
+]
