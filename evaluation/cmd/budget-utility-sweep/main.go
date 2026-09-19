@@ -197,8 +197,8 @@ func main() {
 		"benign_corpus_sha256":    finalv5benign.CorpusSHA256(),
 		"adversary_corpus_sha256": finalv5adversary.CorpusSHA256(),
 		"benign":                  benign,
-		"benign_note": "exact replay of the corpus's closed-form footprints in trace order: Dependency novelty is the set difference against the history this replay admitted (a refused statement adds nothing); Release and Outcome are the recipe's per-statement sums because the corpus records their counts, not their fact sets. The closed-form footprints over-approximate the production rule (scanned rows where the rule counts output cells), so at a given multiplier the replay admits no more than the deployed ledger would on the same trace; admitted_pct is admitted authorized statements over authorized statements, not business-task completion. Schema 1 also carried a fixed-increment replay of the executed 4x arm labelled an upper bound; that label was wrong and the curve is withdrawn.",
-		"adversary": adversary,
+		"benign_note":             "exact replay of the corpus's closed-form footprints in trace order: Dependency novelty is the set difference against the history this replay admitted (a refused statement adds nothing); Release and Outcome are the recipe's per-statement sums because the corpus records their counts, not their fact sets. The closed-form footprints over-approximate the production rule (scanned rows where the rule counts output cells), so at a given multiplier the replay admits no more than the deployed ledger would on the same trace; admitted_pct is admitted authorized statements over authorized statements, not business-task completion. Schema 1 also carried a fixed-increment replay of the executed 4x arm labelled an upper bound; that label was wrong and the curve is withdrawn.",
+		"adversary":               adversary,
 	}
 	encoded, _ := json.MarshalIndent(result, "", "  ")
 	if err := os.WriteFile(*out, append(encoded, '\n'), 0o644); err != nil {

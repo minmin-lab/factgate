@@ -117,6 +117,7 @@ func main() {
 	throughputWidths := flag.String("throughput-widths", "10,50", "throughput pilot contenders per root")
 	throughputOverlapList := flag.String("throughput-overlaps", "disjoint,nested,identical", "throughput pilot footprint overlaps")
 	throughputRounds := flag.Int("throughput-rounds", 2, "throughput pilot rounds per cell")
+	throughputClientRetries := flag.Int("throughput-client-retries", 0, "P10-R2.C4b: client resubmissions after a CONFLICT refusal (each under a fresh request_id, because the refused query is settled FAILED and an idempotent retry would replay it); 0 reproduces B6")
 	flag.Parse()
 	if *throughputPilot {
 		if *throughputOut == "" {
@@ -124,7 +125,7 @@ func main() {
 			os.Exit(2)
 		}
 		if err := runThroughputPilot(context.Background(), *throughputOut, *throughputDeployment,
-			parseIntList(*throughputRoots), parseIntList(*throughputWidths), strings.Split(*throughputOverlapList, ","), *throughputRounds); err != nil {
+			parseIntList(*throughputRoots), parseIntList(*throughputWidths), strings.Split(*throughputOverlapList, ","), *throughputRounds, *throughputClientRetries); err != nil {
 			fmt.Fprintln(os.Stderr, "throughput-pilot:", err)
 			os.Exit(1)
 		}

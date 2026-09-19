@@ -28,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -65,6 +66,14 @@ type throughputRequestRecord struct {
 	CASConflicts     int64   `json:"cas_conflicts"`
 	CASRetries       int64   `json:"cas_retries"`
 	RootEpoch        int64   `json:"root_epoch"`
+	// P10-R2.C4b client resubmission: attempts made (1 = no resubmission),
+	// the latency of each attempt that ended in CONFLICT, and the end-to-end
+	// time from the first attempt's start to the final attempt's return
+	// (backoff included). ClientMS stays the final attempt's own latency so
+	// the B6 columns keep their meaning.
+	Attempts          int       `json:"attempts"`
+	ConflictAttemptMS []float64 `json:"conflict_attempt_ms,omitempty"`
+	EndToEndMS        float64   `json:"end_to_end_ms"`
 }
 
 type throughputRootLedger struct {
@@ -85,6 +94,7 @@ type throughputRoundRecord struct {
 	Product       string                    `json:"product"`
 	BudgetProfile string                    `json:"budget_profile"`
 	RootTaskHash  []string                  `json:"root_task_id_hash"`
+	ClientRetries int                       `json:"client_retries"`
 	DrainMS       float64                   `json:"drain_ms"`
 	Requests      []throughputRequestRecord `json:"requests"`
 	Ledgers       []throughputRootLedger    `json:"ledgers"`
@@ -107,6 +117,16 @@ type throughputRoundSummary struct {
 	CASConflicts        int64   `json:"cas_conflicts"`
 	CASRetries          int64   `json:"cas_retries"`
 	LedgerMatchesCharge bool    `json:"ledger_matches_charge"`
+	// P10-R2.C4b: requests that settled only after at least one client
+	// resubmission, total resubmissions issued, requests still refused after
+	// the last permitted resubmission, and end-to-end latency quantiles over
+	// all requests (first attempt start to final return, backoff included).
+	SettledAfterRetry int     `json:"settled_after_retry"`
+	Resubmissions     int     `json:"resubmissions"`
+	RefusedAfterRetry int     `json:"refused_after_retry"`
+	EndToEndP50MS     float64 `json:"end_to_end_p50_ms"`
+	EndToEndP95MS     float64 `json:"end_to_end_p95_ms"`
+	EndToEndMaxMS     float64 `json:"end_to_end_max_ms"`
 }
 
 // throughputSQL is the contender's statement: one row per contender when
@@ -179,6 +199,15 @@ func provisionThroughputFamily(ctx context.Context, real *realAdapter, cell stri
 	return family, nil
 }
 
+// throughputBackoff is the client's pause before a resubmission: 50-150 ms,
+// uniformly jittered, fixed a priori (not tuned on the B6 data) to be an
+// order of magnitude above the settlement's own 1-10 ms CAS backoff so the
+// resubmission lands in a different head epoch, and well below the round's
+// drain time so it does not hide in the tail.
+func throughputBackoff(rng *rand.Rand) time.Duration {
+	return 50*time.Millisecond + time.Duration(rng.Int63n(int64(100*time.Millisecond)))
+}
+
 func runThroughputRound(ctx context.Context, real *realAdapter, families []throughputFamily, record *throughputRoundRecord) error {
 	for index, family := range families {
 		before, err := real.rootLedgerSnapshot(ctx, family.root.TaskID)
@@ -207,15 +236,37 @@ func runThroughputRound(ctx context.Context, real *realAdapter, families []throu
 			defer wait.Done()
 			c := calls[i]
 			sql := throughputSQL(record.Overlap, record.Round, c.contender)
-			requestID := fmt.Sprintf("p10-b6-%s-r%02d-%d-%03d", sha(record.Cell)[:12], record.Round, c.root, c.contender)
+			baseRequestID := fmt.Sprintf("p10-b6-%s-r%02d-%d-%03d", sha(record.Cell)[:12], record.Round, c.root, c.contender)
 			rec := throughputRequestRecord{Root: c.root, Contender: c.contender,
-				RequestIDHash: sha(requestID), LogicalSQLSHA256: sha(sql)}
-			started := time.Now()
-			rec.StartedOffsetMS = durationMS(started.Sub(launched))
+				RequestIDHash: sha(baseRequestID), LogicalSQLSHA256: sha(sql)}
+			firstStarted := time.Now()
+			rec.StartedOffsetMS = durationMS(firstStarted.Sub(launched))
+			rng := rand.New(rand.NewSource(int64(i) + firstStarted.UnixNano()))
 			var response queryResponse
-			err := real.alice.call(ctx, "query_sql", map[string]any{
-				"task_id": c.task.TaskID, "request_id": requestID, "sql": sql}, &response)
-			rec.ClientMS = durationMS(time.Since(started))
+			var err error
+			for attempt := 1; ; attempt++ {
+				rec.Attempts = attempt
+				// A CONFLICT-refused query is settled FAILED under its request_id, so an
+				// idempotent retry would replay the failure; a resubmission is a new
+				// request from the client's point of view and carries a new request_id.
+				requestID := baseRequestID
+				if attempt > 1 {
+					requestID = fmt.Sprintf("%s-a%d", baseRequestID, attempt)
+				}
+				started := time.Now()
+				response = queryResponse{}
+				err = real.alice.call(ctx, "query_sql", map[string]any{
+					"task_id": c.task.TaskID, "request_id": requestID, "sql": sql}, &response)
+				rec.ClientMS = durationMS(time.Since(started))
+				var structured *mcpCallError
+				if err != nil && errors.As(err, &structured) && structured.Code == "CONFLICT" && attempt <= record.ClientRetries {
+					rec.ConflictAttemptMS = append(rec.ConflictAttemptMS, rec.ClientMS)
+					time.Sleep(throughputBackoff(rng))
+					continue
+				}
+				break
+			}
+			rec.EndToEndMS = durationMS(time.Since(firstStarted))
 			if err != nil {
 				var structured *mcpCallError
 				if errors.As(err, &structured) {
@@ -253,10 +304,20 @@ func runThroughputRound(ctx context.Context, real *realAdapter, families []throu
 
 func summarizeThroughputRound(record *throughputRoundRecord) throughputRoundSummary {
 	var s throughputRoundSummary
-	var latencies []float64
+	var latencies, endToEnd []float64
 	chargedPerRoot := map[int][3]int64{}
 	for _, r := range record.Requests {
 		latencies = append(latencies, r.ClientMS)
+		endToEnd = append(endToEnd, r.EndToEndMS)
+		if r.Attempts > 1 {
+			s.Resubmissions += r.Attempts - 1
+			if r.Outcome == "settled" {
+				s.SettledAfterRetry++
+			}
+		}
+		if record.ClientRetries > 0 && r.Outcome == "refused" && r.Code == "CONFLICT" && r.Attempts > record.ClientRetries {
+			s.RefusedAfterRetry++
+		}
 		switch r.Outcome {
 		case "settled":
 			s.Settled++
@@ -284,6 +345,12 @@ func summarizeThroughputRound(record *throughputRoundRecord) throughputRoundSumm
 		s.ClientP50MS = quantileType7(latencies, 0.50)
 		s.ClientP95MS = quantileType7(latencies, 0.95)
 		s.ClientMaxMS = latencies[n-1]
+	}
+	sort.Float64s(endToEnd)
+	if n := len(endToEnd); n > 0 {
+		s.EndToEndP50MS = quantileType7(endToEnd, 0.50)
+		s.EndToEndP95MS = quantileType7(endToEnd, 0.95)
+		s.EndToEndMaxMS = endToEnd[n-1]
 	}
 	if record.DrainMS > 0 {
 		s.SettledPerSecond = float64(s.Settled) / (record.DrainMS / 1000)
@@ -317,7 +384,10 @@ func quantileType7(sorted []float64, q float64) float64 {
 	return sorted[lo] + (h-float64(lo))*(sorted[lo+1]-sorted[lo])
 }
 
-func runThroughputPilot(ctx context.Context, outPath, deploymentID string, roots, widths []int, overlaps []string, rounds int) error {
+func runThroughputPilot(ctx context.Context, outPath, deploymentID string, roots, widths []int, overlaps []string, rounds, clientRetries int) error {
+	if clientRetries < 0 {
+		return fmt.Errorf("client retries must be >= 0, got %d", clientRetries)
+	}
 	for _, o := range overlaps {
 		if !containsString(throughputOverlaps, o) {
 			return fmt.Errorf("unknown overlap %q", o)
@@ -348,7 +418,7 @@ func runThroughputPilot(ctx context.Context, outPath, deploymentID string, roots
 				for round := 1; round <= rounds; round++ {
 					record := throughputRoundRecord{SchemaVersion: throughputPilotVersion, CampaignClass: "pilot",
 						DeploymentID: deploymentID, Cell: cell, Roots: k, Width: n, Overlap: overlap, Round: round,
-						Product: throughputProduct}
+						Product: throughputProduct, ClientRetries: clientRetries}
 					for _, f := range families {
 						record.RootTaskHash = append(record.RootTaskHash, sha(f.root.TaskID))
 						record.BudgetProfile = f.root.BudgetProfile
@@ -361,10 +431,11 @@ func runThroughputPilot(ctx context.Context, outPath, deploymentID string, roots
 					if err := encoder.Encode(record); err != nil {
 						return err
 					}
-					fmt.Fprintf(os.Stderr, "throughput-pilot %s round %d drain=%.0fms settled=%d novel=%d refused=%d err=%d p95=%.0fms cas=%d/%d/%d ledger_ok=%v %s\n",
+					fmt.Fprintf(os.Stderr, "throughput-pilot %s round %d drain=%.0fms settled=%d novel=%d refused=%d err=%d p95=%.0fms cas=%d/%d/%d ledger_ok=%v retries=%d settled_after_retry=%d resubmissions=%d refused_after_retry=%d e2e_p95=%.0fms %s\n",
 						cell, round, record.DrainMS, record.Summary.Settled, record.Summary.Novel, record.Summary.Refused, record.Summary.Errors,
 						record.Summary.ClientP95MS, record.Summary.CASAttempts, record.Summary.CASConflicts, record.Summary.CASRetries,
-						record.Summary.LedgerMatchesCharge, strings.TrimSpace(record.Error))
+						record.Summary.LedgerMatchesCharge, clientRetries, record.Summary.SettledAfterRetry, record.Summary.Resubmissions,
+						record.Summary.RefusedAfterRetry, record.Summary.EndToEndP95MS, strings.TrimSpace(record.Error))
 					if provisionErr != nil {
 						break
 					}
