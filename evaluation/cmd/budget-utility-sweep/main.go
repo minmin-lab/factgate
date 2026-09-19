@@ -1,12 +1,22 @@
 // budget-utility-sweep derives, by admission arithmetic over the frozen
-// corpora and their independent oracles, how benign task completion and
+// corpora and their independent oracles, how benign statement admission and
 // adversarial extraction move with the owner recipe's budget multiplier.
-// Nothing here is measured: the benign side unions the closed-form
-// Dependency sets statement by statement under the set-ledger rule (a
-// refused statement adds nothing), and the adversary side replays the
-// data-independent per-step charges recorded in the adversary corpus. The
-// executed pilots (benign 1x/2x/4x, adversary tightened/owner/loosened)
-// validate the arithmetic at their points.
+// Nothing here is measured: the benign side replays the corpus's closed-form
+// footprints statement by statement under the set-ledger rule (a refused
+// statement adds nothing; each statement's Dependency novelty is recomputed
+// against the history that the replay itself admitted), and the adversary
+// side replays the data-independent per-step charges recorded in the
+// adversary corpus. The executed pilots (benign 1x/2x/4x, adversary
+// tightened/owner/loosened) validate the arithmetic at their points.
+//
+// Earlier revisions also emitted a second benign curve that replayed the
+// per-statement charges the deployed system recorded in the executed 4x arm
+// as fixed increments under smaller budgets. That replay does not update the
+// history after a refusal, and the accepted-statement count it yields is not
+// an upper bound (a refused large statement can make a later statement's true
+// novelty larger than its recorded increment, and admitting a statement whose
+// cost is understated can crowd out several later ones). The curve is
+// withdrawn; see evaluation/budget-utility-sweep/README.md.
 package main
 
 import (
@@ -31,10 +41,10 @@ type benignPoint struct {
 	Multiplier     float64 `json:"multiplier"`
 	Budget         budget  `json:"budget"`
 	Authorized     int     `json:"authorized"`
-	Accepted       int     `json:"accepted"`
+	Admitted       int     `json:"admitted"`
 	BudgetRefusals int     `json:"budget_refusals"`
 	PolicyRefusals int     `json:"policy_refusals"`
-	CompletionPct  float64 `json:"completion_pct"`
+	AdmittedPct    float64 `json:"admitted_pct"`
 	LedgerD        int     `json:"ledger_dependency"`
 	FirstRefusal   string  `json:"first_budget_refusal,omitempty"`
 	BindingDim     string  `json:"binding_dimension,omitempty"`
@@ -51,7 +61,6 @@ type adversaryPoint struct {
 
 func main() {
 	workload := flag.String("agent-workload", "evaluation/agentworkload", "frozen benign workload directory")
-	executed := flag.String("executed-x4", "evaluation/final-v5-wsl2/raw/pilot-benign-06/deployments/benign-x4/001/raw/benign.jsonl", "executed x4 arm sample (all statements accepted) whose charged increments give the system's own novelty per statement")
 	liveCatalog := flag.String("catalog", "config/catalog.yaml", "live catalog path")
 	out := flag.String("out", "evaluation/budget-utility-sweep/results.json", "output path")
 	flag.Parse()
@@ -70,49 +79,6 @@ func main() {
 	recipe := manifest.Budgets[0]
 	base := budget{recipe.MaxReleaseFacts, recipe.MaxInfluence, recipe.MaxOutcome, recipe.MaxQueries}
 	multipliers := []float64{0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4}
-	charged, err := executedIncrements(*executed)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "sweep:", err)
-		os.Exit(1)
-	}
-	var benignExecuted []benignPoint
-	for _, m := range multipliers {
-		b := scale(base, m)
-		var usedR, usedD, usedO, queries int64
-		p := benignPoint{Multiplier: m, Budget: b}
-		for _, f := range feet {
-			if f.Classification == finalv5benign.ClassPolicyRefused {
-				p.PolicyRefusals++
-				continue
-			}
-			p.Authorized++
-			c := charged[f.ID]
-			queries++
-			dim := ""
-			switch {
-			case queries > b.Q:
-				dim = "Q"
-			case usedD+c.D > b.D:
-				dim = "D"
-			case usedR+c.R > b.R:
-				dim = "R"
-			case usedO+c.O > b.O:
-				dim = "O"
-			}
-			if dim != "" {
-				p.BudgetRefusals++
-				if p.FirstRefusal == "" {
-					p.FirstRefusal, p.BindingDim = f.ID, dim
-				}
-				continue
-			}
-			usedR, usedD, usedO = usedR+c.R, usedD+c.D, usedO+c.O
-			p.Accepted++
-		}
-		p.LedgerD = int(usedD)
-		p.CompletionPct = 100 * float64(p.Accepted) / float64(p.Authorized)
-		benignExecuted = append(benignExecuted, p)
-	}
 	var benign []benignPoint
 	for _, m := range multipliers {
 		b := scale(base, m)
@@ -125,14 +91,16 @@ func main() {
 				continue
 			}
 			p.Authorized++
+			// Dependency: exact set difference against the history this
+			// replay admitted so far (a refused statement adds nothing).
 			novelD := int64(0)
 			for _, h := range f.Dependency {
 				if _, ok := ledger[h]; !ok {
 					novelD++
 				}
 			}
-			// R and O follow the recipe's own accounting (per-statement sums);
-			// D is the exact set union of closed-form facts.
+			// Release and Outcome: the corpus records counts, not fact
+			// sets, so they follow the recipe's own per-statement sums.
 			novelR := f.ReleaseFacts
 			novelO := int64(1) + f.PredicateAtoms
 			queries++
@@ -159,10 +127,10 @@ func main() {
 			}
 			usedR += novelR
 			usedO += novelO
-			p.Accepted++
+			p.Admitted++
 		}
 		p.LedgerD = len(ledger)
-		p.CompletionPct = 100 * float64(p.Accepted) / float64(p.Authorized)
+		p.AdmittedPct = 100 * float64(p.Admitted) / float64(p.Authorized)
 		benign = append(benign, p)
 	}
 
@@ -223,81 +191,24 @@ func main() {
 	}
 
 	result := map[string]any{
-		"schema_version": 1,
+		"schema_version": 2,
 		"method":         "admission arithmetic over frozen corpora and independent oracles; not measured",
 		"benign_recipe":  base, "adversary_owner_budget": owner,
-		"benign_corpus_sha256":       finalv5benign.CorpusSHA256(),
-		"adversary_corpus_sha256":    finalv5adversary.CorpusSHA256(),
-		"benign_corpus_model":        benign,
-		"benign_executed_increments": benignExecuted,
-		"benign_note":                "corpus_model: exact set union of the corpus's closed-form footprints (a conservative over-approximation of the production rule, see ledger); executed_increments: the system's own charged novelty per statement from the executed x4 arm in natural order, an upper bound on acceptance under smaller budgets because a refused statement's facts leave later novelty at least as large",
-		"adversary":                  adversary,
+		"benign_corpus_sha256":    finalv5benign.CorpusSHA256(),
+		"adversary_corpus_sha256": finalv5adversary.CorpusSHA256(),
+		"benign":                  benign,
+		"benign_note": "exact replay of the corpus's closed-form footprints in trace order: Dependency novelty is the set difference against the history this replay admitted (a refused statement adds nothing); Release and Outcome are the recipe's per-statement sums because the corpus records their counts, not their fact sets. The closed-form footprints over-approximate the production rule (scanned rows where the rule counts output cells), so at a given multiplier the replay admits no more than the deployed ledger would on the same trace; admitted_pct is admitted authorized statements over authorized statements, not business-task completion. Schema 1 also carried a fixed-increment replay of the executed 4x arm labelled an upper bound; that label was wrong and the curve is withdrawn.",
+		"adversary": adversary,
 	}
 	encoded, _ := json.MarshalIndent(result, "", "  ")
 	if err := os.WriteFile(*out, append(encoded, '\n'), 0o644); err != nil {
 		fmt.Fprintln(os.Stderr, "sweep:", err)
 		os.Exit(1)
 	}
-	for _, p := range benignExecuted {
-		fmt.Printf("executed x%-4g accepted %d/%d refusals %d first=%s dim=%s ledgerD=%d\n", p.Multiplier, p.Accepted, p.Authorized, p.BudgetRefusals, p.FirstRefusal, p.BindingDim, p.LedgerD)
-	}
 	for _, p := range benign {
-		fmt.Printf("corpus   x%-4g accepted %d/%d refusals %d first=%s dim=%s ledgerD=%d\n", p.Multiplier, p.Accepted, p.Authorized, p.BudgetRefusals, p.FirstRefusal, p.BindingDim, p.LedgerD)
+		fmt.Printf("benign    x%-4g admitted %d/%d refusals %d first=%s dim=%s ledgerD=%d\n", p.Multiplier, p.Admitted, p.Authorized, p.BudgetRefusals, p.FirstRefusal, p.BindingDim, p.LedgerD)
 	}
 	for _, p := range adversary {
 		fmt.Printf("adversary x%-4g bits %d recovered=%v greedyD=%d budget=%+v\n", p.Multiplier, p.RecoveredBits, p.Recovered, p.GreedyDistinctD, p.Budget)
 	}
-}
-
-type increment struct{ R, D, O int64 }
-
-// executedIncrements reads one executed benign sample (an arm in which every
-// authorized statement was accepted) and returns each statement's charged
-// Release/Dependency/Outcome novelty as the system settled it.
-func executedIncrements(path string) (map[string]increment, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var line struct {
-		Sample struct {
-			BenignVerification struct {
-				Steps []struct {
-					ID       string `json:"id"`
-					Accepted bool   `json:"accepted"`
-					R        int64  `json:"charged_release_facts"`
-					D        int64  `json:"charged_dependency_facts"`
-					O        int64  `json:"charged_outcome_facts"`
-					Class    string `json:"classification"`
-				} `json:"steps"`
-			} `json:"benign_verification"`
-		} `json:"sample"`
-	}
-	first := raw
-	if i := indexByte(raw, '\n'); i >= 0 {
-		first = raw[:i]
-	}
-	if err := json.Unmarshal(first, &line); err != nil {
-		return nil, err
-	}
-	out := map[string]increment{}
-	for _, st := range line.Sample.BenignVerification.Steps {
-		if st.Class == "policy_refused" {
-			continue
-		}
-		if !st.Accepted {
-			return nil, fmt.Errorf("executed sample refused %s; need an arm that accepted every statement", st.ID)
-		}
-		out[st.ID] = increment{st.R, st.D, st.O}
-	}
-	return out, nil
-}
-
-func indexByte(b []byte, c byte) int {
-	for i, x := range b {
-		if x == c {
-			return i
-		}
-	}
-	return -1
 }

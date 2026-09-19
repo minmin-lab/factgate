@@ -72,3 +72,11 @@ worktree `git fsck --no-dangling`、私有材料摘要（P45 signed binding `3bb
 - **不动 WSL 工作树、不在 WSL 跑重活**（正式轮在测时延）。
 - publication launcher 拒绝覆盖 campaign root、**不能续跑**；中断即整轮重跑新 ID。
 - 估时只按同 class/同密度的实测给：pilot 试跑是每格 1 样本，正式轮是冻结密度（如 baseline 每格 30）。
+
+## 2026-09-19 执行机重建后的现状（覆盖上文路径；判据以实测为准）
+
+- WSL2 由作者当日重建（`/mnt/d/WSL/provision.sh`；VHD `/mnt/d/WSL/Ubuntu-22.04/ext4.vhdx`，`/dev/sdc` 1007G）。仓库在 **`/home/wmm/worktrees/factgate`**；`~/stage-e`、`~/formal-v111`、GOPROXY 服务、旧 worktree 均不存在。
+- tailscale 节点名仍 `wmm-wsl`，IP 改为 **100.68.97.89**；NAS 走 `ssh nas`（192.168.8.233，密钥 `~/.ssh/id_ed25519`，非登录会话 git 在 `/opt/bin`）。
+- Go 1.25.1 在 `~/.local/go`，`~/.local/bin/go`（Claude 装）。无 gh、无 GitHub 凭证：**push 路由 = `git push nas <branch>` → `ssh nas 'bash -lc "cd …/factgate && git push origin <branch>"'`**（remote `nas` 已配 receivepack/uploadpack=/opt/bin）。
+- **pilot 原始目录缺失**：pilot-evidence-v1.json 的 17 个 pilot 与 p10-b6-throughput-01 的 raw 不在本机/NAS/D: 任一处（详见台账 P10-R2-LOOP-1）；论文容器构建在 `final_v5_pilot_evidence.py` 校验处失败，待作者恢复。
+- 日志目录 `~/logs/`（Claude 建）。

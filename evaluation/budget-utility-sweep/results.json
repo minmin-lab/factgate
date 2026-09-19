@@ -112,7 +112,7 @@
     "O": 12,
     "Q": 24
   },
-  "benign_corpus_model": [
+  "benign": [
     {
       "multiplier": 0.25,
       "budget": {
@@ -122,10 +122,10 @@
         "Q": 56
       },
       "authorized": 23,
-      "accepted": 6,
+      "admitted": 6,
       "budget_refusals": 17,
       "policy_refusals": 5,
-      "completion_pct": 26.08695652173913,
+      "admitted_pct": 26.08695652173913,
       "ledger_dependency": 70,
       "first_budget_refusal": "q07",
       "binding_dimension": "O"
@@ -139,10 +139,10 @@
         "Q": 112
       },
       "authorized": 23,
-      "accepted": 13,
+      "admitted": 13,
       "budget_refusals": 10,
       "policy_refusals": 5,
-      "completion_pct": 56.52173913043478,
+      "admitted_pct": 56.52173913043478,
       "ledger_dependency": 200150,
       "first_budget_refusal": "q22",
       "binding_dimension": "O"
@@ -156,10 +156,10 @@
         "Q": 168
       },
       "authorized": 23,
-      "accepted": 17,
+      "admitted": 17,
       "budget_refusals": 6,
       "policy_refusals": 5,
-      "completion_pct": 73.91304347826087,
+      "admitted_pct": 73.91304347826087,
       "ledger_dependency": 225262,
       "first_budget_refusal": "q23",
       "binding_dimension": "D"
@@ -173,10 +173,10 @@
         "Q": 224
       },
       "authorized": 23,
-      "accepted": 21,
+      "admitted": 21,
       "budget_refusals": 2,
       "policy_refusals": 5,
-      "completion_pct": 91.30434782608695,
+      "admitted_pct": 91.30434782608695,
       "ledger_dependency": 1207313,
       "first_budget_refusal": "q23",
       "binding_dimension": "D"
@@ -190,10 +190,10 @@
         "Q": 336
       },
       "authorized": 23,
-      "accepted": 22,
+      "admitted": 22,
       "budget_refusals": 1,
       "policy_refusals": 5,
-      "completion_pct": 95.65217391304348,
+      "admitted_pct": 95.65217391304348,
       "ledger_dependency": 1475232,
       "first_budget_refusal": "q30",
       "binding_dimension": "D"
@@ -207,10 +207,10 @@
         "Q": 448
       },
       "authorized": 23,
-      "accepted": 23,
+      "admitted": 23,
       "budget_refusals": 0,
       "policy_refusals": 5,
-      "completion_pct": 100,
+      "admitted_pct": 100,
       "ledger_dependency": 2432313
     },
     {
@@ -222,10 +222,10 @@
         "Q": 672
       },
       "authorized": 23,
-      "accepted": 23,
+      "admitted": 23,
       "budget_refusals": 0,
       "policy_refusals": 5,
-      "completion_pct": 100,
+      "admitted_pct": 100,
       "ledger_dependency": 2432313
     },
     {
@@ -237,145 +237,15 @@
         "Q": 896
       },
       "authorized": 23,
-      "accepted": 23,
+      "admitted": 23,
       "budget_refusals": 0,
       "policy_refusals": 5,
-      "completion_pct": 100,
+      "admitted_pct": 100,
       "ledger_dependency": 2432313
     }
   ],
   "benign_corpus_sha256": "fa33b3132224b8397b67d5e323aa016ef9f71f8c4c80a9498983573102fd8b7f",
-  "benign_executed_increments": [
-    {
-      "multiplier": 0.25,
-      "budget": {
-        "R": 6727,
-        "D": 362500,
-        "O": 14,
-        "Q": 56
-      },
-      "authorized": 23,
-      "accepted": 5,
-      "budget_refusals": 18,
-      "policy_refusals": 5,
-      "completion_pct": 21.73913043478261,
-      "ledger_dependency": 16,
-      "first_budget_refusal": "q08",
-      "binding_dimension": "O"
-    },
-    {
-      "multiplier": 0.5,
-      "budget": {
-        "R": 13454,
-        "D": 725000,
-        "O": 28,
-        "Q": 112
-      },
-      "authorized": 23,
-      "accepted": 15,
-      "budget_refusals": 8,
-      "policy_refusals": 5,
-      "completion_pct": 65.21739130434783,
-      "ledger_dependency": 115110,
-      "first_budget_refusal": "q23",
-      "binding_dimension": "D"
-    },
-    {
-      "multiplier": 0.75,
-      "budget": {
-        "R": 20181,
-        "D": 1087500,
-        "O": 42,
-        "Q": 168
-      },
-      "authorized": 23,
-      "accepted": 19,
-      "budget_refusals": 4,
-      "policy_refusals": 5,
-      "completion_pct": 82.6086956521739,
-      "ledger_dependency": 961823,
-      "first_budget_refusal": "q26",
-      "binding_dimension": "D"
-    },
-    {
-      "multiplier": 1,
-      "budget": {
-        "R": 26907,
-        "D": 1450000,
-        "O": 56,
-        "Q": 224
-      },
-      "authorized": 23,
-      "accepted": 22,
-      "budget_refusals": 1,
-      "policy_refusals": 5,
-      "completion_pct": 95.65217391304348,
-      "ledger_dependency": 981433,
-      "first_budget_refusal": "q26",
-      "binding_dimension": "D"
-    },
-    {
-      "multiplier": 1.5,
-      "budget": {
-        "R": 40361,
-        "D": 2175000,
-        "O": 84,
-        "Q": 336
-      },
-      "authorized": 23,
-      "accepted": 23,
-      "budget_refusals": 0,
-      "policy_refusals": 5,
-      "completion_pct": 100,
-      "ledger_dependency": 1476433
-    },
-    {
-      "multiplier": 2,
-      "budget": {
-        "R": 53814,
-        "D": 2900000,
-        "O": 112,
-        "Q": 448
-      },
-      "authorized": 23,
-      "accepted": 23,
-      "budget_refusals": 0,
-      "policy_refusals": 5,
-      "completion_pct": 100,
-      "ledger_dependency": 1476433
-    },
-    {
-      "multiplier": 3,
-      "budget": {
-        "R": 80721,
-        "D": 4350000,
-        "O": 168,
-        "Q": 672
-      },
-      "authorized": 23,
-      "accepted": 23,
-      "budget_refusals": 0,
-      "policy_refusals": 5,
-      "completion_pct": 100,
-      "ledger_dependency": 1476433
-    },
-    {
-      "multiplier": 4,
-      "budget": {
-        "R": 107628,
-        "D": 5800000,
-        "O": 224,
-        "Q": 896
-      },
-      "authorized": 23,
-      "accepted": 23,
-      "budget_refusals": 0,
-      "policy_refusals": 5,
-      "completion_pct": 100,
-      "ledger_dependency": 1476433
-    }
-  ],
-  "benign_note": "corpus_model: exact set union of the corpus's closed-form footprints (a conservative over-approximation of the production rule, see ledger); executed_increments: the system's own charged novelty per statement from the executed x4 arm in natural order, an upper bound on acceptance under smaller budgets because a refused statement's facts leave later novelty at least as large",
+  "benign_note": "exact replay of the corpus's closed-form footprints in trace order: Dependency novelty is the set difference against the history this replay admitted (a refused statement adds nothing); Release and Outcome are the recipe's per-statement sums because the corpus records their counts, not their fact sets. The closed-form footprints over-approximate the production rule (scanned rows where the rule counts output cells), so at a given multiplier the replay admits no more than the deployed ledger would on the same trace; admitted_pct is admitted authorized statements over authorized statements, not business-task completion. Schema 1 also carried a fixed-increment replay of the executed 4x arm labelled an upper bound; that label was wrong and the curve is withdrawn.",
   "benign_recipe": {
     "R": 26907,
     "D": 1450000,
@@ -383,5 +253,5 @@
     "Q": 224
   },
   "method": "admission arithmetic over frozen corpora and independent oracles; not measured",
-  "schema_version": 1
+  "schema_version": 2
 }

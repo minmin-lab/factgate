@@ -91,25 +91,28 @@ lines += [
 sw = json.loads((ROOT / "evaluation/budget-utility-sweep/results.json").read_text())
 def coords(rows, key, total=None):
     return " ".join(f"({r['multiplier']},{round(100*r[key]/total,1) if total else round(r[key],1)})" for r in rows)
-ex, cm, ad = sw["benign_executed_increments"], sw["benign_corpus_model"], sw["adversary"]
+# Schema 2: one benign curve (exact set replay of the closed-form corpus).
+# The schema-1 fixed-increment replay of the executed 4x arm was withdrawn
+# (its "upper bound" label was wrong; see the sweep README).
+if sw.get("schema_version") != 2 or "benign_executed_increments" in sw:
+    raise SystemExit("budget-utility-sweep results.json is not schema 2 (single exact-replay benign curve)")
+bn, ad = sw["benign"], sw["adversary"]
 lines += [
     rf"\newcommand{{\SweepResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/budget-utility-sweep/results.json')}}}}}",
-    rf"\newcommand{{\SweepBenignExecutedCoords}}{{{coords(ex,'completion_pct')}}}",
-    rf"\newcommand{{\SweepBenignCorpusCoords}}{{{coords(cm,'completion_pct')}}}",
+    rf"\newcommand{{\SweepBenignCoords}}{{{coords(bn,'admitted_pct')}}}",
     rf"\newcommand{{\SweepBitsCoords}}{{{coords(ad,'recovered_bits',11)}}}",
     rf"\newcommand{{\SweepGreedyCoords}}{{{coords(ad,'greedy_distinct_dependency',18)}}}",
 ]
-by = {r["multiplier"]: r for r in ex}
-byc = {r["multiplier"]: r for r in cm}
+byb = {r["multiplier"]: r for r in bn}
 bya = {r["multiplier"]: r for r in ad}
-for m, tag in ((0.5, "Half"), (0.75, "ThreeQuarter"), (1, "One"), (1.5, "OneHalf"), (2, "Two")):
+for m, tag in ((0.25, "Quarter"), (0.5, "Half"), (0.75, "ThreeQuarter"), (1, "One"), (1.5, "OneHalf"), (2, "Two")):
     lines += [
-        rf"\newcommand{{\SweepBenign{tag}Accepted}}{{{by[m]['accepted']}}}",
-        rf"\newcommand{{\SweepBenignCorpus{tag}Accepted}}{{{byc[m]['accepted']}}}",
+        rf"\newcommand{{\SweepBenign{tag}Admitted}}{{{byb[m]['admitted']}}}",
         rf"\newcommand{{\SweepBits{tag}}}{{{bya[m]['recovered_bits']}}}",
         rf"\newcommand{{\SweepGreedy{tag}}}{{{bya[m]['greedy_distinct_dependency']}}}",
     ]
-lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{ex[0]['authorized']}}}")
+lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{bn[0]['authorized']}}}")
+lines.append(rf"\newcommand{{\SweepBenignFirstRefusalOne}}{{{byb[1]['first_budget_refusal']}}}")
 lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
 # --- B7: refusal timing-channel bandwidth (retained data only) ----------
 tc = json.loads((ROOT / "evaluation/timing-channel/results.json").read_text())
