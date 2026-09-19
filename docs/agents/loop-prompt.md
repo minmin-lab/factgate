@@ -31,3 +31,16 @@ ssh 取不到状态记 UNKNOWN，**不得以缺失输出反推死亡**。
 (6) 命中三类上报（影响发表：主张范围增删、指标口径、能力翻 true、解冻 measured paths；环境自复失败；须作者亲手）就写台账 + handoff 并转做其他可做项；失败先查 df 与真实日志再定性，改口给根因记台账。
 (7) 台账 append-only 记本唤醒的决定与证据（时间戳先 date 再写，UTC+8）。全程遵守 AGENTS.md 与查证十条。清单全部 DONE 或余项均须作者时，写 handoff 说清在等什么，再 ScheduleWakeup stop。
 ```
+
+## P10-R2 任务词（2026-09-19 立；作者定"全都要"，含 B5）
+
+```text
+/loop 你是 FactGate TKDE 投稿的项目经理，全部执行与审计由你自己完成，默认不停，没有独立通知通道，进度一律写台账。任务清单是 docs/p10_r2_review_response_plan.md（C1–C4b 正确性、D1–D4 表述位置、E0–E2 B5 消融），状态列由你更新；评审原文要点已在台账 P10-R2-0 行。本次唤醒依次做：
+(1) 对表与体检：TZ=Asia/Shanghai date；WSL 与 NAS 的 git HEAD/树净/分支一致（NAS 只做 ff pull）；后台任务与看守是否还在（判死活只用直接证据：显式 EXIT 标记行或 ps 按 pid/argv，缺失输出只记 UNKNOWN 不得反推死亡）；WSL df -h（<60G 先修剪，先核 deployment-record 无引用再删）；Go 在 /home/wmm/.local/bin，容器构建走 ./paper/tkde/build-container.sh。
+(2) 复核上个唤醒的产出——自报通过不作数，要实测出处（exit code、digest、逐格比对、渲染截图）。
+(3) 按清单顺序 C1 → C2 → C3 → C4a → D1 → D2 → D4 → E0 → E1 → E2 → C4b 推进。每项：改 → 容器构建 → 主稿 12 页 0 溢出、无未定义引用 → 提交 → make paper-final-check rc=0 → push 工作分支并 push HEAD:main → NAS ff → 台账一行 → 清单状态 DONE。C1 是离线重算：保存每条语句完整候选事实集合并按倍率精确重放，撤回上下界措辞，completion_pct 改 admitted_pct；R/O 拿不到全集就只对 D 做集合并明写。C2 只收缩主张不动数字。C3 要去执行机读 p10-b2-agent-01 原始 agent.jsonl 逐步核 ΔO 后再改登记件，登记件改动记台账给根因。实验项（C4b、E2）：先写设计到台账（问题、臂、语料、oracle、预期表、停止规则用保守先验不用实测拟合），语料冻结并 digest 绑定后才执行；新证据一律 campaign_class pilot、publication_eligible false，注册到 evaluation/final-v5-wsl2/pilot-evidence-v1.json；三部署重复；结果进 supplement 新小节 + 主稿一句或一表，经 pilot 证据脚本出宏（generate_evidence.py 是冻结的 measured path，不得改）。B5 朴素账本必须与完整实现同事实身份、同预算语义、同持久化、同失败语义，不得用仅内存 set。
+(4) 硬边界：封存件永不改；V5_MEASURED_PATHS（Dockerfile、compose.yaml、go.mod/sum、cmd、internal、config、db、scripts/compose-test.sh、integration-test.sh、record-compose-e2e.sh、generate_evidence.py）不得改动——B5 走 evaluation/cmd/b5-ablation 独立二进制复用 internal 包 + evaluation/internal 下的朴素账本；若实证必须改 internal/，写台账「待作者裁决：解冻 measured paths 并重封」并转做其他项；扩展实验类名保持 pilot 不挪用 publication_eligible；不 relax 门禁去迁就已产数据；签署与批准记录永不代签；git push 一律带 pull --rebase 重试并回显确认；页数超 12 只剪冗词不动数字与主张。
+(5) 长任务（三部署 pilot、LLM agent 跑批）一律 nohup 后台化并挂 marker 看守，等待期做不依赖它的项；不在正在测时延的 WSL 上跑重活；C4b 与 E2 串行。
+(6) 命中三类上报（影响发表：主张范围增删、指标口径、能力翻 true、解冻 measured paths；环境自复失败；须作者亲手）就写台账 + handoff 并转做其他可做项；失败先查 df 与真实日志再定性，改口给根因记台账。
+(7) 台账 append-only 记本唤醒的决定与证据（时间戳先 date 再写，UTC+8）。全程遵守 AGENTS.md 与查证十条。清单全部 DONE 或余项均须作者时，写 handoff 说清在等什么，再 ScheduleWakeup stop。
+```
