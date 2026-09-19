@@ -65,8 +65,19 @@ export TASKGATE_COMPOSE_FILES=compose.yaml:compose.debug.yaml:evaluation/final-v
 export TASKGATE_FRESH_PROOF_OUTPUT="$run_dir/environment/deployment-01.fresh.json"
 if [[ "$ARM" == i ]]; then
   export TASKGATE_PROFILE_CATALOG="./$twin_catalog"
+  # start-fresh-deployment.sh binds a profile Catalog to the digest a profile
+  # registry pins for it (TASKGATE_FINAL_V5_PROFILE_REGISTRY, default the
+  # source-controlled config/profiles/registry.json). The twin is evaluation
+  # owned and must not enter that registry, so this run pins it in a
+  # run-local registry of one entry, kept with the run's environment records.
+  b5_registry="$run_dir/environment/b5-profile-registry.json"
+  jq -n --arg path "$twin_catalog" --arg sha "$(sha256sum "$twin_catalog" | awk '{print $1}')" \
+    '{schema_version: 1, note: "P10-R2 B5 arm (i): run-local registry pinning the exposure-free twin; not the source-controlled profile registry",
+      profiles: [{alias: "b5-master-no-exposure", catalog_path: $path, catalog_sha256: $sha}]}' > "$b5_registry"
+  chmod 600 "$b5_registry"
+  export TASKGATE_FINAL_V5_PROFILE_REGISTRY="$b5_registry"
 else
-  unset TASKGATE_PROFILE_CATALOG
+  unset TASKGATE_PROFILE_CATALOG TASKGATE_FINAL_V5_PROFILE_REGISTRY
 fi
 
 compose=(docker compose --project-name "$COMPOSE_PROJECT_NAME" --file compose.yaml --file compose.debug.yaml --file evaluation/final-v5-wsl2/compose.real-pilot.yaml)
