@@ -283,5 +283,113 @@ if tp.exists():
         rf"\newcommand{{\ThroughputOtherRefused}}{{{sum(c['refused'] for c in th['cells']) - cellval(1,50,'disjoint','refused') - cellval(1,50,'nested','refused')}}}",
     ]
 
+# --- P10-R2 C4b: throughput with client resubmission (present only after the pilot) ---
+tr = ROOT / "evaluation/throughput-retry/results.json"
+if tr.exists():
+    rt = json.loads(tr.read_text())
+    def rcell(pass_, roots, width, overlap, key):
+        for c in rt["cells"]:
+            if c["pass"] == pass_ and c["roots"] == roots and c["width"] == width and c["overlap"] == overlap:
+                return c[key]
+        return None
+    rows_tbl = []
+    for c in rt["cells"]:
+        rows_tbl.append(f"{c['pass']} & {c['roots']} & {c['width']} & {c['overlap']} & {c['client_retries']} & {c['rounds']} & "
+                        f"{c['settled']}/{c['requests']} & {c['completion_pct']:.1f} & {c['settled_after_retry']} & {c['resubmissions']} & {c['refused_after_retry']} & "
+                        f"{c['novel_per_s_median']:.0f} & {c['client_p95_ms_median']:.0f} & {c['end_to_end_p95_ms_median']:.0f} & {c['end_to_end_max_ms_median']:.0f} & "
+                        f"{'yes' if c['ledger_matches'] else 'NO'}")
+    lines.append(r"\newcommand{\RetryTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")
+    retry_cells = [c for c in rt["cells"] if c["pass"] == "retry" and c["roots"] == 1 and c["width"] == 50 and c["overlap"] in ("disjoint", "nested")]
+    control_cells = [c for c in rt["cells"] if c["pass"] == "control" and c["roots"] == 1 and c["width"] == 50 and c["overlap"] in ("disjoint", "nested")]
+    lines += [
+        rf"\newcommand{{\RetryResultsDigest}}{{\texttt{{{sha12(tr)}}}}}",
+        rf"\newcommand{{\RetryCampaign}}{{\texttt{{{tex(rt['campaign'])}}}}}",
+        rf"\newcommand{{\RetryRounds}}{{{rt['rounds']}}}",
+        rf"\newcommand{{\RetryK}}{{{retry_cells[0]['client_retries'] if retry_cells else 0}}}",
+        rf"\newcommand{{\RetryOneRootFiftyRequests}}{{{sum(c['requests'] for c in retry_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftySettled}}{{{sum(c['settled'] for c in retry_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftyAfterRetry}}{{{sum(c['settled_after_retry'] for c in retry_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftyResubmissions}}{{{sum(c['resubmissions'] for c in retry_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftyStillRefused}}{{{sum(c['refused_after_retry'] for c in retry_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftyCompletionPct}}{{{(100 * sum(c['settled'] for c in retry_cells) / max(1, sum(c['requests'] for c in retry_cells))):.1f}}}",
+        rf"\newcommand{{\RetryControlOneRootFiftyRefused}}{{{sum(c['refused'] for c in control_cells)}}}",
+        rf"\newcommand{{\RetryControlOneRootFiftyRequests}}{{{sum(c['requests'] for c in control_cells)}}}",
+        rf"\newcommand{{\RetryOneRootFiftyDisjointEndToEndPNinetyFive}}{{{(rcell('retry',1,50,'disjoint','end_to_end_p95_ms_median') or 0):.0f}}}",
+        rf"\newcommand{{\RetryOneRootFiftyDisjointClientPNinetyFive}}{{{(rcell('retry',1,50,'disjoint','client_p95_ms_median') or 0):.0f}}}",
+        rf"\newcommand{{\RetryOneRootFiftyDisjointNPS}}{{{(rcell('retry',1,50,'disjoint','novel_per_s_median') or 0):.0f}}}",
+        rf"\newcommand{{\RetryFourRootFiftyStillRefused}}{{{sum(c['refused_after_retry'] for c in rt['cells'] if c['pass'] == 'retry' and c['roots'] == 4)}}}",
+        rf"\newcommand{{\RetryLedgerAllMatch}}{{{'all' if all(c['ledger_matches'] for c in rt['cells']) else 'NOT all'}}}",
+    ]
+
+# --- P10-R2 B5: cost ablation (present only after the runs) ------------------
+b5 = ROOT / "evaluation/b5-ablation/results.json"
+if b5.exists():
+    ab = json.loads(b5.read_text())
+    arms, checks = ab["arms"], ab["checks"]
+    def armval(arm, cell, path, default=None):
+        node = arms.get(arm, {}).get(cell)
+        for key in path:
+            if node is None:
+                return default
+            node = node.get(key) if isinstance(node, dict) else None
+        return default if node is None else node
+    def m(arm, cell, *path):
+        v = armval(arm, cell, list(path) + ["median"])
+        return "--" if v is None else f"{v:.0f}"
+    cells_b5 = ["S1/SF1", "S2/SF10", "S6/100k-x16"]
+    rows_tbl = []
+    for cell in cells_b5:
+        ii = armval("iv", cell, ["arm_ii_composed_server_total_ms", "median"])
+        rows_tbl.append(f"{tex(cell)} & {m('i', cell, 'pipeline_ms', 'server_total')} & {'--' if ii is None else f'{ii:.0f}'} & "
+                        f"{m('iv', cell, 'pipeline_ms', 'server_total')} & {m('iv', cell, 'derivation_leaves_ms')} & {m('iv', cell, 'ledger_leaves_ms')} & "
+                        f"{m('iv', cell, 'component_ms', 'business_postgresql')} & {m('iv', cell, 'component_ms', 'result_encoding')} & "
+                        f"{armval('i', cell, ['settled'], 0)}/{armval('iv', cell, ['settled'], 0)}")
+    lines.append(r"\newcommand{\BFiveTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")
+    def chk(cell, key, fmt="{:.0f}"):
+        v = checks.get(cell, {}).get(key)
+        return "--" if v is None else fmt.format(v)
+    lines += [
+        rf"\newcommand{{\BFiveResultsDigest}}{{\texttt{{{sha12(b5)}}}}}",
+        rf"\newcommand{{\BFiveDeployments}}{{{max((armval(a, c, ['deployments'], 0) for a in arms for c in arms[a]), default=0)}}}",
+        rf"\newcommand{{\BFiveSamplesPerCell}}{{{max((armval(a, c, ['settled'], 0) for a in arms for c in arms[a]), default=0)}}}",
+        rf"\newcommand{{\BFiveSOneCommonPct}}{{{chk('S1/SF1', 'common_path_share_of_iv_pct', '{:.0f}')}}}",
+        rf"\newcommand{{\BFiveSSixCommonPct}}{{{chk('S6/100k-x16', 'common_path_share_of_iv_pct', '{:.0f}')}}}",
+        rf"\newcommand{{\BFiveSOneIminusIvsDeriv}}{{{chk('S1/SF1', 'ii_minus_i_vs_derivation_ms')}}}",
+        rf"\newcommand{{\BFiveSSixIminusIvsDeriv}}{{{chk('S6/100k-x16', 'ii_minus_i_vs_derivation_ms')}}}",
+        rf"\newcommand{{\BFiveSSixArmI}}{{{m('i', 'S6/100k-x16', 'pipeline_ms', 'server_total')}}}",
+        rf"\newcommand{{\BFiveSSixArmIV}}{{{m('iv', 'S6/100k-x16', 'pipeline_ms', 'server_total')}}}",
+        rf"\newcommand{{\BFiveSSixDerivation}}{{{m('iv', 'S6/100k-x16', 'derivation_leaves_ms')}}}",
+        rf"\newcommand{{\BFiveSSixLedger}}{{{m('iv', 'S6/100k-x16', 'ledger_leaves_ms')}}}",
+        rf"\newcommand{{\BFiveSOneArmI}}{{{m('i', 'S1/SF1', 'pipeline_ms', 'server_total')}}}",
+        rf"\newcommand{{\BFiveSOneArmIV}}{{{m('iv', 'S1/SF1', 'pipeline_ms', 'server_total')}}}",
+        rf"\newcommand{{\BFiveSTwoArmIV}}{{{m('iv', 'S2/SF10', 'pipeline_ms', 'server_total')}}}",
+        rf"\newcommand{{\BFiveSTwoDerivation}}{{{m('iv', 'S2/SF10', 'derivation_leaves_ms')}}}",
+    ]
+    naive = ab.get("naive_benign_replay")
+    if naive:
+        trials = naive["trials"]
+        totals = sorted(t["total_settlement_ms"] for t in trials)
+        rows_n = [t["storage"]["FactRows"] for t in trials]
+        bytes_n = sorted(t["storage"]["TotalBytes"] for t in trials)
+        big = []
+        for t in trials:
+            for s in t["statements"]:
+                if s["admitted"] and s["candidate_dependency_facts"] >= 900000:
+                    big.append(s["insert_ms"])
+        lines += [
+            rf"\newcommand{{\NaiveTrials}}{{{len(trials)}}}",
+            rf"\newcommand{{\NaiveAdmitted}}{{{trials[0]['admitted']}}}",
+            rf"\newcommand{{\NaiveRefused}}{{{trials[0]['budget_refused']}}}",
+            rf"\newcommand{{\NaiveTotalSettleSecMin}}{{{totals[0]/1000:.1f}}}",
+            rf"\newcommand{{\NaiveTotalSettleSecMax}}{{{totals[-1]/1000:.1f}}}",
+            rf"\newcommand{{\NaiveFactRows}}{{{rows_n[0]:,}}}",
+            rf"\newcommand{{\NaiveTotalMBMin}}{{{bytes_n[0]/1e6:.0f}}}",
+            rf"\newcommand{{\NaiveTotalMBMax}}{{{bytes_n[-1]/1e6:.0f}}}",
+            rf"\newcommand{{\NaiveBytesPerFact}}{{{bytes_n[-1]/max(1,rows_n[0]):.0f}}}",
+            rf"\newcommand{{\NaiveLargestInsertSecMin}}{{{min(big)/1000:.1f}}}" if big else r"\newcommand{\NaiveLargestInsertSecMin}{--}",
+            rf"\newcommand{{\NaiveLargestInsertSecMax}}{{{max(big)/1000:.1f}}}" if big else r"\newcommand{\NaiveLargestInsertSecMax}{--}",
+            rf"\newcommand{{\NaiveSweepCrossCheck}}{{{tex(naive['sweep_cross_check'].get('status', '?'))}}}",
+        ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)
