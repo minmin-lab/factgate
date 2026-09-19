@@ -1,0 +1,22 @@
+throughput-pilot start 2026-09-19T12:14:10Z deployment=deployment-01 repetition=2
+throughput-pilot roots1-width50-disjoint round 1 drain=1840ms settled=50 novel=50 refused=0 err=0 p95=1566ms cas=288/238/238 ledger_ok=true retries=3 settled_after_retry=7 resubmissions=7 refused_after_retry=0 e2e_p95=1759ms 
+throughput-pilot roots1-width50-disjoint round 2 drain=1743ms settled=50 novel=50 refused=0 err=0 p95=1417ms cas=266/216/216 ledger_ok=true retries=3 settled_after_retry=7 resubmissions=7 refused_after_retry=0 e2e_p95=1629ms 
+throughput-pilot roots1-width50-nested round 1 drain=2017ms settled=50 novel=50 refused=0 err=0 p95=1720ms cas=289/239/239 ledger_ok=true retries=3 settled_after_retry=7 resubmissions=7 refused_after_retry=0 e2e_p95=1957ms 
+throughput-pilot roots1-width50-nested round 2 drain=2163ms settled=50 novel=50 refused=0 err=0 p95=1833ms cas=291/241/241 ledger_ok=true retries=3 settled_after_retry=7 resubmissions=7 refused_after_retry=0 e2e_p95=2082ms 
+throughput-pilot roots1-width50-identical round 1 drain=757ms settled=50 novel=1 refused=0 err=0 p95=727ms cas=3/2/2 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=727ms 
+throughput-pilot roots1-width50-identical round 2 drain=867ms settled=50 novel=1 refused=0 err=0 p95=856ms cas=3/2/2 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=856ms 
+throughput-pilot roots4-width50-disjoint round 1 drain=3290ms settled=200 novel=200 refused=0 err=0 p95=3143ms cas=516/316/316 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=3143ms 
+throughput-pilot roots4-width50-disjoint round 2 drain=3279ms settled=200 novel=200 refused=0 err=0 p95=3147ms cas=474/274/274 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=3147ms 
+throughput-pilot roots4-width50-nested round 1 drain=3267ms settled=200 novel=200 refused=0 err=0 p95=3187ms cas=474/274/274 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=3187ms 
+throughput-pilot roots4-width50-nested round 2 drain=3813ms settled=200 novel=200 refused=0 err=0 p95=3695ms cas=492/292/292 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=3695ms 
+throughput-pilot roots4-width50-identical round 1 drain=2806ms settled=200 novel=4 refused=0 err=0 p95=2770ms cas=4/0/0 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=2770ms 
+throughput-pilot roots4-width50-identical round 2 drain=2750ms settled=200 novel=4 refused=0 err=0 p95=2686ms cas=5/1/1 ledger_ok=true retries=3 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=2688ms 
+throughput-pilot done 2026-09-19T12:17:30Z rounds=12 sha256=2489aaed9016d0f5 client_retries=3
+throughput-control start 2026-09-19T12:17:30Z
+throughput-pilot roots1-width50-disjoint round 1 drain=1729ms settled=44 novel=44 refused=6 err=0 p95=1678ms cas=307/263/263 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=1678ms 
+throughput-pilot roots1-width50-disjoint round 2 drain=1575ms settled=43 novel=43 refused=7 err=0 p95=1523ms cas=265/222/222 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=1524ms 
+throughput-pilot roots1-width50-nested round 1 drain=1888ms settled=43 novel=43 refused=7 err=0 p95=1866ms cas=275/232/232 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=1866ms 
+throughput-pilot roots1-width50-nested round 2 drain=1939ms settled=43 novel=43 refused=7 err=0 p95=1862ms cas=265/222/222 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=1862ms 
+throughput-pilot roots1-width50-identical round 1 drain=764ms settled=50 novel=1 refused=0 err=0 p95=749ms cas=4/3/3 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=749ms 
+throughput-pilot roots1-width50-identical round 2 drain=785ms settled=50 novel=1 refused=0 err=0 p95=745ms cas=4/3/3 ledger_ok=true retries=0 settled_after_retry=0 resubmissions=0 refused_after_retry=0 e2e_p95=745ms 
+throughput-control done 2026-09-19T12:18:15Z rounds=6 sha256=8aa9b2a1a88af02a

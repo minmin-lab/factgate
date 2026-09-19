@@ -1601,8 +1601,8 @@ charged for them, so ``no error round'' and ``every request settled'' are
 not the same statement: in the one-root, fifty-contender cells about one
 request in eight did not complete within its round. The harness did not
 resubmit, so the completion rate and end-to-end latency a client would see
-with retries are not measured by this pilot; they are the subject of a
-follow-up in which the client resubmits a bounded number of times. Second, four
+with retries are not measured by this pilot; the follow-up at the end of
+this subsection measures them. Second, four
 independent roots raise novel throughput to
 \ThroughputFourRootFiftyDisjointNPS{} per second, about $2.3\times$ one
 root rather than $4\times$, with the p95 at
@@ -1617,6 +1617,52 @@ keep the largest cell under the Outcome floor) held. The numbers are one
 laptop-class host with everything colocated, and the pilot does not vary
 the retry limit or the settlement batching the main text names as the ways
 to relax the head bound.
+
+\paragraph{With client resubmission.}
+A follow-up pilot (\RetryCampaign{}; design frozen before execution in
+\filepath{docs/p10\_r2\_c4b\_throughput\_retry\_design.md}, results digest
+\RetryResultsDigest{}) reruns the fifty-contender cells on three fresh
+deployments with a client that resubmits a \code{CONFLICT} refusal up to
+\RetryK{} times after a 50--150~ms jittered pause, each resubmission under a
+fresh \code{request\_id} because the refused query is a settled
+\code{FAILED} record that an idempotent retry would replay. The retry count
+and the pause were fixed a priori (the server already retries the head
+sixteen times per attempt), not fitted. A zero-retry control pass on the
+same deployments reproduces the first pilot:
+\RetryControlOneRootFiftyRefused{} of \RetryControlOneRootFiftyRequests{}
+one-root requests refused. With resubmission, all
+\RetryOneRootFiftySettled{} of \RetryOneRootFiftyRequests{} one-root
+disjoint and nested requests settled (\RetryOneRootFiftyCompletionPct\%):
+\RetryOneRootFiftyResubmissions{} resubmissions were issued,
+\RetryOneRootFiftyAfterRetry{} requests settled on a resubmission and
+\RetryOneRootFiftyStillRefused{} remained refused; the four-root cells
+needed none (\RetryFourRootFiftyStillRefused{} refused). The cost is
+latency, not throughput or correctness: the disjoint cell's end-to-end p95,
+backoff included, is \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
+against \RetryOneRootFiftyDisjointClientPNinetyFive{}~ms for the final
+attempt alone, novel settlement stays at \RetryOneRootFiftyDisjointNPS{} per
+second, and every round's ledger movement equals the charges
+(\RetryLedgerAllMatch{}), a refused attempt having charged nothing.
+Table~\ref{tab:throughput-retry-supp} lists every cell.
+
+\begin{table}[t]
+\centering
+\caption{Throughput with client resubmission (three deployments, two rounds
+per cell and pass): pass, roots $K$, contenders $N$, overlap, retry limit,
+rounds, settled/requested, completion (\%), requests settled only after a
+resubmission, resubmissions issued, requests still refused, novel per second
+(median), final-attempt p95, end-to-end p95 and maximum including backoff
+(ms, median over rounds), ledger match.}
+\label{tab:throughput-retry-supp}
+\scriptsize
+\begin{tabular}{lrrlrrrrrrrrrrrl}
+\toprule
+Pass & $K$ & $N$ & Overlap & $k$ & Rnd & Settled/req. & \% & After & Resub. & Still & Nov/s & p95 & e2e p95 & e2e max & Ledger \\
+\midrule
+\RetryTableBody
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Publication Campaign: Attack Corpus}
 \label{sec:attack-publication-supp}

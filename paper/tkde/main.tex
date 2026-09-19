@@ -1335,7 +1335,10 @@ four roots \ThroughputFourRootFiftyDisjointNPS{}, while at fifty contenders
 on one head \ThroughputOneRootFiftyRefused{} of
 \ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
 sixteen head-CAS retries, uncharged and unsettled, so the ledger stayed exact
-but the client had to resubmit (supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
+but the client had to resubmit; with up to \RetryK{} client resubmissions
+\RetryOneRootFiftyCompletionPct\% of those requests settled, at an
+end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
+(supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
 oracle's union minus history): settlement against a same-size history is

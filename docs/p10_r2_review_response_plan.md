@@ -11,7 +11,7 @@
 | C2 | 时序通道降为条件模型估算 | `main.tex:374-376` "caps it at … bits"；`supplement.tex:2074-2082` | 主文改为"在线性高斯模型、均匀先验与经验参数下估算约 X bit/次；本实验未证明最坏情况上界"；supplement 增一句限制（经验斜率非最大斜率、观测方差非攻击者不可降噪声、均匀先验非信道容量）；762 次拒绝时延保留为经验观察 | DOING（main.tex:374 与 supplement 时序段已改；待构建） |
 | C3 | 代理实验 Outcome 12 vs 11 口径对齐；probe `correct` 定义 | `evaluation/final-v5-wsl2/p10-pilot-evidence-v1.json:22`；`evaluation/agent-pilot/results.json` ledger_outcome_median=11 | 去执行机读 p10-b2-agent-01 各 factgate/probe 运行的 agent.jsonl，逐步列 ΔO、拒绝前已用、被拒请求需求量；按实证改写为"已用 11、下一探测需 ≥2 不可容纳"或其它实情；证据文件改动记台账（登记件改动要给根因，不得悄改）；results.json 与 supplement 写明 `correct` = 区间包含真值 / 精确恢复 | DOING（raw 在 git 内已逐步核实 11/12；文本与登记件已改；待构建） |
 | C4a | 吞吐：ledger 一致性与客户端完成率分述 | `evaluation/throughput-pilot/results.json` 1×50 disjoint 261/300、nested 259/300、CONFLICT 80/600、cas_attempts 1664 | supplement 与主稿把 error_rounds=0 / ledger_matches 与 settled/requests、CONFLICT 数、CAS 重试次数分列成表；主稿一句不得写成"全部成功" | DOING（表加 requested/CONFLICT 列、文本分述；待构建） |
-| C4b | 吞吐补：含客户端重试的有效完成吞吐、最终完成比例、端到端尾延迟 | 评审 §6.2 | 设计写台账（客户端对 CONFLICT 重提至多 k 次，k 用保守先验定，不拟合；三部署；同 benign-x4 剖面；K∈{1,4}×N=50×3 overlap）；campaign_class pilot；先查现有 throughput-pilot 数据能否推出下界再决定重跑范围；结果进 supplement 表 | READY（设计 docs/p10_r2_c4b_throughput_retry_design.md；adapter -throughput-client-retries、hook 透传、launch-throughput-retry-pilot.sh、throughput-retry/analyze.py 全部就绪；pilot 类接受占位绑定；待本机 CPU 空闲后发射） |
+| C4b | 吞吐补：含客户端重试的有效完成吞吐、最终完成比例、端到端尾延迟 | 评审 §6.2 | 设计写台账（客户端对 CONFLICT 重提至多 k 次，k 用保守先验定，不拟合；三部署；同 benign-x4 剖面；K∈{1,4}×N=50×3 overlap）；campaign_class pilot；先查现有 throughput-pilot 数据能否推出下界再决定重跑范围；结果进 supplement 表 | DONE-待构建（campaign PILOT_EXIT=0：对照复现 B6，3 次重提后 600/600 完成、89 次重提均一次成功；已登记、NAS 镜像核验通过；supplement 段与主稿句已写） |
 
 ## D 组：已有结果放到正确位置（低成本文本项）
 

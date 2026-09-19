@@ -1,0 +1,9 @@
+formal Gateway build
+  commit        c1432035f504 (clean, equals origin/p10-r2)
+  context       178f74935619 over 2758 tracked files
+  manifest      fa376d4127a3
+  build manifest /home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/p10-r2-c4b-throughput-retry-01/source/formal-gateway-build.json (7af99a27db4b0046cba62d4fb8a7a3c357e018499d38b0fc887e45e3659843d1)
+  compose image  sha256:8701694b7409e3abde19c669876f63e1f9a19a7b4893a005ea83849cf2f93385
+  image         sha256:8701694b7409e3abde19c669876f63e1f9a19a7b4893a005ea83849cf2f93385 (linux/amd64)
+  tag           taskgate-final-v5-gateway:c1432035f504013c717f744ad15a2b25462d4258
+formal Gateway build: pass

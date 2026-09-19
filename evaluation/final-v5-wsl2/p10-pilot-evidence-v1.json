@@ -1,42 +1,62 @@
 {
- "version": 1,
- "record": "taskgate-p10-pilot-evidence-v1",
- "purpose": "Names the P10 (review-response) retained pilot runs the supplement cites and binds each to its sample bytes. Kept separate from pilot-evidence-v1.json because the frozen generator final_v5_pilot_evidence.py validates every entry of that manifest by the pre-P10 run layout (raw/deployment-01.jsonl, config.json, summary.json), which a profile-campaign hook run does not have. Validated by paper/tkde/generate_p10_evidence.py.",
- "publication_eligible": false,
- "runs": [
-  {
-   "id": "p10-b2-agent-01",
-   "family": "agent",
-   "pilot_kind": "profile_campaign_hook",
-   "path": "evaluation/final-v5-wsl2/raw/p10-b2-agent-01",
-   "campaign_evidence_sha256": "a2320569cf669a14b9920b2734d1a02c57670b539f45eeaed2ac23be47728aa5",
-   "sample_files": [
-    "deployments/adversary-owner/001/raw/agent.jsonl",
-    "deployments/adversary-owner/002/raw/agent.jsonl",
-    "deployments/adversary-owner/003/raw/agent.jsonl"
-   ],
-   "samples_sha256": "695568fd3477108e989ef906c89be287c8ee84967e99f8e22cb38b8bf898e2fb",
-   "samples_note": "sha256 of the sample files concatenated in the listed order; the campaign's planned adversary cells are the retained adversary-owner samples and are not cited from this run",
-   "submission_commit": "a8fb1e66e7ffc1cadae187f1f8b58d641bf8abfa",
-   "measured_samples": 36,
-   "note": "P10.B2 end-to-end LLM-agent pilot (docs/p10_b2_agent_experiment_design.md, frozen before the run): a headless Claude Code agent (claude -p, models claude-opus-5[1m] with claude-haiku-4-5 sub-calls) given only the Product description, an objective and the transcript, up to 20 SQL steps, on the adversary-owner deployment (ten-row expense fixture, owner tier 10/18/12/24); two arms (RLS-only: direct PostgreSQL FORCE RLS role, no cumulative budget; FactGate: the governed query_sql path) x two objectives (benign: list receipts >= 1000 in the department and the count; probe: recover the maximum amount) x three samples x three fresh deployments = 36 runs, zero harness errors. Benign: both arms answer correctly in all 9 runs each; FactGate refuses the agent's full listing (EXPOSURE_BUDGET_EXHAUSTED at step 2 in all 9 runs) and the agent completes with a filtered query, final root ledger 6/10/4. Probe: the RLS arm bisects to the exact value or an interval <= 0.77 wide in 19-20 steps in all 9 runs (14-19 released cells); the FactGate arm settles exactly six count probes (the opening unfiltered count(*) charges 1 Outcome fact, each of the five threshold probes charges 2, so the root ledger holds 11 of B_O=12 and the next 2-fact threshold probe cannot fit; corrected 2026-09-19 from the earlier wording '12 Outcome facts = B_O', which contradicted the final ledger 4/8/11 recorded in the same note) and is then refused on every further probe, ending with an interval of width 625 in 7 runs and 6250/10000 in 2 runs whose agents started their bisection from 10^5-10^6, final ledger 4/8/11. Raw records keep every step's SQL, response preview, charges, refusal code and the agent's raw reply; the artifact dump directories (snapshot-index-artifacts-full, profile-artifacts) are excluded from the copied tree."
-  },
-  {
-   "id": "p10-b6-throughput-01",
-   "family": "throughput",
-   "pilot_kind": "profile_campaign_hook",
-   "path": "evaluation/final-v5-wsl2/raw/p10-b6-throughput-01",
-   "campaign_evidence_sha256": "cead3f73c7e5fadbeb5e7a9e00fc54d81345d942f59e91722e91bb69993c6f7d",
-   "sample_files": [
-    "deployments/benign-x4/001/raw/throughput.jsonl",
-    "deployments/benign-x4/002/raw/throughput.jsonl",
-    "deployments/benign-x4/003/raw/throughput.jsonl"
-   ],
-   "samples_sha256": "d85852d971103f6eee91abe4559be759b580acfa9bb2a9bf263ada6a77f1fc83",
-   "samples_note": "sha256 of the sample files concatenated in the listed order; one line per round; the campaign's planned benign cells are not cited from this run",
-   "submission_commit": "0bd1a95a42b413268ff81afb3b32d1374d10a819",
-   "measured_samples": 72,
-   "note": "P10.B6 successful-throughput pilot (docs/p10_b6_throughput_experiment_design.md, frozen before the run): benign-x4 route as the ample budget (896 queries, 100k rows, 107,628/5.8M/224 facts per root), product final_v5_result_heavy; cells roots K in {1,4} x width N in {10,50} x overlap in {disjoint,nested,identical}, 2 rounds per cell, three fresh deployments = 72 rounds, 0 error rounds; every round's per-root ledger movement equals the summed response charges. Novel settlements per second (median over rounds): one root 26 (N=10) and 25-30 (N=50); four roots 57-60 (N=10) and 60-70 (N=50); identical footprints settle 51-79/s as semantic replays with one novel per root per round. At N=50 on one root, 5-8 contenders per round (80 of 600) return the public CONFLICT code after the Outcome-set CAS gives up at 16 attempts (internal/control/result.go ordinalCASMaxAttempts); four roots x 50 saw one such refusal in 1,200. No budget refusal occurred (the design's arithmetic held). Client p95 grows from 0.37 s (1x10) to 1.4-1.7 s (1x50) and 2.7-3.2 s (4x50)."
-  }
- ]
+  "version": 1,
+  "record": "taskgate-p10-pilot-evidence-v1",
+  "purpose": "Names the P10 (review-response) retained pilot runs the supplement cites and binds each to its sample bytes. Kept separate from pilot-evidence-v1.json because the frozen generator final_v5_pilot_evidence.py validates every entry of that manifest by the pre-P10 run layout (raw/deployment-01.jsonl, config.json, summary.json), which a profile-campaign hook run does not have. Validated by paper/tkde/generate_p10_evidence.py.",
+  "publication_eligible": false,
+  "runs": [
+    {
+      "id": "p10-b2-agent-01",
+      "family": "agent",
+      "pilot_kind": "profile_campaign_hook",
+      "path": "evaluation/final-v5-wsl2/raw/p10-b2-agent-01",
+      "campaign_evidence_sha256": "a2320569cf669a14b9920b2734d1a02c57670b539f45eeaed2ac23be47728aa5",
+      "sample_files": [
+        "deployments/adversary-owner/001/raw/agent.jsonl",
+        "deployments/adversary-owner/002/raw/agent.jsonl",
+        "deployments/adversary-owner/003/raw/agent.jsonl"
+      ],
+      "samples_sha256": "695568fd3477108e989ef906c89be287c8ee84967e99f8e22cb38b8bf898e2fb",
+      "samples_note": "sha256 of the sample files concatenated in the listed order; the campaign's planned adversary cells are the retained adversary-owner samples and are not cited from this run",
+      "submission_commit": "a8fb1e66e7ffc1cadae187f1f8b58d641bf8abfa",
+      "measured_samples": 36,
+      "note": "P10.B2 end-to-end LLM-agent pilot (docs/p10_b2_agent_experiment_design.md, frozen before the run): a headless Claude Code agent (claude -p, models claude-opus-5[1m] with claude-haiku-4-5 sub-calls) given only the Product description, an objective and the transcript, up to 20 SQL steps, on the adversary-owner deployment (ten-row expense fixture, owner tier 10/18/12/24); two arms (RLS-only: direct PostgreSQL FORCE RLS role, no cumulative budget; FactGate: the governed query_sql path) x two objectives (benign: list receipts >= 1000 in the department and the count; probe: recover the maximum amount) x three samples x three fresh deployments = 36 runs, zero harness errors. Benign: both arms answer correctly in all 9 runs each; FactGate refuses the agent's full listing (EXPOSURE_BUDGET_EXHAUSTED at step 2 in all 9 runs) and the agent completes with a filtered query, final root ledger 6/10/4. Probe: the RLS arm bisects to the exact value or an interval <= 0.77 wide in 19-20 steps in all 9 runs (14-19 released cells); the FactGate arm settles exactly six count probes (the opening unfiltered count(*) charges 1 Outcome fact, each of the five threshold probes charges 2, so the root ledger holds 11 of B_O=12 and the next 2-fact threshold probe cannot fit; corrected 2026-09-19 from the earlier wording '12 Outcome facts = B_O', which contradicted the final ledger 4/8/11 recorded in the same note) and is then refused on every further probe, ending with an interval of width 625 in 7 runs and 6250/10000 in 2 runs whose agents started their bisection from 10^5-10^6, final ledger 4/8/11. Raw records keep every step's SQL, response preview, charges, refusal code and the agent's raw reply; the artifact dump directories (snapshot-index-artifacts-full, profile-artifacts) are excluded from the copied tree."
+    },
+    {
+      "id": "p10-b6-throughput-01",
+      "family": "throughput",
+      "pilot_kind": "profile_campaign_hook",
+      "path": "evaluation/final-v5-wsl2/raw/p10-b6-throughput-01",
+      "campaign_evidence_sha256": "cead3f73c7e5fadbeb5e7a9e00fc54d81345d942f59e91722e91bb69993c6f7d",
+      "sample_files": [
+        "deployments/benign-x4/001/raw/throughput.jsonl",
+        "deployments/benign-x4/002/raw/throughput.jsonl",
+        "deployments/benign-x4/003/raw/throughput.jsonl"
+      ],
+      "samples_sha256": "d85852d971103f6eee91abe4559be759b580acfa9bb2a9bf263ada6a77f1fc83",
+      "samples_note": "sha256 of the sample files concatenated in the listed order; one line per round; the campaign's planned benign cells are not cited from this run",
+      "submission_commit": "0bd1a95a42b413268ff81afb3b32d1374d10a819",
+      "measured_samples": 72,
+      "note": "P10.B6 successful-throughput pilot (docs/p10_b6_throughput_experiment_design.md, frozen before the run): benign-x4 route as the ample budget (896 queries, 100k rows, 107,628/5.8M/224 facts per root), product final_v5_result_heavy; cells roots K in {1,4} x width N in {10,50} x overlap in {disjoint,nested,identical}, 2 rounds per cell, three fresh deployments = 72 rounds, 0 error rounds; every round's per-root ledger movement equals the summed response charges. Novel settlements per second (median over rounds): one root 26 (N=10) and 25-30 (N=50); four roots 57-60 (N=10) and 60-70 (N=50); identical footprints settle 51-79/s as semantic replays with one novel per root per round. At N=50 on one root, 5-8 contenders per round (80 of 600) return the public CONFLICT code after the Outcome-set CAS gives up at 16 attempts (internal/control/result.go ordinalCASMaxAttempts); four roots x 50 saw one such refusal in 1,200. No budget refusal occurred (the design's arithmetic held). Client p95 grows from 0.37 s (1x10) to 1.4-1.7 s (1x50) and 2.7-3.2 s (4x50)."
+    },
+    {
+      "id": "p10-r2-c4b-throughput-retry-01",
+      "family": "throughput_retry",
+      "pilot_kind": "profile_campaign_hook",
+      "path": "evaluation/final-v5-wsl2/raw/p10-r2-c4b-throughput-retry-01",
+      "campaign_evidence_sha256": "e22264c3f21d3710f1ef60bb2f056bbcc5873126e6a564cd5071bc12bd214ff1",
+      "sample_files": [
+        "deployments/benign-x4/001/raw/throughput.jsonl",
+        "deployments/benign-x4/002/raw/throughput.jsonl",
+        "deployments/benign-x4/003/raw/throughput.jsonl",
+        "deployments/benign-x4/001/raw/throughput-control.jsonl",
+        "deployments/benign-x4/002/raw/throughput-control.jsonl",
+        "deployments/benign-x4/003/raw/throughput-control.jsonl"
+      ],
+      "samples_sha256": "364c8ab300d6674e8a87c6bff8f465a0fcc26f8223ba2e34074a3e5ef1918139",
+      "samples_note": "sha256 of the sample files concatenated in the listed order (three retry passes, then three zero-retry control passes); one line per round; the campaign's planned benign cells are not cited from this run",
+      "submission_commit": "c1432035f504013c717f744ad15a2b25462d4258",
+      "measured_samples": 54,
+      "note": "P10-R2.C4b throughput with client resubmission (docs/p10_r2_c4b_throughput_retry_design.md): benign-x4 profile, three fresh deployments, hook cells K in {1,4} x N=50 x three overlaps x two rounds with up to 3 client resubmissions under fresh request_ids and a 50-150 ms jittered pause, plus a zero-retry control pass (K=1) on the same deployments. Control reproduces B6 (78/600 CONFLICT vs 80/600); with resubmission 600/600 one-root disjoint+nested requests settled (89 resubmissions, all settled on the first resubmission, none still refused); every round's ledger movement equals the charges. Dataset binding was a placeholder file (benign-x4 plans no Scale/Artifact/ProvSQL cell). Evidence mirrored per deployment to the NAS and sha256-verified on the NAS copy."
+    }
+  ]
 }
