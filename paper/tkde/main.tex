@@ -77,8 +77,9 @@ available for every admitted sequence; inference from answered or refused
 predicates is not bounded. Accounting is exact with
 respect to the declared rules over a closed fragment (connected
 equijoins, grouping, bounded unions, nested Views, derived-cell arithmetic)
-that admits \AgentWorkloadLowerablePct\% of \AgentWorkloadQueries{}
-LLM-written statements after adaptation. Ordinals, bitmaps, and a
+that admits \HeldoutLowerablePct\% of \HeldoutQueries{} LLM-written
+statements written after the fragment froze (\AgentWorkloadLowerablePct\% of
+a development set adapted during construction). Ordinals, bitmaps, and a
 Merkle-radix set keep novelty exact at $10^7$ facts. A
 single-host campaign (\FinalVFivePublicationMeasuredSamples{} samples)
 charges every scripted decomposition once, keeps an adaptive trace within
@@ -372,8 +373,10 @@ settlement, so a refused query's latency grows with the footprint it did
 not release (\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
 per Dependency Fact in the sub-phase pilot; on the retained refusals its
 latency is flat in the refused footprint, \TimingSlopeMSPerRow{}~ms per row
-against \TimingPooledSDMS{}~ms noise, and the row guard caps it at
-\TimingRowGuardBits{} bits per refusal, supplement), and
+against \TimingPooledSDMS{}~ms noise, and under a linear-Gaussian model with
+a uniform prior and these empirical parameters the row guard bounds it at
+about \TimingRowGuardBits{} bits per refusal; this is a conditional model
+estimate, not a worst-case bound for the deployed system, supplement), and
 Proposition~\ref{prop:probing-bound} bounds the response payload only;
 returning only the
 remaining budget would be a planning convenience, not a smaller channel
@@ -1319,7 +1322,11 @@ width and mode. Because every descendant settles on one root head, a task
 tree's settlement throughput is bounded by that head; per-dimension or
 batched settlement could relax the bound; with budget to spare, one head
 settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second and
-four roots \ThroughputFourRootFiftyDisjointNPS{} (supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
+four roots \ThroughputFourRootFiftyDisjointNPS{}, while at fifty contenders
+on one head \ThroughputOneRootFiftyRefused{} of
+\ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
+sixteen head-CAS retries, uncharged and unsettled, so the ledger stayed exact
+but the client had to resubmit (supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
 oracle's union minus history): settlement against a same-size history is
@@ -1450,8 +1457,10 @@ a boundary that is asymmetric by construction and ranks nothing.
 
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
 PostgreSQL 16.14 image (supplement). The
-repository at the cited commits, the evidence pack, and the retained raw
-samples (48 JSONL files, 591~MB) form the artifact [artifact DOI/URL];
+repository at the cited commits (\url{https://github.com/minmin-lab/factgate},
+with the evidence pack and the digests of every retained sample) and the
+retained raw samples (48 JSONL files, 591~MB, deposited separately under a
+DOI recorded in the repository's \code{README}) form the artifact;
 every digest chain and macro is recomputable from it. Every campaign number above comes from
 the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
@@ -1481,15 +1490,18 @@ admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
 \code{LIMIT}), and
 \SSBLowerableExplicitJoin{} of the \SSBQueries{} Star Schema Benchmark
 reporting queries (supplement tables);
-LLM-written SQL from the Product sheet alone lowers unedited in
-\AgentWorkloadLowerable{} of \AgentWorkloadQueries{} cases
-(\AgentWorkloadLowerablePct\%, a development set adapted after its first
-pass; a held-out set of \HeldoutQueries{} questions written after the freeze
-lowers \HeldoutLowerable{}, \HeldoutLowerablePct\%: \HeldoutEngineeringGaps{}
-rejections are engineering gaps, \HeldoutNewRule{} need new rules,
-\HeldoutAgentDefects{} is agent output; supplement); an off-the-shelf agent
-completes a legitimate task under \system in every run after one refused
-listing, and its count-only probe stops at six probes (supplement);
+LLM-written SQL from the Product sheet alone: the applicability figure is
+the held-out set, \HeldoutQueries{} questions written after the fragment
+froze, of which \HeldoutLowerable{} (\HeldoutLowerablePct\%) lower unedited
+(\HeldoutEngineeringGaps{} rejections are engineering gaps, \HeldoutNewRule{}
+need new rules, \HeldoutAgentDefects{} is agent output); the development set
+adapted after its first pass lowers \AgentWorkloadLowerable{} of
+\AgentWorkloadQueries{} (\AgentWorkloadLowerablePct\%) and measures what
+iteration bought, not the frozen boundary (supplement); in a controlled
+two-objective study on a ten-row fixture (\AgentRuns{} runs: two objectives,
+two arms, three deployments, three samples), an off-the-shelf agent
+completes the legitimate objective under \system in every run after one
+refused listing, and its count-only probe stops at six probes (supplement);
 the rest stop first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,

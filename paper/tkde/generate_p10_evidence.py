@@ -251,7 +251,9 @@ if tp.exists():
     th = json.loads(tp.read_text())
     rows_tbl = []
     for c in th["cells"]:
-        rows_tbl.append(f"{c['roots']} & {c['width']} & {c['overlap']} & {c['rounds']} & {c['novel']}/{c['settled']} & "
+        requested = c['settled'] + c['refused'] + c.get('request_errors', 0)
+        rows_tbl.append(f"{c['roots']} & {c['width']} & {c['overlap']} & {c['rounds']} & {c['novel']}/{c['settled']}/{requested} & "
+                        f"{c['refused']} & "
                         f"{c['settled_per_s_median']:.0f} & {c['novel_per_s_median']:.0f} & {c['client_p50_ms_median']:.0f} & {c['client_p95_ms_median']:.0f} & "
                         f"{c['cas_conflicts']}/{c['cas_attempts']} & {'yes' if c['ledger_matches'] else 'NO'}")
     lines.append(r"\newcommand{\ThroughputTableBody}{%" + "\n" + " \\\\\n".join(rows_tbl) + r" \\%" + "\n}")

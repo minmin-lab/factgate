@@ -1555,22 +1555,27 @@ the last returns. Footprints are \emph{disjoint} (one distinct row per
 contender), \emph{nested} (\code{row\_id <= 10i}), or \emph{identical}
 (the same row for all), offset between rounds so no round repeats a
 footprint. Table~\ref{tab:throughput-supp} reports \ThroughputRounds{}
-rounds; none errored, and in every round each root's ledger moved by exactly
-the sum of the responses' charges.
+rounds. Two properties are reported separately because they are different
+things: ledger consistency (no round errored in the harness, and in every
+round each root's ledger moved by exactly the sum of the responses' charges)
+and request completion (a request that the head CAS gives up on returns
+\code{CONFLICT}, uncharged, and is not settled; the table counts these per
+cell, and the first reading below gives the fraction).
 
 \begin{table}[t]
 \centering
 \caption{Successful-throughput pilot (three deployments, two rounds each):
-roots $K$, contenders per root $N$, overlap, rounds, novel/settled requests,
+roots $K$, contenders per root $N$, overlap, rounds, novel/settled/requested
+requests, requests refused with \code{CONFLICT} (uncharged, not settled),
 settled and novel requests per second (median over rounds), client p50 and
-p95 latency (ms, median over rounds), Outcome-set CAS conflicts/attempts
-summed over the rounds, and whether every round's ledger movement matched
-the charges.}
+p95 latency (ms, median over rounds, over the requests that returned),
+Outcome-set CAS conflicts/attempts summed over the rounds, and whether every
+round's ledger movement matched the charges.}
 \label{tab:throughput-supp}
 \small
-\begin{tabular}{rrlrrrrrrrl}
+\begin{tabular}{rrlrrrrrrrrl}
 \toprule
-$K$ & $N$ & Overlap & Rounds & Novel/settled & Settled/s & Novel/s & p50 & p95 & Conflicts/attempts & Ledger \\
+$K$ & $N$ & Overlap & Rounds & Novel/settled/req. & \code{CONFLICT} & Settled/s & Novel/s & p50 & p95 & Conflicts/attempts & Ledger \\
 \midrule
 \ThroughputTableBody
 \bottomrule
@@ -1592,7 +1597,13 @@ sixteen times (\code{ordinalCASMaxAttempts} in
 \ThroughputOneRootFiftyRequests{} requests in the one-root, fifty-contender
 cells ended that way (five to eight per round), \ThroughputOtherRefused{}
 elsewhere, and the caller's only recourse is to resubmit. Nothing was
-charged for them. Second, four independent roots raise novel throughput to
+charged for them, so ``no error round'' and ``every request settled'' are
+not the same statement: in the one-root, fifty-contender cells about one
+request in eight did not complete within its round. The harness did not
+resubmit, so the completion rate and end-to-end latency a client would see
+with retries are not measured by this pilot; they are the subject of a
+follow-up in which the client resubmits a bounded number of times. Second, four
+independent roots raise novel throughput to
 \ThroughputFourRootFiftyDisjointNPS{} per second, about $2.3\times$ one
 root rather than $4\times$, with the p95 at
 \ThroughputFourRootFiftyDisjointPNinetyFive{}~ms for 200 simultaneous
@@ -2086,6 +2097,17 @@ the bounded profile it does not, because the ladder shows the guards refusing
 it before execution. The channel is therefore governed by the row guard, which
 is the deployment control the main text's limitations section asks for, and the leak an
 unguarded deployment would accept is the \TimingLadderBits{}-bit line.
+These figures are conditional model estimates, not a security bound for the
+deployed system: the slope is an OLS fit on one ladder, not the maximum over
+query shapes; the pooled standard deviation is the noise this harness
+observed, not noise an adversary who averages repeated measurements or
+conditions on load cannot reduce; and the uniform prior gives the mutual
+information under that prior, not the channel capacity over all input
+distributions or over adaptively chosen queries. What the retained data
+establishes empirically is that on \TimingRefusals{} post-execution refusals
+the latency did not move with the refused footprint within the noise; the
+worst-case leakage of the timing channel is outside the paper's guarantee,
+as the main text states.
 
 \paragraph{Pre-execution site.}
 The ladder's refusals carry a second, weaker signal that is not about

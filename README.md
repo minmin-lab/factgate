@@ -403,6 +403,17 @@ The executable method documents added in this revision define the
 those documents denote experiments the author has yet to run in a fixed
 environment, not zero values or measured results.
 
+### Artifact
+
+The paper's artifact is this repository at the commits cited in the paper
+(`paper/tkde/generated/evidence.tex` pins the sealed campaign commit and the
+digest of every retained sample and evidence file) plus the retained raw
+samples of the sealed campaign (48 JSONL files, 591 MB), which are too large
+for the repository and are deposited separately. DOI of the raw-sample
+deposit: _pending deposit by the author_ (this line is the single place the
+paper points to for it). Every macro in the paper is recomputed from the
+repository and the samples by `make paper-final-check`.
+
 ## Limitations
 
 - The Exposure Ledger is the accounting state of one task and its delegated
