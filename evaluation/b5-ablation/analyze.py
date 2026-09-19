@@ -16,7 +16,7 @@ minus the measured ledger-side leaves
 (taken per sample, then the median), and the residual
   settle_persist - (the three exposure leaves)
 is reported so the subtraction is auditable. The derivation leaves
-  ordinal_stream_consumer + ordinal_visible_preparation + ordinal_finish + exposure_derivation
+  provenance_postgresql + ordinal_stream_consumer + ordinal_visible_preparation + ordinal_finish
 are summed per sample as the derivation cost, and the check
   (arm ii - arm i) versus derivation
 is printed per cell. Nothing is dropped; refused or errored samples are counted.
@@ -25,7 +25,13 @@ import argparse, json, pathlib, statistics as st
 
 LEDGER_COMPONENTS = ("exposure_reservation_lock", "exposure_ledger_lock", "exposure_fact_store")
 LEDGER_DIAGNOSTICS = ("outcome_radix_load", "outcome_radix_difference_union", "outcome_radix_persist")
-DERIVATION_COMPONENTS = ("ordinal_stream_consumer", "ordinal_visible_preparation", "ordinal_finish", "exposure_derivation")
+# Disjoint derivation leaves. The Gateway reports the same interval under two
+# names (exposure_derivation == ordinal_finish; bitmap_derivation is the sum of
+# the three ordinal leaves; ordinal_stream = provenance_postgresql +
+# ordinal_stream_consumer, internal/gateway/query.go recordOrdinalTimingComponents),
+# so only the leaves are summed. provenance_postgresql is the companion query
+# that exists only to derive facts, hence it is derivation cost, not execution.
+DERIVATION_COMPONENTS = ("provenance_postgresql", "ordinal_stream_consumer", "ordinal_visible_preparation", "ordinal_finish")
 
 
 def med(v, nd=2):
