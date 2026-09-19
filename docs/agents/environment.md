@@ -80,3 +80,5 @@ worktree `git fsck --no-dangling`、私有材料摘要（P45 signed binding `3bb
 - Go 1.25.1 在 `~/.local/go`，`~/.local/bin/go`（Claude 装）。无 gh、无 GitHub 凭证：**push 路由 = `git push nas <branch>` → `ssh nas 'bash -lc "cd …/factgate && git push origin <branch>"'`**（remote `nas` 已配 receivepack/uploadpack=/opt/bin）。
 - **pilot 原始目录缺失**：pilot-evidence-v1.json 的 17 个 pilot 与 p10-b6-throughput-01 的 raw 不在本机/NAS/D: 任一处（详见台账 P10-R2-LOOP-1）；论文容器构建在 `final_v5_pilot_evidence.py` 校验处失败，待作者恢复。
 - 日志目录 `~/logs/`（Claude 建）。
+- **MinIO 镜像已从 Docker Hub 下架（2026-09-19 实测 `pull access denied for minio/minio`、`minio/mc`）**，compose.yaml 钉的是 tag（`minio/minio:RELEASE.2025-04-22T22-12-26Z`、`minio/mc:RELEASE.2025-04-16T18-13-26Z`，无摘要）。绕法（不改冻结文件）：`docker pull quay.io/minio/<name>:<same tag>` 后 `docker tag` 成 compose 引用的名字；compose 发现本地已有该 tag 就不再拉取。重建 WSL 后必做一次。
+- 本地开发栈：`.env` 已按 docs/getting-started.md 用本地生成的密钥写好（mode 600，不入库）；`docker compose up --build -d --wait` 日志在 `~/logs/devstack-up-*.log`。
