@@ -118,7 +118,24 @@ func main() {
 	throughputOverlapList := flag.String("throughput-overlaps", "disjoint,nested,identical", "throughput pilot footprint overlaps")
 	throughputRounds := flag.Int("throughput-rounds", 2, "throughput pilot rounds per cell")
 	throughputClientRetries := flag.Int("throughput-client-retries", 0, "P10-R2.C4b: client resubmissions after a CONFLICT refusal (each under a fresh request_id, because the refused query is settled FAILED and an idempotent retry would replay it); 0 reproduces B6")
+	b5Ablation := flag.Bool("b5-ablation", false, "P10-R2.E1 B5: run the frozen Baseline cells as fresh novel queries and keep the Gateway's timing maps per sample (docs/p10_r2_b5_ablation_design.md)")
+	b5Out := flag.String("b5-out", "", "b5 ablation JSONL output path")
+	b5Arm := flag.String("b5-arm", "", "b5 ablation arm: iv (master V5 catalog) or i (exposure-free twin catalog)")
+	b5Deployment := flag.String("b5-deployment", "deployment-01", "b5 ablation deployment id")
+	b5Cells := flag.String("b5-cells", "S1/SF1,S2/SF10,S6/100k-x16", "b5 ablation cells as workload/scale")
+	b5Samples := flag.Int("b5-samples", 10, "b5 ablation novel samples per cell (each on a fresh task)")
 	flag.Parse()
+	if *b5Ablation {
+		if *b5Out == "" {
+			fmt.Fprintln(os.Stderr, "-b5-out is required")
+			os.Exit(2)
+		}
+		if err := runB5Ablation(context.Background(), *b5Out, *b5Arm, *b5Deployment, strings.Split(*b5Cells, ","), *b5Samples); err != nil {
+			fmt.Fprintln(os.Stderr, "b5-ablation:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *throughputPilot {
 		if *throughputOut == "" {
 			fmt.Fprintln(os.Stderr, "-throughput-out is required")
