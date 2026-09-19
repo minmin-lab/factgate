@@ -19,7 +19,19 @@ export PATH="$HOME/.local/bin:$PATH"
 repo="$(git rev-parse --show-toplevel)"
 cd "$repo"
 [[ -f .env ]] || { echo "launch: .env is required at the repository root" >&2; exit 2; }
-: "${TASKGATE_DATASET_BINDINGS:?TASKGATE_DATASET_BINDINGS is required}"
+# The campaign runner records the binding file's digest for every pilot but
+# only Scale/Artifact/ProvSQL cells need it to validate
+# (run-profile-campaign.sh:250-262); benign-x4 plans none of those, so a
+# placeholder is accepted and named as such in the evidence. Set
+# TASKGATE_DATASET_BINDINGS to the real private binding when it is available.
+if [[ -z "${TASKGATE_DATASET_BINDINGS:-}" ]]; then
+  placeholder="$repo/evaluation/final-v5-wsl2/raw/.placeholder-dataset-binding.json"
+  if [[ ! -f "$placeholder" ]]; then
+    (umask 077; printf '{"schema_version":0,"status":"placeholder","note":"no private Dataset Binding on this host; benign-x4 pilots do not consume it"}\n' > "$placeholder")
+  fi
+  export TASKGATE_DATASET_BINDINGS="$placeholder"
+  echo "launch: using placeholder dataset binding $placeholder (Scale/Artifact/ProvSQL cells would be refused)"
+fi
 [[ -f "$TASKGATE_DATASET_BINDINGS" ]] || { echo "launch: dataset binding file not found" >&2; exit 2; }
 [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] || { echo "launch: worktree must be clean" >&2; exit 2; }
 

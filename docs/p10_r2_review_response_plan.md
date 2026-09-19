@@ -11,7 +11,7 @@
 | C2 | 时序通道降为条件模型估算 | `main.tex:374-376` "caps it at … bits"；`supplement.tex:2074-2082` | 主文改为"在线性高斯模型、均匀先验与经验参数下估算约 X bit/次；本实验未证明最坏情况上界"；supplement 增一句限制（经验斜率非最大斜率、观测方差非攻击者不可降噪声、均匀先验非信道容量）；762 次拒绝时延保留为经验观察 | DOING（main.tex:374 与 supplement 时序段已改；待构建） |
 | C3 | 代理实验 Outcome 12 vs 11 口径对齐；probe `correct` 定义 | `evaluation/final-v5-wsl2/p10-pilot-evidence-v1.json:22`；`evaluation/agent-pilot/results.json` ledger_outcome_median=11 | 去执行机读 p10-b2-agent-01 各 factgate/probe 运行的 agent.jsonl，逐步列 ΔO、拒绝前已用、被拒请求需求量；按实证改写为"已用 11、下一探测需 ≥2 不可容纳"或其它实情；证据文件改动记台账（登记件改动要给根因，不得悄改）；results.json 与 supplement 写明 `correct` = 区间包含真值 / 精确恢复 | DOING（raw 在 git 内已逐步核实 11/12；文本与登记件已改；待构建） |
 | C4a | 吞吐：ledger 一致性与客户端完成率分述 | `evaluation/throughput-pilot/results.json` 1×50 disjoint 261/300、nested 259/300、CONFLICT 80/600、cas_attempts 1664 | supplement 与主稿把 error_rounds=0 / ledger_matches 与 settled/requests、CONFLICT 数、CAS 重试次数分列成表；主稿一句不得写成"全部成功" | DOING（表加 requested/CONFLICT 列、文本分述；待构建） |
-| C4b | 吞吐补：含客户端重试的有效完成吞吐、最终完成比例、端到端尾延迟 | 评审 §6.2 | 设计写台账（客户端对 CONFLICT 重提至多 k 次，k 用保守先验定，不拟合；三部署；同 benign-x4 剖面；K∈{1,4}×N=50×3 overlap）；campaign_class pilot；先查现有 throughput-pilot 数据能否推出下界再决定重跑范围；结果进 supplement 表 | DESIGNED（docs/p10_r2_c4b_throughput_retry_design.md；adapter 加 -throughput-client-retries 已 vet/build；发射待 .env 与发射脚本） |
+| C4b | 吞吐补：含客户端重试的有效完成吞吐、最终完成比例、端到端尾延迟 | 评审 §6.2 | 设计写台账（客户端对 CONFLICT 重提至多 k 次，k 用保守先验定，不拟合；三部署；同 benign-x4 剖面；K∈{1,4}×N=50×3 overlap）；campaign_class pilot；先查现有 throughput-pilot 数据能否推出下界再决定重跑范围；结果进 supplement 表 | READY（设计 docs/p10_r2_c4b_throughput_retry_design.md；adapter -throughput-client-retries、hook 透传、launch-throughput-retry-pilot.sh、throughput-retry/analyze.py 全部就绪；pilot 类接受占位绑定；待本机 CPU 空闲后发射） |
 
 ## D 组：已有结果放到正确位置（低成本文本项）
 
@@ -27,7 +27,7 @@
 | # | 项 | 做法 | 状态 |
 |---|---|---|---|
 | E0 | 设计写台账后再动手 | 四臂：(i) 同治理与发布路径、不记账；(ii) 加事实推导、不做历史预算限制；(iii) 同语义朴素精确集合账本（同事实身份、同预算语义、同持久化、同失败语义——不得用仅内存 set）；(iv) 当前完整实现。同工作负载（benign 23 语句 + footprint ladder 选段）、三部署、每臂同轮数；停止规则用保守先验；指标：每语句端到端延迟分解、settle 子阶段、账本存储；预期表先写 | DESIGNED（docs/p10_r2_b5_ablation_design.md） |
-| E1 | 不改 V5_MEASURED_PATHS 的实现路线 | `evaluation/cmd/b5-ablation/` 独立二进制复用 internal 包，开关在该二进制内组装；朴素账本在 `evaluation/internal/naiveledger/` 实现（PG 集合表或持久化 Go map + WAL），走同一 settle 接口；若实证必须改 internal/ → 记台账「待作者裁决：解冻 measured paths 并重封」并转做其他项 | TODO |
+| E1 | 不改 V5_MEASURED_PATHS 的实现路线 | `evaluation/cmd/b5-ablation/` 独立二进制复用 internal 包，开关在该二进制内组装；朴素账本在 `evaluation/internal/naiveledger/` 实现（PG 集合表或持久化 Go map + WAL），走同一 settle 接口；若实证必须改 internal/ → 记台账「待作者裁决：解冻 measured paths 并重封」并转做其他项 | DOING（naiveledger + 良性轨迹重放已实测；-b5-ablation 驱动、run-b5-ablation.sh、三份+主 catalog 无记账孪生、analyze.py 就绪；未改 internal/） |
 | E2 | 执行 pilot、登记、入 supplement 新小节 + 主稿一表 | campaign_class pilot、publication_eligible false；回答四问：公共路径成本 / 事实推导成本 / 朴素正确实现成本 / 优化增量收益；主稿 21.8–144.5× 的解读随之校准（改主张适配证据） | TODO |
 
 ## 执行顺序
