@@ -136,3 +136,47 @@ the private `.env` and dataset bindings on this host; the harness adds its own
 Control databases on that deployment's PostgreSQL instance (`CREATE DATABASE`
 with the deployment's control credentials) and never writes to the deployment's
 own Control database.
+
+## Arm (iv-ledger): same-input comparison — feasibility settled 2026-09-20 (not built)
+
+The one comparison this pilot does not make is the honest one: the naive ledger
+and the optimised ledger settling *the same* fact sets. The B5 numbers compare
+the optimised ledger's leaves on the Baseline statements against the naive
+ledger on the benign trace's closed-form sets, which are different inputs; the
+supplement says so. A same-input run is feasible on the frozen code, and this
+section records how, so it can be built without re-deriving the analysis.
+
+What the code allows (verified by reading, file:line):
+
+- **V5 settlement accepts hash-carried (dynamic) facts.** `normalizeV5ObservationTx`
+  (`internal/control/ordinal_exposure_v5.go:172`) *requires* the Outcome set to be
+  dynamic and non-empty, and normalises Release/Influence through the dynamic
+  path with the `BASE_CELL` derived kind (`:163`). The schema has the matching
+  table `v4_bitmap_set_dynamic_facts`
+  (`internal/control/migrations/014_ordinal_bitmap_ledger.sql:292`). So an
+  observation whose three dimensions are exactly the corpus's fact hashes is a
+  legal V5 observation — no ordinal dictionary entries needed for those facts.
+- **The settlement entry point is exported**: `Store.FinalizeOrdinalQueryMeasuredWithReceipt`
+  (`internal/control/result.go:71`) returns the same `FinalizeQueryMetrics`
+  (reservation lock / ledger lock / fact store / Outcome-radix load, difference,
+  persist) that the B5 arm (iv) reports per query.
+- **Evaluation code may drive the control plane directly**; the precedent is
+  `evaluation/cmd/exposure-storage/main.go`, which creates a principal and task,
+  approves it through `ApplyApprovalCallback`, reserves with `ReserveBudget` and
+  settles with `FinalizeQueryMeasured` against a migrated store — exactly the
+  sequence a V5 variant needs.
+
+Open constraint to resolve when building it: the observation's
+`DictionarySetDigest` must belong to a dictionary set whose catalog digest equals
+the query's (`ordinal_exposure_v5.go:152-160`). `Store.PutOrdinalDictionarySet`
+is exported, so the harness publishes a minimal dictionary set under the same
+catalog digest it created the task with; whether a dictionary set with no
+segments is accepted has not been checked.
+
+Shape of the experiment: for each statement of the benign trace, build one
+observation carrying that statement's Release/Dependency/Outcome hashes, settle
+it (a) through `evaluation/internal/naiveledger` and (b) through the exported V5
+`Finalize…`, on two freshly migrated Control databases on the same PostgreSQL,
+single-writer, three repetitions. Report per statement the wall time to commit
+and, after the trace, the relation sizes on both sides. That is the missing
+one-to-one number, and it needs no change under `internal/`.
