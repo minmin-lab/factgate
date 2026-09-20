@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-profile-activation-evidence-v1",
+  "contract_release": "final-v5-contracts-v1.13",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "deployment_id": "deployment-01",
+  "activation_sequence": 1,
+  "profile_id": "profile-ac3d38a970ae15e6",
+  "profile_alias": "footprint-bounded",
+  "closure_sha256": "ac3d38a970ae15e6370195b236dbe25631e6c3afadc9b30a52bf55931657710c",
+  "catalog_sha256": "abe239592aeb2878a54b230c6606b2e09de29eed949479ae8591f01c153343af",
+  "catalog_file_sha256": "abe239592aeb2878a54b230c6606b2e09de29eed949479ae8591f01c153343af",
+  "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+  "publication_set_sha256": "6241c07f3523c5485501b91f222752f36fefb7cf132c94e362e61c5c5fb4fa71",
+  "gateway_image_id": "sha256:af99a8dcbd72a58a9a968e504bbc0b148fbf5928bb30020ae03320a1930fbba2",
+  "gateway_container_id": "0f75908fd3fa49521f408e8d8cb8a186571275989b46d4f09116a61c9fff1349",
+  "process_instance_nonce": "06727f0e0e51e0255dc19579997ed8f7f055b7e1f183f5faa6467af93f3ee9b6",
+  "process_started_unix": 1789880704,
+  "activation_started_at": "2026-09-20T05:04:57.94036023Z",
+  "activation_ended_at": "2026-09-20T05:05:10.909195429Z",
+  "readiness_completed_at": "2026-09-20T05:05:10.909195429Z",
+  "activation_duration_ms": 12968.835,
+  "expected_products": [
+    "final_v5_footprint_bounded_result_heavy"
+  ],
+  "observed_products": [
+    "final_v5_footprint_bounded_result_heavy"
+  ],
+  "expected_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "observed_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "expected_hot_artifacts": [
+    {
+      "identity": "final-v5-result-heavy-v1",
+      "digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bytes": 126813361
+    }
+  ],
+  "observed_hot_artifacts": [
+    {
+      "identity": "final-v5-result-heavy-v1",
+      "digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bytes": 126813361
+    }
+  ],
+  "expected_hot_bytes": 126813361,
+  "actual_hot_bytes": 126813361,
+  "hot_limit_bytes": 1073741824,
+  "drain_before": {
+    "inflight_queries": 0,
+    "pending_artifacts": 0,
+    "open_reservations": 0,
+    "active_served_roots": 0
+  },
+  "drain_observation_status": "observed",
+  "drain_observer_version": "taskgate-final-v5-drain-observer-v1-uninitialized-control",
+  "drain_observation_sha256": "723caf3d62a49c5220d67318bd41a5980b0eadae817b32f9dd1eeb84882c557b",
+  "profile_artifact_manifest_sha256": "dd9bdd4d9663e425dde903de5d22a1286f4f95e3da6895c003459bbcc8a7c01c",
+  "profile_artifact_directory_sha256": "814d4df9971f41b649289aa8b4b3c42f86b588b50c5691f21cf0ec010659f99b",
+  "mounted_artifact_directory_identity": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-footprint-08/deployments/footprint-bounded/001/profile-artifacts/profile-ac3d38a970ae15e6",
+  "expected_source_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "observed_loader_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "attestation_version": "taskgate-final-v5-profile-schema-attestation-v1",
+  "expected_schema_digest": "418738c7e62be973db8476fb29f461bd7ffb6e353c5f845c0bf75d16278475d7",
+  "observed_schema_digest": "418738c7e62be973db8476fb29f461bd7ffb6e353c5f845c0bf75d16278475d7",
+  "expected_reporting_view_set_sha256": "8a30e503cbfe540b5d7cd6d4f485c79dd9d8a17da18fa61d20462f6d060dde5b",
+  "observed_reporting_view_set_sha256": "8a30e503cbfe540b5d7cd6d4f485c79dd9d8a17da18fa61d20462f6d060dde5b",
+  "schema_digest_tool_sha256": "264f811c5c83bd07d0a2357c1ac9414d62467d11fd1b2a7f70677cf4d995506f",
+  "schema_attestation_status": "verified",
+  "cache_isolation": {
+    "process_restarted": true,
+    "process_instance_nonce": "06727f0e0e51e0255dc19579997ed8f7f055b7e1f183f5faa6467af93f3ee9b6",
+    "cache_namespace": "81864172b5880b80b4e6df118b92c8e6abb92280b116f38d987021b26ea3f455",
+    "previous_in_process_cache_unreachable": true,
+    "semantic_cache_catalog_bound": true,
+    "previous_hot_artifacts_retired": true
+  },
+  "outside_product_probes": [
+    {
+      "product": "expense_detail",
+      "requested_product_sha256": "d0c3c90b7993d9d685a26aa5fb06dd683a0f7867c66bce27b0af44f668f457e7",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "ff5f1321343516c221f549144d4c3d4afd4d815e5a696770d047b88fe2212e07"
+    },
+    {
+      "product": "expense_summary",
+      "requested_product_sha256": "5e7d7892f5497457f087789c3472acc536d783e64addf8e182c7ac453568f97e",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "f943ec500feb916485851adcf26836ab25c9e42505136fe33cacfa8c5879d73d"
+    },
+    {
+      "product": "final_v5_analytics_depth4",
+      "requested_product_sha256": "4c28a4bb35e491aa8221694f6fea25f08b54f87bdff6cc2d757cc2b6ae8ba937",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "85c8a10fe439d4303e41fb880ae413acbb6565cc47a112a3d616ed5f59d13d59"
+    },
+    {
+      "product": "final_v5_attack_expense_detail",
+      "requested_product_sha256": "e77f8f7e2d69667942144d8a58aa1a122c540bfca5a22c2f516c9214d1e83634",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "8f78edd7464da2badbee26d773d49f204240d26fa1f45cc8c7d4662708a421fa"
+    },
+    {
+      "product": "final_v5_concurrency_expense_detail",
+      "requested_product_sha256": "5f5c1ba18acd3315456538fbaeb06ee41861530593f6db7b70bf5f9c939aad09",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "41f04def30e45a0caa1a1f33d2e6e0b6526222f38bd02b76fb0aa34b2bb6649e"
+    },
+    {
+      "product": "final_v5_exposure_scale",
+      "requested_product_sha256": "fd032e2bfa85c8b793658e403001d012382683d7b1cbef49f5058598721cb009",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "7bb8d18d5ecbbd8e345fff26152bbb8124b27bec245565e415c9cdb9fd8a9ec9"
+    },
+    {
+      "product": "final_v5_footprint_unlimited_result_heavy",
+      "requested_product_sha256": "6041cd61844190f9396311e0d2ccfb37253abbe92ccda0c2924a97ca5acdab96",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "60a98ebf165112725327bccf9c966443617308150759d1a370993d93ae430db8"
+    },
+    {
+      "product": "final_v5_result_heavy",
+      "requested_product_sha256": "44d1b4dc01b98ba27444371b5e872d6bb99efdf36fae2df9fcf7ef60c1bad6a8",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "9e06fc85a96410dba94affc93051c1e5b0d14c0387e41a64bcd28b614b277766"
+    },
+    {
+      "product": "final_v5_rls_bounded_expense_detail",
+      "requested_product_sha256": "3b1cdf59e7f5cd676b47ed33a64fb1adf98adc9cbf89300372318c85f980bc54",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "ac3fc229d80a2410e4addd996c5835ff15f4c008cb2e556ca2d22af6e7392fe1"
+    },
+    {
+      "product": "final_v5_rls_unlimited_expense_detail",
+      "requested_product_sha256": "9b8f6ce5a62e6639c6b065cc9193577411a6c4ec644e86853e625f2b9858b9b0",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "4198aae130edb113888e07190bbb3f38b8ef69d7716b225a0fef1f90282b308f"
+    },
+    {
+      "product": "final_v5_scale_e7",
+      "requested_product_sha256": "6eeeb3bf7d79fa3a569674d539cd96cc4c4a8cf536316378bae475d802fbb31a",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "ee7ecc76f0f255b843ab05c493ec2753db1a750b712598ceda58a92db273c7ce"
+    },
+    {
+      "product": "provsql_lineitem",
+      "requested_product_sha256": "d8de227d8122b707c6c9c212aad98ade2140157c8a115f68fdd3e6bd64e7a72c",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "98eb573d6c8e64b7c2fd3d82d337eb43397ddb73c1e143b5965a32222755bc95"
+    },
+    {
+      "product": "provsql_nonce",
+      "requested_product_sha256": "828367b236128c7353baaadbc49590fa25b5c5414ce7ad01d8b5175cd8346109",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "46c1086f84b342e922a368a2ffac252c810d8af082b8030d390976735276ddb8"
+    },
+    {
+      "product": "provsql_orders",
+      "requested_product_sha256": "45de540ab3503d1c03f5677fbfd3f0be130b29ce2d661848c47d45a3d4e8ecca",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "23502f985f846ffdbec9562a9419630d7c13c4f57d6d58356f9507d1c3907ed9"
+    }
+  ],
+  "profile_surface_attestation": {
+    "domain": "profile-reporting-surface",
+    "catalog_source": "travel_demo",
+    "catalog_pinned_schema_digest": "418738c7e62be973db8476fb29f461bd7ffb6e353c5f845c0bf75d16278475d7",
+    "live_observed_schema_digest": "418738c7e62be973db8476fb29f461bd7ffb6e353c5f845c0bf75d16278475d7",
+    "reporting_view_set_sha256": "8a30e503cbfe540b5d7cd6d4f485c79dd9d8a17da18fa61d20462f6d060dde5b",
+    "reporting_views": [
+      "reporting.final_v5_footprint_bounded_result_heavy"
+    ],
+    "verified": true
+  },
+  "publication_bundle_attestations": [
+    {
+      "domain": "publication-build",
+      "publication": "final-v5-result-heavy-v1",
+      "build_schema_attestation": "ebedbecf4f8fbc4eaf150d32fd260fe9b902549367abee880cc02d4b6c3ff96b",
+      "manifest_digest": "80238c32b6773b623efd48730cb31e4375faff4430aabe19436e78a9b2eb88fd",
+      "dictionary_digest": "9d014210da03effded9c72f42fe1af370c9a563fbee6315c298c10560a7254c0",
+      "sidecar_digest": "f50d45943e4388bc9cbc897be0ff337bf76cf004cd55e553fdab8695b567a1fc",
+      "hot_index_digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bundle_manifest_file_sha256": "ab2e22c659f171f4d4dd0d1b009028f93e936bc293160199edd87f5aead4b84b",
+      "recomputed_identity_matches_bundle": true,
+      "activated_by_loader": true,
+      "equals_profile_surface_attestation": false
+    }
+  ],
+  "attestation_domains_separated": true,
+  "activation_smoke_passed": true,
+  "workload_targeted_validation_passed": false,
+  "status": "pass",
+  "failures": null
+}

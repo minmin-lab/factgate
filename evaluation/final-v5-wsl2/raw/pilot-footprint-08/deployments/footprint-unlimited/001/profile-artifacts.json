@@ -1,0 +1,57 @@
+{
+  "contract_release": "final-v5-contracts-v1.13",
+  "profiles": {
+    "profile-52504d68e0f7fa28": {
+      "schema_version": 1,
+      "materializer_version": "taskgate-final-v5-profile-artifact-materializer-v1",
+      "contract_release": "final-v5-contracts-v1.13",
+      "profile_id": "profile-52504d68e0f7fa28",
+      "profile_alias": "footprint-unlimited",
+      "closure_sha256": "52504d68e0f7fa28a4b3989130c0c8b3f861c0f6d1a86d1b20a3917af81598f6",
+      "catalog_sha256": "8dafc3b5b6092d0fb547291987d0182c0afcdcb7d997d7d6d6e486cf076738e1",
+      "publication_set_sha256": "6241c07f3523c5485501b91f222752f36fefb7cf132c94e362e61c5c5fb4fa71",
+      "source_artifact_root_sha256": "608475e5329bf6bc3a8af389869c654ec6835f62fbe5427bbc04bc8e2fccdc43",
+      "profile_artifact_directory_sha256": "814d4df9971f41b649289aa8b4b3c42f86b588b50c5691f21cf0ec010659f99b",
+      "created_at": "2026-09-20T05:33:19Z",
+      "publications": [
+        "final-v5-result-heavy-v1"
+      ],
+      "files": [
+        {
+          "relative_path": "final-v5-result-heavy-v1/final-v5-result-heavy-v1.bundle.json",
+          "publication": "final-v5-result-heavy-v1",
+          "sha256": "ab2e22c659f171f4d4dd0d1b009028f93e936bc293160199edd87f5aead4b84b",
+          "bytes": 13601,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-result-heavy-v1/final-v5-result-heavy-v1.cold.tgord",
+          "publication": "final-v5-result-heavy-v1",
+          "sha256": "1f38451a53490279ada5c91de52e178be8e23c0ae889afa4fcf6dcb60c09f91d",
+          "bytes": 1859323393,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-result-heavy-v1/final-v5-result-heavy-v1.hot.tgord",
+          "publication": "final-v5-result-heavy-v1",
+          "sha256": "5735e6903f6b19df8778f4cf4a32eaed4ea391a747cdaf6a9a34b359c9eeffe9",
+          "bytes": 126813361,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-result-heavy-v1/final-v5-result-heavy-v1.sidecar.ndjson",
+          "publication": "final-v5-result-heavy-v1",
+          "sha256": "7fbff306a14c50e4c7e1a3b88ff4b67fa758bbf593b05d1ad3683bda16d952e6",
+          "bytes": 13478356,
+          "mode": "0444"
+        }
+      ],
+      "total_files": 4,
+      "total_bytes": 1999628711,
+      "expected_hot_bytes": 126813361,
+      "max_hot_limit_bytes": 1073741824
+    }
+  },
+  "record": "taskgate-final-v5-profile-artifact-manifest-set-v1",
+  "schema_version": 1
+}

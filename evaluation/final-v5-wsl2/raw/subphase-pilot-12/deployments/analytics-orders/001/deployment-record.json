@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "campaign_id": "subphase-pilot-12",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-05148e2bf4c843ea6c33",
+  "profile_id": "profile-f60ec5752f501da0",
+  "profile_alias": "analytics-orders",
+  "catalog_path": "config/profiles/analytics-orders.catalog.yaml",
+  "catalog_sha256": "b6a5aaf7c03d82f820b57f49d27363677049966b001efde2972aa3f4d3485325",
+  "repetition": 1,
+  "cells": [
+    "baseline/S1/SF1/direct",
+    "baseline/S1/SF1/idempotent_replay",
+    "baseline/S1/SF1/normalized_rewrite_replay",
+    "baseline/S1/SF1/novel",
+    "baseline/S1/SF1/semantic_replay",
+    "baseline/S1/SF10/direct",
+    "baseline/S1/SF10/idempotent_replay",
+    "baseline/S1/SF10/normalized_rewrite_replay",
+    "baseline/S1/SF10/novel",
+    "baseline/S1/SF10/semantic_replay",
+    "baseline/S5/SF1/direct",
+    "baseline/S5/SF1/idempotent_replay",
+    "baseline/S5/SF1/novel",
+    "baseline/S5/SF1/semantic_replay",
+    "baseline/S5/SF10/direct",
+    "baseline/S5/SF10/idempotent_replay",
+    "baseline/S5/SF10/novel",
+    "baseline/S5/SF10/semantic_replay"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/analytics-orders/001/profile-binding.json",
+      "sha256": "dc31a0b6e784fe12367c220a098cfed7e9ef5a38dfe073968acd82352c0794d6",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/analytics-orders/001/activation/analytics-orders.json",
+      "sha256": "a8e47afb24bee8c7a6e5dbeb02b0175fa38eca9acea187ff1e7ebba3bdaa8c7f",
+      "bytes": 11962
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/analytics-orders/001/environment.json",
+      "sha256": "9227734d4bbfa60a2c6a102fbbc9e521bd0588d8033ce523de56e7ef04f00cca",
+      "bytes": 80183
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/analytics-orders/001/fresh-proof.json",
+      "sha256": "62235d1478678aedab0c0ac48fe1c6e7519be08f984fd5ba20d0fc8bdb3a39f5",
+      "bytes": 1854
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/analytics-orders/001/gateway-image.json",
+      "sha256": "f686e09c3d94c3852eff23c8939b46fcff91aae6853a938bf05f086d758174b0",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/analytics-orders/001/formal-gateway-runtime.json",
+      "sha256": "a5ac9ddc4af92a62cafbd66d421cb88dd51c8fbafca0fc19cfbae4cced763ee2",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "d67b758763e9f64df314446b7347940d9896cb4c5d4b935933f2388d3544b4ba",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "7696ad82c40acff652d9cd1d86af9f4c19e53a0aec1e5d2b9b7d674bd92ff758",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "e12f348f69fbea9fb8cdefec3e0aa5d97ad9c74c70d0a0b8b1a9b34c042d8eac",
+      "bytes": 656
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/analytics-orders/001/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/analytics-orders/001/deployment-configuration.json",
+      "sha256": "4cf20ed61374c6ea91241a150341920b741c9ca3e9caf7ff95018c752045fc36",
+      "bytes": 282
+    },
+    {
+      "kind": "config",
+      "path": "deployments/analytics-orders/001/config/baseline.json",
+      "sha256": "0aad29cd3c85bbfdd7412be0474f41abfba6257b970253607c83dfd9b98eb230",
+      "bytes": 2179,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/analytics-orders/001/selected-cells/baseline.json",
+      "sha256": "a15a84a119cb8fcaa7d9f5e10dd84f491706366f699e32b839042d7a6ecd9570",
+      "bytes": 630,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/analytics-orders/001/raw/baseline.jsonl",
+      "sha256": "2ddd19367d5b302c4fe7287436795365de86a72f37d41d24b4858ba66ac3c527",
+      "bytes": 747609,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/analytics-orders/001/baseline.gate.json",
+      "sha256": "755292716d38b93007ada7da3f6a747402397fd7a4ab00283711f18e1532c8d0",
+      "bytes": 204,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/analytics-orders/001/adapter-stderr/baseline.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/analytics-orders/001/adapter-stderr/baseline.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "baseline"
+    }
+  ]
+}

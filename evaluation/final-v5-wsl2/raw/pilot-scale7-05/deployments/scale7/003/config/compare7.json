@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "real_system",
+  "campaign_id": "pilot-scale7-05",
+  "experiment_id": "compare7",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "deployments": 1,
+  "warmups": 0,
+  "samples": 1,
+  "random_seed": 20260903,
+  "fresh_root_per_sample": true,
+  "workloads": [
+    {
+      "id": "compare7-sequence-v1",
+      "scales": [
+        "seq-60"
+      ],
+      "modes": [
+        "bdg"
+      ]
+    }
+  ],
+  "process_replicates": 1
+}

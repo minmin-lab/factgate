@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-profile-activation-evidence-v1",
+  "contract_release": "final-v5-contracts-v1.13",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "deployment_id": "deployment-01",
+  "activation_sequence": 1,
+  "profile_id": "profile-5b48ad2a02c5446d",
+  "profile_alias": "analytics-orders-lineitem",
+  "closure_sha256": "5b48ad2a02c5446d07cd2c837428be7e10b9b2bff675d5df94868f828058e380",
+  "catalog_sha256": "4764a69897d79cd283a1d5044bf858fb31047a51dbf1877273648e75e4688733",
+  "catalog_file_sha256": "4764a69897d79cd283a1d5044bf858fb31047a51dbf1877273648e75e4688733",
+  "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+  "publication_set_sha256": "3109bfbb07075657b43e33dc56e501ce12d0fbb70d1c9127123c9d95de477bc2",
+  "gateway_image_id": "sha256:f28a8e4ee299352b073bec40e32b97180d25318cb66977a7f845d93b21e0863f",
+  "gateway_container_id": "5592ba1f701d5d634cbfee0ddc84347245f74eb784c2924d8d8566fb308f782f",
+  "process_instance_nonce": "c68b32cc66b5cca9a46da4015e562093b8ff11ec67e0fa7e678eed1645bad737",
+  "process_started_unix": 1789863877,
+  "activation_started_at": "2026-09-20T00:24:31.79688712Z",
+  "activation_ended_at": "2026-09-20T00:24:44.214558293Z",
+  "readiness_completed_at": "2026-09-20T00:24:44.214558293Z",
+  "activation_duration_ms": 12417.671,
+  "expected_products": [
+    "provsql_lineitem",
+    "provsql_orders"
+  ],
+  "observed_products": [
+    "provsql_lineitem",
+    "provsql_orders"
+  ],
+  "expected_publications": [
+    "provsql-lineitem-v1",
+    "provsql-orders-v1"
+  ],
+  "observed_publications": [
+    "provsql-lineitem-v1",
+    "provsql-orders-v1"
+  ],
+  "expected_hot_artifacts": [
+    {
+      "identity": "provsql-lineitem-v1",
+      "digest": "65dcf1c0edf2e6fcf4f85204b800f7368d211648ccf2c3b3f2ace8feac4232d1",
+      "bytes": 101004070
+    },
+    {
+      "identity": "provsql-orders-v1",
+      "digest": "80bdee604013afac5a24497e778a633b31262f2784df78fba11b1a98010199c1",
+      "bytes": 16603206
+    }
+  ],
+  "observed_hot_artifacts": [
+    {
+      "identity": "provsql-lineitem-v1",
+      "digest": "65dcf1c0edf2e6fcf4f85204b800f7368d211648ccf2c3b3f2ace8feac4232d1",
+      "bytes": 101004070
+    },
+    {
+      "identity": "provsql-orders-v1",
+      "digest": "80bdee604013afac5a24497e778a633b31262f2784df78fba11b1a98010199c1",
+      "bytes": 16603206
+    }
+  ],
+  "expected_hot_bytes": 117607276,
+  "actual_hot_bytes": 117607276,
+  "hot_limit_bytes": 1073741824,
+  "drain_before": {
+    "inflight_queries": 0,
+    "pending_artifacts": 0,
+    "open_reservations": 0,
+    "active_served_roots": 0
+  },
+  "drain_observation_status": "observed",
+  "drain_observer_version": "taskgate-final-v5-drain-observer-v1-uninitialized-control",
+  "drain_observation_sha256": "723caf3d62a49c5220d67318bd41a5980b0eadae817b32f9dd1eeb84882c557b",
+  "profile_artifact_manifest_sha256": "7228b1aff4e816dc89b756abfaf4a18bf26bd5069cea5fec973200027b1ab8c6",
+  "profile_artifact_directory_sha256": "6e595df61687399e7e68420e79b8a7c422273e2de7b7d249f64abcae43c394cc",
+  "mounted_artifact_directory_identity": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-12/deployments/analytics-orders-lineitem/001/profile-artifacts/profile-5b48ad2a02c5446d",
+  "expected_source_publications": [
+    "provsql-lineitem-v1",
+    "provsql-orders-v1"
+  ],
+  "observed_loader_publications": [
+    "provsql-lineitem-v1",
+    "provsql-orders-v1"
+  ],
+  "attestation_version": "taskgate-final-v5-profile-schema-attestation-v1",
+  "expected_schema_digest": "e13e08ecbe35e85206a37f07f387bbf25a66fef4ed2897c8abe8a1bd9d3c7701",
+  "observed_schema_digest": "e13e08ecbe35e85206a37f07f387bbf25a66fef4ed2897c8abe8a1bd9d3c7701",
+  "expected_reporting_view_set_sha256": "caaeaddbf7f9a0d6417f7b1c39d1f7e32ed0b0f1665b62b325b052ae848d90bc",
+  "observed_reporting_view_set_sha256": "caaeaddbf7f9a0d6417f7b1c39d1f7e32ed0b0f1665b62b325b052ae848d90bc",
+  "schema_digest_tool_sha256": "264f811c5c83bd07d0a2357c1ac9414d62467d11fd1b2a7f70677cf4d995506f",
+  "schema_attestation_status": "verified",
+  "cache_isolation": {
+    "process_restarted": true,
+    "process_instance_nonce": "c68b32cc66b5cca9a46da4015e562093b8ff11ec67e0fa7e678eed1645bad737",
+    "cache_namespace": "ffe8309efe1adce6d2df7c6ab3313cd403ba1f7b5aa5937c85477a0bd4e4629a",
+    "previous_in_process_cache_unreachable": true,
+    "semantic_cache_catalog_bound": true,
+    "previous_hot_artifacts_retired": true
+  },
+  "outside_product_probes": [
+    {
+      "product": "expense_detail",
+      "requested_product_sha256": "d0c3c90b7993d9d685a26aa5fb06dd683a0f7867c66bce27b0af44f668f457e7",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "56d33b9543a05722e136d80218790530243bb76c935e26216ea4a2c88d32e19f"
+    },
+    {
+      "product": "expense_summary",
+      "requested_product_sha256": "5e7d7892f5497457f087789c3472acc536d783e64addf8e182c7ac453568f97e",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "4ae919894ba1d0e865b5c10417fe79dff2b6d781b27d69b5a61f80960f369fce"
+    },
+    {
+      "product": "final_v5_analytics_depth4",
+      "requested_product_sha256": "4c28a4bb35e491aa8221694f6fea25f08b54f87bdff6cc2d757cc2b6ae8ba937",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "52e640f5ae429bdf88ab4a48ce709b5ac5f939d9b07f2818ec6c597bf1fce4d4"
+    },
+    {
+      "product": "final_v5_attack_expense_detail",
+      "requested_product_sha256": "e77f8f7e2d69667942144d8a58aa1a122c540bfca5a22c2f516c9214d1e83634",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "f3ff7f2f6c7ea1427e47b7ce5b5ffb926bc2458ee0241fdece4576419b5626c9"
+    },
+    {
+      "product": "final_v5_concurrency_expense_detail",
+      "requested_product_sha256": "5f5c1ba18acd3315456538fbaeb06ee41861530593f6db7b70bf5f9c939aad09",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "0192901bfa1381b95e550ea8fa585b316c15967affe13fc1cbc95ace488156f2"
+    },
+    {
+      "product": "final_v5_exposure_scale",
+      "requested_product_sha256": "fd032e2bfa85c8b793658e403001d012382683d7b1cbef49f5058598721cb009",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "ba654450e785e2b7ee3fc233f3f28c59db90bee1c50210e6736394ad7b86bbb6"
+    },
+    {
+      "product": "final_v5_footprint_bounded_result_heavy",
+      "requested_product_sha256": "83dcfb2a37a545926b07735938eba622f7e94770ac98e3c36ee4d19042dff3bf",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "de7b4856bb5e02ae87f54f054299a459f97bebe1484c347188e9e852e3f18919"
+    },
+    {
+      "product": "final_v5_footprint_unlimited_result_heavy",
+      "requested_product_sha256": "6041cd61844190f9396311e0d2ccfb37253abbe92ccda0c2924a97ca5acdab96",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "2283c8dee27db1d3616de4cd6576139584394e3b80c19574f45724915953a0c4"
+    },
+    {
+      "product": "final_v5_result_heavy",
+      "requested_product_sha256": "44d1b4dc01b98ba27444371b5e872d6bb99efdf36fae2df9fcf7ef60c1bad6a8",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "edafae2acb9cae4071fb0334ece78670637da8231469753bc236c6f679f921ad"
+    },
+    {
+      "product": "final_v5_rls_bounded_expense_detail",
+      "requested_product_sha256": "3b1cdf59e7f5cd676b47ed33a64fb1adf98adc9cbf89300372318c85f980bc54",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "3236aced7cffb4d14ad44f4ae39506370b916dc98ed6be16ab9ec69b483d863c"
+    },
+    {
+      "product": "final_v5_rls_unlimited_expense_detail",
+      "requested_product_sha256": "9b8f6ce5a62e6639c6b065cc9193577411a6c4ec644e86853e625f2b9858b9b0",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "768dce402edaf07c04ec03a964063080042fa036aa9c59b73c78d94dfc291152"
+    },
+    {
+      "product": "final_v5_scale_e7",
+      "requested_product_sha256": "6eeeb3bf7d79fa3a569674d539cd96cc4c4a8cf536316378bae475d802fbb31a",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "d007723a8f0a8bb7f409dfec37bbb968bbdfde7a2f13b543b4e41d8ddfdd2aa9"
+    },
+    {
+      "product": "provsql_nonce",
+      "requested_product_sha256": "828367b236128c7353baaadbc49590fa25b5c5414ce7ad01d8b5175cd8346109",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "fb85028fac8ddcec4a876b7a7725c3c7a375ab2330bc3940c55eed9562ad77e5"
+    }
+  ],
+  "profile_surface_attestation": {
+    "domain": "profile-reporting-surface",
+    "catalog_source": "travel_demo",
+    "catalog_pinned_schema_digest": "e13e08ecbe35e85206a37f07f387bbf25a66fef4ed2897c8abe8a1bd9d3c7701",
+    "live_observed_schema_digest": "e13e08ecbe35e85206a37f07f387bbf25a66fef4ed2897c8abe8a1bd9d3c7701",
+    "reporting_view_set_sha256": "caaeaddbf7f9a0d6417f7b1c39d1f7e32ed0b0f1665b62b325b052ae848d90bc",
+    "reporting_views": [
+      "reporting.provsql_lineitem",
+      "reporting.provsql_orders"
+    ],
+    "verified": true
+  },
+  "publication_bundle_attestations": [
+    {
+      "domain": "publication-build",
+      "publication": "provsql-lineitem-v1",
+      "build_schema_attestation": "ebedbecf4f8fbc4eaf150d32fd260fe9b902549367abee880cc02d4b6c3ff96b",
+      "manifest_digest": "4be0601c8b909e89051e4018c430542e9d1c1827460b82a3f0cd7eff66e25ab5",
+      "dictionary_digest": "e718bc8f0d9eeb92069cbb7df26b8041e6ebc13ca8ef0943ba77e280cfd9895d",
+      "sidecar_digest": "f8b90a24a69fe0fdcc0423462fd9920e44860eb38b881d8e803622d89285cfa2",
+      "hot_index_digest": "65dcf1c0edf2e6fcf4f85204b800f7368d211648ccf2c3b3f2ace8feac4232d1",
+      "bundle_manifest_file_sha256": "173cefe414b2a926ddebdb0e01f5b5d7dc57b56a0536a068ca9b62fb48e5e807",
+      "recomputed_identity_matches_bundle": true,
+      "activated_by_loader": true,
+      "equals_profile_surface_attestation": false
+    },
+    {
+      "domain": "publication-build",
+      "publication": "provsql-orders-v1",
+      "build_schema_attestation": "ebedbecf4f8fbc4eaf150d32fd260fe9b902549367abee880cc02d4b6c3ff96b",
+      "manifest_digest": "e79cda20623ec8904f834273800f466918578072d336bdfaef160974ae155909",
+      "dictionary_digest": "af304d7670eb00a84f671690df5bea26815edf9e53e6c2c2b1878e3153d8e975",
+      "sidecar_digest": "a75e4a6aa2f9b6cf724c295e7b9ec2e75460015f31a21e87b6791223d52aba18",
+      "hot_index_digest": "80bdee604013afac5a24497e778a633b31262f2784df78fba11b1a98010199c1",
+      "bundle_manifest_file_sha256": "f93532e8e97c105844cecdcd0027e06d138526285972fbcc1543164e09635594",
+      "recomputed_identity_matches_bundle": true,
+      "activated_by_loader": true,
+      "equals_profile_surface_attestation": false
+    }
+  ],
+  "attestation_domains_separated": true,
+  "activation_smoke_passed": true,
+  "workload_targeted_validation_passed": false,
+  "status": "pass",
+  "failures": null
+}

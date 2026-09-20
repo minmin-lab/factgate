@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pilot-footprint-08",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-5aef881df45e678fdd7f",
+  "profile_id": "profile-52504d68e0f7fa28",
+  "profile_alias": "footprint-unlimited",
+  "catalog_path": "config/profiles/footprint-unlimited.catalog.yaml",
+  "catalog_sha256": "8dafc3b5b6092d0fb547291987d0182c0afcdcb7d997d7d6d6e486cf076738e1",
+  "repetition": 1,
+  "cells": [
+    "footprint/refused-footprint-ladder-v1/1e5-rows/unlimited"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/footprint-unlimited/001/profile-binding.json",
+      "sha256": "0b02a391ad53545c62c3000787aad803e1934b81e5ae2bc09266e1c5a58e1e27",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/footprint-unlimited/001/activation/footprint-unlimited.json",
+      "sha256": "e422ce8e1e1ac7689b6755fc520ed7738c95b28bcca03285726a740ddfe867b6",
+      "bytes": 12074
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/footprint-unlimited/001/environment.json",
+      "sha256": "c8cfba0a3ad749e17e67bb636f175e24001ac9265bb47267b2e8cf3cdbf59b81",
+      "bytes": 102101
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/footprint-unlimited/001/fresh-proof.json",
+      "sha256": "b16403d7625e86944227358a7d411b379a0038dea023ea8f075027d09791e3fd",
+      "bytes": 1864
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/footprint-unlimited/001/gateway-image.json",
+      "sha256": "e5662398318358020b8c16418f6fb650db1cf61b1dd898dfa5eb1115cf7f2670",
+      "bytes": 1615
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/footprint-unlimited/001/formal-gateway-runtime.json",
+      "sha256": "81059d4fecde51ec3b4c804a867d8f9b3b383aaca4983e78705befdb636c585b",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "375508af281b8e38b0f2fe5f4692902d70ebf966abfed3cfce74323e6d81d0ee",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "827d5b6686b1d788c587a89c808844c2996dd06490b9c011fccf034f7a081a41",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "faba75eeea32ef8c1be99f60b2192af98095fba51ae8ff421699213108a0dd27",
+      "bytes": 657
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/footprint-unlimited/001/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/footprint-unlimited/001/deployment-configuration.json",
+      "sha256": "884658b91d7eb0302410748218357802ed2bbb1e1a41cee9a9fad8e55768830f",
+      "bytes": 285
+    },
+    {
+      "kind": "config",
+      "path": "deployments/footprint-unlimited/001/config/footprint.json",
+      "sha256": "b2ad0afc29513635026b655c36736867d956aae331db727d375bae22bd769196",
+      "bytes": 550,
+      "experiment": "footprint"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/footprint-unlimited/001/selected-cells/footprint.json",
+      "sha256": "3895032fd0fcbb5cc214dad7b0b7c6be4d8143c0d8a41af86bd9159544c52531",
+      "bytes": 65,
+      "experiment": "footprint"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/footprint-unlimited/001/raw/footprint.jsonl",
+      "sha256": "a27427b43242fc43633403130ed3239b60d390233a3bfd6e77e7f5c36e0ffd70",
+      "bytes": 10550,
+      "experiment": "footprint"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/footprint-unlimited/001/footprint.gate.json",
+      "sha256": "fdfdd4d0b602a866a517f11727f3f5870ee5d79c6220df977abaaf23b49b0e6e",
+      "bytes": 203,
+      "experiment": "footprint"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/footprint-unlimited/001/adapter-stderr/footprint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "footprint"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/footprint-unlimited/001/adapter-stderr/footprint.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "footprint"
+    }
+  ]
+}

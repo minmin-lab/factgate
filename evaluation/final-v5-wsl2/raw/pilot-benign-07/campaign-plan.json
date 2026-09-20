@@ -1,0 +1,650 @@
+{
+  "contract_release": "final-v5-contracts-v1.13",
+  "deployments": [
+    {
+      "profile_id": "profile-68ded13e09bfd6e1",
+      "alias": "adversary-loosened",
+      "catalog_path": "config/profiles/adversary-loosened.catalog.yaml",
+      "catalog_sha256": "ba64c82e71285c9b108e5dd8fb120ad1ee2ab6aeba2f9c81af1011e0f35c85f7",
+      "experiments": [
+        "adversary"
+      ],
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/loosened",
+        "adversary/adversary-extraction-v1/greedy/loosened"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-4a29b3ffc7129007",
+      "alias": "adversary-owner",
+      "catalog_path": "config/profiles/adversary-owner.catalog.yaml",
+      "catalog_sha256": "bb1abc4137787597ba1da454c2d24445439c9e42e2c05153d1d8f202fff17309",
+      "experiments": [
+        "adversary"
+      ],
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/owner",
+        "adversary/adversary-extraction-v1/greedy/owner"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-f39ec7673d438fe9",
+      "alias": "adversary-tightened",
+      "catalog_path": "config/profiles/adversary-tightened.catalog.yaml",
+      "catalog_sha256": "19c0ea5e27e4df81b87164c27e1e70fa01c81092731757e51d6cf350ab20ac76",
+      "experiments": [
+        "adversary"
+      ],
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/tightened",
+        "adversary/adversary-extraction-v1/greedy/tightened"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-f60ec5752f501da0",
+      "alias": "analytics-orders",
+      "catalog_path": "config/profiles/analytics-orders.catalog.yaml",
+      "catalog_sha256": "b6a5aaf7c03d82f820b57f49d27363677049966b001efde2972aa3f4d3485325",
+      "experiments": [
+        "baseline"
+      ],
+      "cells": [
+        "baseline/S1/SF1/direct",
+        "baseline/S1/SF1/idempotent_replay",
+        "baseline/S1/SF1/normalized_rewrite_replay",
+        "baseline/S1/SF1/novel",
+        "baseline/S1/SF1/semantic_replay",
+        "baseline/S1/SF10/direct",
+        "baseline/S1/SF10/idempotent_replay",
+        "baseline/S1/SF10/normalized_rewrite_replay",
+        "baseline/S1/SF10/novel",
+        "baseline/S1/SF10/semantic_replay",
+        "baseline/S5/SF1/direct",
+        "baseline/S5/SF1/idempotent_replay",
+        "baseline/S5/SF1/novel",
+        "baseline/S5/SF1/semantic_replay",
+        "baseline/S5/SF10/direct",
+        "baseline/S5/SF10/idempotent_replay",
+        "baseline/S5/SF10/novel",
+        "baseline/S5/SF10/semantic_replay"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-5b48ad2a02c5446d",
+      "alias": "analytics-orders-lineitem",
+      "catalog_path": "config/profiles/analytics-orders-lineitem.catalog.yaml",
+      "catalog_sha256": "4764a69897d79cd283a1d5044bf858fb31047a51dbf1877273648e75e4688733",
+      "experiments": [
+        "baseline"
+      ],
+      "cells": [
+        "baseline/S2/SF1/direct",
+        "baseline/S2/SF1/idempotent_replay",
+        "baseline/S2/SF1/normalized_rewrite_replay",
+        "baseline/S2/SF1/novel",
+        "baseline/S2/SF1/semantic_replay",
+        "baseline/S2/SF10/direct",
+        "baseline/S2/SF10/idempotent_replay",
+        "baseline/S2/SF10/normalized_rewrite_replay",
+        "baseline/S2/SF10/novel",
+        "baseline/S2/SF10/semantic_replay"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-158c6ffcccef2383",
+      "alias": "attack-expense-detail",
+      "catalog_path": "config/profiles/attack-expense-detail.catalog.yaml",
+      "catalog_sha256": "c02407c16495d2f627b66cc91f5fe3feba0274e3f0748eb08f224ba0da57caeb",
+      "experiments": [
+        "attack"
+      ],
+      "cells": [
+        "attack/A-pagination/complete-to-pages/direct",
+        "attack/A-pagination/complete-to-pages/novel",
+        "attack/A-pagination/pages-to-complete/direct",
+        "attack/A-pagination/pages-to-complete/novel",
+        "attack/B-equivalent-sql/variants-v1/direct",
+        "attack/B-equivalent-sql/variants-v1/novel",
+        "attack/C-request-id/same-and-different/idempotent_replay",
+        "attack/C-request-id/same-and-different/novel",
+        "attack/C-request-id/same-and-different/semantic_replay",
+        "attack/D-split-union/complete-to-split/direct",
+        "attack/D-split-union/complete-to-split/novel",
+        "attack/D-split-union/split-to-complete/direct",
+        "attack/D-split-union/split-to-complete/novel"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-57cd926b3fcbccde",
+      "alias": "benign-recipe",
+      "catalog_path": "config/profiles/benign-recipe.catalog.yaml",
+      "catalog_sha256": "90c076008e3636334041389da4861fb84d7f64c6a86b39376f28fcd7d5370247",
+      "experiments": [
+        "benign"
+      ],
+      "cells": [
+        "benign/benign-agent-trace-v1/28-statements/recipe"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-f08342e0b89058a9",
+      "alias": "benign-x2",
+      "catalog_path": "config/profiles/benign-x2.catalog.yaml",
+      "catalog_sha256": "2f27bb5e5437f96aabaa0a5182dc3537c27cd9565a6dc322a7d65af9a246ec00",
+      "experiments": [
+        "benign"
+      ],
+      "cells": [
+        "benign/benign-agent-trace-v1/28-statements/x2"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-4150e35650c39ab2",
+      "alias": "benign-x4",
+      "catalog_path": "config/profiles/benign-x4.catalog.yaml",
+      "catalog_sha256": "c363fe2c7999800b8d825656d7fdef1b7e73cf12988e83e8413bac7e989c65ef",
+      "experiments": [
+        "benign"
+      ],
+      "cells": [
+        "benign/benign-agent-trace-v1/28-statements/x4"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-3947f508ef5e9677",
+      "alias": "concurrency-expense-detail",
+      "catalog_path": "config/profiles/concurrency-expense-detail.catalog.yaml",
+      "catalog_sha256": "045c9ef297b370db24f0d17282db1b5861590d8108bd9b7cad04e3a2a6ea41be",
+      "experiments": [
+        "concurrency"
+      ],
+      "cells": [
+        "concurrency/serial-control/1/serial",
+        "concurrency/shared-root/10/forced_queue_safety",
+        "concurrency/shared-root/10/natural_contention",
+        "concurrency/shared-root/50/forced_queue_safety",
+        "concurrency/shared-root/50/natural_contention"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-6cb70ae786fcd0ec",
+      "alias": "counter-exact",
+      "catalog_path": "config/profiles/counter-exact.catalog.yaml",
+      "catalog_sha256": "6adcee8f50423187551a47e646cdf794faed57db85e92e5914889d272803d60c",
+      "experiments": [
+        "counter"
+      ],
+      "cells": [
+        "counter/counter-comparator-v1/natural/exact",
+        "counter/counter-comparator-v1/novelty-first-v1/exact",
+        "counter/counter-comparator-v1/shuffled-v1/exact"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-c1bee5484d41e498",
+      "alias": "counter-queries",
+      "catalog_path": "config/profiles/counter-queries.catalog.yaml",
+      "catalog_sha256": "cf24a6fd0bc755bcd03ff53b4c7387d77cecf0b139f069fc8c3cbd151f0d01fb",
+      "experiments": [
+        "counter"
+      ],
+      "cells": [
+        "counter/counter-comparator-v1/natural/queries",
+        "counter/counter-comparator-v1/novelty-first-v1/queries",
+        "counter/counter-comparator-v1/shuffled-v1/queries"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-c27e8a1ce21ae1af",
+      "alias": "counter-release",
+      "catalog_path": "config/profiles/counter-release.catalog.yaml",
+      "catalog_sha256": "a4141761cd6273dc3c5e7dcff5ac0a35b5634808dcabc7137e13a8e9f254f34a",
+      "experiments": [
+        "counter"
+      ],
+      "cells": [
+        "counter/counter-comparator-v1/natural/release",
+        "counter/counter-comparator-v1/novelty-first-v1/release",
+        "counter/counter-comparator-v1/shuffled-v1/release"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-f441ba765b9a1541",
+      "alias": "counter-rows",
+      "catalog_path": "config/profiles/counter-rows.catalog.yaml",
+      "catalog_sha256": "ec36c2e4655b3e8ade05f86247db1d5029b01a2e321843dd309cc414440a3939",
+      "experiments": [
+        "counter"
+      ],
+      "cells": [
+        "counter/counter-comparator-v1/natural/rows",
+        "counter/counter-comparator-v1/novelty-first-v1/rows",
+        "counter/counter-comparator-v1/shuffled-v1/rows"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-46b22367d1386567",
+      "alias": "depth4-semantic-view",
+      "catalog_path": "config/profiles/depth4-semantic-view.catalog.yaml",
+      "catalog_sha256": "9ccc84b22033ccba2f9e5281c69ee37b97296c5eb4a0162a6150ed65caaebb27",
+      "experiments": [
+        "baseline"
+      ],
+      "cells": [
+        "baseline/S4/depth-4/direct",
+        "baseline/S4/depth-4/novel",
+        "baseline/S4/depth-4/semantic_replay"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-0d88c4e9d8b7561b",
+      "alias": "expense-detail",
+      "catalog_path": "config/profiles/expense-detail.catalog.yaml",
+      "catalog_sha256": "924d385e6561fedb4b865702f1a049eb2677f3022448947ab15446871175879d",
+      "experiments": [
+        "attack",
+        "rq5"
+      ],
+      "cells": [
+        "attack/E-threshold/preregistered-v1/direct",
+        "attack/E-threshold/preregistered-v1/novel",
+        "rq5/online-transition-v1/single/build",
+        "rq5/online-transition-v1/single/retained"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-794efc2159ffaa5f",
+      "alias": "exposure-scale",
+      "catalog_path": "config/profiles/exposure-scale.catalog.yaml",
+      "catalog_sha256": "eea3becc0ea4f23515545d87564e3517f2f48402b4a21291f03b44c694d9ea61",
+      "experiments": [
+        "baseline",
+        "scale"
+      ],
+      "cells": [
+        "baseline/S3/10k-50k/direct",
+        "baseline/S3/10k-50k/idempotent_replay",
+        "baseline/S3/10k-50k/normalized_rewrite_replay",
+        "baseline/S3/10k-50k/novel",
+        "baseline/S3/10k-50k/semantic_replay",
+        "baseline/S3/1k-5k/direct",
+        "baseline/S3/1k-5k/idempotent_replay",
+        "baseline/S3/1k-5k/normalized_rewrite_replay",
+        "baseline/S3/1k-5k/novel",
+        "baseline/S3/1k-5k/semantic_replay",
+        "baseline/S3/45k-225k/direct",
+        "baseline/S3/45k-225k/idempotent_replay",
+        "baseline/S3/45k-225k/normalized_rewrite_replay",
+        "baseline/S3/45k-225k/novel",
+        "baseline/S3/45k-225k/semantic_replay",
+        "scale/dependency-e2e/100k-overlap-0/novel",
+        "scale/dependency-e2e/100k-overlap-0/semantic_replay",
+        "scale/dependency-e2e/100k-overlap-100/novel",
+        "scale/dependency-e2e/100k-overlap-100/semantic_replay",
+        "scale/dependency-e2e/100k-overlap-50/novel",
+        "scale/dependency-e2e/100k-overlap-50/semantic_replay",
+        "scale/dependency-e2e/100k-overlap-90/novel",
+        "scale/dependency-e2e/100k-overlap-90/semantic_replay",
+        "scale/dependency-e2e/1035000-overlap-0/novel",
+        "scale/dependency-e2e/1035000-overlap-0/semantic_replay",
+        "scale/dependency-e2e/1035000-overlap-100/novel",
+        "scale/dependency-e2e/1035000-overlap-100/semantic_replay",
+        "scale/dependency-e2e/1035000-overlap-50/novel",
+        "scale/dependency-e2e/1035000-overlap-50/semantic_replay",
+        "scale/dependency-e2e/1035000-overlap-90/novel",
+        "scale/dependency-e2e/1035000-overlap-90/semantic_replay",
+        "scale/dependency-e2e/10k-overlap-0/novel",
+        "scale/dependency-e2e/10k-overlap-0/semantic_replay",
+        "scale/dependency-e2e/10k-overlap-100/novel",
+        "scale/dependency-e2e/10k-overlap-100/semantic_replay",
+        "scale/dependency-e2e/10k-overlap-50/novel",
+        "scale/dependency-e2e/10k-overlap-50/semantic_replay",
+        "scale/dependency-e2e/10k-overlap-90/novel",
+        "scale/dependency-e2e/10k-overlap-90/semantic_replay"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-ac3d38a970ae15e6",
+      "alias": "footprint-bounded",
+      "catalog_path": "config/profiles/footprint-bounded.catalog.yaml",
+      "catalog_sha256": "abe239592aeb2878a54b230c6606b2e09de29eed949479ae8591f01c153343af",
+      "experiments": [
+        "footprint"
+      ],
+      "cells": [
+        "footprint/refused-footprint-ladder-v1/1e5-rows/bounded"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-52504d68e0f7fa28",
+      "alias": "footprint-unlimited",
+      "catalog_path": "config/profiles/footprint-unlimited.catalog.yaml",
+      "catalog_sha256": "8dafc3b5b6092d0fb547291987d0182c0afcdcb7d997d7d6d6e486cf076738e1",
+      "experiments": [
+        "footprint"
+      ],
+      "cells": [
+        "footprint/refused-footprint-ladder-v1/1e5-rows/unlimited"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-a60a787c64c95451",
+      "alias": "provsql-nonce-join",
+      "catalog_path": "config/profiles/provsql-nonce-join.catalog.yaml",
+      "catalog_sha256": "43dbfca095ff2aa11e8595201c586a0a4277f18cb95f1c69f8b4e6bd85a9bdb6",
+      "experiments": [
+        "provsql"
+      ],
+      "cells": [
+        "provsql/nonce-join-group/10k/direct",
+        "provsql/nonce-join-group/10k/provsql",
+        "provsql/nonce-join-group/10k/taskgate",
+        "provsql/nonce-join-group/1k/direct",
+        "provsql/nonce-join-group/1k/provsql",
+        "provsql/nonce-join-group/1k/taskgate",
+        "provsql/nonce-join-group/45k/direct",
+        "provsql/nonce-join-group/45k/provsql",
+        "provsql/nonce-join-group/45k/taskgate"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-a86cd4df5cad6e26",
+      "alias": "result-heavy",
+      "catalog_path": "config/profiles/result-heavy.catalog.yaml",
+      "catalog_sha256": "e5911cdd704b60051d415077396fe3900f1548bc87e2756d0139ca2964142042",
+      "experiments": [
+        "artifact",
+        "baseline"
+      ],
+      "cells": [
+        "artifact/result-heavy/100k-x16/novel",
+        "artifact/result-heavy/100k-x4/novel",
+        "artifact/result-heavy/100x16/novel",
+        "artifact/result-heavy/100x4/novel",
+        "artifact/result-heavy/10k-x16/novel",
+        "artifact/result-heavy/10k-x4/novel",
+        "baseline/S6/100k-x16/direct",
+        "baseline/S6/100k-x16/novel",
+        "baseline/S6/100k-x4/direct",
+        "baseline/S6/100k-x4/novel",
+        "baseline/S6/100x16/direct",
+        "baseline/S6/100x16/novel",
+        "baseline/S6/100x4/direct",
+        "baseline/S6/100x4/novel",
+        "baseline/S6/10k-x16/direct",
+        "baseline/S6/10k-x16/novel",
+        "baseline/S6/10k-x4/direct",
+        "baseline/S6/10k-x4/novel"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-18c12d9c4dc04fc5",
+      "alias": "rls-bounded",
+      "catalog_path": "config/profiles/rls-bounded.catalog.yaml",
+      "catalog_sha256": "9f81bad7373630fcebd6f95dbef9f5feff2fe9c775c7658f10c3d2c4f94299be",
+      "experiments": [
+        "rls"
+      ],
+      "cells": [
+        "rls/adaptive-100-v1/100-queries/bounded",
+        "rls/policy-denied-control/single/bounded"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-00bc8f7d5633f596",
+      "alias": "rls-unlimited",
+      "catalog_path": "config/profiles/rls-unlimited.catalog.yaml",
+      "catalog_sha256": "4ea11563ac1e1433115bd27e24395dab72e2cb6635baa00b20bae16c48d5dbb9",
+      "experiments": [
+        "rls"
+      ],
+      "cells": [
+        "rls/adaptive-100-v1/100-queries/rls",
+        "rls/adaptive-100-v1/100-queries/unlimited",
+        "rls/policy-denied-control/single/rls",
+        "rls/policy-denied-control/single/unlimited"
+      ],
+      "ready": true
+    },
+    {
+      "profile_id": "profile-69f6a064f1ef18ed",
+      "alias": "scale7",
+      "catalog_path": "config/profiles/scale7.catalog.yaml",
+      "catalog_sha256": "e4aa369772d01b6f234af20a1e6b9a43041c2b50ab56a7c09fc8f50691662829",
+      "experiments": [
+        "compare7",
+        "scale7"
+      ],
+      "cells": [
+        "compare7/compare7-sequence-v1/seq-60/bdg",
+        "scale7/scale7-ladder-v1/sum-ladder/direct",
+        "scale7/scale7-ladder-v1/sum-ladder/novel",
+        "scale7/scale7-ladder-v1/sum-ladder/replay"
+      ],
+      "ready": true
+    }
+  ],
+  "non_profile_cells": null,
+  "non_profile_campaigns": null,
+  "coverage": {
+    "adversary": [
+      "adversary/adversary-extraction-v1/bisection/loosened",
+      "adversary/adversary-extraction-v1/bisection/owner",
+      "adversary/adversary-extraction-v1/bisection/tightened",
+      "adversary/adversary-extraction-v1/greedy/loosened",
+      "adversary/adversary-extraction-v1/greedy/owner",
+      "adversary/adversary-extraction-v1/greedy/tightened"
+    ],
+    "artifact": [
+      "artifact/result-heavy/100k-x16/novel",
+      "artifact/result-heavy/100k-x4/novel",
+      "artifact/result-heavy/100x16/novel",
+      "artifact/result-heavy/100x4/novel",
+      "artifact/result-heavy/10k-x16/novel",
+      "artifact/result-heavy/10k-x4/novel"
+    ],
+    "attack": [
+      "attack/A-pagination/complete-to-pages/direct",
+      "attack/A-pagination/complete-to-pages/novel",
+      "attack/A-pagination/pages-to-complete/direct",
+      "attack/A-pagination/pages-to-complete/novel",
+      "attack/B-equivalent-sql/variants-v1/direct",
+      "attack/B-equivalent-sql/variants-v1/novel",
+      "attack/C-request-id/same-and-different/idempotent_replay",
+      "attack/C-request-id/same-and-different/novel",
+      "attack/C-request-id/same-and-different/semantic_replay",
+      "attack/D-split-union/complete-to-split/direct",
+      "attack/D-split-union/complete-to-split/novel",
+      "attack/D-split-union/split-to-complete/direct",
+      "attack/D-split-union/split-to-complete/novel",
+      "attack/E-threshold/preregistered-v1/direct",
+      "attack/E-threshold/preregistered-v1/novel"
+    ],
+    "baseline": [
+      "baseline/S1/SF1/direct",
+      "baseline/S1/SF1/idempotent_replay",
+      "baseline/S1/SF1/normalized_rewrite_replay",
+      "baseline/S1/SF1/novel",
+      "baseline/S1/SF1/semantic_replay",
+      "baseline/S1/SF10/direct",
+      "baseline/S1/SF10/idempotent_replay",
+      "baseline/S1/SF10/normalized_rewrite_replay",
+      "baseline/S1/SF10/novel",
+      "baseline/S1/SF10/semantic_replay",
+      "baseline/S2/SF1/direct",
+      "baseline/S2/SF1/idempotent_replay",
+      "baseline/S2/SF1/normalized_rewrite_replay",
+      "baseline/S2/SF1/novel",
+      "baseline/S2/SF1/semantic_replay",
+      "baseline/S2/SF10/direct",
+      "baseline/S2/SF10/idempotent_replay",
+      "baseline/S2/SF10/normalized_rewrite_replay",
+      "baseline/S2/SF10/novel",
+      "baseline/S2/SF10/semantic_replay",
+      "baseline/S3/10k-50k/direct",
+      "baseline/S3/10k-50k/idempotent_replay",
+      "baseline/S3/10k-50k/normalized_rewrite_replay",
+      "baseline/S3/10k-50k/novel",
+      "baseline/S3/10k-50k/semantic_replay",
+      "baseline/S3/1k-5k/direct",
+      "baseline/S3/1k-5k/idempotent_replay",
+      "baseline/S3/1k-5k/normalized_rewrite_replay",
+      "baseline/S3/1k-5k/novel",
+      "baseline/S3/1k-5k/semantic_replay",
+      "baseline/S3/45k-225k/direct",
+      "baseline/S3/45k-225k/idempotent_replay",
+      "baseline/S3/45k-225k/normalized_rewrite_replay",
+      "baseline/S3/45k-225k/novel",
+      "baseline/S3/45k-225k/semantic_replay",
+      "baseline/S4/depth-4/direct",
+      "baseline/S4/depth-4/novel",
+      "baseline/S4/depth-4/semantic_replay",
+      "baseline/S5/SF1/direct",
+      "baseline/S5/SF1/idempotent_replay",
+      "baseline/S5/SF1/novel",
+      "baseline/S5/SF1/semantic_replay",
+      "baseline/S5/SF10/direct",
+      "baseline/S5/SF10/idempotent_replay",
+      "baseline/S5/SF10/novel",
+      "baseline/S5/SF10/semantic_replay",
+      "baseline/S6/100k-x16/direct",
+      "baseline/S6/100k-x16/novel",
+      "baseline/S6/100k-x4/direct",
+      "baseline/S6/100k-x4/novel",
+      "baseline/S6/100x16/direct",
+      "baseline/S6/100x16/novel",
+      "baseline/S6/100x4/direct",
+      "baseline/S6/100x4/novel",
+      "baseline/S6/10k-x16/direct",
+      "baseline/S6/10k-x16/novel",
+      "baseline/S6/10k-x4/direct",
+      "baseline/S6/10k-x4/novel"
+    ],
+    "benign": [
+      "benign/benign-agent-trace-v1/28-statements/recipe",
+      "benign/benign-agent-trace-v1/28-statements/x2",
+      "benign/benign-agent-trace-v1/28-statements/x4"
+    ],
+    "compare7": [
+      "compare7/compare7-sequence-v1/seq-60/bdg"
+    ],
+    "concurrency": [
+      "concurrency/serial-control/1/serial",
+      "concurrency/shared-root/10/forced_queue_safety",
+      "concurrency/shared-root/10/natural_contention",
+      "concurrency/shared-root/50/forced_queue_safety",
+      "concurrency/shared-root/50/natural_contention"
+    ],
+    "counter": [
+      "counter/counter-comparator-v1/natural/exact",
+      "counter/counter-comparator-v1/natural/queries",
+      "counter/counter-comparator-v1/natural/release",
+      "counter/counter-comparator-v1/natural/rows",
+      "counter/counter-comparator-v1/novelty-first-v1/exact",
+      "counter/counter-comparator-v1/novelty-first-v1/queries",
+      "counter/counter-comparator-v1/novelty-first-v1/release",
+      "counter/counter-comparator-v1/novelty-first-v1/rows",
+      "counter/counter-comparator-v1/shuffled-v1/exact",
+      "counter/counter-comparator-v1/shuffled-v1/queries",
+      "counter/counter-comparator-v1/shuffled-v1/release",
+      "counter/counter-comparator-v1/shuffled-v1/rows"
+    ],
+    "footprint": [
+      "footprint/refused-footprint-ladder-v1/1e5-rows/bounded",
+      "footprint/refused-footprint-ladder-v1/1e5-rows/unlimited"
+    ],
+    "provsql": [
+      "provsql/nonce-join-group/10k/direct",
+      "provsql/nonce-join-group/10k/provsql",
+      "provsql/nonce-join-group/10k/taskgate",
+      "provsql/nonce-join-group/1k/direct",
+      "provsql/nonce-join-group/1k/provsql",
+      "provsql/nonce-join-group/1k/taskgate",
+      "provsql/nonce-join-group/45k/direct",
+      "provsql/nonce-join-group/45k/provsql",
+      "provsql/nonce-join-group/45k/taskgate"
+    ],
+    "rls": [
+      "rls/adaptive-100-v1/100-queries/bounded",
+      "rls/adaptive-100-v1/100-queries/rls",
+      "rls/adaptive-100-v1/100-queries/unlimited",
+      "rls/policy-denied-control/single/bounded",
+      "rls/policy-denied-control/single/rls",
+      "rls/policy-denied-control/single/unlimited"
+    ],
+    "rq5": [
+      "rq5/online-transition-v1/single/build",
+      "rq5/online-transition-v1/single/retained"
+    ],
+    "scale": [
+      "scale/dependency-e2e/100k-overlap-0/novel",
+      "scale/dependency-e2e/100k-overlap-0/semantic_replay",
+      "scale/dependency-e2e/100k-overlap-100/novel",
+      "scale/dependency-e2e/100k-overlap-100/semantic_replay",
+      "scale/dependency-e2e/100k-overlap-50/novel",
+      "scale/dependency-e2e/100k-overlap-50/semantic_replay",
+      "scale/dependency-e2e/100k-overlap-90/novel",
+      "scale/dependency-e2e/100k-overlap-90/semantic_replay",
+      "scale/dependency-e2e/1035000-overlap-0/novel",
+      "scale/dependency-e2e/1035000-overlap-0/semantic_replay",
+      "scale/dependency-e2e/1035000-overlap-100/novel",
+      "scale/dependency-e2e/1035000-overlap-100/semantic_replay",
+      "scale/dependency-e2e/1035000-overlap-50/novel",
+      "scale/dependency-e2e/1035000-overlap-50/semantic_replay",
+      "scale/dependency-e2e/1035000-overlap-90/novel",
+      "scale/dependency-e2e/1035000-overlap-90/semantic_replay",
+      "scale/dependency-e2e/10k-overlap-0/novel",
+      "scale/dependency-e2e/10k-overlap-0/semantic_replay",
+      "scale/dependency-e2e/10k-overlap-100/novel",
+      "scale/dependency-e2e/10k-overlap-100/semantic_replay",
+      "scale/dependency-e2e/10k-overlap-50/novel",
+      "scale/dependency-e2e/10k-overlap-50/semantic_replay",
+      "scale/dependency-e2e/10k-overlap-90/novel",
+      "scale/dependency-e2e/10k-overlap-90/semantic_replay"
+    ],
+    "scale7": [
+      "scale7/scale7-ladder-v1/sum-ladder/direct",
+      "scale7/scale7-ladder-v1/sum-ladder/novel",
+      "scale7/scale7-ladder-v1/sum-ladder/replay"
+    ]
+  },
+  "preregistered_aggregates": [
+    {
+      "source_path": "config/profiles/concurrency-preregistration-v1.json",
+      "retained_path": "source/concurrency-preregistration-v1.json",
+      "source_sha256": "fc51165e2203d6df913894698bc6acb1b6b239dafa0f53602fabc804c4f08c8a",
+      "profile_alias": "concurrency-expense-detail",
+      "cell": "concurrency/shared-root/50/natural_contention",
+      "rounds": 11,
+      "successes_required": 1,
+      "success_status": "pass",
+      "miss_status": "invalid",
+      "miss_error_code": "offered_concurrency_not_observed",
+      "round_identity_scope": "fresh_profile_deployment",
+      "retain_all_rounds": true,
+      "early_stop": false
+    }
+  ]
+}

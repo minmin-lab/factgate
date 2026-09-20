@@ -1,0 +1,12 @@
+[
+  "baseline/S2/SF1/direct",
+  "baseline/S2/SF1/idempotent_replay",
+  "baseline/S2/SF1/normalized_rewrite_replay",
+  "baseline/S2/SF1/novel",
+  "baseline/S2/SF1/semantic_replay",
+  "baseline/S2/SF10/direct",
+  "baseline/S2/SF10/idempotent_replay",
+  "baseline/S2/SF10/normalized_rewrite_replay",
+  "baseline/S2/SF10/novel",
+  "baseline/S2/SF10/semantic_replay"
+]

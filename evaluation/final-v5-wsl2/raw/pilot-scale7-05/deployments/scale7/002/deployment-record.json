@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pilot-scale7-05",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-fcd1ebf4134ecb918458",
+  "profile_id": "profile-69f6a064f1ef18ed",
+  "profile_alias": "scale7",
+  "catalog_path": "config/profiles/scale7.catalog.yaml",
+  "catalog_sha256": "e4aa369772d01b6f234af20a1e6b9a43041c2b50ab56a7c09fc8f50691662829",
+  "repetition": 2,
+  "cells": [
+    "compare7/compare7-sequence-v1/seq-60/bdg",
+    "scale7/scale7-ladder-v1/sum-ladder/direct",
+    "scale7/scale7-ladder-v1/sum-ladder/novel",
+    "scale7/scale7-ladder-v1/sum-ladder/replay"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/scale7/002/profile-binding.json",
+      "sha256": "29c0efc13acafdc92baec700a8a1578356d8adaaf3661db435e122c2eb31223a",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/scale7/002/activation/scale7.json",
+      "sha256": "189d13b3d8460f12be38bccd4766556920528110954a7fcfb39d175171221a9b",
+      "bytes": 11971
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/scale7/002/environment.json",
+      "sha256": "dc65cdd15bd4766201073d30590e25f1eb5aee4b78e1a2bafb5d07b43f5041de",
+      "bytes": 105757
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/scale7/002/fresh-proof.json",
+      "sha256": "e91baae0c1d35eaa156b67f29daea240e07154ca5bd94cb29108c4f639ca0ec5",
+      "bytes": 1826
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/scale7/002/gateway-image.json",
+      "sha256": "6a0092ace1328cb79379f95de3ccf135cc3ac0007e54af6646563a20d25c748d",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/scale7/002/formal-gateway-runtime.json",
+      "sha256": "03854d1766bd5c2de3d2c11078d7fe248e21c01ba8d71462fbc677f3af3ed09f",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "5337040b17891c6efcda1505536b62400de32abd58555be182da40f9b3b09107",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "e4dfaecd48fdfa239164af95926fcbbb22be1c101696b6a39b45847a6ae4e588",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "284fb0ecb56254e737ef5d5f64788fb7c018a161e7c02ba1acd3294d8a4a0e6a",
+      "bytes": 654
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/scale7/002/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/scale7/002/deployment-configuration.json",
+      "sha256": "13bc446009215890136ec14584e49b6cae6cf0e2685147c32082f7cce10a9477",
+      "bytes": 272
+    },
+    {
+      "kind": "config",
+      "path": "deployments/scale7/002/config/compare7.json",
+      "sha256": "6bd6817841e76e82fe49f3370e007ebd5d2d76de1cb362af347fb83f34b60a05",
+      "bytes": 512,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/scale7/002/selected-cells/compare7.json",
+      "sha256": "8c84013af99e789e7a1221891a735b841f79703976ae24fe70c9845f63b294e0",
+      "bytes": 49,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/scale7/002/raw/compare7.jsonl",
+      "sha256": "0e6e2829ae090977fbfcccc351203bb95c96206dbeaefe99a972d58ea5db11d1",
+      "bytes": 25616,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/scale7/002/compare7.gate.json",
+      "sha256": "cf22bcd5b00aec984941f3ec4ef10a6040f3f426cee377d9fea5e2a9dc89a329",
+      "bytes": 202,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/scale7/002/adapter-stderr/compare7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/scale7/002/adapter-stderr/compare7.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "compare7"
+    },
+    {
+      "kind": "config",
+      "path": "deployments/scale7/002/config/scale7.json",
+      "sha256": "722a75681ec633634d3ff49860855acbae88eabf23beda42fdf4a767ebada060",
+      "bytes": 548,
+      "experiment": "scale7"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/scale7/002/selected-cells/scale7.json",
+      "sha256": "16e48763056986b62075dcc6d859c2bef671f87f0c4d4376b0d0b89a4d5b58ff",
+      "bytes": 143,
+      "experiment": "scale7"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/scale7/002/raw/scale7.jsonl",
+      "sha256": "5a7c835284f84b7098b0e8b63c1a52a2c5ee86c9161f99c8c0064d37e7bec402",
+      "bytes": 15474,
+      "experiment": "scale7"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/scale7/002/scale7.gate.json",
+      "sha256": "f7226380e261b6153ea2bb5bb16abc6eb408f614bcf1d7b3a82a76a08e17dbbb",
+      "bytes": 200,
+      "experiment": "scale7"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/scale7/002/adapter-stderr/scale7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "scale7"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/scale7/002/adapter-stderr/scale7.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "scale7"
+    }
+  ]
+}

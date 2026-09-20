@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-concurrency-preregistration-v1",
+  "profile_alias": "concurrency-expense-detail",
+  "cell": "concurrency/shared-root/50/natural_contention",
+  "rounds": 11,
+  "successes_required": 1,
+  "success_status": "pass",
+  "miss_status": "invalid",
+  "miss_error_code": "offered_concurrency_not_observed",
+  "round_identity_scope": "fresh_profile_deployment",
+  "retain_all_rounds": true,
+  "early_stop": false,
+  "probability_model": {
+    "model": "conservative-first-cohort-v1",
+    "single_round_success_probability_lower_bound": "0.25",
+    "all_miss_probability_threshold": "0.05",
+    "all_miss_probability_upper_bound": "0.0422351360",
+    "derivation": "ceil(log(0.05)/log(0.75))=11"
+  }
+}

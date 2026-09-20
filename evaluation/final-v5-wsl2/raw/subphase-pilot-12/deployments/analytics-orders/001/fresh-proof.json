@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-fresh-profile-execution-v1",
+  "status": "pass",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "campaign_id": "subphase-pilot-12",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-05148e2bf4c843ea6c33",
+  "profile_alias": "analytics-orders",
+  "profile_id": "profile-f60ec5752f501da0",
+  "catalog_sha256": "b6a5aaf7c03d82f820b57f49d27363677049966b001efde2972aa3f4d3485325",
+  "repetition": 1,
+  "formal_gateway_built": true,
+  "formal_gateway": {
+    "image_id": "sha256:f28a8e4ee299352b073bec40e32b97180d25318cb66977a7f845d93b21e0863f",
+    "build_manifest_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-12/source/formal-gateway-build.json",
+    "build_manifest_sha256": "d67b758763e9f64df314446b7347940d9896cb4c5d4b935933f2388d3544b4ba",
+    "compose_override_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-12/source/compose.formal-gateway.yaml",
+    "compose_override_sha256": "7696ad82c40acff652d9cd1d86af9f4c19e53a0aec1e5d2b9b7d674bd92ff758",
+    "runtime_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-12/deployments/analytics-orders/001/formal-gateway-runtime.json",
+    "runtime_identity_sha256": "a5ac9ddc4af92a62cafbd66d421cb88dd51c8fbafca0fc19cfbae4cced763ee2",
+    "build_context_sha256": "2113bf5f3287e5def8e343125d71339eac7a21b22a36b0c2698e4dc2bb57b7a1",
+    "source_manifest_sha256": "580145ead694b4198f3dcd9d599607e0e57212665d1bbe7e321be1cd8e38bb17",
+    "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+    "profile_registry_sha256": "9e6f4b678147cabf098d518db1b9b25799e6810e4f2dae4f89c3cdbedefabf3b"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "real_system",
+  "campaign_id": "pilot-benign-07",
+  "experiment_id": "benign",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "deployments": 1,
+  "warmups": 0,
+  "samples": 1,
+  "random_seed": 20260801,
+  "fresh_root_per_sample": true,
+  "workloads": [
+    {
+      "id": "benign-agent-trace-v1",
+      "scales": [
+        "28-statements"
+      ],
+      "modes": [
+        "recipe",
+        "x2",
+        "x4"
+      ]
+    }
+  ],
+  "process_replicates": 1
+}

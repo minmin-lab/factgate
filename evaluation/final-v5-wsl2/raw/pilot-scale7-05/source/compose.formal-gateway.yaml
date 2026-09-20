@@ -1,0 +1,5 @@
+services:
+  gateway:
+    image: "sha256:b167a100bfbddd543dfce7f70a1a2b2c43deece46ad0a51724c9ee0aaf025939"
+    pull_policy: never
+    build: !reset null

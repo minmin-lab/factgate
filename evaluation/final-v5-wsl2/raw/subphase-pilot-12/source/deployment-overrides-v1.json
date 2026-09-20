@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-profile-deployment-overrides-v1",
+  "profiles": {
+    "concurrency-expense-detail": {
+      "environment": {
+        "GATEWAY_EVALUATION_CONCURRENCY_HTTP_ACTIVE": 10,
+        "GATEWAY_EVALUATION_CONCURRENCY_HTTP_QUEUE": 512,
+        "GATEWAY_CONNECTOR_MAX_CONNECTIONS": 32,
+        "GATEWAY_CONTROL_MAX_OPEN_CONNECTIONS": 32
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-rq5-workload-cell-map-v1",
+  "mappings": [
+    {
+      "campaign_cell": "rq5/online-transition-v1/single/build",
+      "experiment_cell": "rq5/daily-publication-v5/345000/build_verify_activate"
+    },
+    {
+      "campaign_cell": "rq5/online-transition-v1/single/retained",
+      "experiment_cell": "rq5/daily-publication-v5/345000/retained_route"
+    }
+  ]
+}

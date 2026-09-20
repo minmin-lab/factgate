@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-fresh-profile-execution-v1",
+  "status": "pass",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "campaign_id": "pilot-benign-07",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-ba220f651d768dcda88a",
+  "profile_alias": "benign-recipe",
+  "profile_id": "profile-57cd926b3fcbccde",
+  "catalog_sha256": "90c076008e3636334041389da4861fb84d7f64c6a86b39376f28fcd7d5370247",
+  "repetition": 2,
+  "formal_gateway_built": true,
+  "formal_gateway": {
+    "image_id": "sha256:3b69f229152b8fe34a7304502988749db5b2e3b1b0898b2f146e019bb91dd377",
+    "build_manifest_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-benign-07/source/formal-gateway-build.json",
+    "build_manifest_sha256": "c8201dfffb5ac12462efb735c7b5e41e9134c928ba46e2663baf74bf94248270",
+    "compose_override_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-benign-07/source/compose.formal-gateway.yaml",
+    "compose_override_sha256": "2b4f536b78c48a7860b3103e6300fe3c349dd4b5fe4b18d8a3e5b74c6fffefad",
+    "runtime_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-benign-07/deployments/benign-recipe/002/formal-gateway-runtime.json",
+    "runtime_identity_sha256": "a8e4ffd11bb1e5e7cb7c57c5ac737c8340b0defe4f66a9d85a85dd035742bfa9",
+    "build_context_sha256": "2113bf5f3287e5def8e343125d71339eac7a21b22a36b0c2698e4dc2bb57b7a1",
+    "source_manifest_sha256": "580145ead694b4198f3dcd9d599607e0e57212665d1bbe7e321be1cd8e38bb17",
+    "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+    "profile_registry_sha256": "9e6f4b678147cabf098d518db1b9b25799e6810e4f2dae4f89c3cdbedefabf3b"
+  }
+}

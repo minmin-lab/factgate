@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pilot-benign-07",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-7b7646daa25e54117352",
+  "profile_id": "profile-4150e35650c39ab2",
+  "profile_alias": "benign-x4",
+  "catalog_path": "config/profiles/benign-x4.catalog.yaml",
+  "catalog_sha256": "c363fe2c7999800b8d825656d7fdef1b7e73cf12988e83e8413bac7e989c65ef",
+  "repetition": 1,
+  "cells": [
+    "benign/benign-agent-trace-v1/28-statements/x4"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/benign-x4/001/profile-binding.json",
+      "sha256": "f56b819258864d10c32b1e6c34653e0f0f5412d55f61a2e048d8f7ef11427a56",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/benign-x4/001/activation/benign-x4.json",
+      "sha256": "a89781a3b8cb4e3f6e9e4c7bf6a34a0d3479fdf00cde758b38cb01bc4256a54f",
+      "bytes": 15973
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/benign-x4/001/environment.json",
+      "sha256": "e7a7bbdd3c2f9438fe5e55c8db01ad521004cde0851ab152fdedbf38d0de9848",
+      "bytes": 94793
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/benign-x4/001/fresh-proof.json",
+      "sha256": "264c12c903233e627a6963107264d47c46a5a877b00c046b86205365aeae878e",
+      "bytes": 1832
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/benign-x4/001/gateway-image.json",
+      "sha256": "eff53c2937eb647dc2a842e52c889e1b8428dfcc2ae7b82103eca6ff47719edc",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/benign-x4/001/formal-gateway-runtime.json",
+      "sha256": "a8e4ffd11bb1e5e7cb7c57c5ac737c8340b0defe4f66a9d85a85dd035742bfa9",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "c8201dfffb5ac12462efb735c7b5e41e9134c928ba46e2663baf74bf94248270",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "2b4f536b78c48a7860b3103e6300fe3c349dd4b5fe4b18d8a3e5b74c6fffefad",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "68aa199302092af57722bf7ec479a98372684d3ac1537492cd4ce67118b1e06d",
+      "bytes": 654
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/benign-x4/001/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/benign-x4/001/deployment-configuration.json",
+      "sha256": "b79e0a6f663255726bda5b693a4ac7d3606b2b7e5d397b7276facdf486794d47",
+      "bytes": 275
+    },
+    {
+      "kind": "config",
+      "path": "deployments/benign-x4/001/config/benign.json",
+      "sha256": "a697aa835cacdcc347fef6381103cb2130e85c7b094c2ed12c950040d462a44a",
+      "bytes": 549,
+      "experiment": "benign"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/benign-x4/001/selected-cells/benign.json",
+      "sha256": "cf58327d4effb22927eb965b3da56e78aca80d5e9ea3f52747a0540d78fe4c3a",
+      "bytes": 54,
+      "experiment": "benign"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/benign-x4/001/raw/benign.jsonl",
+      "sha256": "b2867748b6af5fdb5ebd2fd55bc533484a6cf6a06b7a07b063cdd7d616581014",
+      "bytes": 46489,
+      "experiment": "benign"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/benign-x4/001/benign.gate.json",
+      "sha256": "13b144e9984f16d82b16dafcae810b8004de268955451bb59f2f4e7e9b8f68ce",
+      "bytes": 200,
+      "experiment": "benign"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/benign-x4/001/adapter-stderr/benign.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "benign"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/benign-x4/001/adapter-stderr/benign.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "benign"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pilot-counter-rigor-03",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-2c66139bceef87a766b8",
+  "profile_id": "profile-c1bee5484d41e498",
+  "profile_alias": "counter-queries",
+  "catalog_path": "config/profiles/counter-queries.catalog.yaml",
+  "catalog_sha256": "cf24a6fd0bc755bcd03ff53b4c7387d77cecf0b139f069fc8c3cbd151f0d01fb",
+  "repetition": 3,
+  "cells": [
+    "counter/counter-comparator-v1/natural/queries",
+    "counter/counter-comparator-v1/novelty-first-v1/queries",
+    "counter/counter-comparator-v1/shuffled-v1/queries"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/counter-queries/003/profile-binding.json",
+      "sha256": "6604208c3b7b4050ade8554e5d36ecf45755af8b6f09028c57f78401e7969f94",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/counter-queries/003/activation/counter-queries.json",
+      "sha256": "e8f2b863c971df202b152cd05c75edc76b012b617121b1e6dddc8167b0db425f",
+      "bytes": 11662
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/counter-queries/003/environment.json",
+      "sha256": "5bc59ae1487ae9eefda3db6c0033f100de3c545f1db0ed2b7fda08209fd48c24",
+      "bytes": 72880
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/counter-queries/003/fresh-proof.json",
+      "sha256": "f10889c2e48742a1dea9eac263eb0b2c8988f4bedaabae781e418f52b4fe361f",
+      "bytes": 1872
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/counter-queries/003/gateway-image.json",
+      "sha256": "24ba685ee52f1554a88f166dff2a981af85812fc2d70ca9fbdfe057580735a6b",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/counter-queries/003/formal-gateway-runtime.json",
+      "sha256": "2f6e32461d0c4ef43f770e61fb6495ad92f71151d073d19410a2131e6eb570f0",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "59c35e7d45c5a5ded8f1ace9fdd8983e9b303af2ee191dad6659fd2be6cfa279",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "b6e08a598ae0248341374e3662c23c0d47d51183578001e07366cfdc49374bcd",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "cf7c598449b64ad14e1ecd51f23407b3a1dce88ea4666481c31324617ba136e8",
+      "bytes": 661
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/counter-queries/003/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/counter-queries/003/deployment-configuration.json",
+      "sha256": "74dfc73a43484ecf28ff9b647da64d69e5523de644420f30e43358fa3c60b14f",
+      "bytes": 281
+    },
+    {
+      "kind": "config",
+      "path": "deployments/counter-queries/003/config/counter.json",
+      "sha256": "5e0f33d419cb2a3ef5596d889ccdb367f7366ec84d48c0b14fcc434d934a37e2",
+      "bytes": 627,
+      "experiment": "counter"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/counter-queries/003/selected-cells/counter.json",
+      "sha256": "79424c86f1048d925798feefcd9c99e3f0f91d5f2e7377a737e541683c6500ff",
+      "bytes": 169,
+      "experiment": "counter"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/counter-queries/003/raw/counter.jsonl",
+      "sha256": "04255e7f338bbb54af71014b921b18791aa763d94833555b15e1a97bd7ffb370",
+      "bytes": 451887,
+      "experiment": "counter"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/counter-queries/003/counter.gate.json",
+      "sha256": "cf5f1745f183084c2c55fd3933ba9d6744682457e2355c4ab46fce44c76b390b",
+      "bytes": 201,
+      "experiment": "counter"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/counter-queries/003/adapter-stderr/counter.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "counter"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/counter-queries/003/adapter-stderr/counter.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "counter"
+    }
+  ]
+}

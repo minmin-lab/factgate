@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pilot-counter-rigor-03",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-26d1361dcd0ac61d698c",
+  "profile_id": "profile-f441ba765b9a1541",
+  "profile_alias": "counter-rows",
+  "catalog_path": "config/profiles/counter-rows.catalog.yaml",
+  "catalog_sha256": "ec36c2e4655b3e8ade05f86247db1d5029b01a2e321843dd309cc414440a3939",
+  "repetition": 1,
+  "cells": [
+    "counter/counter-comparator-v1/natural/rows",
+    "counter/counter-comparator-v1/novelty-first-v1/rows",
+    "counter/counter-comparator-v1/shuffled-v1/rows"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/counter-rows/001/profile-binding.json",
+      "sha256": "39389b9df6224662032cf46096c7f75318a4b20d034d74ae2120d5574ade44ac",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/counter-rows/001/activation/counter-rows.json",
+      "sha256": "d52196ea7b7a89edff1789e741f66f601081fccab7e6d928dfb4ed19d82b5c6e",
+      "bytes": 12841
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/counter-rows/001/environment.json",
+      "sha256": "721ab875c972ff2f141c8304f0f550093145e201af23da17fb690d9efbdebbd6",
+      "bytes": 63746
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/counter-rows/001/fresh-proof.json",
+      "sha256": "14ad5c11f9aeb68c8aed2cc62528924b524e3f7385d4beba8b4aaab7550c5c32",
+      "bytes": 1866
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/counter-rows/001/gateway-image.json",
+      "sha256": "7d85e29a6a6b74447373e7d5e7c10e3114ad50c521f37ed5f98a05a101fc73a4",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/counter-rows/001/formal-gateway-runtime.json",
+      "sha256": "2f6e32461d0c4ef43f770e61fb6495ad92f71151d073d19410a2131e6eb570f0",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "59c35e7d45c5a5ded8f1ace9fdd8983e9b303af2ee191dad6659fd2be6cfa279",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "b6e08a598ae0248341374e3662c23c0d47d51183578001e07366cfdc49374bcd",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "cf7c598449b64ad14e1ecd51f23407b3a1dce88ea4666481c31324617ba136e8",
+      "bytes": 661
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/counter-rows/001/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/counter-rows/001/deployment-configuration.json",
+      "sha256": "1d73fade4b4b64b604baf8360479f6279a1e2701f92cf986e088d64142491a0d",
+      "bytes": 278
+    },
+    {
+      "kind": "config",
+      "path": "deployments/counter-rows/001/config/counter.json",
+      "sha256": "5e0f33d419cb2a3ef5596d889ccdb367f7366ec84d48c0b14fcc434d934a37e2",
+      "bytes": 627,
+      "experiment": "counter"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/counter-rows/001/selected-cells/counter.json",
+      "sha256": "d0571e0195a75fa1b7e8723305bdf5cc116e296f8f3755c0f221c0fb90332452",
+      "bytes": 160,
+      "experiment": "counter"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/counter-rows/001/raw/counter.jsonl",
+      "sha256": "f78cc37dd83f58dd8a509196e394f9e275cff0af4e2035118a034c50d0300d71",
+      "bytes": 452633,
+      "experiment": "counter"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/counter-rows/001/counter.gate.json",
+      "sha256": "58be12a6c3692715629b56d16440806e8749dc11f924bc707bf479959d986756",
+      "bytes": 201,
+      "experiment": "counter"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/counter-rows/001/adapter-stderr/counter.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "counter"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/counter-rows/001/adapter-stderr/counter.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "counter"
+    }
+  ]
+}

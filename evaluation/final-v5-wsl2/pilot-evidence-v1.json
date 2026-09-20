@@ -90,7 +90,8 @@
       "campaign_evidence_sha256": "4ce56431b9ec133bb2fea25101e48175864382d070a171c709a410db875259fb",
       "submission_commit": "d0c3dd97faa307f36ad49da3f4d4f61d94789db2",
       "measured_samples": 28,
-      "note": "Sub-phase re-measurement after the grouped-path cut (P8 d1, fifth cut): analytics-orders and analytics-orders-lineitem profiles, one deployment each, one measured sample per cell, adapter retaining the Gateway component_ms map. Pooled with subphase-pilot-08 (result-heavy, bfb6a5b: its scan cells predate only the Finish trim 29b66eb). Pilot class; not publication evidence."
+      "note": "Sub-phase re-measurement after the grouped-path cut (P8 d1, fifth cut): analytics-orders and analytics-orders-lineitem profiles, one deployment each, one measured sample per cell, adapter retaining the Gateway component_ms map. Pooled with subphase-pilot-08 (result-heavy, bfb6a5b: its scan cells predate only the Finish trim 29b66eb). Pilot class; not publication evidence. 原始目录随 2026-09-19 WSL 重建丢失，由 subphase-pilot-12 重跑替代。",
+      "superseded_by": "subphase-pilot-12"
     },
     {
       "id": "provsql-leaf-pilot-04",
@@ -111,7 +112,8 @@
       "samples_sha256": "97efd423c9e041fd926ed97954be1a068e83c3482618f1cb147b93c7ae1cc0d4",
       "submission_commit": "f654b0068c6b52e1dd897d455140f575321df8b2",
       "measured_samples": 2,
-      "note": "Refused-footprint ladder, both arms, one deployment each, one measured sample per cell. Bounded: rung 1 released exactly the corpus footprint (1 Result / 400 Dependency / 6 Outcome facts, scalar 799819/2); rungs 2-3 refused EXPOSURE_BUDGET_EXHAUSTED at the reservation estimate, rungs 4-12 refused EXPOSURE_EVIDENCE_REQUIRED (evidence span above the Dependency limit) with zero charge. Unlimited: all 12 rungs released their exact corpus footprints (up to 700,000 Dependency facts at 100k rows x 4 columns, client 534 ms). Every charge and scalar matched the frozen corpus rung for rung."
+      "note": "Refused-footprint ladder, both arms, one deployment each, one measured sample per cell. Bounded: rung 1 released exactly the corpus footprint (1 Result / 400 Dependency / 6 Outcome facts, scalar 799819/2); rungs 2-3 refused EXPOSURE_BUDGET_EXHAUSTED at the reservation estimate, rungs 4-12 refused EXPOSURE_EVIDENCE_REQUIRED (evidence span above the Dependency limit) with zero charge. Unlimited: all 12 rungs released their exact corpus footprints (up to 700,000 Dependency facts at 100k rows x 4 columns, client 534 ms). Every charge and scalar matched the frozen corpus rung for rung. 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-footprint-08 重跑替代。",
+      "superseded_by": "pilot-footprint-08"
     },
     {
       "id": "pilot-benign-06",
@@ -121,7 +123,9 @@
       "campaign_evidence_sha256": "ecf6e35057380eb430c192e4db6a66e0851dac2b71fc72dfb8497cc828462b13",
       "samples_sha256": "2713c2596dd0ec42221b241ac26c4ac49ecc8a83efcf5ddf9d299b5e0117c227",
       "submission_commit": "7d7d3f3b3363947dad4b09057b20a0044b96eac2",
-      "measured_samples": 9
+      "measured_samples": 9,
+      "superseded_by": "pilot-benign-07",
+      "note": " 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-benign-07 重跑替代。"
     },
     {
       "id": "pilot-counter-05",
@@ -144,7 +148,8 @@
       "samples_sha256": "b1cb4baf8c1fe547b8e7771abd2c688b593f2b1c99c52b080b74b2d7c2183387",
       "submission_commit": "87ca9a73918c700b4979e612aef3e2b68b6cb34d",
       "measured_samples": 36,
-      "note": "Comparator-arms study, multi-deployment reproducibility run superseding pilot-counter-05: the same frozen 100-step adaptive trace under the four a-priori budgeters in three frozen orderings, now across THREE fresh deployments (repetitions=3, one sample per cell per deployment) for 36 measured samples, three per cell. All twelve cells realized the identical frozen per-step outcome table in every one of the three deployments (zero cross-deployment inconsistency). Headline unchanged and now cross-deployment reproducible: the exact three-dimension floors cap distinct dependency exposure at 12 in every ordering, while the row, query, and release-set-only counters each leak the full 18-fact dependency set in every configuration. Class stays pilot (publication_eligible false): the sealed 172-cell protocol flag is not appropriated for an extension experiment; this is the multi-deployment retained-campaign evidence tier."
+      "note": "Comparator-arms study, multi-deployment reproducibility run superseding pilot-counter-05: the same frozen 100-step adaptive trace under the four a-priori budgeters in three frozen orderings, now across THREE fresh deployments (repetitions=3, one sample per cell per deployment) for 36 measured samples, three per cell. All twelve cells realized the identical frozen per-step outcome table in every one of the three deployments (zero cross-deployment inconsistency). Headline unchanged and now cross-deployment reproducible: the exact three-dimension floors cap distinct dependency exposure at 12 in every ordering, while the row, query, and release-set-only counters each leak the full 18-fact dependency set in every configuration. Class stays pilot (publication_eligible false): the sealed 172-cell protocol flag is not appropriated for an extension experiment; this is the multi-deployment retained-campaign evidence tier. 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-counter-rigor-03 重跑替代。",
+      "superseded_by": "pilot-counter-rigor-03"
     },
     {
       "id": "pilot-adversary-04",
@@ -155,7 +160,8 @@
       "samples_sha256": "c6cf7b0f9960de2dd930f7977367b3dd5e8f734524ff05736f0c3272a428c026",
       "submission_commit": "b5ca71e2cdcf7bff88c72e3018711ae6e578c20e",
       "measured_samples": 18,
-      "note": "Optimizing-adversary study (docs/p9c): two frozen extraction strategies (adaptive threshold bisection; greedy distinct-dependency maximization) against the ten-row expense fixture under three owner-derived budget tiers (budgets from the granted purpose, never from the traces), across THREE fresh deployments (six tier/strategy cells x three samples = 18, zero cross-deployment inconsistency). Every cell realized the frozen a-priori table exactly. Headlines: threshold-probe recovery is cleanly bounded by floor(B_O/2) bits (owner 6, tightened 4; loosened B_O=24 completes all 11 probes and recovers the hidden 1910 exactly) because a probe charges a data-independent 2 novel Outcome facts, so refusals after B_O exhaustion leak no data bits; greedy distinct-dependency extraction is capped exactly at B_D in every order tried (owner/loosened 18 = the granted universe, tightened 12 = B_D). The study also pinned live that aggregate Release identity excludes the predicate literal (same-count same-witness thresholds reuse one Release fact)."
+      "note": "Optimizing-adversary study (docs/p9c): two frozen extraction strategies (adaptive threshold bisection; greedy distinct-dependency maximization) against the ten-row expense fixture under three owner-derived budget tiers (budgets from the granted purpose, never from the traces), across THREE fresh deployments (six tier/strategy cells x three samples = 18, zero cross-deployment inconsistency). Every cell realized the frozen a-priori table exactly. Headlines: threshold-probe recovery is cleanly bounded by floor(B_O/2) bits (owner 6, tightened 4; loosened B_O=24 completes all 11 probes and recovers the hidden 1910 exactly) because a probe charges a data-independent 2 novel Outcome facts, so refusals after B_O exhaustion leak no data bits; greedy distinct-dependency extraction is capped exactly at B_D in every order tried (owner/loosened 18 = the granted universe, tightened 12 = B_D). The study also pinned live that aggregate Release identity excludes the predicate literal (same-count same-witness thresholds reuse one Release fact). 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-adversary-05 重跑替代。",
+      "superseded_by": "pilot-adversary-05"
     },
     {
       "id": "pilot-scale7-04",
@@ -165,7 +171,9 @@
       "campaign_evidence_sha256": "ea1c793a61c3695a5e2d26b95aae2eb10b1d00d09d9b033cfc4867ab37248fab",
       "samples_sha256": "79c9572f10b62922fb2b1be07edb106743ce7531e9beb149a0256c0ce7d6645a",
       "submission_commit": "1aeb7b987038fc2e20fc0c1b3d4cfe80174e29c4",
-      "measured_samples": 9
+      "measured_samples": 9,
+      "superseded_by": "pilot-scale7-05",
+      "note": " 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-scale7-05 重跑替代。"
     },
     {
       "id": "pilot-compare7-01",
@@ -175,7 +183,86 @@
       "campaign_evidence_sha256": "ce3706b127ae68b1d7e6e501165537344d1d8d5fed1086d9d68395a5cdde46cb",
       "samples_sha256": "4d7671fcf50b9c8c3cf6788a9873c3ca91b126941d370ee3931e62a39d9e3b27",
       "submission_commit": "a434c8cd835a2105cd34a91ddf74f9f64cf26a57",
-      "measured_samples": 12
+      "measured_samples": 12,
+      "superseded_by": "pilot-compare7-02",
+      "note": " 原始目录随 2026-09-19 WSL 重建丢失，由 pilot-compare7-02 重跑替代。"
+    },
+    {
+      "id": "pilot-adversary-05",
+      "family": "adversary",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-adversary-05",
+      "campaign_evidence_sha256": "f4b530d3af8ec3aa2991b0185baa13dc7320f67d9d6d9c402627940977c602d9",
+      "samples_sha256": "8eb1a19bb2bbf25f3df07384c27c348bd2ddf2650113d9c5c101cf53c70a1658",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 18,
+      "note": "P9.C 优化对抗研究重跑（adversary-tightened/owner/loosened 三剖面 × 三部署）。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "pilot-counter-rigor-03",
+      "family": "counter",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-counter-rigor-03",
+      "campaign_evidence_sha256": "ddc4767a2868eed66f40c959075a9325607dc81f71c75b0134eafd5922572492",
+      "samples_sha256": "eaa12971c60ffa37601ae833b66d2679806f2a50676b35694736a51c63f4e09d",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 36,
+      "note": "计数器对照臂重跑（counter-exact/rows/queries/release 四臂 × 三序）。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "subphase-pilot-12",
+      "family": "subphase",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/subphase-pilot-12",
+      "campaign_evidence_sha256": "03c960039805b33c31d73b3ff9e885b0b9e03f30066715acf95f23e4a202468a",
+      "samples_sha256": "d9909af845471785e202bafafc88f9d28d6f57007faf6ce161d31160298e1764",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 28,
+      "note": "子阶段计时重跑（analytics-orders、analytics-orders-lineitem 两剖面）。S6/100k-x16 格由 result-heavy 剖面提供，仍待 subphase-pilot-08 的替代重跑。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "pilot-benign-07",
+      "family": "benign",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-benign-07",
+      "campaign_evidence_sha256": "fe5c513e6012247e1e3dadb08e69f082bdb3bb808823866cac9cfe7c2f378c3f",
+      "samples_sha256": "cc061e4fe2aae524929f3d6e9436d3daae2ea106407fd4a21305fe14572452c4",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 9,
+      "note": "良性轨迹重跑（benign-recipe/x2/x4 三剖面 × 三部署）。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "pilot-footprint-08",
+      "family": "footprint",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-footprint-08",
+      "campaign_evidence_sha256": "6106c60c1d3a0880e339fe800187a8651d7b6cfb71e9cb9fed15c13c6937ec3e",
+      "samples_sha256": "848959411dccb8eace0b62d9e7f7a71a6557649ca5ec1150b16d286381edc8b1",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 2,
+      "note": "拒绝足迹阶梯重跑（footprint-bounded/unlimited 各一部署）。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "pilot-scale7-05",
+      "family": "scale7",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-scale7-05",
+      "campaign_evidence_sha256": "0c4060ff5af39efa2134eb04e0a8304cd0a9635d8256b0f4e075ee8eadeb644d",
+      "samples_sha256": "3bee08a0d70065018b867e0af0196937c0bb8a5cd6fbf717052d2b254b2ded9d",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 12,
+      "note": "P9.E 规模阶梯重跑（scale7 剖面三部署）。与 pilot-compare7-02 是同一次 campaign 的两个登记面：该剖面同时产出 scale7 与 compare7 两族样本，loader 按 experiment_id 过滤。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "pilot-compare7-02",
+      "family": "compare7",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/pilot-scale7-05",
+      "campaign_evidence_sha256": "0c4060ff5af39efa2134eb04e0a8304cd0a9635d8256b0f4e075ee8eadeb644d",
+      "samples_sha256": "3bee08a0d70065018b867e0af0196937c0bb8a5cd6fbf717052d2b254b2ded9d",
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "measured_samples": 12,
+      "note": "P9.F 对比研究重跑，与 pilot-scale7-05 同一次 campaign（12 样本混跑，loader 按 experiment 过滤），三部署逐格一致：37 接受=16 唯一+21 重复、23 拒且首拒于第 23 步、repeat_charges=0，与丢失运行所出宏逐值相同。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
     }
   ]
 }

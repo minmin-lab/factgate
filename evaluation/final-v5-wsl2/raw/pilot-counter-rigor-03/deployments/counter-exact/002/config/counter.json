@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "real_system",
+  "campaign_id": "pilot-counter-rigor-03",
+  "experiment_id": "counter",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "deployments": 1,
+  "warmups": 0,
+  "samples": 1,
+  "random_seed": 20260901,
+  "fresh_root_per_sample": true,
+  "workloads": [
+    {
+      "id": "counter-comparator-v1",
+      "scales": [
+        "natural",
+        "shuffled-v1",
+        "novelty-first-v1"
+      ],
+      "modes": [
+        "exact",
+        "rows",
+        "queries",
+        "release"
+      ]
+    }
+  ],
+  "process_replicates": 1
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-rq5-daily-catalog-family-v1",
+  "profile_alias": "expense-detail",
+  "generator_path": "evaluation/daily-publication/sql/05-generate-daily-data.sh",
+  "config_path": "evaluation/daily-publication/config.json",
+  "workload_id": "daily-publication-v5",
+  "scale": "345000",
+  "campaign_cells": [
+    "rq5/online-transition-v1/single/build",
+    "rq5/online-transition-v1/single/retained"
+  ],
+  "days": [
+    {
+      "id": "day0",
+      "ordinal": 0,
+      "publication_name": "daily-lineitem-day0-r345000"
+    },
+    {
+      "id": "day1",
+      "ordinal": 1,
+      "publication_name": "daily-lineitem-day1-r345000"
+    },
+    {
+      "id": "day2",
+      "ordinal": 2,
+      "publication_name": "daily-lineitem-day2-r345000"
+    },
+    {
+      "id": "day3",
+      "ordinal": 3,
+      "publication_name": "daily-lineitem-day3-r345000"
+    }
+  ]
+}

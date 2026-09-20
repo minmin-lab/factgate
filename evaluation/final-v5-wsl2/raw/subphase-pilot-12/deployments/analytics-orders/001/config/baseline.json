@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "protocol_version": "taskgate-final-v5-wsl2-v1",
+  "protocol_profile": "baseline",
+  "protocol_sha256": "a7cd2cd4bcc18b9a1b6e4cfccb4d9782576bee7769d4b0a707bed94467d17419",
+  "workload_manifest_sha256": "b698b0362d195152d728b1670c7840079056adfd503f79eb954464c83a0bd1f3",
+  "acceptance_rules_sha256": "16b5e3d5712d2498325b8bedc79d827c6547e1517bda89156cc2e7f1191cfcd1",
+  "statistics_sha256": "4c296e35d693c78d40048ea2fbb8500754b35d17a3ea85a11cb25cc60ba64a59",
+  "campaign_class": "pilot",
+  "campaign_id": "subphase-pilot-12",
+  "experiment_id": "baseline",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "deployments": 1,
+  "warmups": 0,
+  "samples": 1,
+  "random_seed": 20260801,
+  "fresh_root_per_sample": true,
+  "workloads": [
+    {
+      "id": "S1",
+      "scales": [
+        "SF1",
+        "SF10"
+      ],
+      "modes": [
+        "direct",
+        "novel",
+        "semantic_replay",
+        "idempotent_replay",
+        "normalized_rewrite_replay"
+      ]
+    },
+    {
+      "id": "S2",
+      "scales": [
+        "SF1",
+        "SF10"
+      ],
+      "modes": [
+        "direct",
+        "novel",
+        "semantic_replay",
+        "idempotent_replay",
+        "normalized_rewrite_replay"
+      ]
+    },
+    {
+      "id": "S3",
+      "scales": [
+        "1k-5k",
+        "10k-50k",
+        "45k-225k"
+      ],
+      "modes": [
+        "direct",
+        "novel",
+        "semantic_replay",
+        "idempotent_replay",
+        "normalized_rewrite_replay"
+      ]
+    },
+    {
+      "id": "S4",
+      "scales": [
+        "depth-4"
+      ],
+      "modes": [
+        "direct",
+        "novel",
+        "semantic_replay"
+      ]
+    },
+    {
+      "id": "S5",
+      "scales": [
+        "SF1",
+        "SF10"
+      ],
+      "modes": [
+        "direct",
+        "novel",
+        "semantic_replay",
+        "idempotent_replay"
+      ]
+    },
+    {
+      "id": "S6",
+      "scales": [
+        "100x4",
+        "10k-x4",
+        "100k-x4",
+        "100x16",
+        "10k-x16",
+        "100k-x16"
+      ],
+      "modes": [
+        "direct",
+        "novel"
+      ]
+    }
+  ],
+  "pilot_kind": "real_system",
+  "process_replicates": 1
+}

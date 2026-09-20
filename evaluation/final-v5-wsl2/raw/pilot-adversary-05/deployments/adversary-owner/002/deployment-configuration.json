@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-profile-deployment-config-v1",
+  "source_path": "source/deployment-overrides-v1.json",
+  "source_sha256": "88981dc0cfbb2b24604e7a887f4eb056616d397e737abdb0c1ea3c81f1caa869",
+  "profile_alias": "adversary-owner",
+  "environment": {}
+}

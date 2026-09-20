@@ -1,0 +1,57 @@
+{
+  "contract_release": "final-v5-contracts-v1.13",
+  "profiles": {
+    "profile-f60ec5752f501da0": {
+      "schema_version": 1,
+      "materializer_version": "taskgate-final-v5-profile-artifact-materializer-v1",
+      "contract_release": "final-v5-contracts-v1.13",
+      "profile_id": "profile-f60ec5752f501da0",
+      "profile_alias": "analytics-orders",
+      "closure_sha256": "f60ec5752f501da0147f9d2789234af64de4d98f7542c63b472c8aaecb26214d",
+      "catalog_sha256": "b6a5aaf7c03d82f820b57f49d27363677049966b001efde2972aa3f4d3485325",
+      "publication_set_sha256": "143ffb5cd4bcc1d88da02749175fe6baaa171c5003795118fcdc159149e031ba",
+      "source_artifact_root_sha256": "608475e5329bf6bc3a8af389869c654ec6835f62fbe5427bbc04bc8e2fccdc43",
+      "profile_artifact_directory_sha256": "4d67b69190626593aa07fdb41b18b9a20962cf411d82ad0845e192f8185cfe94",
+      "created_at": "2026-09-19T23:57:18Z",
+      "publications": [
+        "provsql-orders-v1"
+      ],
+      "files": [
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.bundle.json",
+          "publication": "provsql-orders-v1",
+          "sha256": "f93532e8e97c105844cecdcd0027e06d138526285972fbcc1543164e09635594",
+          "bytes": 3956,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.cold.tgord",
+          "publication": "provsql-orders-v1",
+          "sha256": "9ffb6f20eada80905efcb60d9a976f6a2a53a6af5304f501e2bb489b3dc622d4",
+          "bytes": 181358430,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.hot.tgord",
+          "publication": "provsql-orders-v1",
+          "sha256": "e05533618c641e56bd4bf42416be0949b7b5baddd1dfee1ba86127976a259a3d",
+          "bytes": 16603206,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.sidecar.ndjson",
+          "publication": "provsql-orders-v1",
+          "sha256": "7b669f5afa8617e0a1a75e3c2f0a243018ff4c1bf8df4ecb8e1c1396cbf2dfef",
+          "bytes": 6728343,
+          "mode": "0444"
+        }
+      ],
+      "total_files": 4,
+      "total_bytes": 204693935,
+      "expected_hot_bytes": 16603206,
+      "max_hot_limit_bytes": 1073741824
+    }
+  },
+  "record": "taskgate-final-v5-profile-artifact-manifest-set-v1",
+  "schema_version": 1
+}

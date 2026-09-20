@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-fresh-profile-execution-v1",
+  "status": "pass",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "campaign_id": "pilot-adversary-05",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "compose_project": "taskgate-final-v5-deployment-01-bd9c2f6eecf5e01e0024",
+  "profile_alias": "adversary-tightened",
+  "profile_id": "profile-f39ec7673d438fe9",
+  "catalog_sha256": "19c0ea5e27e4df81b87164c27e1e70fa01c81092731757e51d6cf350ab20ac76",
+  "repetition": 2,
+  "formal_gateway_built": true,
+  "formal_gateway": {
+    "image_id": "sha256:f7a066982f6e6f457ced89ee3b18013aec446e03c8a3fdb9db1f3b5256409edb",
+    "build_manifest_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-adversary-05/source/formal-gateway-build.json",
+    "build_manifest_sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+    "compose_override_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-adversary-05/source/compose.formal-gateway.yaml",
+    "compose_override_sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+    "runtime_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/pilot-adversary-05/deployments/adversary-tightened/002/formal-gateway-runtime.json",
+    "runtime_identity_sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+    "build_context_sha256": "2113bf5f3287e5def8e343125d71339eac7a21b22a36b0c2698e4dc2bb57b7a1",
+    "source_manifest_sha256": "580145ead694b4198f3dcd9d599607e0e57212665d1bbe7e321be1cd8e38bb17",
+    "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+    "profile_registry_sha256": "9e6f4b678147cabf098d518db1b9b25799e6810e4f2dae4f89c3cdbedefabf3b"
+  }
+}

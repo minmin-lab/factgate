@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "campaign_class": "pilot",
+  "pilot_kind": "real_system",
+  "campaign_id": "pilot-footprint-08",
+  "experiment_id": "footprint",
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "deployments": 1,
+  "warmups": 0,
+  "samples": 1,
+  "random_seed": 20260801,
+  "fresh_root_per_sample": true,
+  "workloads": [
+    {
+      "id": "refused-footprint-ladder-v1",
+      "scales": [
+        "1e5-rows"
+      ],
+      "modes": [
+        "bounded",
+        "unlimited"
+      ]
+    }
+  ],
+  "process_replicates": 1
+}

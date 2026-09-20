@@ -1,0 +1,1172 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-profile-campaign-evidence-v1",
+  "status": "pass",
+  "campaign_id": "pilot-adversary-05",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "complete_matrix": false,
+  "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+  "repetitions": 3,
+  "plan_sha256": "56df01dd723b113c94bf0f42113f138ea40403fe416da3b545606958198c2eeb",
+  "profile_aliases": [
+    "adversary-loosened",
+    "adversary-owner",
+    "adversary-tightened"
+  ],
+  "deployments": [
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-bec49f0ccbac1796d483",
+      "profile_id": "profile-68ded13e09bfd6e1",
+      "profile_alias": "adversary-loosened",
+      "catalog_path": "config/profiles/adversary-loosened.catalog.yaml",
+      "catalog_sha256": "ba64c82e71285c9b108e5dd8fb120ad1ee2ab6aeba2f9c81af1011e0f35c85f7",
+      "repetition": 1,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/loosened",
+        "adversary/adversary-extraction-v1/greedy/loosened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-loosened/001/profile-binding.json",
+          "sha256": "e0b492b5e3f08eb5605f91a4e3d70ace470148fc40c727e68e94780ec38dca2f",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-loosened/001/activation/adversary-loosened.json",
+          "sha256": "15b7231ecd811d4b26cf7ee570b44fc7e575af45e19a75490ad3741cb4d01bd9",
+          "bytes": 13747
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-loosened/001/environment.json",
+          "sha256": "e55e1fa59d065bbee3326e24207845afe83afe543dc69f2fe5d4c475b26a5b7e",
+          "bytes": 52777
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-loosened/001/fresh-proof.json",
+          "sha256": "361b80578bbea6290e9857791dac166087b80085d2cd40bfeaf7d48cc95d54ef",
+          "bytes": 1862
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-loosened/001/gateway-image.json",
+          "sha256": "9fd415631d0dde81d18ed5cfad7e5036ac5533459d1709ba9102081452ee082f",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-loosened/001/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-loosened/001/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-loosened/001/deployment-configuration.json",
+          "sha256": "6d2c9b5333e402925e83b24f2dc00c92317ad65d474319ee943ec98ef96f6e93",
+          "bytes": 284
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/selected-cells/adversary.json",
+          "sha256": "4b040f9342b7c46fca0b72667cb3e61a8bac95aaa037f60414276c056c44ec52",
+          "bytes": 116
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/raw/adversary.jsonl",
+          "sha256": "94837e917643652d4b778d5df529d604046cd41a05059b994b11b9673f9b16ab",
+          "bytes": 23786
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/adversary.gate.json",
+          "sha256": "75746e797c1485a53ccd73ffa414d1ff061652b3103b253b929736291f460e15",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/001/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-09e2e4aeeb7d6b3f7123",
+      "profile_id": "profile-68ded13e09bfd6e1",
+      "profile_alias": "adversary-loosened",
+      "catalog_path": "config/profiles/adversary-loosened.catalog.yaml",
+      "catalog_sha256": "ba64c82e71285c9b108e5dd8fb120ad1ee2ab6aeba2f9c81af1011e0f35c85f7",
+      "repetition": 2,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/loosened",
+        "adversary/adversary-extraction-v1/greedy/loosened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-loosened/002/profile-binding.json",
+          "sha256": "e0b492b5e3f08eb5605f91a4e3d70ace470148fc40c727e68e94780ec38dca2f",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-loosened/002/activation/adversary-loosened.json",
+          "sha256": "459c9e59aa2e26444aad11101a9cc5f0d0e9c729aa1c0d29cf3406e244f0d841",
+          "bytes": 13745
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-loosened/002/environment.json",
+          "sha256": "864b4866c645034cca3d73322a71e447628cebcfa15e885083c04df7a13e64db",
+          "bytes": 54605
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-loosened/002/fresh-proof.json",
+          "sha256": "26de37ae0846fd55d1b54f14c88df9dae77cab9c133b54e4d3ab693e59733897",
+          "bytes": 1862
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-loosened/002/gateway-image.json",
+          "sha256": "3097e09cabad7d15666d665a7d1e4b00c760d9a0e3971d8d9cfc991a669b4be5",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-loosened/002/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-loosened/002/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-loosened/002/deployment-configuration.json",
+          "sha256": "6d2c9b5333e402925e83b24f2dc00c92317ad65d474319ee943ec98ef96f6e93",
+          "bytes": 284
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/selected-cells/adversary.json",
+          "sha256": "4b040f9342b7c46fca0b72667cb3e61a8bac95aaa037f60414276c056c44ec52",
+          "bytes": 116
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/raw/adversary.jsonl",
+          "sha256": "2ff367aa4f8cd1f8fab2d654d11fe8aa0967b1680b5e2a3570de4e5f201702aa",
+          "bytes": 23784
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/adversary.gate.json",
+          "sha256": "25c98ba4d3efd0f0540a9ec3ca1e4fc386bcf23d64c2c6d60e01422377ddd619",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/002/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-6d42b8c70dd79d787c67",
+      "profile_id": "profile-68ded13e09bfd6e1",
+      "profile_alias": "adversary-loosened",
+      "catalog_path": "config/profiles/adversary-loosened.catalog.yaml",
+      "catalog_sha256": "ba64c82e71285c9b108e5dd8fb120ad1ee2ab6aeba2f9c81af1011e0f35c85f7",
+      "repetition": 3,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/loosened",
+        "adversary/adversary-extraction-v1/greedy/loosened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-loosened/003/profile-binding.json",
+          "sha256": "e0b492b5e3f08eb5605f91a4e3d70ace470148fc40c727e68e94780ec38dca2f",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-loosened/003/activation/adversary-loosened.json",
+          "sha256": "8a4440ec340991e4ae7c5e02fb5d0c01c6ef666201c7793abba2acd077b88fe4",
+          "bytes": 13746
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-loosened/003/environment.json",
+          "sha256": "09b3154d45cb63c353360193752b91ad11b53eb480d4440b5b6797078c9d3de3",
+          "bytes": 56434
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-loosened/003/fresh-proof.json",
+          "sha256": "a7876822e739820e9071bd3287ec0e4ee9b26cb6bb20274c7b92a9a0634b768a",
+          "bytes": 1862
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-loosened/003/gateway-image.json",
+          "sha256": "015a1757ca1ace64dd8fff18b0d2b741b56cd0150eb0e524e510bc8128f88a1a",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-loosened/003/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-loosened/003/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-loosened/003/deployment-configuration.json",
+          "sha256": "6d2c9b5333e402925e83b24f2dc00c92317ad65d474319ee943ec98ef96f6e93",
+          "bytes": 284
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/selected-cells/adversary.json",
+          "sha256": "4b040f9342b7c46fca0b72667cb3e61a8bac95aaa037f60414276c056c44ec52",
+          "bytes": 116
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/raw/adversary.jsonl",
+          "sha256": "0c2a0e772777a6cc28c2692b38f85ce9e0de01c66a9d12153ee35eb6e7579f2a",
+          "bytes": 23785
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/adversary.gate.json",
+          "sha256": "b296708cc0f15a925686fa030375c0768adc484b19720392c558ab5ef16cfc20",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-loosened/003/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-c6d3885e0cb663ebb2d1",
+      "profile_id": "profile-4a29b3ffc7129007",
+      "profile_alias": "adversary-owner",
+      "catalog_path": "config/profiles/adversary-owner.catalog.yaml",
+      "catalog_sha256": "bb1abc4137787597ba1da454c2d24445439c9e42e2c05153d1d8f202fff17309",
+      "repetition": 1,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/owner",
+        "adversary/adversary-extraction-v1/greedy/owner"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-owner/001/profile-binding.json",
+          "sha256": "025db0068c9f7ef1bb5f4e331e7cb18900f9eacde75e9b84d3dce7fc2519d68d",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-owner/001/activation/adversary-owner.json",
+          "sha256": "5c7e6f0d2a4fe6755353344e522236ec9801c264bc624909c7892512528c0a8a",
+          "bytes": 12860
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-owner/001/environment.json",
+          "sha256": "accee58be96e3ccf07cc8547734aa8e4bc9b89828166253de89978f83cd933d4",
+          "bytes": 47295
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-owner/001/fresh-proof.json",
+          "sha256": "abf6deca60e23aee5122624a9d662fc62dd18c55f65805924a9a6aa07100a5b2",
+          "bytes": 1856
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-owner/001/gateway-image.json",
+          "sha256": "6d4b4fcee9281a1c1b01f621c775fd7edac42316b1368ccd9cfe56554be693c6",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-owner/001/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-owner/001/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-owner/001/deployment-configuration.json",
+          "sha256": "dfde97936ef5d99a07b275bbf6267c18ed556d5270cc6028a63547c524451725",
+          "bytes": 281
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/selected-cells/adversary.json",
+          "sha256": "fa6bfe088ffa30190899e2c1a7a5b8e9c5b07f2ea70f99bba4be765505713f37",
+          "bytes": 110
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/raw/adversary.jsonl",
+          "sha256": "179b2ad7eb9432ec34c89793ff7c42690e359ce971a18981b4c9364cf80e0a2c",
+          "bytes": 17800
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/adversary.gate.json",
+          "sha256": "e5d46547bbfab18d603d2c4590afc11249d55ec4952da079d2455048efddfcf5",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/001/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-2f3a7ee2a24fd7380759",
+      "profile_id": "profile-4a29b3ffc7129007",
+      "profile_alias": "adversary-owner",
+      "catalog_path": "config/profiles/adversary-owner.catalog.yaml",
+      "catalog_sha256": "bb1abc4137787597ba1da454c2d24445439c9e42e2c05153d1d8f202fff17309",
+      "repetition": 2,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/owner",
+        "adversary/adversary-extraction-v1/greedy/owner"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-owner/002/profile-binding.json",
+          "sha256": "025db0068c9f7ef1bb5f4e331e7cb18900f9eacde75e9b84d3dce7fc2519d68d",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-owner/002/activation/adversary-owner.json",
+          "sha256": "aeea00cf96a8b2f67cabd30251e2be585a591446c6b4cfaeab4305966d4fa04e",
+          "bytes": 12860
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-owner/002/environment.json",
+          "sha256": "4e8ee286de94c1ca9219b00d1d718bd88a4ea3ca0aff5f55413b98eeea32e575",
+          "bytes": 49120
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-owner/002/fresh-proof.json",
+          "sha256": "fe5a6f5b3b0939fb6310bce4e2ea492724d2c19b501943176408d878c4778e44",
+          "bytes": 1856
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-owner/002/gateway-image.json",
+          "sha256": "7d5a0d07b7a7ec99132d3a8b5167081a7725b66d66b6a5adbfe42cf7e7600907",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-owner/002/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-owner/002/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-owner/002/deployment-configuration.json",
+          "sha256": "dfde97936ef5d99a07b275bbf6267c18ed556d5270cc6028a63547c524451725",
+          "bytes": 281
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/selected-cells/adversary.json",
+          "sha256": "fa6bfe088ffa30190899e2c1a7a5b8e9c5b07f2ea70f99bba4be765505713f37",
+          "bytes": 110
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/raw/adversary.jsonl",
+          "sha256": "866a0f756638ad6ced78f864679e4d6c2ec3b7734da70160615298bdc25c5f30",
+          "bytes": 17800
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/adversary.gate.json",
+          "sha256": "8917e5372a340eb1ff0f6bdeb95089f1d7cb59a69d0823bfcdf5ce5ad0ff01aa",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/002/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-379b1971926fd25f937d",
+      "profile_id": "profile-4a29b3ffc7129007",
+      "profile_alias": "adversary-owner",
+      "catalog_path": "config/profiles/adversary-owner.catalog.yaml",
+      "catalog_sha256": "bb1abc4137787597ba1da454c2d24445439c9e42e2c05153d1d8f202fff17309",
+      "repetition": 3,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/owner",
+        "adversary/adversary-extraction-v1/greedy/owner"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-owner/003/profile-binding.json",
+          "sha256": "025db0068c9f7ef1bb5f4e331e7cb18900f9eacde75e9b84d3dce7fc2519d68d",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-owner/003/activation/adversary-owner.json",
+          "sha256": "5a8dd0c1dce6501f65da779972726d8ecb8547752c8fac90a850b7338b5a0e23",
+          "bytes": 12859
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-owner/003/environment.json",
+          "sha256": "9889e98e0fbaee464c4b44d4f24b04e5f99cbe8dadc04ae94dcef168541b9f19",
+          "bytes": 50945
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-owner/003/fresh-proof.json",
+          "sha256": "3f6b549d9edd9174dcda2a77000ed0989c1eaabe4c46e13284567167ceedb99c",
+          "bytes": 1856
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-owner/003/gateway-image.json",
+          "sha256": "850c1ebc9042e8db6145fe2dc87431db3b181a56ac9464ed7c7a8a64b9f185a1",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-owner/003/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-owner/003/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-owner/003/deployment-configuration.json",
+          "sha256": "dfde97936ef5d99a07b275bbf6267c18ed556d5270cc6028a63547c524451725",
+          "bytes": 281
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/selected-cells/adversary.json",
+          "sha256": "fa6bfe088ffa30190899e2c1a7a5b8e9c5b07f2ea70f99bba4be765505713f37",
+          "bytes": 110
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/raw/adversary.jsonl",
+          "sha256": "e7b0b9d93f3b1f48b19852ee1a8c1d22ef678f8484b77e2a658335513e68dabf",
+          "bytes": 17799
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/adversary.gate.json",
+          "sha256": "81548e5f979678055ab90925406742e535fbe4613208c70e3e8992b8ac1c6645",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-owner/003/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-ad96ca643bacb8523a90",
+      "profile_id": "profile-f39ec7673d438fe9",
+      "profile_alias": "adversary-tightened",
+      "catalog_path": "config/profiles/adversary-tightened.catalog.yaml",
+      "catalog_sha256": "19c0ea5e27e4df81b87164c27e1e70fa01c81092731757e51d6cf350ab20ac76",
+      "repetition": 1,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/tightened",
+        "adversary/adversary-extraction-v1/greedy/tightened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-tightened/001/profile-binding.json",
+          "sha256": "ca5372fe1ca8b49eb85b560b16c1686d4040edee30877ef198077afc707672cf",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-tightened/001/activation/adversary-tightened.json",
+          "sha256": "a966158e680df0434e46ff17cf2dc1fd97c853249f8dbfa84190a369724f0fa2",
+          "bytes": 12890
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-tightened/001/environment.json",
+          "sha256": "d295029696046de3ca6e2f116bc94cf793afa47991c53380340959a4ede676df",
+          "bytes": 41812
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-tightened/001/fresh-proof.json",
+          "sha256": "d3fcd0e442e32ae1bc3b5c4f357daafa9fe3cb3f57a3b893f665ecb868557b7a",
+          "bytes": 1864
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-tightened/001/gateway-image.json",
+          "sha256": "65a1b815d4574b7970f087ddda1774841303b434b0188c0e75b3319045c25941",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-tightened/001/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-tightened/001/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-tightened/001/deployment-configuration.json",
+          "sha256": "9c0adc3ee5f561e06d54cbb22344faa8ee9af08c06841374b8fcb701142b3b3d",
+          "bytes": 285
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/selected-cells/adversary.json",
+          "sha256": "80703a78f76effef99f06221d39f5f7b429123e5977ba3192a5b2a0bf43ee079",
+          "bytes": 118
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/raw/adversary.jsonl",
+          "sha256": "e0e533dcb52b2f10d0c55bcea47a1ed57360f6beefae36df626e5c755c76f0f9",
+          "bytes": 23327
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/adversary.gate.json",
+          "sha256": "4ffb4e33a7bc304de8d23d827e663f4708de79409f423a840bddba325b2729a6",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/001/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-bd9c2f6eecf5e01e0024",
+      "profile_id": "profile-f39ec7673d438fe9",
+      "profile_alias": "adversary-tightened",
+      "catalog_path": "config/profiles/adversary-tightened.catalog.yaml",
+      "catalog_sha256": "19c0ea5e27e4df81b87164c27e1e70fa01c81092731757e51d6cf350ab20ac76",
+      "repetition": 2,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/tightened",
+        "adversary/adversary-extraction-v1/greedy/tightened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-tightened/002/profile-binding.json",
+          "sha256": "ca5372fe1ca8b49eb85b560b16c1686d4040edee30877ef198077afc707672cf",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-tightened/002/activation/adversary-tightened.json",
+          "sha256": "3ae9f66c2cf6a26739eaedb8d0c264e0b5acbdd76c32426a43182d363ccef2b0",
+          "bytes": 12890
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-tightened/002/environment.json",
+          "sha256": "89c9ee1f93c888b33dc1907908408e65c57e258c7f801bb98c8f136821111246",
+          "bytes": 43638
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-tightened/002/fresh-proof.json",
+          "sha256": "073ddeb8f214d78b58d9565255f1179284647047a340024242609a4da923599b",
+          "bytes": 1864
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-tightened/002/gateway-image.json",
+          "sha256": "58fc7cc762cb4f52dccad60b2f275b591460b01d17c57e273d2f9f9eb0d89850",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-tightened/002/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-tightened/002/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-tightened/002/deployment-configuration.json",
+          "sha256": "9c0adc3ee5f561e06d54cbb22344faa8ee9af08c06841374b8fcb701142b3b3d",
+          "bytes": 285
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/selected-cells/adversary.json",
+          "sha256": "80703a78f76effef99f06221d39f5f7b429123e5977ba3192a5b2a0bf43ee079",
+          "bytes": 118
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/raw/adversary.jsonl",
+          "sha256": "d1bfeef0c5e8b62e2dc440c472b32bc396a76489eae9d23638de8bd58b582ec9",
+          "bytes": 23326
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/adversary.gate.json",
+          "sha256": "f2f9564ec1772d5fbd4a3c5759d495afb18e61419575094aac9accdf400f0e5b",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/002/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "campaign_id": "pilot-adversary-05",
+      "campaign_class": "pilot",
+      "publication_eligible": false,
+      "formal_campaign": false,
+      "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
+      "compose_project": "taskgate-final-v5-deployment-01-8e01e49ce2cec736d73c",
+      "profile_id": "profile-f39ec7673d438fe9",
+      "profile_alias": "adversary-tightened",
+      "catalog_path": "config/profiles/adversary-tightened.catalog.yaml",
+      "catalog_sha256": "19c0ea5e27e4df81b87164c27e1e70fa01c81092731757e51d6cf350ab20ac76",
+      "repetition": 3,
+      "cells": [
+        "adversary/adversary-extraction-v1/bisection/tightened",
+        "adversary/adversary-extraction-v1/greedy/tightened"
+      ],
+      "files": [
+        {
+          "kind": "profile_binding",
+          "path": "deployments/adversary-tightened/003/profile-binding.json",
+          "sha256": "ca5372fe1ca8b49eb85b560b16c1686d4040edee30877ef198077afc707672cf",
+          "bytes": 466
+        },
+        {
+          "kind": "activation_evidence",
+          "path": "deployments/adversary-tightened/003/activation/adversary-tightened.json",
+          "sha256": "8d147ade2ce472a42b992a2f2e44c72c808dc0772b4c8a3da45eeb83470a987f",
+          "bytes": 12890
+        },
+        {
+          "kind": "environment",
+          "path": "deployments/adversary-tightened/003/environment.json",
+          "sha256": "64f0e0ae4e89471dbfa980c9909c50e868004fc80ee22b2129d60740c5e39808",
+          "bytes": 45463
+        },
+        {
+          "kind": "fresh_proof",
+          "path": "deployments/adversary-tightened/003/fresh-proof.json",
+          "sha256": "dbe90376365fcaf263a0199d66d3082b1d8330962599d4d7c78cec3e5980227f",
+          "bytes": 1864
+        },
+        {
+          "kind": "gateway_image",
+          "path": "deployments/adversary-tightened/003/gateway-image.json",
+          "sha256": "a012ca0aeb548834010603e8ebd50314f96029e2e7470b5a3171f5b562a7eefb",
+          "bytes": 1616
+        },
+        {
+          "kind": "formal_gateway_runtime",
+          "path": "deployments/adversary-tightened/003/formal-gateway-runtime.json",
+          "sha256": "831f974a524a5937b0643ec156b99f706aed1bfc0fb32ad3b35ecb01376d4093",
+          "bytes": 1164
+        },
+        {
+          "kind": "formal_gateway_build_manifest",
+          "path": "source/formal-gateway-build.json",
+          "sha256": "ec333386da3fd198a8292a5283385234ee601fadfcb4a22abf06da29b4ed3a06",
+          "bytes": 951
+        },
+        {
+          "kind": "formal_gateway_compose_override",
+          "path": "source/compose.formal-gateway.yaml",
+          "sha256": "a5aae2637f49db2e2f420559c79f45fbcd6c85267427e826b18a9d8135d19539",
+          "bytes": 152
+        },
+        {
+          "kind": "formal_gateway_build_log",
+          "path": "source/formal-gateway-build.log",
+          "sha256": "dd7e2d387785ef01a0e5f0b044bf4ffaedee2403b3ed99bbc07d4b228cf37d79",
+          "bytes": 657
+        },
+        {
+          "kind": "cleanup",
+          "path": "deployments/adversary-tightened/003/cleanup.json",
+          "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+          "bytes": 98
+        },
+        {
+          "kind": "deployment_configuration",
+          "path": "deployments/adversary-tightened/003/deployment-configuration.json",
+          "sha256": "9c0adc3ee5f561e06d54cbb22344faa8ee9af08c06841374b8fcb701142b3b3d",
+          "bytes": 285
+        },
+        {
+          "kind": "config",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/config/adversary.json",
+          "sha256": "e59e1134fd7af759bdbac53b03ab5efc5856357f18ee1f649b8174ce40a9b6d4",
+          "bytes": 583
+        },
+        {
+          "kind": "selected_cells",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/selected-cells/adversary.json",
+          "sha256": "80703a78f76effef99f06221d39f5f7b429123e5977ba3192a5b2a0bf43ee079",
+          "bytes": 118
+        },
+        {
+          "kind": "raw_jsonl",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/raw/adversary.jsonl",
+          "sha256": "f34572e6a478a1c81ea33519f3ba7c55de91a206198f419d8f5ed533389add49",
+          "bytes": 23325
+        },
+        {
+          "kind": "launcher_gate",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/adversary.gate.json",
+          "sha256": "1a00d7fecb962fc006052c5a91f7cc15346d15103247bbbe3f1a645c97839414",
+          "bytes": 203
+        },
+        {
+          "kind": "adapter_stderr",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/adapter-stderr/adversary.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "kind": "adapter_stderr_credential_scan",
+          "experiment": "adversary",
+          "path": "deployments/adversary-tightened/003/adapter-stderr/adversary.credential-scan.json",
+          "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+          "bytes": 391
+        }
+      ]
+    }
+  ]
+}

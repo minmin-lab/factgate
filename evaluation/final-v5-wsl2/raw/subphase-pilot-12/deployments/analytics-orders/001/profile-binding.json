@@ -1,0 +1,8 @@
+{
+  "version": "taskgate-final-v5-profile-binding-v1",
+  "profile_id": "profile-f60ec5752f501da0",
+  "closure_sha256": "f60ec5752f501da0147f9d2789234af64de4d98f7542c63b472c8aaecb26214d",
+  "catalog_sha256": "b6a5aaf7c03d82f820b57f49d27363677049966b001efde2972aa3f4d3485325",
+  "dataset_binding_sha256": "986b5d53cdd246c993b1871bc3c5ec247d98ead230e3e99caf549d215f5d477a",
+  "publication_identity": "143ffb5cd4bcc1d88da02749175fe6baaa171c5003795118fcdc159149e031ba"
+}

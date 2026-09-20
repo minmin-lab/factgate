@@ -1,0 +1,57 @@
+{
+  "contract_release": "final-v5-contracts-v1.13",
+  "profiles": {
+    "profile-69f6a064f1ef18ed": {
+      "schema_version": 1,
+      "materializer_version": "taskgate-final-v5-profile-artifact-materializer-v1",
+      "contract_release": "final-v5-contracts-v1.13",
+      "profile_id": "profile-69f6a064f1ef18ed",
+      "profile_alias": "scale7",
+      "closure_sha256": "69f6a064f1ef18edad6f05548bda938f2367eab999594625bb58d707b406227f",
+      "catalog_sha256": "e4aa369772d01b6f234af20a1e6b9a43041c2b50ab56a7c09fc8f50691662829",
+      "publication_set_sha256": "e58abac6aabe19e6d5a1fc7f2a5a2cef17e7f66c214f3fad825069ee1f9b3137",
+      "source_artifact_root_sha256": "608475e5329bf6bc3a8af389869c654ec6835f62fbe5427bbc04bc8e2fccdc43",
+      "profile_artifact_directory_sha256": "67df07ea0b77c41bfeed34d9a20f8906fa3deef74f1a2d8c6c3f4ed0b5dfcbe4",
+      "created_at": "2026-09-20T06:31:45Z",
+      "publications": [
+        "final-v5-scale-e7-v1"
+      ],
+      "files": [
+        {
+          "relative_path": "final-v5-scale-e7-v1/final-v5-scale-e7-v1.bundle.json",
+          "publication": "final-v5-scale-e7-v1",
+          "sha256": "db13ea73de009565164ad809f24701614517064a0e65318a9b21c839a6cedb39",
+          "bytes": 13447,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-scale-e7-v1/final-v5-scale-e7-v1.cold.tgord",
+          "publication": "final-v5-scale-e7-v1",
+          "sha256": "900c6d711353f463ba61562a5a8ef6eca2a4de378fde8fed45ecf0ae9e0be683",
+          "bytes": 13461571525,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-scale-e7-v1/final-v5-scale-e7-v1.hot.tgord",
+          "publication": "final-v5-scale-e7-v1",
+          "sha256": "5ad80dd424978ef42926b42e198bf6a6fdaaa4911c8611f1d3b740ed373f7515",
+          "bytes": 951013033,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "final-v5-scale-e7-v1/final-v5-scale-e7-v1.sidecar.ndjson",
+          "publication": "final-v5-scale-e7-v1",
+          "sha256": "d2117cb4c7877225ab956b6082bfe50ac818c3717363e5f50d24b91110abbb97",
+          "bytes": 102528344,
+          "mode": "0444"
+        }
+      ],
+      "total_files": 4,
+      "total_bytes": 14515126349,
+      "expected_hot_bytes": 951013033,
+      "max_hot_limit_bytes": 1073741824
+    }
+  },
+  "record": "taskgate-final-v5-profile-artifact-manifest-set-v1",
+  "schema_version": 1
+}

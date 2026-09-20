@@ -1,0 +1,86 @@
+{
+  "contract_release": "final-v5-contracts-v1.13",
+  "profiles": {
+    "profile-4a29b3ffc7129007": {
+      "schema_version": 1,
+      "materializer_version": "taskgate-final-v5-profile-artifact-materializer-v1",
+      "contract_release": "final-v5-contracts-v1.13",
+      "profile_id": "profile-4a29b3ffc7129007",
+      "profile_alias": "adversary-owner",
+      "closure_sha256": "4a29b3ffc7129007c764e49872cbf4e671313bbbdb456ca8fa9694740cc892e8",
+      "catalog_sha256": "bb1abc4137787597ba1da454c2d24445439c9e42e2c05153d1d8f202fff17309",
+      "publication_set_sha256": "49fa15688eb868d329ef55ba821365b34d4fb4d8bc7594e07b944ab93f0666ad",
+      "source_artifact_root_sha256": "608475e5329bf6bc3a8af389869c654ec6835f62fbe5427bbc04bc8e2fccdc43",
+      "profile_artifact_directory_sha256": "e0da3aa8ea6d247622132da0e6e4d1419abcb2006cb27f036fe668e74b605d08",
+      "created_at": "2026-09-19T15:27:17Z",
+      "publications": [
+        "expense-detail-v1",
+        "provsql-orders-v1"
+      ],
+      "files": [
+        {
+          "relative_path": "expense-detail-v1/expense-detail-v1.bundle.json",
+          "publication": "expense-detail-v1",
+          "sha256": "f710b7884939aa65c90443f217bb8aa42c04ae1de4cc2ae6f5aa44af47b9d729",
+          "bytes": 8905,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "expense-detail-v1/expense-detail-v1.cold.tgord",
+          "publication": "expense-detail-v1",
+          "sha256": "56b999186942b9ef9f268142e655ed37deafe25b528d1b88f4810dbcfb15ff4d",
+          "bytes": 117358,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "expense-detail-v1/expense-detail-v1.hot.tgord",
+          "publication": "expense-detail-v1",
+          "sha256": "4fe39eecd0ba1ab5fb849c271e48ba1abbbd87ff8ede46387d9dd0204df8642a",
+          "bytes": 16638,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "expense-detail-v1/expense-detail-v1.sidecar.ndjson",
+          "publication": "expense-detail-v1",
+          "sha256": "f0820c0f340b1772101a9276eaa70d815a95911fca30ee786b4fa6920fc6737e",
+          "bytes": 1952,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.bundle.json",
+          "publication": "provsql-orders-v1",
+          "sha256": "f93532e8e97c105844cecdcd0027e06d138526285972fbcc1543164e09635594",
+          "bytes": 3956,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.cold.tgord",
+          "publication": "provsql-orders-v1",
+          "sha256": "9ffb6f20eada80905efcb60d9a976f6a2a53a6af5304f501e2bb489b3dc622d4",
+          "bytes": 181358430,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.hot.tgord",
+          "publication": "provsql-orders-v1",
+          "sha256": "e05533618c641e56bd4bf42416be0949b7b5baddd1dfee1ba86127976a259a3d",
+          "bytes": 16603206,
+          "mode": "0444"
+        },
+        {
+          "relative_path": "provsql-orders-v1/provsql-orders-v1.sidecar.ndjson",
+          "publication": "provsql-orders-v1",
+          "sha256": "7b669f5afa8617e0a1a75e3c2f0a243018ff4c1bf8df4ecb8e1c1396cbf2dfef",
+          "bytes": 6728343,
+          "mode": "0444"
+        }
+      ],
+      "total_files": 8,
+      "total_bytes": 204838788,
+      "expected_hot_bytes": 16619844,
+      "max_hot_limit_bytes": 1073741824
+    }
+  },
+  "record": "taskgate-final-v5-profile-artifact-manifest-set-v1",
+  "schema_version": 1
+}
