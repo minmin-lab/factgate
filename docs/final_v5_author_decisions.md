@@ -664,3 +664,21 @@ oracles, campaigns, or the paper are complete.
     cliff. This does not authorise the repair itself, a formal campaign,
     capability flip, frozen-byte change, publication evidence, release, tag,
     or tag movement.
+
+## 决策（2026-09-20）：私有 Dataset Binding 恢复沿用签署会话 #3 的批准
+
+2026-09-19 执行机（WSL）被重建，私有 binding 与其签署材料（`~/.taskgate-signing-backup-p9g`、
+`~/.taskgate-signing-candidate-p9g`）随之丢失。Claude 在重建后的执行机上、对隔离的
+digest-pinned PostgreSQL 16.14 测试库重新运行
+`final-v5-publication-binding generate-current-binding`，产物与作者在签署会话 #3 中批准的
+binding **逐字节相同**：SHA-256 `685a0e203a1bbc0d35eb28178ac75c98fc3be1028d30fb43f2c98d39116070e0`、
+110584 字节；`final-v5-adapter --validate-binding` 得 `schema_version=2 / status=valid`；
+会话 #3 的另外 135 个 oracle manifest 自批准记录提交 `adcca3f` 起未变（artifact 6 / scale 24 / provsql 105）。
+
+**作者在对话中裁定「A」**：不签署新的会话 #4，沿用会话 #3 的批准
+（原文见 `evaluation/final-v5-wsl2/publication-approvals/p9g-current-binding/approval-session-v1.txt`，
+其授权为 "use the exact private binding after revalidation"——本件即该 exact binding，且已复验）。
+据此不新增 `publication-approvals/` 文件、不产生新的签署句；binding 安装于
+`~/.taskgate-signing-backup-p9g/publication-binding.json`（目录 0700、文件 0600，安装后复核 SHA-256 一致）。
+
+本决策只覆盖 binding 的恢复与使用，不批准任何 campaign 发射、不翻能力位、不批准发表证据、不动 tag。
