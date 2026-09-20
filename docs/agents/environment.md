@@ -82,3 +82,14 @@ worktree `git fsck --no-dangling`、私有材料摘要（P45 signed binding `3bb
 - 日志目录 `~/logs/`（Claude 建）。
 - **MinIO 镜像已从 Docker Hub 下架（2026-09-19 实测 `pull access denied for minio/minio`、`minio/mc`）**，compose.yaml 钉的是 tag（`minio/minio:RELEASE.2025-04-22T22-12-26Z`、`minio/mc:RELEASE.2025-04-16T18-13-26Z`，无摘要）。绕法（不改冻结文件）：`docker pull quay.io/minio/<name>:<same tag>` 后 `docker tag` 成 compose 引用的名字；compose 发现本地已有该 tag 就不再拉取。重建 WSL 后必做一次。
 - 本地开发栈：`.env` 已按 docs/getting-started.md 用本地生成的密钥写好（mode 600，不入库）；`docker compose up --build -d --wait` 日志在 `~/logs/devstack-up-*.log`。
+
+## WSL VHD 压缩（2026-09-20 作者实测，步骤以此为准）
+
+WSL 内删除的空间不会自动回到 D 盘：`ext4.vhdx` 只增不减。回收步骤（作者在 Windows 管理员 PowerShell 做，Claude 无法代做）：
+
+1. **先在 WSL 里 `sudo fstrim -av`**——这一步是关键，缺了它 compact 基本回收不到东西（实测 fstrim 报 892 GiB 后 compact 才真缩）。
+2. `wsl --shutdown`，等约 10 秒。
+3. `Optimize-VHD -Path "D:\WSL\Ubuntu-22.04\ext4.vhdx" -Mode Full`（Win11 Home 亦可用，vmms/vmcompute 在跑即可；无 Hyper-V 才退回 diskpart compact vdisk）。
+4. **不要开 `wsl --manage <distro> --set-sparse true`**：WSL 2.7.11 已因数据损坏风险禁用稀疏 VHD（E_INVALIDARG，需 --allow-unsafe 强开），活数据无第二份时不值得。代价是每次都要手工压。
+
+实测一次：回收约 405 GiB、耗时 2 分 39 秒（521G → 117G）。压缩后复核 ext4 挂载干净、随机数据写回 sha256 一致、df 与压缩前一致、worktree git fsck 无错。
