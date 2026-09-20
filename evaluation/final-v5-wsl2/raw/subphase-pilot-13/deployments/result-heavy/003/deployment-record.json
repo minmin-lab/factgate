@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "campaign_id": "subphase-pilot-13",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+  "compose_project": "taskgate-final-v5-deployment-01-47d61aaff13013bcca8e",
+  "profile_id": "profile-a86cd4df5cad6e26",
+  "profile_alias": "result-heavy",
+  "catalog_path": "config/profiles/result-heavy.catalog.yaml",
+  "catalog_sha256": "e5911cdd704b60051d415077396fe3900f1548bc87e2756d0139ca2964142042",
+  "repetition": 3,
+  "cells": [
+    "artifact/result-heavy/100k-x16/novel",
+    "artifact/result-heavy/100k-x4/novel",
+    "artifact/result-heavy/100x16/novel",
+    "artifact/result-heavy/100x4/novel",
+    "artifact/result-heavy/10k-x16/novel",
+    "artifact/result-heavy/10k-x4/novel",
+    "baseline/S6/100k-x16/direct",
+    "baseline/S6/100k-x16/novel",
+    "baseline/S6/100k-x4/direct",
+    "baseline/S6/100k-x4/novel",
+    "baseline/S6/100x16/direct",
+    "baseline/S6/100x16/novel",
+    "baseline/S6/100x4/direct",
+    "baseline/S6/100x4/novel",
+    "baseline/S6/10k-x16/direct",
+    "baseline/S6/10k-x16/novel",
+    "baseline/S6/10k-x4/direct",
+    "baseline/S6/10k-x4/novel"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/result-heavy/003/profile-binding.json",
+      "sha256": "a0bdc177efdbdda19d7d533f3c464a402ba392e89529cad1f25366264daf5a6d",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/result-heavy/003/activation/result-heavy.json",
+      "sha256": "103af4064103d88eca8816416ca298ebccdb0b022ebe6c35711f2aa718a4dcb9",
+      "bytes": 12021
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/result-heavy/003/environment.json",
+      "sha256": "9459e9f639c6db9517071c963e4ecbe64b49795349960643aa8096a9dc1635e6",
+      "bytes": 113695
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/result-heavy/003/fresh-proof.json",
+      "sha256": "0f5948e71f14c6eea0050e1aa0521fe10738d75ab813a145934327b8f8f2f83b",
+      "bytes": 2581
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/result-heavy/003/gateway-image.json",
+      "sha256": "ccd882d78a6c7da7731a7d719ca3b3ad11fff661a5608e8544ec2538c5813539",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/result-heavy/003/formal-gateway-runtime.json",
+      "sha256": "566f382680f6370a86f43eb0b000e254fbdd59de85586ea4a6ccc442ef85bdf4",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "e043c36444a60c5652d7a9ff7c6e3f651beffe2f0e1a755f3a85cb2079727d3e",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "8dae58943883b831070f6a9a11f1c9477fdb5987777ce25fdf6ba14b000df45c",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "5a4345c7432ee5caeed9bfcb9feea2e727facbe223564b5d31c30b6f8111cd75",
+      "bytes": 656
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/result-heavy/003/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/result-heavy/003/deployment-configuration.json",
+      "sha256": "d9135735ff32da7dfcc96b8e290d38252f0fbfca4af9f6d0e4bd4e8ad9ff36a1",
+      "bytes": 278
+    },
+    {
+      "kind": "config",
+      "path": "deployments/result-heavy/003/config/artifact.json",
+      "sha256": "c00ade62735d359818b6e9452786675fc7e4b435896661b428e06ec395bad7a3",
+      "bytes": 1061,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/result-heavy/003/selected-cells/artifact.json",
+      "sha256": "d1559c6d87daab444d38c39cb0e1de9f7346bfb0fb498985e70058a06340a1a7",
+      "bytes": 246,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/result-heavy/003/raw/artifact.jsonl",
+      "sha256": "db4bb6f3f0daf64f9bd94b6aae497f718dde33d36c5a9acd1335bc203ec4ae45",
+      "bytes": 310320,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/result-heavy/003/artifact.gate.json",
+      "sha256": "4a8fea521ab5194dc9054bb8204761c0d63a842d6848c8b75c78d31acba4b450",
+      "bytes": 202,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/result-heavy/003/adapter-stderr/artifact.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/result-heavy/003/adapter-stderr/artifact.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "artifact"
+    },
+    {
+      "kind": "config",
+      "path": "deployments/result-heavy/003/config/baseline.json",
+      "sha256": "e29a459796da8c53f7aa00bfee616e9864360d85e4ae7e32e3cc51f069ffbfc7",
+      "bytes": 2179,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/result-heavy/003/selected-cells/baseline.json",
+      "sha256": "f3cd7ba12cf8af3322b2ea94fa08cc9adbffdda681cdf839d0aa353ecee3fed8",
+      "bytes": 375,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/result-heavy/003/raw/baseline.jsonl",
+      "sha256": "83f37952b89ae2e3b4d93f0580fd4748a2bb5221693e3c7357a5857e115d3ccb",
+      "bytes": 220576,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/result-heavy/003/baseline.gate.json",
+      "sha256": "1b8bfdbf4dd385004c288208019fd4dcf0b8b97882652731619977027f58d5d5",
+      "bytes": 204,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/result-heavy/003/adapter-stderr/baseline.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "baseline"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/result-heavy/003/adapter-stderr/baseline.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "baseline"
+    }
+  ]
+}

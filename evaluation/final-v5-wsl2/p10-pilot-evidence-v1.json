@@ -36,7 +36,8 @@
       "samples_note": "sha256 of the sample files concatenated in the listed order; one line per round; the campaign's planned benign cells are not cited from this run",
       "submission_commit": "0bd1a95a42b413268ff81afb3b32d1374d10a819",
       "measured_samples": 72,
-      "note": "P10.B6 successful-throughput pilot (docs/p10_b6_throughput_experiment_design.md, frozen before the run): benign-x4 route as the ample budget (896 queries, 100k rows, 107,628/5.8M/224 facts per root), product final_v5_result_heavy; cells roots K in {1,4} x width N in {10,50} x overlap in {disjoint,nested,identical}, 2 rounds per cell, three fresh deployments = 72 rounds, 0 error rounds; every round's per-root ledger movement equals the summed response charges. Novel settlements per second (median over rounds): one root 26 (N=10) and 25-30 (N=50); four roots 57-60 (N=10) and 60-70 (N=50); identical footprints settle 51-79/s as semantic replays with one novel per root per round. At N=50 on one root, 5-8 contenders per round (80 of 600) return the public CONFLICT code after the Outcome-set CAS gives up at 16 attempts (internal/control/result.go ordinalCASMaxAttempts); four roots x 50 saw one such refusal in 1,200. No budget refusal occurred (the design's arithmetic held). Client p95 grows from 0.37 s (1x10) to 1.4-1.7 s (1x50) and 2.7-3.2 s (4x50)."
+      "note": "P10.B6 successful-throughput pilot (docs/p10_b6_throughput_experiment_design.md, frozen before the run): benign-x4 route as the ample budget (896 queries, 100k rows, 107,628/5.8M/224 facts per root), product final_v5_result_heavy; cells roots K in {1,4} x width N in {10,50} x overlap in {disjoint,nested,identical}, 2 rounds per cell, three fresh deployments = 72 rounds, 0 error rounds; every round's per-root ledger movement equals the summed response charges. Novel settlements per second (median over rounds): one root 26 (N=10) and 25-30 (N=50); four roots 57-60 (N=10) and 60-70 (N=50); identical footprints settle 51-79/s as semantic replays with one novel per root per round. At N=50 on one root, 5-8 contenders per round (80 of 600) return the public CONFLICT code after the Outcome-set CAS gives up at 16 attempts (internal/control/result.go ordinalCASMaxAttempts); four roots x 50 saw one such refusal in 1,200. No budget refusal occurred (the design's arithmetic held). Client p95 grows from 0.37 s (1x10) to 1.4-1.7 s (1x50) and 2.7-3.2 s (4x50). 原始目录随 2026-09-19 WSL 重建丢失，由 p10-b6-throughput-02 重跑替代。",
+      "superseded_by": "p10-b6-throughput-02"
     },
     {
       "id": "p10-r2-c4b-throughput-retry-01",
@@ -57,6 +58,23 @@
       "submission_commit": "c1432035f504013c717f744ad15a2b25462d4258",
       "measured_samples": 54,
       "note": "P10-R2.C4b throughput with client resubmission (docs/p10_r2_c4b_throughput_retry_design.md): benign-x4 profile, three fresh deployments, hook cells K in {1,4} x N=50 x three overlaps x two rounds with up to 3 client resubmissions under fresh request_ids and a 50-150 ms jittered pause, plus a zero-retry control pass (K=1) on the same deployments. Control reproduces B6 (78/600 CONFLICT vs 80/600); with resubmission 600/600 one-root disjoint+nested requests settled (89 resubmissions, all settled on the first resubmission, none still refused); every round's ledger movement equals the charges. Dataset binding was a placeholder file (benign-x4 plans no Scale/Artifact/ProvSQL cell). Evidence mirrored per deployment to the NAS and sha256-verified on the NAS copy."
+    },
+    {
+      "id": "p10-b6-throughput-02",
+      "family": "throughput",
+      "pilot_kind": "profile_campaign_hook",
+      "path": "evaluation/final-v5-wsl2/raw/p10-b6-throughput-02",
+      "campaign_evidence_sha256": "79570833e1e7b7995e2b294bdfc579afa7bd2a891bf9d07166ab725bb96b46c8",
+      "sample_files": [
+        "deployments/benign-x4/001/raw/throughput.jsonl",
+        "deployments/benign-x4/002/raw/throughput.jsonl",
+        "deployments/benign-x4/003/raw/throughput.jsonl"
+      ],
+      "samples_sha256": "700f7a8445ba871f021eadf06d90381c22e52d8f6a653333ec7e22445cb6b985",
+      "samples_note": "sha256 of the sample files concatenated in the listed order; one line per round",
+      "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+      "measured_samples": 72,
+      "note": "P10.B6 successful-throughput pilot rerun (K in {1,4} x N in {10,50} x three overlaps x two rounds, benign-x4, client retries 0). 原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7/12），本条为同语料同剖面的重跑替代"
     }
   ]
 }

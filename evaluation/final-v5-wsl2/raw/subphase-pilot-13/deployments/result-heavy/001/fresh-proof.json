@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-fresh-profile-execution-v1",
+  "status": "pass",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "campaign_id": "subphase-pilot-13",
+  "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+  "compose_project": "taskgate-final-v5-deployment-01-77f1f008230348ff1278",
+  "profile_alias": "result-heavy",
+  "profile_id": "profile-a86cd4df5cad6e26",
+  "catalog_sha256": "e5911cdd704b60051d415077396fe3900f1548bc87e2756d0139ca2964142042",
+  "repetition": 1,
+  "formal_gateway_built": true,
+  "formal_gateway": {
+    "image_id": "sha256:a1f8502808df6622d293e44ad7ae02a6e1615f56f2ce75ee0326cf3ac4f146dd",
+    "build_manifest_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-13/source/formal-gateway-build.json",
+    "build_manifest_sha256": "e043c36444a60c5652d7a9ff7c6e3f651beffe2f0e1a755f3a85cb2079727d3e",
+    "compose_override_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-13/source/compose.formal-gateway.yaml",
+    "compose_override_sha256": "8dae58943883b831070f6a9a11f1c9477fdb5987777ce25fdf6ba14b000df45c",
+    "runtime_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-13/deployments/result-heavy/001/formal-gateway-runtime.json",
+    "runtime_identity_sha256": "566f382680f6370a86f43eb0b000e254fbdd59de85586ea4a6ccc442ef85bdf4",
+    "build_context_sha256": "884ea189facfc76acb2aa675c54a3e97348c7429749e5b8d9df55d095e57ec08",
+    "source_manifest_sha256": "bfb04597344ceaff2fc629c373b652923e7f17f24431e690f8bcd6d95d3fc649",
+    "dataset_binding_sha256": "685a0e203a1bbc0d35eb28178ac75c98fc3be1028d30fb43f2c98d39116070e0",
+    "profile_registry_sha256": "9e6f4b678147cabf098d518db1b9b25799e6810e4f2dae4f89c3cdbedefabf3b"
+  },
+  "finalizer_material_dispatch": [
+    {
+      "experiments": [
+        "artifact"
+      ],
+      "attestation_qualification_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/diagnosis-attestation-footprint-qualification-v111-01-20260827T155722Z-5ef1edf1b12c/attestation-footprint-v2.json",
+      "attestation_qualification_sha256": "26ab136e80376c42b4f0138431547a70ffa923f5587587c2db9b9ce8ce28046b",
+      "postgresql_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/diagnosis-attestation-footprint-qualification-v111-01-20260827T155722Z-5ef1edf1b12c/postgresql-identity.json",
+      "postgresql_identity_sha256": "d19776269583434697917a5326ff61517edf86c468c7cd90935e8822886259b3"
+    }
+  ]
+}

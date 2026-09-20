@@ -1,0 +1,9 @@
+formal Gateway build
+  commit        9a0b2107d1ed (clean, equals origin/p10-r2)
+  context       884ea189facf over 3683 tracked files
+  manifest      bfb04597344c
+  build manifest /home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/provsql-leaf-pilot-05/source/formal-gateway-build.json (9369b1fc87e05417713d5a4f94f1528e3c922791a0ce1b874ef363e3b7c1d099)
+  compose image  sha256:1a9ac89eb82c28a2a381c84300e963953e1d2f3b44ffc7a38bb580acc078f5d0
+  image         sha256:1a9ac89eb82c28a2a381c84300e963953e1d2f3b44ffc7a38bb580acc078f5d0 (linux/amd64)
+  tag           taskgate-final-v5-gateway:9a0b2107d1ed5594c3fb0073c8463337a494d2f2
+formal Gateway build: pass

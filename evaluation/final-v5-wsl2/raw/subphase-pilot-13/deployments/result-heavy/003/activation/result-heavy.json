@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-profile-activation-evidence-v1",
+  "contract_release": "final-v5-contracts-v1.13",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "deployment_id": "deployment-01",
+  "activation_sequence": 1,
+  "profile_id": "profile-a86cd4df5cad6e26",
+  "profile_alias": "result-heavy",
+  "closure_sha256": "a86cd4df5cad6e2685d1930caeccdbe3a865194fcef33faeca86b7c2c592bdbd",
+  "catalog_sha256": "e5911cdd704b60051d415077396fe3900f1548bc87e2756d0139ca2964142042",
+  "catalog_file_sha256": "e5911cdd704b60051d415077396fe3900f1548bc87e2756d0139ca2964142042",
+  "dataset_binding_sha256": "685a0e203a1bbc0d35eb28178ac75c98fc3be1028d30fb43f2c98d39116070e0",
+  "publication_set_sha256": "6241c07f3523c5485501b91f222752f36fefb7cf132c94e362e61c5c5fb4fa71",
+  "gateway_image_id": "sha256:a1f8502808df6622d293e44ad7ae02a6e1615f56f2ce75ee0326cf3ac4f146dd",
+  "gateway_container_id": "9d110c313e115ce6a3a700edc175fefd96fb37c53b6f9af80051692efc02bc2c",
+  "process_instance_nonce": "50d726c579adbf900f3e122bcec697b56e5004c49f3a39e25a54c56dbb836d07",
+  "process_started_unix": 1789903315,
+  "activation_started_at": "2026-09-20T11:21:48.089823463Z",
+  "activation_ended_at": "2026-09-20T11:22:02.228421417Z",
+  "readiness_completed_at": "2026-09-20T11:22:02.228421417Z",
+  "activation_duration_ms": 14138.597,
+  "expected_products": [
+    "final_v5_result_heavy"
+  ],
+  "observed_products": [
+    "final_v5_result_heavy"
+  ],
+  "expected_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "observed_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "expected_hot_artifacts": [
+    {
+      "identity": "final-v5-result-heavy-v1",
+      "digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bytes": 126813361
+    }
+  ],
+  "observed_hot_artifacts": [
+    {
+      "identity": "final-v5-result-heavy-v1",
+      "digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bytes": 126813361
+    }
+  ],
+  "expected_hot_bytes": 126813361,
+  "actual_hot_bytes": 126813361,
+  "hot_limit_bytes": 1073741824,
+  "drain_before": {
+    "inflight_queries": 0,
+    "pending_artifacts": 0,
+    "open_reservations": 0,
+    "active_served_roots": 0
+  },
+  "drain_observation_status": "observed",
+  "drain_observer_version": "taskgate-final-v5-drain-observer-v1-uninitialized-control",
+  "drain_observation_sha256": "723caf3d62a49c5220d67318bd41a5980b0eadae817b32f9dd1eeb84882c557b",
+  "profile_artifact_manifest_sha256": "40ff5f9ec4861da21b4c057f41781f1dd9035ae3243c910ef1b247fce3b4594f",
+  "profile_artifact_directory_sha256": "814d4df9971f41b649289aa8b4b3c42f86b588b50c5691f21cf0ec010659f99b",
+  "mounted_artifact_directory_identity": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/subphase-pilot-13/deployments/result-heavy/003/profile-artifacts/profile-a86cd4df5cad6e26",
+  "expected_source_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "observed_loader_publications": [
+    "final-v5-result-heavy-v1"
+  ],
+  "attestation_version": "taskgate-final-v5-profile-schema-attestation-v1",
+  "expected_schema_digest": "ae4d7458afd85267bb5a0171e0724c70343c74fb4595e1f63edbb4beb717dd70",
+  "observed_schema_digest": "ae4d7458afd85267bb5a0171e0724c70343c74fb4595e1f63edbb4beb717dd70",
+  "expected_reporting_view_set_sha256": "9e96faec1c245e467e7b2f7534ed00c9793eef996730f3aa3bcae21e7d76a125",
+  "observed_reporting_view_set_sha256": "9e96faec1c245e467e7b2f7534ed00c9793eef996730f3aa3bcae21e7d76a125",
+  "schema_digest_tool_sha256": "264f811c5c83bd07d0a2357c1ac9414d62467d11fd1b2a7f70677cf4d995506f",
+  "schema_attestation_status": "verified",
+  "cache_isolation": {
+    "process_restarted": true,
+    "process_instance_nonce": "50d726c579adbf900f3e122bcec697b56e5004c49f3a39e25a54c56dbb836d07",
+    "cache_namespace": "5d1ef72b72a60411e03a47334a9e40b8c54f5cb6b884a9e5dbb2f1c071ef7fff",
+    "previous_in_process_cache_unreachable": true,
+    "semantic_cache_catalog_bound": true,
+    "previous_hot_artifacts_retired": true
+  },
+  "outside_product_probes": [
+    {
+      "product": "expense_detail",
+      "requested_product_sha256": "d0c3c90b7993d9d685a26aa5fb06dd683a0f7867c66bce27b0af44f668f457e7",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "5610d503faf1e2f77ed0f49ddc64d710c14f3a3ff575182e7cb03a39fe7fe97f"
+    },
+    {
+      "product": "expense_summary",
+      "requested_product_sha256": "5e7d7892f5497457f087789c3472acc536d783e64addf8e182c7ac453568f97e",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "cda5a431e47550c8d94e83ce67c660328e39a101968c0c6eead97b388c5f64da"
+    },
+    {
+      "product": "final_v5_analytics_depth4",
+      "requested_product_sha256": "4c28a4bb35e491aa8221694f6fea25f08b54f87bdff6cc2d757cc2b6ae8ba937",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "41b19468f8a62caf4c6c684164fff827a2e09a34c828a262a75b2391a45ea360"
+    },
+    {
+      "product": "final_v5_attack_expense_detail",
+      "requested_product_sha256": "e77f8f7e2d69667942144d8a58aa1a122c540bfca5a22c2f516c9214d1e83634",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "004b2d82f1875e64481f9d81380e79d31c269e599ceaaf2c07429ff722aba857"
+    },
+    {
+      "product": "final_v5_concurrency_expense_detail",
+      "requested_product_sha256": "5f5c1ba18acd3315456538fbaeb06ee41861530593f6db7b70bf5f9c939aad09",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "249be147189faa9a0ab4e03f7a17912d07362dbc02cab149af4ad86a558ad2e3"
+    },
+    {
+      "product": "final_v5_exposure_scale",
+      "requested_product_sha256": "fd032e2bfa85c8b793658e403001d012382683d7b1cbef49f5058598721cb009",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "97fe4f3cf0015af49946a81938164c369fdcebbd84ae01da5f6a4b572f9032df"
+    },
+    {
+      "product": "final_v5_footprint_bounded_result_heavy",
+      "requested_product_sha256": "83dcfb2a37a545926b07735938eba622f7e94770ac98e3c36ee4d19042dff3bf",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "a2d17bc7106235cee4f686075deb3d1b2b9f5f607a14c97e0d2ce6b622ade780"
+    },
+    {
+      "product": "final_v5_footprint_unlimited_result_heavy",
+      "requested_product_sha256": "6041cd61844190f9396311e0d2ccfb37253abbe92ccda0c2924a97ca5acdab96",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "a3a888d48812e7e8e94d01afd1acdf53b443366db61df81a8426388505a0601d"
+    },
+    {
+      "product": "final_v5_rls_bounded_expense_detail",
+      "requested_product_sha256": "3b1cdf59e7f5cd676b47ed33a64fb1adf98adc9cbf89300372318c85f980bc54",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "99f6713092e20cbaa5e239bd1a2c87fd52434ea437cfcff889069c3a15c6009b"
+    },
+    {
+      "product": "final_v5_rls_unlimited_expense_detail",
+      "requested_product_sha256": "9b8f6ce5a62e6639c6b065cc9193577411a6c4ec644e86853e625f2b9858b9b0",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "68563429ca153abc651fd749b15b131935411921eeafd2824f847d5f2b4c0268"
+    },
+    {
+      "product": "final_v5_scale_e7",
+      "requested_product_sha256": "6eeeb3bf7d79fa3a569674d539cd96cc4c4a8cf536316378bae475d802fbb31a",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "492a9350834b6ed569ac9b287adabea38f0c5ef9d73246734953dbec30bde4c4"
+    },
+    {
+      "product": "provsql_lineitem",
+      "requested_product_sha256": "d8de227d8122b707c6c9c212aad98ade2140157c8a115f68fdd3e6bd64e7a72c",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "6615c9ae741e8a08a6ecf36f4419657f52a0078f66a9c33ce9b03ff6a3d1ec89"
+    },
+    {
+      "product": "provsql_nonce",
+      "requested_product_sha256": "828367b236128c7353baaadbc49590fa25b5c5414ce7ad01d8b5175cd8346109",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "c39c01150526e138164fb84095d4fda6b1113fec3c97da6915fc8e0c0a7f7706"
+    },
+    {
+      "product": "provsql_orders",
+      "requested_product_sha256": "45de540ab3503d1c03f5677fbfd3f0be130b29ce2d661848c47d45a3d4e8ecca",
+      "catalog_list_absent": true,
+      "live_request_refused": true,
+      "refused": true,
+      "observed": "the activated Catalog does not publish this Product",
+      "classification": "tool_error",
+      "response_sha256": "7fd1d267a74bcd8dccaa417b612f1eda3dbec6d61063f9a9abf93c0cedaf5421"
+    }
+  ],
+  "profile_surface_attestation": {
+    "domain": "profile-reporting-surface",
+    "catalog_source": "travel_demo",
+    "catalog_pinned_schema_digest": "ae4d7458afd85267bb5a0171e0724c70343c74fb4595e1f63edbb4beb717dd70",
+    "live_observed_schema_digest": "ae4d7458afd85267bb5a0171e0724c70343c74fb4595e1f63edbb4beb717dd70",
+    "reporting_view_set_sha256": "9e96faec1c245e467e7b2f7534ed00c9793eef996730f3aa3bcae21e7d76a125",
+    "reporting_views": [
+      "reporting.final_v5_result_heavy"
+    ],
+    "verified": true
+  },
+  "publication_bundle_attestations": [
+    {
+      "domain": "publication-build",
+      "publication": "final-v5-result-heavy-v1",
+      "build_schema_attestation": "ebedbecf4f8fbc4eaf150d32fd260fe9b902549367abee880cc02d4b6c3ff96b",
+      "manifest_digest": "80238c32b6773b623efd48730cb31e4375faff4430aabe19436e78a9b2eb88fd",
+      "dictionary_digest": "9d014210da03effded9c72f42fe1af370c9a563fbee6315c298c10560a7254c0",
+      "sidecar_digest": "f50d45943e4388bc9cbc897be0ff337bf76cf004cd55e553fdab8695b567a1fc",
+      "hot_index_digest": "ae4ea784dfee65958a4db790d686ed19a803c5e371f13880561bc7387b1020d8",
+      "bundle_manifest_file_sha256": "ab2e22c659f171f4d4dd0d1b009028f93e936bc293160199edd87f5aead4b84b",
+      "recomputed_identity_matches_bundle": true,
+      "activated_by_loader": true,
+      "equals_profile_surface_attestation": false
+    }
+  ],
+  "attestation_domains_separated": true,
+  "activation_smoke_passed": true,
+  "workload_targeted_validation_passed": false,
+  "status": "pass",
+  "failures": null
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "campaign_id": "provsql-leaf-pilot-05",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+  "compose_project": "taskgate-final-v5-deployment-01-ff83b0045ce8bfa6e2d6",
+  "profile_id": "profile-a60a787c64c95451",
+  "profile_alias": "provsql-nonce-join",
+  "catalog_path": "config/profiles/provsql-nonce-join.catalog.yaml",
+  "catalog_sha256": "43dbfca095ff2aa11e8595201c586a0a4277f18cb95f1c69f8b4e6bd85a9bdb6",
+  "repetition": 1,
+  "cells": [
+    "provsql/nonce-join-group/10k/direct",
+    "provsql/nonce-join-group/10k/provsql",
+    "provsql/nonce-join-group/10k/taskgate",
+    "provsql/nonce-join-group/1k/direct",
+    "provsql/nonce-join-group/1k/provsql",
+    "provsql/nonce-join-group/1k/taskgate",
+    "provsql/nonce-join-group/45k/direct",
+    "provsql/nonce-join-group/45k/provsql",
+    "provsql/nonce-join-group/45k/taskgate"
+  ],
+  "files": [
+    {
+      "kind": "profile_binding",
+      "path": "deployments/provsql-nonce-join/001/profile-binding.json",
+      "sha256": "bb7d195d3425231bf1fbc5698887c83e0b857cd75135157d5354af91c1f67f1a",
+      "bytes": 466
+    },
+    {
+      "kind": "activation_evidence",
+      "path": "deployments/provsql-nonce-join/001/activation/provsql-nonce-join.json",
+      "sha256": "7d0bd1a3c2f9e8df9ace2422b59f1d34df1d2801acd94c8b9ab6d172dd6a9792",
+      "bytes": 13697
+    },
+    {
+      "kind": "environment",
+      "path": "deployments/provsql-nonce-join/001/environment.json",
+      "sha256": "c6f43e97ea6c8ac2b2d39dc0555b0afeb729825cea294264a9fcbd3409d61e9e",
+      "bytes": 115531
+    },
+    {
+      "kind": "fresh_proof",
+      "path": "deployments/provsql-nonce-join/001/fresh-proof.json",
+      "sha256": "d4ade0f2e9ab6e10822f54f32d139b3a582ae3a2aad51bd74adffb84340bced8",
+      "bytes": 2624
+    },
+    {
+      "kind": "gateway_image",
+      "path": "deployments/provsql-nonce-join/001/gateway-image.json",
+      "sha256": "4a4441f3b5294912326dd931b913a1d5675ffaf357dd152d01f9c0b478b5b637",
+      "bytes": 1616
+    },
+    {
+      "kind": "formal_gateway_runtime",
+      "path": "deployments/provsql-nonce-join/001/formal-gateway-runtime.json",
+      "sha256": "d23d443729bd6e7ebee4e758f6a3883fb7f2ccd108f46ee646fca43bfc730b22",
+      "bytes": 1164
+    },
+    {
+      "kind": "formal_gateway_build_manifest",
+      "path": "source/formal-gateway-build.json",
+      "sha256": "9369b1fc87e05417713d5a4f94f1528e3c922791a0ce1b874ef363e3b7c1d099",
+      "bytes": 951
+    },
+    {
+      "kind": "formal_gateway_compose_override",
+      "path": "source/compose.formal-gateway.yaml",
+      "sha256": "a544da8515b5f2f7cdd9ab5a3149384fa2489d722afad0e646e5ec79d5948eae",
+      "bytes": 152
+    },
+    {
+      "kind": "formal_gateway_build_log",
+      "path": "source/formal-gateway-build.log",
+      "sha256": "50a6ec8e50ab3a396bb37b90af8e31752af3139c2f311113e82ef12df2c66236",
+      "bytes": 660
+    },
+    {
+      "kind": "cleanup",
+      "path": "deployments/provsql-nonce-join/001/cleanup.json",
+      "sha256": "5b535739b5982b59e11775a3ecae0a405909c32f66c8abcbb163ded52f405b9c",
+      "bytes": 98
+    },
+    {
+      "kind": "deployment_configuration",
+      "path": "deployments/provsql-nonce-join/001/deployment-configuration.json",
+      "sha256": "7c3f24695ae46ddd09d1568b7363915b0efc4d777b9fabdd90ed6198254fbf6c",
+      "bytes": 284
+    },
+    {
+      "kind": "config",
+      "path": "deployments/provsql-nonce-join/001/config/provsql.json",
+      "sha256": "29d27f8762e1ce5a37a95ca53630c7ea787827926c5876f8090c6a40497cd462",
+      "bytes": 1040,
+      "experiment": "provsql"
+    },
+    {
+      "kind": "selected_cells",
+      "path": "deployments/provsql-nonce-join/001/selected-cells/provsql.json",
+      "sha256": "e0cfe770b012fa54e8ae172b31616b214b4b132cb6ade4c1e7d76be45d1bab51",
+      "bytes": 378,
+      "experiment": "provsql"
+    },
+    {
+      "kind": "raw_jsonl",
+      "path": "deployments/provsql-nonce-join/001/raw/provsql.jsonl",
+      "sha256": "959a46de3f2bab9e2b80c75435bc992514af4791e2e47d5d3fb0093b77c7c8c0",
+      "bytes": 191860,
+      "experiment": "provsql"
+    },
+    {
+      "kind": "launcher_gate",
+      "path": "deployments/provsql-nonce-join/001/provsql.gate.json",
+      "sha256": "c0bb445d9e8a2f0e85a41bc2a4ac3e39666fb79fc814ece418f59b5227c942b2",
+      "bytes": 201,
+      "experiment": "provsql"
+    },
+    {
+      "kind": "adapter_stderr",
+      "path": "deployments/provsql-nonce-join/001/adapter-stderr/provsql.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "experiment": "provsql"
+    },
+    {
+      "kind": "adapter_stderr_credential_scan",
+      "path": "deployments/provsql-nonce-join/001/adapter-stderr/provsql.credential-scan.json",
+      "sha256": "b02ef89030eb7f97ef39ebdebafba3e3d67897ce1992dbec7ff133e75a92c308",
+      "bytes": 391,
+      "experiment": "provsql"
+    }
+  ]
+}

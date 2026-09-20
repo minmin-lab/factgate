@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "record": "taskgate-final-v5-fresh-profile-execution-v1",
+  "status": "pass",
+  "campaign_class": "pilot",
+  "publication_eligible": false,
+  "formal_campaign": false,
+  "campaign_id": "provsql-leaf-pilot-05",
+  "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+  "compose_project": "taskgate-final-v5-deployment-01-ff83b0045ce8bfa6e2d6",
+  "profile_alias": "provsql-nonce-join",
+  "profile_id": "profile-a60a787c64c95451",
+  "catalog_sha256": "43dbfca095ff2aa11e8595201c586a0a4277f18cb95f1c69f8b4e6bd85a9bdb6",
+  "repetition": 1,
+  "formal_gateway_built": true,
+  "formal_gateway": {
+    "image_id": "sha256:1a9ac89eb82c28a2a381c84300e963953e1d2f3b44ffc7a38bb580acc078f5d0",
+    "build_manifest_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/provsql-leaf-pilot-05/source/formal-gateway-build.json",
+    "build_manifest_sha256": "9369b1fc87e05417713d5a4f94f1528e3c922791a0ce1b874ef363e3b7c1d099",
+    "compose_override_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/provsql-leaf-pilot-05/source/compose.formal-gateway.yaml",
+    "compose_override_sha256": "a544da8515b5f2f7cdd9ab5a3149384fa2489d722afad0e646e5ec79d5948eae",
+    "runtime_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/provsql-leaf-pilot-05/deployments/provsql-nonce-join/001/formal-gateway-runtime.json",
+    "runtime_identity_sha256": "d23d443729bd6e7ebee4e758f6a3883fb7f2ccd108f46ee646fca43bfc730b22",
+    "build_context_sha256": "884ea189facfc76acb2aa675c54a3e97348c7429749e5b8d9df55d095e57ec08",
+    "source_manifest_sha256": "bfb04597344ceaff2fc629c373b652923e7f17f24431e690f8bcd6d95d3fc649",
+    "dataset_binding_sha256": "685a0e203a1bbc0d35eb28178ac75c98fc3be1028d30fb43f2c98d39116070e0",
+    "profile_registry_sha256": "9e6f4b678147cabf098d518db1b9b25799e6810e4f2dae4f89c3cdbedefabf3b"
+  },
+  "finalizer_material_dispatch": [
+    {
+      "experiments": [
+        "provsql"
+      ],
+      "attestation_qualification_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/diagnosis-attestation-footprint-qualification-v111-03-provsql-20260827T160811Z-5ef1edf1b12c/attestation-footprint-v2.json",
+      "attestation_qualification_sha256": "1e83faf3b520935be2aa16dc236dd2307ea3e550ff6e9a94ba2325fe2507c2c0",
+      "postgresql_identity_path": "/home/wmm/worktrees/factgate/evaluation/final-v5-wsl2/raw/diagnosis-attestation-footprint-qualification-v111-03-provsql-20260827T160811Z-5ef1edf1b12c/postgresql-identity.json",
+      "postgresql_identity_sha256": "d19776269583434697917a5326ff61517edf86c468c7cd90935e8822886259b3"
+    }
+  ]
+}

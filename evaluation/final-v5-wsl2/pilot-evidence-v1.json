@@ -69,7 +69,8 @@
       "campaign_evidence_sha256": "b31010e4cc6306feb76c85cbaa2cc8f50f8dd1b2d59713ab1675a2a4698778ac",
       "submission_commit": "bfb6a5bd89fab4a8a1da3067b59950ce3b7221f7",
       "measured_samples": 54,
-      "note": "Sub-phase re-measurement after the derivation optimization (P8 d1): result-heavy profile, three deployments, one measured sample per cell per deployment, adapter retaining the Gateway component_ms map. Pooled with subphase-pilot-10 for the sub-phase medians. Pilot class; not publication evidence."
+      "note": "Sub-phase re-measurement after the derivation optimization (P8 d1): result-heavy profile, three deployments, one measured sample per cell per deployment, adapter retaining the Gateway component_ms map. Pooled with subphase-pilot-10 for the sub-phase medians. Pilot class; not publication evidence. 原始目录随 2026-09-19 WSL 重建丢失，由 subphase-pilot-13 重跑替代。",
+      "superseded_by": "subphase-pilot-13"
     },
     {
       "id": "subphase-pilot-10",
@@ -101,7 +102,8 @@
       "campaign_evidence_sha256": "8b91b818a8cad8fb41d52574d026495912b4c12232fce10c7cb213747bcaf9c4",
       "submission_commit": "ad44537a26f45073a4a85bafd6f9040f6afa8b9d",
       "measured_samples": 9,
-      "note": "ProvSQL profile rerun with the adapter expanding ProvSQL's provenance circuit to its input gates after each paired measurement (outside every timing boundary), mapping them to base rows and comparing their canonical row facts with the oracle's base-row enumeration (base_tuple_link). Pilot class; not publication evidence; cited only for the cross-check."
+      "note": "ProvSQL profile rerun with the adapter expanding ProvSQL's provenance circuit to its input gates after each paired measurement (outside every timing boundary), mapping them to base rows and comparing their canonical row facts with the oracle's base-row enumeration (base_tuple_link). Pilot class; not publication evidence; cited only for the cross-check. 原始目录随 2026-09-19 WSL 重建丢失，由 provsql-leaf-pilot-05 重跑替代。",
+      "superseded_by": "provsql-leaf-pilot-05"
     },
     {
       "id": "pilot-footprint-07",
@@ -263,6 +265,28 @@
       "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
       "measured_samples": 12,
       "note": "P9.F 对比研究重跑，与 pilot-scale7-05 同一次 campaign（12 样本混跑，loader 按 experiment 过滤），三部署逐格一致：37 接受=16 唯一+21 重复、23 拒且首拒于第 23 步、repeat_charges=0，与丢失运行所出宏逐值相同。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "subphase-pilot-13",
+      "family": "subphase",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/subphase-pilot-13",
+      "campaign_evidence_sha256": "2e4032f7a7559fa841f443f08f5d120b9f023daab03857302e44eb132b847b9d",
+      "samples_sha256": "e599d30009e425e9366640e817c88b0954fda24e6cb1c64c65fb4c6746616951",
+      "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+      "measured_samples": 54,
+      "note": "子阶段计时重跑（result-heavy 剖面三部署，提供 S6/100k-x16 格；同 campaign 亦含 artifact 族样本，loader 按 experiment_id 过滤）。用作者批准的私有 binding。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7/12），本条为同语料同剖面的重跑替代"
+    },
+    {
+      "id": "provsql-leaf-pilot-05",
+      "family": "provsql_leaves",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/provsql-leaf-pilot-05",
+      "campaign_evidence_sha256": "7a734c8b20867bbafc40c201aa52a4ed82cab852b4c3e3a8fe8087bfc5040486",
+      "samples_sha256": "959a46de3f2bab9e2b80c75435bc992514af4791e2e47d5d3fb0093b77c7c8c0",
+      "submission_commit": "9a0b2107d1ed5594c3fb0073c8463337a494d2f2",
+      "measured_samples": 9,
+      "note": "ProvSQL 叶展开重跑（provsql-nonce-join 剖面一部署九格）。用作者批准的私有 binding 与 v111-03 资格输入。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7/12），本条为同语料同剖面的重跑替代"
     }
   ]
 }

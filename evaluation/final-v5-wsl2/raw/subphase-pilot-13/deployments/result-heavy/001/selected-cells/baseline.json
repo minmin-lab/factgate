@@ -1,0 +1,14 @@
+[
+  "baseline/S6/100k-x16/direct",
+  "baseline/S6/100k-x16/novel",
+  "baseline/S6/100k-x4/direct",
+  "baseline/S6/100k-x4/novel",
+  "baseline/S6/100x16/direct",
+  "baseline/S6/100x16/novel",
+  "baseline/S6/100x4/direct",
+  "baseline/S6/100x4/novel",
+  "baseline/S6/10k-x16/direct",
+  "baseline/S6/10k-x16/novel",
+  "baseline/S6/10k-x4/direct",
+  "baseline/S6/10k-x4/novel"
+]
