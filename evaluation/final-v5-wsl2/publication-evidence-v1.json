@@ -3,18 +3,18 @@
  "purpose": "Names the frozen publication campaign the manuscript cites and binds it to the exact sealed campaign-evidence bytes. Every paper macro is re-derived from the retained sample bytes the campaign's own deployment records digest, so a number can never drift onto a rerun, a pilot, or a partial campaign.",
  "publication_eligible": true,
  "campaign": {
-  "id": "formal-v113-publication-03",
-  "path": "evaluation/final-v5-wsl2/raw/formal-v113-publication-03",
-  "campaign_evidence_sha256": "56e679f1723883e92017844d21cbcdb937f5fae46ce0ae1b2ab9dfdba437e851",
-  "submission_commit": "9cd650b9b495f896f7c3eaf3288d72e9bf5b62ae",
+  "id": "formal-v113-publication-05",
+  "path": "evaluation/final-v5-wsl2/raw/formal-v113-publication-05",
+  "campaign_evidence_sha256": "d9db33d174162af19bae645e5e2268d4fcb8897b4b534144c4b268c817d84497",
+  "submission_commit": "faf4d095701b799752fc11a518e9742e2ecaa066",
   "contract_release": "final-v5-contracts-v1.13",
   "deployments": 33,
   "profile_cells": 125,
   "scale_non_profile_cells": 36,
   "compiler_non_profile_cells": 11,
   "total_cells": 172,
-  "launched_at": "2026-09-04T16:41:03Z",
-  "sealed_at": "2026-09-06T09:03:44Z",
-  "host": "WSL2 Ubuntu-22.04, single host, ext4 VHD; formal Gateway image sha256:cf70aec12ee7225dce3e0c5734fdcdc96bf76468b6ba4b03582e6451eb3cf7cc"
+  "launched_at": "2026-09-20T21:10:21Z",
+  "sealed_at": "2026-09-22T16:14:48Z",
+  "host": "WSL2 Ubuntu-22.04 (host rebuilt 2026-09-19), single host, ext4 VHD; formal Gateway image sha256:0541b7f83b0d93f9e447edcb9d3e523e20fbfc46a51718eace7b41bc8362abee; non-deployment stage rerun twice after single-warmup failures (retained as raw/formal-v113-publication-05.nonprofile-attempt-1 and -2), third run with per-table autovacuum VACUUM thresholds raised to INT_MAX on the three Outcome radix tables (recorded in non-profile/scale-outcome-merkle/postgres-reloptions-NN.txt; ledger P10-R2-LOOP-20/21)"
  }
 }
