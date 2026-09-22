@@ -645,9 +645,13 @@ func validateCampaignConfig(root, campaignID, commit, experiment string, files [
 	if err := decodeCampaignFile(path, &config); err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
+	// A pilot takes one sample per cell. Untimed warmups are allowed (the
+	// launcher's TASKGATE_PILOT_WARMUPS, default 0): passing warmups are never
+	// retained, so they change no evidence file, only whether the single
+	// sample is the deployment's first request.
 	if config.SchemaVersion != 1 || config.CampaignClass != "pilot" || config.PilotKind != "real_system" ||
 		config.CampaignID != campaignID || config.SubmissionCommit != commit || config.Deployments != 1 ||
-		config.ExperimentID != experiment || config.Warmups != 0 || config.Samples != 1 || !config.FreshRootPerSample {
+		config.ExperimentID != experiment || config.Warmups < 0 || config.Samples != 1 || !config.FreshRootPerSample {
 		return errors.New("pilot config differs from the mechanism-smoke contract")
 	}
 	return nil
