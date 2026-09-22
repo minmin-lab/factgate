@@ -20,32 +20,30 @@
 \newcommand{\HeldoutEngineeringGaps}{11}
 \newcommand{\HeldoutNewRule}{6}
 \newcommand{\HeldoutAgentDefects}{1}
-\newcommand{\SweepResultsDigest}{\texttt{9a45734b0b4b}}
-\newcommand{\SweepBenignExecutedCoords}{(0.25,21.7) (0.5,65.2) (0.75,82.6) (1,95.7) (1.5,100) (2,100) (3,100) (4,100)}
-\newcommand{\SweepBenignCorpusCoords}{(0.25,26.1) (0.5,56.5) (0.75,73.9) (1,91.3) (1.5,95.7) (2,100) (3,100) (4,100)}
+\newcommand{\SweepResultsDigest}{\texttt{43aa636f9cad}}
+\newcommand{\SweepBenignCoords}{(0.25,26.1) (0.5,56.5) (0.75,73.9) (1,91.3) (1.5,95.7) (2,100) (3,100) (4,100)}
 \newcommand{\SweepBitsCoords}{(0.25,9.1) (0.5,27.3) (0.75,36.4) (1,54.5) (1.5,81.8) (2,100.0) (3,100.0) (4,100.0)}
 \newcommand{\SweepGreedyCoords}{(0.25,16.7) (0.5,50.0) (0.75,66.7) (1,100.0) (1.5,100.0) (2,100.0) (3,100.0) (4,100.0)}
-\newcommand{\SweepBenignHalfAccepted}{15}
-\newcommand{\SweepBenignCorpusHalfAccepted}{13}
+\newcommand{\SweepBenignQuarterAdmitted}{6}
+\newcommand{\SweepBitsQuarter}{1}
+\newcommand{\SweepGreedyQuarter}{3}
+\newcommand{\SweepBenignHalfAdmitted}{13}
 \newcommand{\SweepBitsHalf}{3}
 \newcommand{\SweepGreedyHalf}{9}
-\newcommand{\SweepBenignThreeQuarterAccepted}{19}
-\newcommand{\SweepBenignCorpusThreeQuarterAccepted}{17}
+\newcommand{\SweepBenignThreeQuarterAdmitted}{17}
 \newcommand{\SweepBitsThreeQuarter}{4}
 \newcommand{\SweepGreedyThreeQuarter}{12}
-\newcommand{\SweepBenignOneAccepted}{22}
-\newcommand{\SweepBenignCorpusOneAccepted}{21}
+\newcommand{\SweepBenignOneAdmitted}{21}
 \newcommand{\SweepBitsOne}{6}
 \newcommand{\SweepGreedyOne}{18}
-\newcommand{\SweepBenignOneHalfAccepted}{23}
-\newcommand{\SweepBenignCorpusOneHalfAccepted}{22}
+\newcommand{\SweepBenignOneHalfAdmitted}{22}
 \newcommand{\SweepBitsOneHalf}{9}
 \newcommand{\SweepGreedyOneHalf}{18}
-\newcommand{\SweepBenignTwoAccepted}{23}
-\newcommand{\SweepBenignCorpusTwoAccepted}{23}
+\newcommand{\SweepBenignTwoAdmitted}{23}
 \newcommand{\SweepBitsTwo}{11}
 \newcommand{\SweepGreedyTwo}{18}
 \newcommand{\SweepBenignAuthorized}{23}
+\newcommand{\SweepBenignFirstRefusalOne}{q23}
 \newcommand{\SweepRecoverAt}{2}
 \newcommand{\TimingResultsDigest}{\texttt{ba427972c723}}
 \newcommand{\TimingRefusals}{762}
@@ -188,34 +186,94 @@ query counter & 70/70/70 & 70/70/70 & 28/28/24 & 18/18/18 \\%
 \newcommand{\PassantOverhead}{3.3}
 \newcommand{\PassantCells}{6}
 \newcommand{\ThroughputTableBody}{%
-1 & 10 & disjoint & 6 & 60/60 & 26 & 26 & 258 & 366 & 238/298 & yes \\
-1 & 10 & nested & 6 & 60/60 & 26 & 26 & 261 & 369 & 237/297 & yes \\
-1 & 10 & identical & 6 & 6/60 & 51 & 5 & 187 & 195 & 29/35 & yes \\
-1 & 50 & disjoint & 6 & 261/261 & 30 & 30 & 991 & 1413 & 1403/1664 & yes \\
-1 & 50 & nested & 6 & 259/259 & 25 & 25 & 1240 & 1670 & 1416/1675 & yes \\
-1 & 50 & identical & 6 & 6/300 & 72 & 1 & 621 & 690 & 14/20 & yes \\
-4 & 10 & disjoint & 6 & 240/240 & 60 & 60 & 544 & 640 & 383/623 & yes \\
-4 & 10 & nested & 6 & 240/240 & 57 & 57 & 586 & 679 & 300/540 & yes \\
-4 & 10 & identical & 6 & 24/240 & 71 & 7 & 506 & 554 & 14/38 & yes \\
-4 & 50 & disjoint & 6 & 1199/1199 & 70 & 70 & 2357 & 2737 & 1829/3028 & yes \\
-4 & 50 & nested & 6 & 1200/1200 & 60 & 60 & 2790 & 3212 & 1698/2898 & yes \\
-4 & 50 & identical & 6 & 24/1200 & 79 & 2 & 2284 & 2488 & 13/37 & yes \\%
+1 & 10 & disjoint & 6 & 60/60/60 & 0 & 28 & 28 & 243 & 344 & 240/300 & yes \\
+1 & 10 & nested & 6 & 60/60/60 & 0 & 22 & 22 & 321 & 435 & 243/303 & yes \\
+1 & 10 & identical & 6 & 6/60/60 & 0 & 47 & 5 & 203 & 210 & 28/34 & yes \\
+1 & 50 & disjoint & 6 & 261/261/300 & 39 & 29 & 29 & 1097 & 1446 & 1428/1689 & yes \\
+1 & 50 & nested & 6 & 263/263/300 & 37 & 25 & 25 & 1267 & 1706 & 1452/1715 & yes \\
+1 & 50 & identical & 6 & 6/300/300 & 0 & 70 & 1 & 641 & 707 & 15/21 & yes \\
+4 & 10 & disjoint & 6 & 240/240/240 & 0 & 59 & 59 & 546 & 661 & 322/562 & yes \\
+4 & 10 & nested & 6 & 240/240/240 & 0 & 56 & 56 & 583 & 676 & 261/501 & yes \\
+4 & 10 & identical & 6 & 24/240/240 & 0 & 65 & 6 & 554 & 602 & 13/37 & yes \\
+4 & 50 & disjoint & 6 & 1200/1200/1200 & 0 & 66 & 66 & 2445 & 2886 & 1847/3047 & yes \\
+4 & 50 & nested & 6 & 1200/1200/1200 & 0 & 60 & 60 & 2867 & 3215 & 1678/2878 & yes \\
+4 & 50 & identical & 6 & 24/1200/1200 & 0 & 79 & 2 & 2193 & 2462 & 9/33 & yes \\%
 }
-\newcommand{\ThroughputResultsDigest}{\texttt{264a501487cf}}
-\newcommand{\ThroughputCampaign}{\texttt{p10-b6-throughput-01}}
+\newcommand{\ThroughputResultsDigest}{\texttt{09f7b5221685}}
+\newcommand{\ThroughputCampaign}{\texttt{p10-b6-throughput-02}}
 \newcommand{\ThroughputRounds}{72}
 \newcommand{\ThroughputErrorRounds}{0}
-\newcommand{\ThroughputRefused}{81}
+\newcommand{\ThroughputRefused}{76}
 \newcommand{\ThroughputLedgerAllMatch}{all}
-\newcommand{\ThroughputOneRootFiftyDisjointNPS}{30}
-\newcommand{\ThroughputFourRootFiftyDisjointNPS}{70}
-\newcommand{\ThroughputOneRootTenDisjointNPS}{26}
-\newcommand{\ThroughputOneRootFiftyDisjointPNinetyFive}{1413}
-\newcommand{\ThroughputFourRootFiftyDisjointPNinetyFive}{2737}
-\newcommand{\ThroughputOneRootFiftyDisjointConflicts}{1403}
-\newcommand{\ThroughputOneRootFiftyDisjointAttempts}{1664}
-\newcommand{\ThroughputOneRootFiftyIdenticalSPS}{72}
-\newcommand{\ThroughputOneRootTenDisjointPNinetyFive}{366}
-\newcommand{\ThroughputOneRootFiftyRefused}{80}
+\newcommand{\ThroughputOneRootFiftyDisjointNPS}{29}
+\newcommand{\ThroughputFourRootFiftyDisjointNPS}{66}
+\newcommand{\ThroughputOneRootTenDisjointNPS}{28}
+\newcommand{\ThroughputOneRootFiftyDisjointPNinetyFive}{1446}
+\newcommand{\ThroughputFourRootFiftyDisjointPNinetyFive}{2886}
+\newcommand{\ThroughputOneRootFiftyDisjointConflicts}{1428}
+\newcommand{\ThroughputOneRootFiftyDisjointAttempts}{1689}
+\newcommand{\ThroughputOneRootFiftyIdenticalSPS}{70}
+\newcommand{\ThroughputOneRootTenDisjointPNinetyFive}{344}
+\newcommand{\ThroughputOneRootFiftyRefused}{76}
 \newcommand{\ThroughputOneRootFiftyRequests}{600}
-\newcommand{\ThroughputOtherRefused}{1}
+\newcommand{\ThroughputOtherRefused}{0}
+\newcommand{\RetryTableBody}{%
+control & 1 & 50 & disjoint & 0 & 6 & 262/300 & 87.3 & 0 & 0 & 0 & 27 & 1575 & 1575 & 1614 & yes \\
+control & 1 & 50 & nested & 0 & 6 & 260/300 & 86.7 & 0 & 0 & 0 & 23 & 1845 & 1845 & 1884 & yes \\
+control & 1 & 50 & identical & 0 & 6 & 300/300 & 100.0 & 0 & 0 & 0 & 1 & 747 & 747 & 762 & yes \\
+retry & 1 & 50 & disjoint & 3 & 6 & 300/300 & 100.0 & 44 & 44 & 0 & 29 & 1452 & 1656 & 1741 & yes \\
+retry & 1 & 50 & nested & 3 & 6 & 300/300 & 100.0 & 45 & 45 & 0 & 24 & 1722 & 2017 & 2081 & yes \\
+retry & 1 & 50 & identical & 3 & 6 & 300/300 & 100.0 & 0 & 0 & 0 & 1 & 748 & 748 & 769 & yes \\
+retry & 4 & 50 & disjoint & 3 & 6 & 1200/1200 & 100.0 & 0 & 0 & 0 & 64 & 2981 & 2981 & 3112 & yes \\
+retry & 4 & 50 & nested & 3 & 6 & 1200/1200 & 100.0 & 0 & 0 & 0 & 58 & 3320 & 3320 & 3439 & yes \\
+retry & 4 & 50 & identical & 3 & 6 & 1200/1200 & 100.0 & 0 & 0 & 0 & 2 & 2606 & 2607 & 2652 & yes \\%
+}
+\newcommand{\RetryResultsDigest}{\texttt{f186efa6fd5f}}
+\newcommand{\RetryCampaign}{\texttt{p10-r2-c4b-throughput-retry-01}}
+\newcommand{\RetryRounds}{54}
+\newcommand{\RetryK}{3}
+\newcommand{\RetryOneRootFiftyRequests}{600}
+\newcommand{\RetryOneRootFiftySettled}{600}
+\newcommand{\RetryOneRootFiftyAfterRetry}{89}
+\newcommand{\RetryOneRootFiftyResubmissions}{89}
+\newcommand{\RetryOneRootFiftyStillRefused}{0}
+\newcommand{\RetryOneRootFiftyCompletionPct}{100.0}
+\newcommand{\RetryControlOneRootFiftyRefused}{78}
+\newcommand{\RetryControlOneRootFiftyRequests}{600}
+\newcommand{\RetryOneRootFiftyDisjointEndToEndPNinetyFive}{1656}
+\newcommand{\RetryOneRootFiftyDisjointClientPNinetyFive}{1452}
+\newcommand{\RetryOneRootFiftyDisjointNPS}{29}
+\newcommand{\RetryFourRootFiftyStillRefused}{0}
+\newcommand{\RetryLedgerAllMatch}{all}
+\newcommand{\BFiveTableBody}{%
+S1/SF1 & 59 & 104 & 111 & 25 & 7 & 3 & 8 & 30/30 \\
+S2/SF10 & -- & 2593 & 2623 & 2413 & 29 & 33 & 6 & 0/30 \\
+S6/100k-x16 & 701 & 3146 & 3217 & 2313 & 72 & 146 & 382 & 30/30 \\%
+}
+\newcommand{\BFiveResultsDigest}{\texttt{19a7e8a6f810}}
+\newcommand{\BFiveDeployments}{3}
+\newcommand{\BFiveSamplesPerCell}{30}
+\newcommand{\BFiveSOneCommonPct}{53}
+\newcommand{\BFiveSSixCommonPct}{22}
+\newcommand{\BFiveSOneIminusIvsDeriv}{20}
+\newcommand{\BFiveSSixIminusIvsDeriv}{132}
+\newcommand{\BFiveSSixArmI}{701}
+\newcommand{\BFiveSSixArmIV}{3217}
+\newcommand{\BFiveSSixDerivation}{2313}
+\newcommand{\BFiveSSixLedger}{72}
+\newcommand{\BFiveSOneArmI}{59}
+\newcommand{\BFiveSOneArmIV}{111}
+\newcommand{\BFiveSTwoArmIV}{2623}
+\newcommand{\BFiveSTwoDerivation}{2413}
+\newcommand{\NaiveTrials}{3}
+\newcommand{\NaiveAdmitted}{21}
+\newcommand{\NaiveRefused}{2}
+\newcommand{\NaiveTotalSettleSecMin}{37.5}
+\newcommand{\NaiveTotalSettleSecMax}{38.3}
+\newcommand{\NaiveFactRows}{1,234,265}
+\newcommand{\NaiveTotalMBMin}{620}
+\newcommand{\NaiveTotalMBMax}{620}
+\newcommand{\NaiveBytesPerFact}{502}
+\newcommand{\NaiveLargestInsertSecMin}{10.4}
+\newcommand{\NaiveLargestInsertSecMax}{10.8}
+\newcommand{\NaiveSweepCrossCheck}{match}

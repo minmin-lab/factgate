@@ -2582,6 +2582,20 @@ with the history and shrinks slightly with overlap (fewer new ordinals to
 persist); execute-and-derive, which streams and encodes the candidate,
 dominates the response at every size.
 
+The \FinalVFivePublicationScaleNonProfileCells{} deployment-free Outcome
+Merkle-radix cells of the same campaign (each execution against a fresh
+PostgreSQL process, three executions) contribute pass/fail evidence only; no
+timing above comes from them. That stage was run three times in the sealed
+campaign: two earlier executions each failed one untimed warmup of one cell
+on the immutable-replay storage check, because PostgreSQL's first autovacuum
+of a relation creates its visibility-map fork (8192 bytes) and the check
+compares \code{pg_total_relation_size} for exact equality across the
+replay; both attempts are retained beside the campaign root. The sealed
+execution raised the per-table VACUUM thresholds of the three Outcome radix
+tables in that disposable database (autoanalyze unchanged; the parameters
+are recorded in the run directory). No measured sample depends on vacuum,
+which never ran during a measured round in any execution.
+
 \begin{table}[t]
 \centering
 \caption{Dependency-history Scale cells: history size, candidate overlap,
