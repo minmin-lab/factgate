@@ -24,6 +24,12 @@ if [[ -z "$repetitions" ]]; then
 fi
 profiles_csv="${TASKGATE_CAMPAIGN_PROFILES:-}"
 [[ "$repetitions" =~ ^[1-9][0-9]*$ ]] || { echo "TASKGATE_CAMPAIGN_REPETITIONS must be positive" >&2; exit 2; }
+# Pilot-class runs take one sample per cell with no warmup by default. A pilot
+# whose first request would otherwise be its only sample (the sub-phase pilot:
+# ledger P10-R2-LOOP-22, S1/SF1 landed at order position 1 cold) can ask for
+# untimed warmups; publication configs keep their frozen counts.
+pilot_warmups="${TASKGATE_PILOT_WARMUPS:-0}"
+[[ "$pilot_warmups" =~ ^[0-9]+$ ]] || { echo "TASKGATE_PILOT_WARMUPS must be a non-negative integer" >&2; exit 2; }
 if [[ "$TASKGATE_EXPERIMENT_CLASS" == publication ]]; then
   [[ "$repetitions" == 3 ]] || { echo "publication campaign requires exactly three fresh executions" >&2; exit 2; }
   [[ -z "$profiles_csv" ]] || { echo "publication campaign cannot select a partial profile matrix" >&2; exit 2; }
@@ -988,8 +994,9 @@ for alias in "${selected_profiles[@]}"; do
            .fresh_root_per_sample=true' "$(config_source "$experiment")" >"$config"
       elif [[ "$TASKGATE_EXPERIMENT_CLASS" == pilot ]]; then
         jq --arg campaign "$TASKGATE_CAMPAIGN_ID" --arg commit "$TASKGATE_SUBMISSION_COMMIT" \
+          --argjson warmups "$pilot_warmups" \
           '.campaign_class="pilot" | .pilot_kind="real_system" | .campaign_id=$campaign |
-           .submission_commit=$commit | .deployments=1 | .process_replicates=1 | .warmups=0 | .samples=1 |
+           .submission_commit=$commit | .deployments=1 | .process_replicates=1 | .warmups=$warmups | .samples=1 |
            .fresh_root_per_sample=true' "$(config_source "$experiment")" >"$config"
       else
         jq --arg campaign "$TASKGATE_CAMPAIGN_ID" --arg commit "$TASKGATE_SUBMISSION_COMMIT" \
