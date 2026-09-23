@@ -839,8 +839,8 @@ RQ5 publication and routing & tracked at \EvidenceChainCommit{} & \filepath{eval
 V5 outcome-set regressions and randomized root-family sequences & \VFiveImplementationCommit{} & \filepath{evaluation/v5-outcome/evidence.json}, \filepath{raw/go-test.jsonl}, \filepath{compose-receipt.json} & \code{scripts/} \code{record-compose-e2e.sh} \\
 Publication campaign (main Table~1; Tables~\ref{tab:baseline-publication}, \ref{tab:phase-breakdown}, \ref{tab:concurrency-publication}, \ref{tab:scale-publication}) & \FinalVFivePublicationCommit{} & \filepath{evaluation/final-v5-wsl2/publication-evidence-v1.json} $\to$ \filepath{campaign-evidence.json}, \filepath{deployments/*/raw/*.jsonl} & \filepath{scripts/run-profile-campaign.sh}; macros: \code{make paper-evidence} \\
 Attack corpus, adaptive trace, Scale, ProvSQL pairing, RQ5 cells (Sections~\ref{sec:attack-publication-supp}--\ref{sec:scale-publication-supp}) & \FinalVFivePublicationCommit{} & the same campaign's \filepath{deployments/*/raw/*.jsonl} plus \filepath{evaluation/finalv5attack/corpus-v1.json} (digest \FinalVFivePublicationAttackCorpusDigest{}) & \code{make paper-evidence} \\
-Sub-phase pilot (Section~\ref{sec:subphase-pilot-supp}) & a9a0d9362c2b & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/subphase-pilot-06} & pilot; not publication evidence \\
-ProvSQL base-tuple cross-check (Section~\ref{sec:provsql-leaves-supp}) & \FinalVFiveProvSQLLeafCommit{} & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/provsql-leaf-pilot-02} & pilot; not publication evidence \\
+Sub-phase pilot (Section~\ref{sec:subphase-pilot-supp}) & f8c9c53528fe, 9a0b2107d1ed & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/subphase-pilot-17}, \filepath{raw/subphase-pilot-13} & pilot; not publication evidence \\
+ProvSQL base-tuple cross-check (Section~\ref{sec:provsql-leaves-supp}) & \FinalVFiveProvSQLLeafCommit{} & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/provsql-leaf-pilot-05} & pilot; not publication evidence \\
 Retained pilot (Table VIII) & \FinalVFivePilotArtifactCommit{} & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ pilot run directories & not publication evidence \\
 Generated-plan campaign (Section~\ref{sec:generated-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/generatedalgebra/results.json} (digest \GeneratedResultsDigest{}) & \code{make eval-generated-algebra} \\
 TPC-H lowerability (Section~\ref{sec:tpch-lowerability-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/tpchlowerability/results.json} (digest \TPCHResultsDigest{}) & \code{make eval-tpch-lowerability} \\
@@ -1416,11 +1416,15 @@ Cell & Prepare & Exec.+derive & Stage & Settle & Publish & Finalize & Total \\
 
 The Gateway reports finer component timers than the six pipeline phases
 (\code{component_ms}), but the publication campaign's adapter did not retain
-them. A pilot-class amendment at the submission commit re-ran the
+them. Pilot-class amendments re-ran the
 \code{analytics-orders}, \code{analytics-orders-lineitem}, and
 \code{result-heavy} profiles with the adapter retaining the component map:
-one deployment each in run \code{subphase-pilot-06} and three deployments
-each in run \code{subphase-pilot-07}, so
+one deployment each of the first two in run \code{subphase-pilot-17} (one
+untimed warmup request per cell before its sample, so that no cell's only
+sample is the deployment's first request; an earlier run without warmups
+measured a cold first request for S1/SF1 and is retained but superseded)
+and three deployments of \code{result-heavy} in run
+\code{subphase-pilot-13}, so
 \FinalVFiveSubphaseSamplesSTwoSFTen{} novel sample per cell, all pilot
 class (\code{campaign_class} \code{pilot}, \code{publication_eligible}
 \code{false}); the table reports medians over the pooled samples.

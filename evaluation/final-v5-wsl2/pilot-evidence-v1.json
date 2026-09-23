@@ -220,7 +220,20 @@
       "samples_sha256": "d9909af845471785e202bafafc88f9d28d6f57007faf6ce161d31160298e1764",
       "submission_commit": "711bb9af9df359111a0a325e793ca1ef52ce8e22",
       "measured_samples": 28,
-      "note": "子阶段计时重跑（analytics-orders、analytics-orders-lineitem 两剖面）。S6/100k-x16 格由 result-heavy 剖面提供，仍待 subphase-pilot-08 的替代重跑。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代"
+      "note": "子阶段计时重跑（analytics-orders、analytics-orders-lineitem 两剖面）。S6/100k-x16 格由 result-heavy 剖面提供，仍待 subphase-pilot-08 的替代重跑。原始目录随 2026-09-19 WSL 重建丢失（台账 P10-R2-LOOP-7），本条为同语料同剖面的重跑替代",
+      "superseded_by": "subphase-pilot-17"
+    },
+    {
+      "id": "subphase-pilot-17",
+      "family": "subphase",
+      "pilot_kind": "profile_campaign",
+      "path": "evaluation/final-v5-wsl2/raw/subphase-pilot-17",
+      "campaign_evidence_sha256": "117228bb9bab8a22d229963f36d9ae1f36fcd6e95bc2c3e241bb0df2e1a12601",
+      "samples_sha256": "cad8b4a57b661b6ea23d1f31c7462f67138901a5ad037da0b857a49fd5ca6848",
+      "submission_commit": "f8c9c53528fea91b43c8a237599e7d5619a727d5",
+      "measured_samples": 28,
+      "note": "子阶段计时重跑（analytics-orders、analytics-orders-lineitem 两剖面），每格 1 个未计时预热（TASKGATE_PILOT_WARMUPS=1）后取 1 样本。替代 subphase-pilot-12：该次 warmups=0，S1/SF1/novel 恰为其部署的首个请求（order_position=1），SQL 侧 105 ms、对象拷贝 101 ms，为冷首请求样本，不在论文声明的 warm 测量范围内（台账 P10-R2-LOOP-22/25，作者决策 2026-09-23 A）。S6/100k-x16 格仍由 subphase-pilot-13 提供。",
+      "superseded_by": null
     },
     {
       "id": "pilot-benign-07",

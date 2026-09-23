@@ -369,33 +369,33 @@ loosened & 11/0 & 11 & exact 1910 & 1/0 & 18 \\%
 \newcommand{\FinalVFiveFootprintRefusedMSMax}{81}
 \newcommand{\FinalVFiveFootprintAcceptedMSMax}{515}
 \newcommand{\FinalVFiveSubphaseTableBody}{%
-visible SQL (PostgreSQL) & 31.3 & 54.8 & 149.2 \\
-companion SQL (PostgreSQL) & 74.1 & 526.6 & 178.9 \\
+visible SQL (PostgreSQL) & 2.5 & 28.7 & 149.2 \\
+companion SQL (PostgreSQL) & 6.7 & 548.1 & 178.9 \\
 visible preparation & 0.0 & 0.1 & 0.1 \\
-ordinal stream consumer (Go) & 10.9 & 1502.4 & 941.9 \\
-witness merge and finish (Go) & 5.4 & 214.3 & 1183.5 \\
-result encoding (Parquet) & 35.7 & 9.6 & 374.8 \\
-settlement persist & 36.4 & 117.7 & 284.6 \\
+ordinal stream consumer (Go) & 9.6 & 1611.4 & 941.9 \\
+witness merge and finish (Go) & 5.1 & 237.5 & 1183.5 \\
+result encoding (Parquet) & 6.8 & 15.7 & 374.8 \\
+settlement persist & 19.7 & 123.0 & 284.6 \\
 \midrule
-execute-and-derive (pipeline phase) & 126.8 & 2302.3 & 2463.8 \\
-server total & 339.1 & 2480.1 & 3203.1 \\%
+execute-and-derive (pipeline phase) & 25.8 & 2429.9 & 2463.8 \\
+server total & 82.9 & 2605.7 & 3203.1 \\%
 }
-\newcommand{\FinalVFiveSubphaseDominantSOneSFOne}{companion SQL (PostgreSQL)}
-\newcommand{\FinalVFiveSubphaseDominantMSSOneSFOne}{74.1}
-\newcommand{\FinalVFiveSubphaseGoSideMSSOneSFOne}{16.3}
-\newcommand{\FinalVFiveSubphaseSQLSideMSSOneSFOne}{105.4}
-\newcommand{\FinalVFiveSubphaseGoSidePctSOneSFOne}{13}
-\newcommand{\FinalVFiveSubphaseExecuteMSSOneSFOne}{126.8}
+\newcommand{\FinalVFiveSubphaseDominantSOneSFOne}{settlement persist}
+\newcommand{\FinalVFiveSubphaseDominantMSSOneSFOne}{19.7}
+\newcommand{\FinalVFiveSubphaseGoSideMSSOneSFOne}{14.8}
+\newcommand{\FinalVFiveSubphaseSQLSideMSSOneSFOne}{9.2}
+\newcommand{\FinalVFiveSubphaseGoSidePctSOneSFOne}{57}
+\newcommand{\FinalVFiveSubphaseExecuteMSSOneSFOne}{25.8}
 \newcommand{\FinalVFiveSubphaseSamplesSOneSFOne}{1}
-\newcommand{\FinalVFiveSubphaseMicrosPerFactSOneSFOne}{4.2}
+\newcommand{\FinalVFiveSubphaseMicrosPerFactSOneSFOne}{0.9}
 \newcommand{\FinalVFiveSubphaseDominantSTwoSFTen}{ordinal stream consumer (Go)}
-\newcommand{\FinalVFiveSubphaseDominantMSSTwoSFTen}{1502.4}
-\newcommand{\FinalVFiveSubphaseGoSideMSSTwoSFTen}{1716.8}
-\newcommand{\FinalVFiveSubphaseSQLSideMSSTwoSFTen}{581.4}
-\newcommand{\FinalVFiveSubphaseGoSidePctSTwoSFTen}{75}
-\newcommand{\FinalVFiveSubphaseExecuteMSSTwoSFTen}{2302.3}
+\newcommand{\FinalVFiveSubphaseDominantMSSTwoSFTen}{1611.4}
+\newcommand{\FinalVFiveSubphaseGoSideMSSTwoSFTen}{1849.0}
+\newcommand{\FinalVFiveSubphaseSQLSideMSSTwoSFTen}{576.8}
+\newcommand{\FinalVFiveSubphaseGoSidePctSTwoSFTen}{76}
+\newcommand{\FinalVFiveSubphaseExecuteMSSTwoSFTen}{2429.9}
 \newcommand{\FinalVFiveSubphaseSamplesSTwoSFTen}{1}
-\newcommand{\FinalVFiveSubphaseMicrosPerFactSTwoSFTen}{1.9}
+\newcommand{\FinalVFiveSubphaseMicrosPerFactSTwoSFTen}{2.0}
 \newcommand{\FinalVFiveSubphaseDominantSSixHundredKByteSixteen}{witness merge and finish (Go)}
 \newcommand{\FinalVFiveSubphaseDominantMSSSixHundredKByteSixteen}{1183.5}
 \newcommand{\FinalVFiveSubphaseGoSideMSSSixHundredKByteSixteen}{2125.5}
