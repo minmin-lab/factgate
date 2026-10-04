@@ -403,14 +403,8 @@ synchronization creates $P_{e+1}$ rather than mutating $P_e$.
 A deployment alias such as \code{latest publication} resolves to a concrete
 Catalog digest at approval time, never at query time (a draft that must
 follow a rollover is reissued). Let $\mathsf Q(T)$ contain every query issued by an approved root
-$T$ or any delegated descendant. Then
-\begin{equation}
- \begin{aligned}
- \operatorname{publication}(T)&=P_e,\\
- \forall q\in\mathsf Q(T),\quad \operatorname{publication}(q)&=P_e.
- \end{aligned}
- \label{eq:publication-binding}
-\end{equation}
+$T$ or any delegated descendant. Then $\operatorname{publication}(T)=P_e$
+and $\operatorname{publication}(q)=P_e$ for every $q\in\mathsf Q(T)$.
 The Catalog transitively binds the grant and FactID environment to that
 epoch; ledger state, replay metadata, evidence, audits, and receipts carry
 the same bindings, and execution, settlement, and replay fail closed if
@@ -421,13 +415,10 @@ they differ, so an active root cannot switch publications.
 \begin{definition}[Approved task]
 \label{def:task}
 An approved root task is the immutable authorization boundary
-\begin{equation}
- T=(P,S,B,C), \qquad B=(B_R,B_D,B_O),
- \label{eq:task-tuple}
-\end{equation}
+$T=(P,S,B,C)$ with ceilings $B=(B_R,B_D,B_O)$,
 where $P$ is the signed policy grant over the principal, data products,
-fields, and scopes; $S$ is the immutable publication/snapshot binding from
-Eq.~\eqref{eq:publication-binding}; $B$ gives the release, positive-output
+fields, and scopes; $S$ is the immutable publication/snapshot binding of the
+epoch above; $B$ gives the release, positive-output
 dependency-footprint, and query-outcome ceilings together with the request
 budget $B_Q$ (the maximum number of settled or rejected attempts; a
 rejection consumes one unit plus its admission-reserved rows and database
@@ -451,14 +442,8 @@ exposure-profile identifier (Section~\ref{sec:clearance-profile}), $\nu$ a
 catalog-owned source namespace (not a view alias), $s$ an immutable snapshot,
 $e$ a canonical stable entity key, $a$ a role-qualified field ID, $\tau\in\mathcal T$, and
 $C_\tau(v)$ its typed canonical value.  Base identities are
-
-\begin{align}
- f_{row}&=\langle\varpi,\nu,s,e\rangle,\\
- f_{cell}&=\langle\varpi,\nu,s,e,a,\tau,C_\tau(v)\rangle .
- \label{eq:fact}
-\end{align}
-
-A derived identity is
+$f_{row}=\langle\varpi,\nu,s,e\rangle$ and
+$f_{cell}=\langle\varpi,\nu,s,e,a,\tau,C_\tau(v)\rangle$; a derived identity is
 $f_d=\langle\varpi,\mathcal B,k_o,N_\varpi(x),\tau,C_\tau(v),CW(W)\rangle$,
 where $\mathcal B=\operatorname{sort}\{(\nu,s)\}$ is the relation's snapshot
 bundle, $k_o$ is the canonical output-row entity key, $N_\varpi(x)$ erases aliases
@@ -479,29 +464,18 @@ $h_c$ the predicate-context commitment to the approved Catalog, immutable
 publication/lineage, stable roles, and resolved expressions. Atomization
 normalizes each accepted literal occurrence by PostgreSQL type, collation
 name/version, operator, and canonical literal value. After exact
-deduplication, let $k_a=\code{PREDICATE_ATOM}$ and define semantic atom
-objects before their physical keys:
-\begin{equation}
- \begin{aligned}
- a_i&=\langle k_a,\varpi,h_c,p,r,f,e,\tau,\kappa,op,v\rangle,\\
- A(q)&=\{a_i\mid a_i\in\operatorname{Atomize}(q)\}.
- \end{aligned}
- \label{eq:predicate-atoms}
-\end{equation}
-Here $p,r,f,e$ are the semantic Product, stable role, public FieldID, and resolved-expression
-digest; $\tau,\kappa,op,v$ are type, collation, operator, and canonical
-literal. For any outcome Fact $f$, its physical key is
+deduplication, each semantic atom is
+$a_i=\langle k_a,\varpi,h_c,p,r,f,e,\tau,\kappa,op,v\rangle$ with
+$k_a=\code{PREDICATE_ATOM}$, $p,r,f,e$ the semantic Product, stable role,
+public FieldID, and resolved-expression digest, and $\tau,\kappa,op,v$ the
+type, collation, operator, and canonical literal; $A(q)$ is the atom set
+$\operatorname{Atomize}(q)$ yields. For any outcome Fact $f$, its physical key is
 $\operatorname{FactHash}_O(f)=H(d_O\|\operatorname{Canon}(f))$.
 Let $h_A$ commit the sorted $\operatorname{FactHash}_O$ values of $A(q)$ and
 $k_c=\code{COMPOSITE_OUTCOME}$. \system creates one semantic composite object
-\begin{equation}
- \begin{aligned}
- c_q&=\langle k_c,\varpi,\operatorname{profile}(N),h_N,h_y,m,h_c,h_A,|A(q)|\rangle,\\
- \facts_O(q)&=A(q)\cup\{c_q\},\\
- M_O(q)&=\{\operatorname{FactHash}_O(f)\mid f\in\facts_O(q)\}.
- \end{aligned}
- \label{eq:outcome-fact}
-\end{equation}
+$c_q=\langle k_c,\varpi,\operatorname{profile}(N),h_N,h_y,m,h_c,h_A,|A(q)|\rangle$;
+the query's Outcome Facts are $\facts_O(q)=A(q)\cup\{c_q\}$ and $M_O(q)$
+is the set of their $\operatorname{FactHash}_O$ values.
 Repeated literals and supported rewrites thus reuse atom identities, while
 the composite commits to the normalized query, exact result observation,
 and complete atom set, so every distinct successful query (every page
@@ -528,7 +502,7 @@ below select for successfully derived output rows and cells; the admitted langua
 requires every \code{ORDER BY} column to be selected, so only the Catalog
 tie-break suffix of Page is order-only and outside this profile.
 $\facts_O=A(q)\cup\{c_q\}$ contains the predicate footprint and composite
-query/result identity from Eqs.~\eqref{eq:predicate-atoms}--\eqref{eq:outcome-fact}.
+query/result identity defined above.
 \end{definition}
 
 \emph{Example (charged by the operator rules of Section~\ref{sec:effect-extraction}).} Over a five-row Product with fields $(id,dept,amt)$, the
@@ -1272,15 +1246,13 @@ of the phase,
 per Fact), so multi-second latency suits batch, not interactive, agents;
 the bottleneck is single-threaded implementation, and replay buys database
 silence, zero charge, and audit identity, not time. A four-arm cost
-ablation on fresh deployments (supplement) splits the governed total
-further: an exposure-free twin of the Catalog that keeps authorization,
-artifact publication and receipts but no fact accounting costs
-\BFiveSOneCommonPct\% of the governed S1/SF1 total and \BFiveSSixCommonPct\%
-of the 1.7-million-Fact S6 total, fact derivation is the largest accounted
-share (\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6), and the
-history-set leaves are \BFiveSSixLedger{}~ms there, where a naive one-row-per-fact
-exact-set ledger needs seconds per million-fact statement and hundreds of
-bytes per fact (different inputs; supplement states the caveat).
+ablation (supplement) splits the governed total: an exposure-free Catalog
+twin (authorization, publication, receipts, no fact accounting) costs
+\BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
+1.7-million-Fact S6 total; fact derivation is the largest accounted share
+(\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6) and the history-set
+leaves \BFiveSSixLedger{}~ms, against seconds per million-fact statement for
+a naive one-row-per-fact ledger (different inputs; supplement).
 
 \begin{table}[t]
 \centering
@@ -1330,14 +1302,13 @@ per cell and deployment, none discarded), and the supplement tabulates every
 width and mode. Because every descendant settles on one root head, a task
 tree's settlement throughput is bounded by that head; per-dimension or
 batched settlement could relax the bound; with budget to spare, one head
-settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second and
-four roots \ThroughputFourRootFiftyDisjointNPS{}, while at fifty contenders
-on one head \ThroughputOneRootFiftyRefused{} of
+settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second
+(four roots \ThroughputFourRootFiftyDisjointNPS{}); at fifty contenders on
+one head \ThroughputOneRootFiftyRefused{} of
 \ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
-sixteen head-CAS retries, uncharged and unsettled, so the ledger stayed exact
-but the client had to resubmit; with up to \RetryK{} client resubmissions
-\RetryOneRootFiftyCompletionPct\% of those requests settled, at an
-end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
+sixteen head-CAS retries---uncharged, ledger exact, client resubmits---and
+with up to \RetryK{} resubmissions \RetryOneRootFiftyCompletionPct\% settled
+at an end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
 (supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
