@@ -60,6 +60,7 @@ E-mail: \mbox{wuminmin@chinatelecomglobal.com}.}}
 \date{}
 
 \begin{document}
+\bstctlcite{IEEEexample:BSTcontrol}
 \maketitle
 
 \begin{abstract}
@@ -292,7 +293,7 @@ per-analyst cumulative budget---but meters DP loss over noised views, not
 an exact declared-identity set (reproduced side-by-side: supplement).
 Statistical-database inference control studied trackers, query-set overlap,
 and cumulative auditing
-\cite{dobkin1979secure,denning1980tracker,adam1989security,kleinberg2003auditing,nabar2006robustness};
+\cite{dobkin1979secure,denning1980tracker,nabar2006robustness};
 \system's Dependency ledger is a provenance-derived engineering of that
 lineage: it bounds settled predicates, not inference, and its budget is a
 set of declared facts where PINQ's is $\epsilon$ \cite{mcsherry2009pinq}. Zero-novelty replay is the
@@ -321,7 +322,7 @@ macaroon model \cite{birgisson2014macaroons}, query-rewriting fine-grained
 control \cite{rizvi2004extending} is the per-query comparator for the closed
 fragment, and usage/history control, RLS/VPD, ABAC, and query-policy systems
 establish ongoing authority, quotas, and rows
-\cite{park2004ucon,abadi2003history,li2003delegation,postgres16rls,hu2014abac,mehta2017qapla,zhang2022blockaid}; MCP authorization
+\cite{park2004ucon,abadi2003history,li2003delegation,postgres16rls,mehta2017qapla,zhang2022blockaid}; MCP authorization
 and delegation scope capability invocation
 \cite{mcp2025spec,south2025delegation}; AgentDojo evaluates
 model behavior under prompt injection \cite{debenedetti2024agentdojo} and
@@ -1313,8 +1314,7 @@ at an end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
 oracle's union minus history): settlement against a same-size history is
-sub-second at a million Facts and the response is dominated by
-execute-and-derive (per-cell table in the supplement).
+sub-second at a million Facts and execute-and-derive dominates the response.
 
 \begin{table}[t]
 \centering
@@ -1473,19 +1473,17 @@ admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
 \code{LIMIT}), and
 \SSBLowerableExplicitJoin{} of the \SSBQueries{} Star Schema Benchmark
 reporting queries (supplement tables);
-LLM-written SQL from the Product sheet alone: the applicability figure is
-the held-out set, \HeldoutQueries{} questions written after the fragment
-froze, of which \HeldoutLowerable{} (\HeldoutLowerablePct\%) lower unedited
-(\HeldoutEngineeringGaps{} rejections are engineering gaps, \HeldoutNewRule{}
-need new rules, \HeldoutAgentDefects{} is agent output); the development set
-adapted after its first pass lowers \AgentWorkloadLowerable{} of
-\AgentWorkloadQueries{} (\AgentWorkloadLowerablePct\%) and measures what
-iteration bought, not the frozen boundary (supplement); in a controlled
-two-objective study on a ten-row fixture (\AgentRuns{} runs: two objectives,
-two arms, three deployments, three samples), an off-the-shelf agent
-completes the legitimate objective under \system in every run after one
-refused listing, and its count-only probe stops at six probes (supplement);
-the rest stop first at scalar functions, division or a subquery inside
+LLM-written SQL from the Product sheet alone: of \HeldoutQueries{} held-out
+questions written after the fragment froze, \HeldoutLowerable{}
+(\HeldoutLowerablePct\%) lower unedited (\HeldoutEngineeringGaps{} engineering
+gaps, \HeldoutNewRule{} new rules, \HeldoutAgentDefects{} agent output); the
+development set, adapted after its first pass, lowers
+\AgentWorkloadLowerable{} of \AgentWorkloadQueries{}
+(\AgentWorkloadLowerablePct\%) and measures iteration, not the frozen
+boundary; in a two-objective agent study (\AgentRuns{} runs, supplement) an
+off-the-shelf agent completes the legitimate objective in every run after one
+refused listing and its count-only probe stops at six probes; the rest stop
+first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,
 \code{OR}, and outer joins need new rules (sketched in the supplement). Stable keys and
