@@ -180,3 +180,77 @@ it (a) through `evaluation/internal/naiveledger` and (b) through the exported V5
 single-writer, three repetitions. Report per statement the wall time to commit
 and, after the trace, the relation sizes on both sides. That is the missing
 one-to-one number, and it needs no change under `internal/`.
+
+## Same-input Scale replay (arm iii-scale): design frozen 2026-10-05 09:05 UTC+8, before execution
+
+Why this and not the (iv-ledger) harness above. The third simulated review
+(2026-10-05) names the missing same-input comparison as the main evidence gap.
+The (iv-ledger) plan drives the V5 store from new harness code through the
+dynamic-fact path; production Dependency sets do not take that path (they are
+ordinals of a published dictionary), so its V5 side would time a path the
+deployed system does not use for the dimension that carries the scale. The
+sealed campaign already contains V5 settlement of fully specified inputs on
+the production path: the Scale profile. Replaying exactly those inputs through
+the naive ledger gives the same-input pair with a publication-class V5 side
+and no new V5 code.
+
+Inputs (identical on both sides). The twelve Scale Dependency cells: candidate
+of N facts against a root pre-seeded with a history of N facts,
+N in {10,000; 100,000; 1,035,000}, overlap 0/50/90/100%. Fact identities are
+the independent oracle's canonical facts
+(`finalv5oracle.StreamExposureScaleFacts`): candidate = facts [0, N), history =
+facts [N-K, 2N-K), the roles of `GenerateExposureScaleDependency`
+(`evaluation/finalv5oracle/dependency.go`). The sealed campaign's finalizer
+linked the production ledger's committed candidate, history and root sets to
+these same oracle sets member by member (supplement, Scale section), so the
+naive ledger receives the sets the V5 ledger settled. Release and Outcome
+carry no scale in these cells (1 and 5 facts per candidate); they are
+synthetic hashes whose cardinalities and history overlap reproduce the sealed
+samples' charges.
+
+Equality before timing (a failure aborts the run and is reported as a
+correctness finding, not retried): per cell and trial, the naive charge in
+each dimension equals the charge of every sealed novel sample of the cell; the
+root's Dependency cardinality equals the oracle union (2N-K); the digest of
+the Dependency set read back from the naive ledger equals the digest of the
+oracle union; settling the same candidate a second time charges 0/0/0.
+
+Measurement. V5 side: `pipeline_ms.control_settlement` of the sealed campaign's
+novel samples of the same cell (90 per cell, formal-v113-publication-05), the
+column the paper's Scale table reports; `diagnostic_ms.exposure_fact_store` is
+reported beside it. Naive side: wall time of `naiveledger.Settle` for the
+candidate, lock to commit, on a root that already holds the history; fresh
+ledger tables per cell; three trials; single writer; a standalone PostgreSQL
+container of the campaign's pinned image (postgres@sha256:92620daddcd9...) with
+default server settings and a named volume, as the deployment's Control
+database has. Also reported: history seeding time, re-settlement time, fact
+rows and `pg_total_relation_size` of the naive tables after history plus
+candidate. Tool: `evaluation/cmd/b5-naive-scale-replay`.
+
+Stop rule. One smoke invocation (`-trials 1`) validates the harness; its
+timings are discarded and its output is not kept. The registered run is the
+next invocation with `-trials 3`, reported whatever it shows; no cell
+selection, no extension, no rerun on data. A harness error voids the whole
+invocation and is disclosed.
+
+Priors (from the 2026-09-19 table above and the 7-12 microseconds per candidate
+fact measured on the benign trace that day; not fitted to this run):
+
+| Cell | Prior | What would refute it |
+|---|---|---|
+| N = 1,035,000, 0% overlap | naive settle 7-12 s against V5 163 ms: at least 10x, expected 40-75x | within 2x: the representation buys little at this scale and the paper must say so |
+| N = 100,000, 0% overlap | naive 0.7-1.2 s against V5 57 ms: at least 10x | within 2x |
+| N = 10,000, 0% overlap | naive 70-120 ms against V5 40 ms: within 5x | naive faster than V5 would mean the fixed cost of the V5 transaction dominates at this size; report it |
+| 100% overlap, any N | naive still pays one index probe per candidate fact: at least half its 0%-overlap time, while V5 drops from 163 to 124 ms at the largest N | naive near zero at full overlap |
+| equality checks | all pass in every cell and trial | any divergence is a correctness finding about one of the two ledgers or about the oracle link |
+
+What this does not cover, and will be stated with the result. The V5 number
+is the Gateway's whole Control settlement transaction (reservation, three
+dimensions, head CAS, receipt bookkeeping) measured inside a compose
+deployment during the sealed campaign; the naive number is the naive ledger's
+transaction alone, measured standalone on another day on the same host and
+image. Both asymmetries favour the naive side. V5 storage for the same sets is
+not measured in a comparable form, so no storage ratio is claimed. Traces that
+mix refusals at a budget boundary and concurrent writers on one root are not
+covered by this replay.
+
