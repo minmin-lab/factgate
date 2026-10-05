@@ -47,6 +47,18 @@ Facts where a receipt lookup has 2; a repeated statement has a novel part of 0.
 - Pre-execution refusals (ladder bounded arm, one deployment) are reported by
   row span as a separate, query-describing signal.
 
+## Site attribution
+
+Both refusal sites return `EXPOSURE_BUDGET_EXHAUSTED`, and the retained
+records carry nothing else about the site. The refusals pooled here are
+assigned to the post-execution site by reading the code, not by an
+observation: the pre-execution guard (`physicalquery.DeriveLimits`) refuses on
+an exhausted row budget or on a limit below one, and neither occurs under the
+budget profiles of these runs (row budget 500 with at most 228 rows released;
+exposure limits of 7 or more). The pre-execution guard takes the remaining row
+budget and the exposure limits as inputs, so pre-execution latency is not
+shown to be independent of ledger state either.
+
 ## What is not established
 
 No largest footprint a refused query can reach is derived, and no

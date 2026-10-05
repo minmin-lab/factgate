@@ -2099,13 +2099,21 @@ are withdrawn.
 \paragraph{Two sites.}
 The Gateway refuses on budget at two places. The pre-execution guards
 (\code{DeriveLimits} and the reservation checks in
-\filepath{internal/gateway/query.go}) refuse before any SQL runs; the
-refused-footprint ladder above exercises them. The post-execution site is the
-settlement novelty check (\code{ordinal_exposure_v5.go}): the visible and
+\filepath{internal/gateway/query.go}) refuse before any business SQL runs;
+the refused-footprint ladder above exercises them. The post-execution site is
+the settlement novelty check (\code{ordinal_exposure_v5.go}): the visible and
 companion statements ran, facts were derived, novelty against the root
-ledger was computed, and only then was the query refused. Only the second
-site can leak the unreleased footprint through latency, and it is the site
-every adaptive-trace refusal in the paper hits.
+ledger was computed, and only then was the query refused. A refusal at the
+post-execution site has paid for executing the business SQL and deriving the
+candidate facts, which is the footprint-related mechanism this section
+examines; a pre-execution refusal has not paid that cost. That does not make
+pre-execution latency independent of the ledger: the guard takes the task's
+remaining row budget and its exposure limits as inputs. The two sites return
+the same error code and the retained records carry nothing else about the
+site, so the refusals analysed below are assigned to the post-execution site
+by reading the code, not by an observation: the pre-execution guard refuses
+on an exhausted row budget or on a limit below one, and neither occurs under
+the budget profiles of these runs.
 
 \paragraph{Three quantities.}
 A refused statement $q$ is described by three numbers that must be kept
@@ -2129,8 +2137,9 @@ frozen corpora exactly before they are used: the novelty and row count of
 and the novelty of all \TimingAdversaryChecked{} adversary steps.
 
 \paragraph{Post-execution refusals.}
-The retained runs contain \TimingRefusals{} post-execution refusals of
-\TimingDistinctStatements{} distinct statements: the counter-comparator traces
+The retained runs contain \TimingRefusals{} such refusals under
+\TimingDistinctStatements{} distinct step identifiers (campaign and step id;
+the SQL texts are not normalized for equivalence): the counter-comparator traces
 (\code{pilot-counter-rigor-03}, exact and release arms, three deployments,
 three samples each) and the adversary tiers (\code{pilot-adversary-05}, owner
 and tightened). Position-one steps are excluded: the first query on a fresh
@@ -2166,8 +2175,10 @@ Facts & $n$ & Median & p10 & p90 \\
 range, largest difference between group medians (ms), and least-squares
 slope in ms per unit with its standard error, fitted over all
 \TimingRefusals{} refusals as if independent (pooled) and over one point per
-refused statement state (\TimingStatementPoints{} points, each the median
-latency of its repetitions).}
+group of refusals sharing campaign, arm, step identifier and novel part
+(\TimingStatementPoints{} points, each the median latency of its group). The
+groups are the script's keys, not units shown to be independent; both fits
+are descriptive.}
 \label{tab:timing-fits-supp}
 \small
 \begin{tabular}{lrrrr}
@@ -2183,11 +2194,13 @@ The group medians differ by at most \TimingFullSpreadMS{}~ms across a
 nine-fold change in full footprint and are not ordered by it. Fitted over
 all refusals as if they were independent, the slope on the full footprint is
 \TimingFullPooledOverSE{} standard errors from zero and the slope on result
-rows \TimingRowsPooledOverSE{}. Those refusals are repetitions of
-\TimingStatementPoints{} statement states, however, and with one point per
-state no slope is further than \TimingStatementOverSEMax{} standard errors
-from zero. The pooled figures count repetitions as evidence and overstate
-it: the previous revision reported such a pooled slope as a detected
+rows \TimingRowsPooledOverSE{}. Those refusals are repetitions, however:
+grouped by campaign, arm, step identifier and novel part they form
+\TimingStatementPoints{} groups, and with one point per group no slope is
+further than \TimingStatementOverSEMax{} standard errors from zero. The
+grouped fit is a sensitivity analysis, not a test corrected for dependence
+between observations; it shows that the pooled figures count repetitions as
+evidence and overstate it: the previous revision reported such a pooled slope as a detected
 dependence, and the revision before it reported flat latency; neither
 reading is supported. What the records support is narrower. Over full
 footprints of \TimingFullMin{} to \TimingFullMax{} Facts on a ten-row
@@ -2232,12 +2245,15 @@ guarantee, as the main text states; padding or batching refusals is the
 deployment control.
 
 \paragraph{Pre-execution site.}
-The ladder's refusals carry a second, weaker signal that is not about
-unreleased data: their latency depends on the row span the agent itself
-wrote. The eleven bounded-arm refusals (one deployment) fall into two
-disjoint ranges, \TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows
-and \TimingPreLargeSpanMS{}~ms for the $10^5$-row rungs; whatever it carries
-describes the query the agent wrote, not the ledger.
+The ladder's eleven bounded-arm refusals (one deployment) ran no business
+SQL. Their latency differs between request spans:
+\TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows and
+\TimingPreLargeSpanMS{}~ms for the $10^5$-row rungs. In this fixed
+configuration the two groups differ in the request the agent wrote. The
+experiment did not hold the request fixed while varying the control state,
+so it does not separate the contribution of request shape from that of
+ledger or budget state, and it does not assess whether this path could be
+used to infer ledger state.
 
 \subsection{A SUM ladder past $10^7$ Dependency facts in one query}
 \label{sec:scale7-supp}
@@ -2453,8 +2469,15 @@ Outcome charge is data-independent, so the recovered bits follow the
 $\lfloor B_O/2\rfloor$ bound of the adversary study on the rounded budget
 (\SweepBitsQuarter{}, \SweepBitsHalf{}, \SweepBitsThreeQuarter{},
 \SweepBitsOne{}, \SweepBitsOneHalf{} over the first five multipliers) and
-stop at the \SweepBitsTwo{} probes the ladder needs, whereas benign admission
-saturates once the largest single-statement footprint fits. Third, at $m=1$ the replay admits one
+stop at the \SweepBitsTwo{} probes the ladder needs. Benign admission does
+not saturate once the largest single statement fits: admitting every
+statement requires the history already admitted and each later candidate to
+stay within every budget together. In this closed-form model the largest
+single Dependency footprint is \SweepMaxStatementDependency{} Facts, which
+is the $1\times$ Dependency budget, and the union over the authorized trace
+is \SweepClosedFormUnion{}; the replay admits \SweepBenignOneAdmitted{} of
+\SweepBenignAuthorized{} at $1\times$, \SweepBenignOneHalfAdmitted{} at
+$1.5\times$, and all of them first at $2\times$ on this grid. Third, at $m=1$ the replay admits one
 statement fewer than the pilot; the two differ in their footprint model
 (scanned rows where the production rule charges output cells), and because
 admission is path-dependent the sign of that difference at the other
@@ -3174,8 +3197,10 @@ statement at its first attempt, is what the \HeldoutLowerablePct\% measures,
 and the instrument confounds it: \HeldoutSheetAdvertised{} of the
 \HeldoutRejected{} first rejections fall on a construct the product sheet
 lists as allowed (\code{to_char}, \code{date_trunc}, \code{/}), so they
-fall on a wrong instruction as well as on the language boundary; the rerun
-below separates the two. \emph{Correctness},
+fall on a wrong instruction as well as on the language boundary. The rerun
+below compares the original sheet with one that drops the three false
+statements, with the model, the prompt template and the lowerer held fixed;
+it does not apportion the rejections among their causes. \emph{Correctness},
 whether an admitted statement answers its question, is not measured either:
 the \HeldoutLowerable{} admitted statements were lowered, not executed, and
 none was graded against a reference answer. The figure is an admission rate
@@ -3184,7 +3209,7 @@ end-to-end evidence in this paper is the two-objective agent pilot of
 Section~\ref{sec:agent-pilot-supp}.
 
 \paragraph{The sheet's share (pilot).}
-To separate the sheet from the language, the same \HeldoutQueries{} questions
+To compare the two sheets, the same \HeldoutQueries{} questions
 were generated again in two arms that differ only in the sheet: the original
 one, and one with its two false lines corrected (the expense Products lose
 \code{date_trunc}, \code{to_char} and \code{/}; nothing is added, so the
@@ -3201,18 +3226,20 @@ of \HeldoutQueries{} in its three repetitions (the held-out run:
 noise: \SheetOriginalUnstable{} questions are admitted in some repetitions
 and not in others.
 
-With the corrected sheet the agent stops writing the removed constructs
-(first rejections on them fall from \SheetOriginalAtRemoved{} to
-\SheetCorrectedAtRemoved{} per repetition), but the questions behind them do
-not become admissible: of the \SheetSevenStatements{} statements written in
-the two arms for the \HeldoutSheetAdvertised{} questions that the held-out
-run rejected at an advertised construct, \SheetSevenAdmitted{} are admitted.
-The agent fails instead on a typed date literal, a cast or an arithmetic
-projection, or its output does not parse (removing an enclosing code fence,
-the post hoc view below, admits \SheetSevenAdmittedUnfenced{} of them): the
-fragment has no way to bucket a date or to divide. The
-sheet decided where those statements were first rejected, not whether they
-were admitted.
+With the corrected sheet, the outputs whose first rejection falls on one of
+the three removed constructs drop from \SheetOriginalAtRemoved{} to
+\SheetCorrectedAtRemoved{} per repetition. That counts first rejections, not
+uses: a statement can contain such a construct and be rejected elsewhere
+first. Of the \SheetSevenStatements{} statements written in the two arms for
+the \HeldoutSheetAdvertised{} questions that the held-out run rejected at an
+advertised construct, \SheetSevenAdmitted{} are admitted as generated, and
+\SheetSevenAdmittedUnfenced{} with an enclosing code fence removed (the post
+hoc view below). In the corrected arm these statements are first rejected on
+a typed date literal, a cast or an arithmetic projection, or do not parse;
+the fragment has no rule for bucketing a date or for division. For these
+questions the place of first rejection changed in this generation while no
+output became admitted as generated; that does not show that the sheet has
+no effect on their chance of admission.
 
 The corrected arm admits \SheetCorrectedAdmitted{} of \HeldoutQueries{}
 (\SheetCorrectedTotal{} of \SheetArmStatements{} statements) against

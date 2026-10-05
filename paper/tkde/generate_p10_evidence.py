@@ -148,6 +148,15 @@ for m, tag in ((0.25, "Quarter"), (0.5, "Half"), (0.75, "ThreeQuarter"), (1, "On
         rf"\newcommand{{\SweepGreedy{tag}}}{{{bya[m]['greedy_distinct_dependency']}}}",
     ]
 lines.append(rf"\newcommand{{\SweepBenignAuthorized}}{{{bn[0]['authorized']}}}")
+_benign_corpus = json.loads((ROOT / "evaluation/finalv5benign/corpus-v2.json").read_text())
+if _benign_corpus["max_dependency_facts"] != byb[1]["budget"]["D"]:
+    raise SystemExit("sweep: the 1x Dependency budget is no longer the corpus's largest single footprint; the supplement's sentence must be revised")
+if not (byb[1]["admitted"] < byb[1.5]["admitted"] < byb[2]["admitted"] == bn[0]["authorized"]):
+    raise SystemExit("sweep: admission at 1x, 1.5x, 2x no longer reads 'not saturated, not saturated, all'; the supplement's sentence must be revised")
+lines += [
+    rf"\newcommand{{\SweepMaxStatementDependency}}{{{_benign_corpus['max_dependency_facts']:,}}}",
+    rf"\newcommand{{\SweepClosedFormUnion}}{{{_benign_corpus['trace_union_dependency_facts']:,}}}",
+]
 lines.append(rf"\newcommand{{\SweepBenignFirstRefusalOne}}{{{byb[1]['first_budget_refusal']}}}")
 lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
 # --- B7: refusal timing-channel bandwidth (retained data only) ----------
