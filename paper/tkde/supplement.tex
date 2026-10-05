@@ -855,7 +855,7 @@ TLC (Table VI) & tracked at \EvidenceChainCommit{} & \filepath{formal/results/*.
 Held-out workload (Section~\ref{sec:heldout-supp}) & questions frozen at \HeldoutFreezeCommit{} & \filepath{evaluation/agentworkload-heldout/results.json} (digest \HeldoutResultsDigest{}) & static lowering, not executed; \code{agent-workload-lowerability} \\
 LLM-agent pilot (Section~\ref{sec:agent-pilot-supp}) & per run, in the registry & \filepath{evaluation/agent-pilot/results.json} (digest \AgentResultsDigest{}, run \AgentCampaign{}); \filepath{p10-pilot-evidence-v1.json} $\to$ raw & pilot; \filepath{evaluation/agent-pilot/analyze.py} \\
 Throughput and client-retry pilots (Section~\ref{sec:throughput-supp}) & per run, in the registry & \filepath{evaluation/throughput-pilot/results.json} (digest \ThroughputResultsDigest{}, run \ThroughputCampaign{}), \filepath{throughput-retry/results.json} (digest \RetryResultsDigest{}, run \RetryCampaign{}) & pilot \\
-Cost ablation and naive ledger (Section~\ref{sec:ablation-supp}) & per run, in the results file & \filepath{evaluation/b5-ablation/results.json} (digest \BFiveResultsDigest{}) & pilot; arms i, iv executed, ii composed, naive ledger on another input \\
+Cost ablation and naive ledger (Section~\ref{sec:ablation-supp}) & per run, in the results file & \filepath{evaluation/b5-ablation/results.json} (digest \BFiveResultsDigest{}), \filepath{naive-scale-replay.json} (digest \NaiveScaleResultsDigest{}) & pilot; arms i, iv executed, ii composed; naive ledger on the benign trace and, same-input, on the sealed Scale sets \\
 Budget sweep (Section~\ref{sec:sweep-supp}) & tracked & \filepath{evaluation/budget-utility-sweep/results.json} (digest \SweepResultsDigest{}) & simulation, not executed; \filepath{evaluation/cmd/budget-utility-sweep} \\
 Timing channel (Section~\ref{sec:timing-supp}) & per run, in the registry & \filepath{evaluation/timing-channel/results.json} (digest \TimingResultsDigest{}; runs \TimingCampaigns{}) & analysis of retained pilot records; \filepath{evaluation/timing-channel/analyze.py} \\
 Aligned counter replay (Section~\ref{sec:counter-aligned-supp}) & tracked & \filepath{evaluation/counter-aligned/results.json} (digest \AlignedResultsDigest{}) & replay over the sealed trace; \filepath{evaluation/counter-aligned/replay.py} \\
@@ -2464,7 +2464,9 @@ therefore a timing decomposition of arm~(iv), not an execution with the
 ledger switched off: whatever the ledger costs outside its own leaves (cache
 and allocator pressure, lock and transaction waits) stays in the composed
 figure, and only arms~(i) and~(iv) are executed measurements. Arm~(iii), the
-naive exact-set ledger, is a separate measurement described below.
+naive exact-set ledger, is measured separately: on the benign trace (third
+reading below) and, on the same inputs as V5, in the Scale replay that closes
+this subsection.
 Table~\ref{tab:ablation-supp} reports medians.
 
 \begin{table}[t]
@@ -2521,17 +2523,94 @@ claimed from them: the \BFiveSSixLedger{}~ms ledger leaves of arm~(iv) were
 measured on a different input (the S6 statement, 1.7 million Facts) inside
 the Gateway's settlement transaction, while the naive ledger replayed the
 benign trace's Dependency sets standalone, and the two differ in input,
-persistence path and concurrency. The comparison that would support a ratio
-feeds the same normalized candidate sets in the same order to both ledgers
-under the same transaction and durability settings, checks that every
-accept/refuse decision, every per-dimension charge and the final decoded
-sets are equal, and only then compares time and storage; it is designed
-(\filepath{docs/p10_r2_b5_ablation_design.md}) but not executed in
-this revision, so the benefit of the optimized representation over a simple
-exact one is not quantified here. Limits: one host, pilot class, S2 measured under accounting only,
+persistence path and concurrency. The same-input comparison is the Scale
+replay at the end of this subsection. Limits: one host, pilot class, S2 measured under accounting only,
 arm~(ii) composed rather than executed, and the S1/S2 cells here are the
 master-Catalog Baseline cells over the deterministic fixture, not the
 TPC-H-derived profiles of the sub-phase pilot.
+
+\paragraph{Same-input Scale replay.}
+The sealed campaign's Scale profile (Section~\ref{sec:scale-publication-supp})
+already contains V5 settlement of fully specified sets on the production
+path: a candidate of $N$ Dependency facts against a root pre-seeded with a
+history of $N$, at four overlaps. A pilot (design, stop rule and priors frozen
+and committed before execution in
+\filepath{docs/p10_r2_b5_ablation_design.md}; results digest
+\NaiveScaleResultsDigest{}) settles exactly those sets through the naive
+ledger. Candidate and history are the independent oracle's canonical facts,
+the sets the campaign finalizer linked member by member to the production
+ledger's committed sets; Release and Outcome carry no scale in these cells
+(1 and 5 facts) and are synthetic hashes that reproduce the sealed charges.
+Before any time is compared, each of the \NaiveScaleCells{} cells in each of
+\NaiveScaleTrials{} trials checks that the naive charge in every dimension
+equals the charge of every sealed sample of the cell, that the root's
+Dependency cardinality equals the oracle union, that the digest of the set
+read back from the naive ledger equals the digest of the oracle union, and
+that settling the candidate a second time charges nothing; every check
+passed. The naive ledger ran single-writer against a standalone PostgreSQL
+of the campaign's pinned image with default settings and fresh tables per
+cell. Table~\ref{tab:naive-scale-supp} reports the pairs.
+
+\begin{table}[t]
+\centering
+\caption{Same-input ledger comparison on the sealed Scale cells (pilot):
+candidate facts $N$ against a history of $N$, overlap, novel facts; V5
+Control settlement and its fact-store leaf (p50 over
+\NaiveScaleSealedSamplesPerCell{} sealed samples per cell, ms); naive ledger
+settlement (median and range over \NaiveScaleTrials{} trials, ms) and its
+ratio to V5; naive re-settlement of the same candidate (ms); naive ledger
+size after history and candidate (MB).}
+\label{tab:naive-scale-supp}
+\small
+\begin{tabular}{rrrrrrrrr}
+\toprule
+$N$ & Overlap & Novel & V5 & V5 store & Naive & Naive/V5 & Re-settle & MB \\
+\midrule
+\NaiveScaleTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+Four readings. At a million facts the simple exact ledger is far slower:
+\NaiveScaleMillionZeroNaiveS{}~s against \NaiveScaleMillionZeroVFiveMS{}~ms
+with no overlap (\NaiveScaleMillionZeroRatio{}$\times$) and
+\NaiveScaleMillionFullNaiveS{}~s at full overlap
+(\NaiveScaleMillionFullRatio{}$\times$), because it pays one index probe
+per candidate fact even when nothing is new. At $10^5$ facts the ratio is
+\NaiveScaleHundredKZeroRatio{}$\times$ falling to
+\NaiveScaleHundredKFullRatio{}$\times$ with overlap. At $10^4$ facts the
+optimized representation buys nothing: the naive ledger takes
+\NaiveScaleTenKZeroNaiveMS{}~ms against \NaiveScaleTenKZeroVFiveMS{}~ms with
+no overlap (\NaiveScaleTenKZeroRatio{}$\times$) and is faster than V5 at
+90\% and 100\% overlap (\NaiveScaleTenKFullRatio{}$\times$ at full
+overlap), since V5 settlement at that size is dominated by the fixed cost of
+its transaction. The benefit is therefore a property of large footprints,
+not of the mechanism at every size, and the main text's claim is limited
+accordingly. Of the priors written before execution, the zero-overlap ones
+held (at least $10\times$ at $10^5$ and $10^6$ facts, within $5\times$ at
+$10^4$); the prior that the naive ledger's full-overlap time would stay at
+least half its zero-overlap time did not (it is
+\NaiveScaleFullOverZeroPctMin{}--\NaiveScaleFullOverZeroPctMax{}\% across the
+three sizes),
+and the possibility that the naive ledger would be faster at $10^4$ facts
+was written as a refutation condition and occurred. Storage is reported for
+the naive side only (\NaiveScaleMillionZeroRows{} rows in
+\NaiveScaleMillionZeroMB{}~MB at the largest cell,
+\NaiveScaleBytesPerFact{} bytes per fact with the index): V5 storage for the
+same sets was not measured in a comparable form and no storage ratio is
+claimed.
+
+Limits of the pair. The V5 figure is the Gateway's whole Control settlement
+transaction (reservation, three dimensions, head compare-and-swap, receipt
+bookkeeping) measured inside a compose deployment during the sealed campaign;
+the naive figure is that ledger's transaction alone, measured standalone on a
+later day on the same host and image. Both differences favour the naive
+side, so the large-footprint ratios are not inflated by them and part of the
+naive ledger's lead at $10^4$ facts is work V5 does and the naive ledger does
+not. The comparison concerns settlement only; derivation, which the ablation
+above shows to dominate the governed cost, is the same under either ledger.
+Traces that mix refusals at a budget boundary and concurrent writers on one
+root are not covered.
 
 \subsection{Per-query data-flow control on the adaptive trace: the Passant artifact}
 \label{sec:passant-supp}

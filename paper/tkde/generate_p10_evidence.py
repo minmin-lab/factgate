@@ -428,5 +428,69 @@ if b5.exists():
             rf"\newcommand{{\NaiveSweepCrossCheck}}{{{tex(naive['sweep_cross_check'].get('status', '?'))}}}",
         ]
 
+# --- P10-R2 B5: same-input Scale replay, naive ledger vs sealed V5 settlement ---
+ns_path = ROOT / "evaluation/b5-ablation/naive-scale-replay.json"
+if ns_path.exists():
+    ns = json.loads(ns_path.read_text())
+    if ns.get("campaign_class") != "pilot" or ns.get("publication_eligible") is not False:
+        raise SystemExit("naive-scale-replay.json is not pilot class")
+    pub = json.loads((ROOT / "evaluation/final-v5-wsl2/publication-evidence-v1.json").read_text())
+    if ns["sealed_campaign"] not in json.dumps(pub):
+        raise SystemExit(f"naive-scale-replay.json reads {ns['sealed_campaign']}, which is not the sealed campaign of publication-evidence-v1.json")
+    for f, digest in ns["sealed_sample_files"].items():
+        if hashlib.sha256((ROOT / f).read_bytes()).hexdigest() != digest:
+            raise SystemExit(f"naive-scale-replay.json: sealed sample file {f} changed since the replay")
+    if not all(c["equality_checks_passed"] and len(c["naive_trials"]) == ns["trials"] for c in ns["cells"]):
+        raise SystemExit("naive-scale-replay.json: an equality check failed or a trial is missing")
+    def med(v):
+        v = sorted(v)
+        return v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2
+    def ratio(x):
+        return f"{x:.1f}" if x < 10 else f"{x:.0f}"
+    def msfmt(x):
+        return f"{x:.0f}" if x >= 100 else f"{x:.1f}"
+    rows_ns, ratios, by = [], [], {}
+    for c in ns["cells"]:
+        t = [n["candidate_total_ms"] for n in c["naive_trials"]]
+        again = med([n["resettle_total_ms"] for n in c["naive_trials"]])
+        v5 = c["sealed_v5"]["control_settlement_p50_ms"]
+        r = med(t) / v5
+        ratios.append(r)
+        mb = med([n["total_bytes"] for n in c["naive_trials"]]) / 1e6
+        by[(c["candidate_dependency_facts"], c["overlap_percent"])] = dict(naive=med(t), v5=v5, ratio=r, mb=mb, again=again,
+            lo=min(t), hi=max(t), rows=c["naive_trials"][0]["fact_rows"], bytes=med([n["total_bytes"] for n in c["naive_trials"]]))
+        rows_ns.append(f"{c['candidate_dependency_facts']:,} & {c['overlap_percent']}\\% & {c['candidate_dependency_facts'] - c['overlap_dependency_facts']:,} & "
+                       f"{msfmt(v5)} & {msfmt(c['sealed_v5']['exposure_fact_store_p50_ms'])} & {msfmt(med(t))} ({msfmt(min(t))}--{msfmt(max(t))}) & "
+                       f"{ratio(r)} & {msfmt(again)} & {mb:.0f}")
+    big, small, mid = 1035000, 10000, 100000
+    for _n in (small, mid, big):
+        per = [by[(_n, o)]["ratio"] for o in (0, 50, 90, 100)]
+        assert max(per) == by[(_n, 0)]["ratio"] and min(per) == by[(_n, 100)]["ratio"], _n
+    lines.append(r"\newcommand{\NaiveScaleTableBody}{%" + "\n" + " \\\\\n".join(rows_ns) + r" \\%" + "\n}")
+    lines += [
+        rf"\newcommand{{\NaiveScaleResultsDigest}}{{\texttt{{{sha12(ns_path)}}}}}",
+        rf"\newcommand{{\NaiveScaleTrials}}{{{ns['trials']}}}",
+        rf"\newcommand{{\NaiveScaleCells}}{{{len(ns['cells'])}}}",
+        rf"\newcommand{{\NaiveScaleSealedSamplesPerCell}}{{{ns['cells'][0]['sealed_v5']['samples']}}}",
+        rf"\newcommand{{\NaiveScaleMillionZeroNaiveS}}{{{by[(big, 0)]['naive'] / 1000:.1f}}}",
+        rf"\newcommand{{\NaiveScaleMillionZeroVFiveMS}}{{{by[(big, 0)]['v5']:.0f}}}",
+        rf"\newcommand{{\NaiveScaleMillionZeroRatio}}{{{ratio(by[(big, 0)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleMillionFullNaiveS}}{{{by[(big, 100)]['naive'] / 1000:.1f}}}",
+        rf"\newcommand{{\NaiveScaleMillionFullRatio}}{{{ratio(by[(big, 100)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleHundredKZeroRatio}}{{{ratio(by[(mid, 0)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleHundredKFullRatio}}{{{ratio(by[(mid, 100)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleTenKZeroRatio}}{{{ratio(by[(small, 0)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleTenKFullRatio}}{{{ratio(by[(small, 100)]['ratio'])}}}",
+        rf"\newcommand{{\NaiveScaleTenKZeroNaiveMS}}{{{msfmt(by[(small, 0)]['naive'])}}}",
+        rf"\newcommand{{\NaiveScaleTenKZeroVFiveMS}}{{{msfmt(by[(small, 0)]['v5'])}}}",
+        rf"\newcommand{{\NaiveScaleRatioMin}}{{{ratio(min(ratios))}}}",
+        rf"\newcommand{{\NaiveScaleRatioMax}}{{{ratio(max(ratios))}}}",
+        rf"\newcommand{{\NaiveScaleFullOverZeroPctMin}}{{{min(100 * by[(n, 100)]['naive'] / by[(n, 0)]['naive'] for n in (small, mid, big)):.0f}}}",
+        rf"\newcommand{{\NaiveScaleFullOverZeroPctMax}}{{{max(100 * by[(n, 100)]['naive'] / by[(n, 0)]['naive'] for n in (small, mid, big)):.0f}}}",
+        rf"\newcommand{{\NaiveScaleMillionZeroMB}}{{{by[(big, 0)]['mb']:.0f}}}",
+        rf"\newcommand{{\NaiveScaleMillionZeroRows}}{{{by[(big, 0)]['rows']:,}}}",
+        rf"\newcommand{{\NaiveScaleBytesPerFact}}{{{by[(big, 0)]['bytes'] / by[(big, 0)]['rows']:.0f}}}",
+    ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)
