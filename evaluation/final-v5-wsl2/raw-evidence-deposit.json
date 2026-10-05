@@ -17,7 +17,11 @@
  "repository": "zenodo",
  "record_id": 23149437,
  "doi": "10.5281/zenodo.23149437",
- "status": "draft",
- "status_note": "DOI reserved and files uploaded on 2026-10-05; the record is a draft until the author publishes it, and the DOI does not resolve before that",
- "recomputation_check": "2026-10-05: in a fresh checkout at fca3b00 with only this archive extracted, generate_evidence.py --evidence-mode final and generate_p10_evidence.py reproduced generated/evidence.tex and generated/p10.tex byte for byte"
+ "status": "published",
+ "status_note": "published by the author on 2026-10-05; verified the same day through the public API (record open, three files with the uploaded checksums), by DOI resolution, and by downloading the archive and matching its SHA-256 to the value recorded here",
+ "recomputation_check": "2026-10-05: in a fresh checkout at fca3b00 with only this archive extracted, generate_evidence.py --evidence-mode final and generate_p10_evidence.py reproduced generated/evidence.tex and generated/p10.tex byte for byte",
+ "published": "2026-10-05",
+ "concept_doi": "10.5281/zenodo.23149436",
+ "url": "https://doi.org/10.5281/zenodo.23149437",
+ "license": "CC-BY-4.0"
 }

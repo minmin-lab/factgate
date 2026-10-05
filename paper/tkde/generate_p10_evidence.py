@@ -597,6 +597,9 @@ if _present:
             raise SystemExit(f"{f}: differs from the deposited manifest")
 if dep["status"] not in ("draft", "published"):
     raise SystemExit("raw-evidence-deposit.json: unknown status")
+# The manuscript may print the DOI only once the record is public.
+if dep["status"] != "published" and r"\RawEvidenceDOI" in (ROOT / "paper/tkde/main.tex").read_text() + (ROOT / "paper/tkde/supplement.tex").read_text():
+    raise SystemExit("the manuscript cites the raw-evidence DOI but the deposit is not published")
 lines += [
     rf"\newcommand{{\RawEvidenceFiles}}{{{dep['files']}}}",
     rf"\newcommand{{\RawEvidenceMB}}{{{dep['bytes'] / 1e6:.0f}}}",

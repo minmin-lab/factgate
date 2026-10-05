@@ -445,10 +445,10 @@ deposited separately.
   `evaluation/final-v5-wsl2/publication-evidence-v1.json` pins the sealed
   campaign's evidence digest, from which the chain runs through the deployment
   records to the sample files.
-- **DOI of the raw-evidence deposit:** `10.5281/zenodo.23149437` (Zenodo).
-  **Status: reserved; the record is a draft and the DOI does not resolve until
-  the author publishes it.** This line is the single place the paper points to
-  for it.
+- **DOI of the raw-evidence deposit:**
+  [10.5281/zenodo.23149437](https://doi.org/10.5281/zenodo.23149437) (Zenodo,
+  open access, CC BY 4.0, published 2026-10-05). The published archive's
+  SHA-256 equals the one recorded in `raw-evidence-deposit.json`.
 - **Recomputing:** clone the repository, extract the archive at its root, and
   run `python3 paper/tkde/generate_evidence.py --evidence-mode final` and
   `python3 paper/tkde/generate_p10_evidence.py`; both fail closed on a digest
