@@ -14,7 +14,7 @@ import hashlib, json, pathlib, subprocess, tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 ARMS, REPS = ("original", "corrected"), 3
-EXPENSE = {f"q{i:02d}" for i in list(range(1, 21)) + list(range(36, 41))}  # questions over the two expense Products, whose sheet lines changed
+EXPENSE = {f"q{i:02d}" for i in list(range(1, 21)) + list(range(36, 41))}  # questions over the two expense Products; a descriptive split only, since every prompt carries the whole sheet
 
 
 def unfence(text):

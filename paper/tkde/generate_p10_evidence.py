@@ -155,42 +155,63 @@ tc = json.loads((ROOT / "evaluation/timing-channel/results.json").read_text())
 for _run in tc["sources"]["campaigns"]:
     if _run not in LIVE_RUNS:
         raise SystemExit(f"timing-channel results.json was computed from {_run}, which is not a live registered pilot run; rerun evaluation/timing-channel/analyze.py")
-po, bd, rt = tc["post_execution"], tc["bound"], tc["rate"]
+if tc.get("version") != 2:
+    raise SystemExit("timing-channel results.json is not schema 2 (result rows, full footprint and novel part kept apart)")
+_oracle_sample = ROOT / tc["sources"]["oracle_trace_sample"]
+if _oracle_sample.is_file() and hashlib.sha256(_oracle_sample.read_bytes()).hexdigest() != tc["sources"]["oracle_trace_sample_sha256"]:
+    raise SystemExit("timing-channel results.json: the sealed sample its oracle sets came from has changed")
+po, rt = tc["post_execution"], tc["accepted_scan_rate"]
+fits = po["fits"]
+def slope(v, digits=3):
+    return f"{v:.{digits}f}"
 lines += [
     rf"\newcommand{{\TimingResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/timing-channel/results.json')}}}}}",
     rf"\newcommand{{\TimingRefusals}}{{{po['refusals']}}}",
+    rf"\newcommand{{\TimingDistinctStatements}}{{{po['distinct_statements']}}}",
+    rf"\newcommand{{\TimingStatementPoints}}{{{po['statement_points']}}}",
+    rf"\newcommand{{\TimingCounterChecked}}{{{tc['reconstruction']['counter_accepted_steps_reproduced']}}}",
+    rf"\newcommand{{\TimingAdversaryChecked}}{{{tc['reconstruction']['adversary_steps_reproduced']}}}",
     rf"\newcommand{{\TimingWithinStepGroups}}{{{po['within_step_groups']}}}",
-    rf"\newcommand{{\TimingRefusedMedianMS}}{{{po['median_ms']}}}",
-    rf"\newcommand{{\TimingRefusedPTenMS}}{{{po['p10_ms']}}}",
-    rf"\newcommand{{\TimingRefusedPNinetyMS}}{{{po['p90_ms']}}}",
-    rf"\newcommand{{\TimingRefusedMinMS}}{{{po['min_ms']}}}",
-    rf"\newcommand{{\TimingRefusedMaxMS}}{{{po['max_ms']}}}",
     rf"\newcommand{{\TimingPooledSDMS}}{{{po['pooled_sd_ms']}}}",
     rf"\newcommand{{\TimingWithinStepSDMS}}{{{po['within_step_sd_median_ms']}}}",
     rf"\newcommand{{\TimingWithinStepSDPNinetyMS}}{{{po['within_step_sd_p90_ms']}}}",
-    rf"\newcommand{{\TimingSlopeMSPerRow}}{{{po['ols_ms_per_row']:.3f}}}",
-    rf"\newcommand{{\TimingSlopeSEMSPerRow}}{{{po['ols_se_ms_per_row']:.3f}}}",
+    rf"\newcommand{{\TimingFullMin}}{{{fits['full_dependency']['min']}}}",
+    rf"\newcommand{{\TimingFullMax}}{{{fits['full_dependency']['max']}}}",
+    rf"\newcommand{{\TimingRowsMin}}{{{fits['result_rows']['min']}}}",
+    rf"\newcommand{{\TimingRowsMax}}{{{fits['result_rows']['max']}}}",
+    rf"\newcommand{{\TimingNovelMin}}{{{fits['novel_dependency']['min']}}}",
+    rf"\newcommand{{\TimingNovelMax}}{{{fits['novel_dependency']['max']}}}",
+    rf"\newcommand{{\TimingFullSpreadMS}}{{{fits['full_dependency']['group_median_spread_ms']}}}",
+    rf"\newcommand{{\TimingRowsSpreadMS}}{{{fits['result_rows']['group_median_spread_ms']}}}",
+    rf"\newcommand{{\TimingNovelSpreadMS}}{{{fits['novel_dependency']['group_median_spread_ms']}}}",
+    rf"\newcommand{{\TimingOneRowRefusals}}{{{po['one_result_row']['refusals']}}}",
+    rf"\newcommand{{\TimingOneRowFullMin}}{{{po['one_result_row']['full_dependency_min']}}}",
+    rf"\newcommand{{\TimingOneRowFullMax}}{{{po['one_result_row']['full_dependency_max']}}}",
+    rf"\newcommand{{\TimingFullPooledOverSE}}{{{abs(fits['full_dependency']['pooled_slope_over_se']):.1f}}}",
+    rf"\newcommand{{\TimingRowsPooledOverSE}}{{{abs(fits['result_rows']['pooled_slope_over_se']):.1f}}}",
+    rf"\newcommand{{\TimingStatementOverSEMax}}{{{max(abs(fits[v]['per_statement_slope_over_se']) for v in fits):.1f}}}",
     rf"\newcommand{{\TimingAcceptedFirstMS}}{{{po['accepted_position_one_median_ms']}}}",
     rf"\newcommand{{\TimingAcceptedLaterMS}}{{{po['accepted_later_median_ms']}}}",
     rf"\newcommand{{\TimingMicrosPerFact}}{{{rt['micros_per_fact']:.2f}}}",
     rf"\newcommand{{\TimingMicrosPerFactSE}}{{{rt['se_micros_per_fact']:.2f}}}",
-    rf"\newcommand{{\TimingResolutionFacts}}{{{bd['resolution_facts']:,}}}",
-    rf"\newcommand{{\TimingFactsPerRow}}{{{bd['facts_per_row']}}}",
-    rf"\newcommand{{\TimingRowGuard}}{{{bd['max_rows_guard']}}}",
-    rf"\newcommand{{\TimingCorpusFMax}}{{{bd['corpus']['F_max']}}}",
-    rf"\newcommand{{\TimingCorpusBits}}{{{bd['corpus']['bits']:.3f}}}",
-    rf"\newcommand{{\TimingRowGuardFMax}}{{{bd['row_guard']['F_max']:,}}}",
-    rf"\newcommand{{\TimingRowGuardBits}}{{{bd['row_guard']['bits']:.3f}}}",
-    rf"\newcommand{{\TimingLadderFMax}}{{{bd['ladder_scale']['F_max']:,}}}",
-    rf"\newcommand{{\TimingLadderBits}}{{{bd['ladder_scale']['bits']:.1f}}}",
-    rf"\newcommand{{\TimingRefusalSlopeBits}}{{{bd['row_guard_refusal_slope']['bits']:.1f}}}",
-    rf"\newcommand{{\TimingRefusalSlopeSpanMS}}{{{bd['row_guard_refusal_slope']['span_ms']:.0f}}}",
-    rf"\newcommand{{\TimingRefusalSlopeOverSE}}{{{bd['row_guard_refusal_slope']['slope_over_se']:.1f}}}",
-    rf"\newcommand{{\TimingMedianSpreadMS}}{{{max(g['median_ms'] for g in po['by_rows']) - min(g['median_ms'] for g in po['by_rows']):.1f}}}",
+    rf"\newcommand{{\TimingLadderFactsMin}}{{{rt['facts_min']:,}}}",
+    rf"\newcommand{{\TimingLadderFactsMax}}{{{rt['facts_max']:,}}}",
+    rf"\newcommand{{\TimingFactsPerNoiseSD}}{{{rt['facts_per_noise_sd']:,}}}",
     rf"\newcommand{{\TimingCampaigns}}{{{', '.join(chr(92)+'code{'+c+'}' for c in tc['sources']['campaigns'])}}}",
 ]
-body = " \\\\\n".join(f"{g['rows']} & {g['n']} & {g['median_ms']} & {g['p10_ms']} & {g['p90_ms']}" for g in po["by_rows"])
-lines.append(r"\newcommand{\TimingByRowsTableBody}{%" + "\n" + body + r" \\%" + "\n}")
+# the manuscript's qualitative reading depends on these two facts; fail if a rerun changes them
+if max(abs(fits[v]["per_statement_slope_over_se"]) for v in fits) >= 2:
+    raise SystemExit("timing channel: a per-statement slope is now two standard errors from zero; the supplement's reading must be revised")
+if fits["full_dependency"]["group_median_spread_ms"] >= po["pooled_sd_ms"]:
+    raise SystemExit("timing channel: group medians now differ by more than the pooled noise; the supplement's reading must be revised")
+body = " \\\\\n".join(f"{g['value']} & {g['n']} & {g['median_ms']} & {g['p10_ms']} & {g['p90_ms']}" for g in po["by_full_dependency"])
+lines.append(r"\newcommand{\TimingByFullTableBody}{%" + "\n" + body + r" \\%" + "\n}")
+names = {"result_rows": "Result rows", "full_dependency": r"Full footprint $|F_D(q)|$ (Facts)", "novel_dependency": r"Novel part $|F_D(q)\setminus K_D|$ (Facts)"}
+body = " \\\\\n".join(
+    f"{names[v]} & {fits[v]['min']}--{fits[v]['max']} & {fits[v]['group_median_spread_ms']} & "
+    f"{slope(fits[v]['pooled_ms_per_unit'])} ({slope(fits[v]['pooled_se'])}) & {slope(fits[v]['per_statement_ms_per_unit'])} ({slope(fits[v]['per_statement_se'])})"
+    for v in ("result_rows", "full_dependency", "novel_dependency"))
+lines.append(r"\newcommand{\TimingFitsTableBody}{%" + "\n" + body + r" \\%" + "\n}")
 pre = tc["pre_execution"]["by_row_span"]
 small = [v for k, v in pre.items() if int(k) < 100000]
 large = [v for k, v in pre.items() if int(k) >= 100000]
@@ -554,6 +575,9 @@ if (sh_dir / "summary.json").exists():
         rf"\newcommand{{\SheetHarnessRetries}}{{{sum(1 for line in glog if 'harness-failure' in line)}}}",
         rf"\newcommand{{\SheetOriginalAdmitted}}{{{lst(so['admitted'])}}}",
         rf"\newcommand{{\SheetCorrectedAdmitted}}{{{lst(sc['admitted'])}}}",
+        rf"\newcommand{{\SheetOriginalTotal}}{{{so['admitted_total']}}}",
+        rf"\newcommand{{\SheetCorrectedTotal}}{{{sc['admitted_total']}}}",
+        rf"\newcommand{{\SheetArmStatements}}{{{so['statements_total']}}}",
         rf"\newcommand{{\SheetOriginalRange}}{{{rng(so['admitted'])}}}",
         rf"\newcommand{{\SheetCorrectedRange}}{{{rng(sc['admitted'])}}}",
         rf"\newcommand{{\SheetOriginalMedian}}{{{so['admitted_median']:g}}}",

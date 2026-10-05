@@ -1,46 +1,62 @@
 #!/usr/bin/env python3
-"""P10.B7: practical bandwidth of the refusal timing channel, from retained data.
+"""P10.B7: latency of budget refusals against what was refused, from retained data.
 
-Reads only retained pilot raw records (no new measurement) and writes
-results.json next to this file. Two refusal sites are analysed separately:
+Reads only retained raw records (no new measurement) and writes results.json
+next to this file. Two refusal sites are analysed separately:
 
   post-execution site  query.go finalize (control.ErrExposureBudgetExhausted at
                        ordinal_exposure_v5.go): the visible and companion SQL ran,
                        facts were derived, novelty was computed, then the query
-                       was refused. Latency here can depend on the refused footprint.
+                       was refused. Latency here can depend on what was refused.
   pre-execution sites  physical_derivation.go / query.go reservation guards
                        (EXPOSURE_BUDGET_EXHAUSTED at DeriveLimits and
                        EXPOSURE_EVIDENCE_REQUIRED): nothing executed.
 
 Post-execution refusals come from pilot-counter-rigor-03 (arms counter-exact and
 counter-release, 3 deployments x 3 samples x 100-step trace) and pilot-adversary-05
-(owner and tightened tiers, 3 deployments each). The refused step's footprint in
-rows is taken from the corpus (the row count the same statement releases when
-accepted; refused steps charge nothing, so it is not in the refused record).
-Position-1 steps are excluded: the first query on a fresh root pays a cold-start
-cost that is visible on accepted steps too.
+(owner and tightened tiers, 3 deployments each). Position-1 steps are excluded:
+the first query on a fresh root pays a cold-start cost that is visible on
+accepted steps too.
+
+Three different quantities describe a refused statement, and schema 1 of this
+analysis confused them (it took the maximum NOVEL charge of accepted steps for
+the largest footprint, used result rows as the footprint, and converted rows to
+facts with one receipt lookup's ratio). Schema 2 records each separately:
+
+  result_rows      rows the statement returns when it is admitted
+  full_dependency  |F_D(q)|, the statement's complete Dependency set
+  novel_dependency |F_D(q) minus K_D|, what it would have added to the root's
+                   history at the moment it was refused
+
+For the 100-statement trace the Dependency sets are the independent oracle's
+per-statement sets carried by the sealed campaign's RLS sample; the root history
+is rebuilt from the steps each executed sample accepted. For the adversary
+statements the sets are rebuilt from the fixture rows by the oracle's rule
+(a threshold count depends on the department and amount cells of every matching
+row, a listing on the department, receipt and amount cells of every listed row).
+Both reconstructions are checked against the frozen corpora before use: every
+accepted step's novelty and row count in the exact and release counter arms, and
+every step's novelty in the adversary corpus, must be reproduced exactly.
+
+What this analysis does not do: it fixes no largest footprint a refused query
+can reach in a deployment and reports no bits-per-refusal figure. The row guard
+bounds result rows, not the Dependency footprint (an aggregate returns one row
+over many input rows), so schema 1's row-guard figures had no general basis and
+are withdrawn. The fits below are associations over 2 to 18 Facts on a ten-row
+fixture; they are not rates to extrapolate.
 
 Pre-execution refusals come from pilot-footprint-08 (bounded arm, one deployment).
-The per-fact execution rate comes from the same campaign's unlimited arm.
-
-Channel model (reported as an upper bound, not an estimate of what an adversary
-recovers): latency = a + r * F + noise, noise sd sigma measured from repeated
-refusals of the same statement across runs. For a footprint prior uniform on
-[0, F_max], the mutual information per refusal is at most
-    I = 1/2 * log2(1 + (r * F_max)^2 / (12 sigma^2))  bits
-(mutual information under that prior, not the channel capacity, which
-maximizes over input distributions and replaces 12 by 4 in the same model),
-and one refusal resolves F to about +-sigma/r facts. The rate r is the
-per-fact execution rate of the unlimited ladder; the same formula is also
-evaluated with the slope observed on the refusals themselves, extrapolated
-from their one-to-six-row range to the row guard, because the two rates
-differ by two orders of magnitude and the bits figure depends on the choice.
+The per-fact execution rate of ACCEPTED scans comes from the same campaign's
+unlimited arm, where every rung runs on a fresh root, so the charge equals the
+full footprint.
 """
 import glob, hashlib, json, math, pathlib, statistics as st
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 RAW = ROOT / "evaluation/final-v5-wsl2/raw"
 HERE = pathlib.Path(__file__).resolve().parent
+SEALED_RLS = RAW / "formal-v113-publication-05/deployments/rls-unlimited/001/raw/rls.jsonl"
+VARIABLES = ("result_rows", "full_dependency", "novel_dependency")
 
 
 def sha(p):
@@ -64,28 +80,64 @@ def ols(xs, ys):
     return a, b, se
 
 
-# ---------------------------------------------------------------- corpora
+# ------------------------------------------- oracle sets of the 100-step trace
+trace = None
+for line in SEALED_RLS.read_text().splitlines():
+    sample = json.loads(line)["sample"]
+    verification = sample["rls_verification"]
+    if sample["mode"] == "rls" and len(verification["steps"]) == 100:
+        trace = verification
+        break
+assert trace is not None, "sealed RLS sample has no 100-step trace"
+oracle = {}
+for step, sets in zip(trace["steps"], trace["oracle_trace"]):
+    oracle[step["step_id"]] = dict(rows=int(step["row_count"] or 0), D=frozenset(sets["dependency"] or []))
+
 counter = json.loads((ROOT / "evaluation/finalv5counter/corpus-v1.json").read_text())
-rows_of, dep_of = {}, {}
+checked = 0
 for tr in counter["traces"]:
+    if tr["arm"] not in ("exact", "release"):
+        continue  # the row arm truncates at its crossing, which the corpus documents and no refusal here comes from
+    history = set()
     for s in tr["steps"]:
+        o = oracle[s["step_id"]]
         if s["accepted"]:
-            rows_of.setdefault(s["step_id"], s["released_rows"])
-            dep_of.setdefault(s["step_id"], s["novel_dependency"])
+            assert len(o["D"] - history) == s["novel_dependency"] and o["rows"] == s["released_rows"], \
+                ("oracle sets do not reproduce the counter corpus", tr["arm"], tr["ordering"], s["step_id"])
+            history |= o["D"]
+            checked += 1
+counter_steps_checked = checked
+
+# ------------------------------------------------ adversary statements' sets
 rls = json.loads((ROOT / "evaluation/finalv5rls/corpus-v1.json").read_text())
 visible = [r for r in rls["rows"] if r["department"] == rls["policy_department"]]
 
 
-def adversary_rows(strategy, threshold):
-    # greedy steps list rows with amount >= threshold under the visible policy;
-    # bisection steps ask for the single maximum above the threshold.
-    if strategy == "greedy":
-        return sum(1 for r in visible if r["amount"] >= threshold)
-    return 1
+def adversary_statement(strategy, threshold):
+    """Result rows and Dependency set of one adversary statement (oracle rule)."""
+    matching = [r for r in visible if r["amount"] >= threshold]
+    if strategy == "greedy":  # a listing: department, receipt and amount cells of every listed row
+        cells = {(r["receipt_no"], c) for r in matching for c in ("department", "receipt_no", "amount")}
+        return len(matching), frozenset(cells)
+    # a threshold count: one scalar row; department and amount cells of every matching row
+    return 1, frozenset({(r["receipt_no"], c) for r in matching for c in ("department", "amount")})
 
+
+adversary = json.loads((ROOT / "evaluation/finalv5adversary/corpus-v1.json").read_text())
+checked = 0
+for tr in adversary["traces"]:
+    history = set()
+    for s in tr["steps"]:
+        rows, D = adversary_statement(tr["strategy"], s["threshold"])
+        assert len(D - history) == s["novel_dependency"], ("reconstructed sets do not reproduce the adversary corpus", s["step_id"])
+        if s["accepted"]:
+            assert rows == s["released_rows"], ("reconstructed rows do not reproduce the adversary corpus", s["step_id"])
+            history |= D
+        checked += 1
+adversary_steps_checked = checked
 
 # ------------------------------------------------- post-execution refusals
-post = []  # dict(campaign, arm, deployment, step_id, position, rows, ms)
+post = []
 by_step = {}
 for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-03/deployments/counter-*/*/raw/*.jsonl"))):
     arm = f.split("/")[-4]
@@ -93,40 +145,71 @@ for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-03/deployments/counter-
         continue  # rows/queries arms refuse with TASK_NOT_ACTIVE before the gateway path
     dep = f.split("/")[-3]
     for line in open(f):
-        s = json.loads(line)["sample"]
-        for step in s["counter_verification"]["steps"]:
-            if not step["rejected"] or step.get("observed_error_code") != "EXPOSURE_BUDGET_EXHAUSTED":
+        history = set()
+        for step in json.loads(line)["sample"]["counter_verification"]["steps"]:
+            o = oracle[step["step_id"]]
+            if step["accepted"]:
+                history |= o["D"]
                 continue
-            if step["position"] == 1:
+            if not step["rejected"] or step.get("observed_error_code") != "EXPOSURE_BUDGET_EXHAUSTED" or step["position"] == 1:
                 continue
-            rec = dict(campaign="pilot-counter-rigor-03", arm=arm, deployment=dep, step_id=step["step_id"],
-                       position=step["position"], rows=rows_of[step["step_id"]], ms=step["client_ms"])
-            post.append(rec)
+            post.append(dict(campaign="pilot-counter-rigor-03", arm=arm, deployment=dep, step_id=step["step_id"],
+                             result_rows=o["rows"], full_dependency=len(o["D"]), novel_dependency=len(o["D"] - history),
+                             ms=step["client_ms"]))
             by_step.setdefault((arm, step["step_id"]), []).append(step["client_ms"])
 for f in sorted(glob.glob(str(RAW / "pilot-adversary-05/deployments/*/*/raw/adversary.jsonl"))):
     arm, dep = f.split("/")[-4], f.split("/")[-3]
     for line in open(f):
         v = json.loads(line)["sample"]["adversary_verification"]
+        history = set()
         for step in v["steps"]:
+            rows, D = adversary_statement(v["strategy"], step["threshold"])
+            if step["accepted"]:
+                history |= D
+                continue
             if not step["rejected"] or step["position"] == 1:
                 continue
-            rec = dict(campaign="pilot-adversary-05", arm=arm, deployment=dep, step_id=step["step_id"],
-                       position=step["position"], rows=adversary_rows(v["strategy"], step["threshold"]),
-                       ms=step["client_ms"])
-            post.append(rec)
+            post.append(dict(campaign="pilot-adversary-05", arm=arm, deployment=dep, step_id=step["step_id"],
+                             result_rows=rows, full_dependency=len(D), novel_dependency=len(D - history), ms=step["client_ms"]))
             by_step.setdefault((arm, step["step_id"]), []).append(step["client_ms"])
 
-groups = {}
-for r in post:
-    groups.setdefault(r["rows"], []).append(r["ms"])
-group_rows = []
-for rows in sorted(groups):
-    v = groups[rows]
-    group_rows.append(dict(rows=rows, n=len(v), median_ms=round(st.median(v), 1),
-                           p10_ms=round(quant(v, 0.10), 1), p90_ms=round(quant(v, 0.90), 1)))
+
+def grouped(variable):
+    groups = {}
+    for r in post:
+        groups.setdefault(r[variable], []).append(r["ms"])
+    return [dict(value=k, n=len(v), median_ms=round(st.median(v), 1), p10_ms=round(quant(v, 0.10), 1),
+                 p90_ms=round(quant(v, 0.90), 1)) for k, v in sorted(groups.items())]
+
+
 all_ms = [r["ms"] for r in post]
 within = [st.pstdev(v) for v in by_step.values() if len(v) >= 6]
-a_rows, b_rows, se_rows = ols([r["rows"] for r in post], all_ms)
+sigma = st.pstdev(all_ms)
+sigma_within = st.median(within)
+# One point per distinct refused statement (its median latency), so that the
+# several hundred repetitions of a few dozen statements are not counted as
+# independent observations of the variable.
+per_statement = {}
+for r in post:
+    key = (r["campaign"], r["arm"], r["step_id"], r["novel_dependency"])
+    per_statement.setdefault(key, dict(result_rows=r["result_rows"], full_dependency=r["full_dependency"],
+                                       novel_dependency=r["novel_dependency"], ms=[]))["ms"].append(r["ms"])
+points = [dict(result_rows=v["result_rows"], full_dependency=v["full_dependency"], novel_dependency=v["novel_dependency"],
+               ms=st.median(v["ms"])) for v in per_statement.values()]
+fits = {}
+for variable in VARIABLES:
+    _, slope, se = ols([r[variable] for r in post], all_ms)
+    _, slope_p, se_p = ols([p[variable] for p in points], [p["ms"] for p in points])
+    values = [r[variable] for r in post]
+    medians = [g["median_ms"] for g in grouped(variable)]
+    fits[variable] = dict(
+        min=min(values), max=max(values), distinct_values=len(set(values)),
+        group_median_spread_ms=round(max(medians) - min(medians), 1),
+        pooled_ms_per_unit=round(slope, 4), pooled_se=round(se, 4), pooled_slope_over_se=round(slope / se, 1),
+        per_statement_ms_per_unit=round(slope_p, 4), per_statement_se=round(se_p, 4),
+        per_statement_slope_over_se=round(slope_p / se_p, 1),
+        span_ms_over_observed_range=round(abs(slope) * (max(values) - min(values)), 2))
+
 # accepted steps of the same traces, for the cold-start note and the contrast
 acc_pos1, acc_rest = [], []
 for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-03/deployments/counter-exact/*/raw/*.jsonl"))):
@@ -140,9 +223,12 @@ ladder = {}
 for arm in ("footprint-bounded", "footprint-unlimited"):
     f = RAW / f"pilot-footprint-08/deployments/{arm}/001/raw/footprint.jsonl"
     ladder[arm] = json.loads(f.read_text().splitlines()[0])["sample"]["footprint_verification"]["rungs"]
-unl = [(r["charged_dependency_facts"], r["client_ms"]) for r in ladder["footprint-unlimited"] if r["accepted"]]
+accepted_rungs = [r for r in ladder["footprint-unlimited"] if r["accepted"]]
+# every rung of the unlimited arm is charged its whole expected footprint, so
+# the charge is the full footprint and the fit below is latency on |F_D(q)|
+assert all(r["charged_dependency_facts"] == r["expected_dependency_facts"] for r in accepted_rungs)
+unl = [(r["charged_dependency_facts"], r["client_ms"]) for r in accepted_rungs]
 _, r_ms_per_fact, r_se = ols([x for x, _ in unl], [y for _, y in unl])
-micros_per_fact = r_ms_per_fact * 1000.0
 pre = [dict(rung=r["id"], rows=r["rows"], columns=len(r["columns"]), expected_dependency=r["expected_dependency_facts"],
             code=r.get("observed_error_code"), ms=round(r["client_ms"], 1))
        for r in ladder["footprint-bounded"] if r["rejected"]]
@@ -150,42 +236,34 @@ pre_by_span = {}
 for p in pre:
     pre_by_span.setdefault(p["rows"], []).append(p["ms"])
 
-# ------------------------------------------------------------ channel bound
-sigma = st.pstdev(all_ms)
-sigma_within = st.median(within)
-
-
-def bits(F, s):
-    return 0.5 * math.log2(1.0 + (r_ms_per_fact * F) ** 2 / (12.0 * s * s))
-
-
-facts_per_row = dep_of["receipt-TR-2026-0001"]  # dependency facts one released row of this Product charges
-max_rows_guard = 500  # config/profiles/*.catalog.yaml max_rows of the pilot budget profiles
-F_corpus = max(dep_of.values())
-F_guard = max_rows_guard * facts_per_row
-F_ladder = max(x for x, _ in unl)
-# The same formula with the slope fitted on the refusals (ms per row),
-# extrapolated linearly from the observed rows to the row guard.
-refusal_slope_span_ms = b_rows * max_rows_guard
-refusal_slope_bits = 0.5 * math.log2(1.0 + refusal_slope_span_ms ** 2 / (12.0 * sigma * sigma))
-resolution_facts = sigma / r_ms_per_fact
 out = dict(
-    version=1,
+    version=2,
     sources=dict(
         counter_corpus_sha256=sha(ROOT / "evaluation/finalv5counter/corpus-v1.json"),
         rls_corpus_sha256=sha(ROOT / "evaluation/finalv5rls/corpus-v1.json"),
+        adversary_corpus_sha256=sha(ROOT / "evaluation/finalv5adversary/corpus-v1.json"),
+        oracle_trace_sample=str(SEALED_RLS.relative_to(ROOT)), oracle_trace_sample_sha256=sha(SEALED_RLS),
         campaigns=["pilot-counter-rigor-03", "pilot-adversary-05", "pilot-footprint-08"],
     ),
+    reconstruction=dict(
+        counter_accepted_steps_reproduced=counter_steps_checked, adversary_steps_reproduced=adversary_steps_checked,
+        note="oracle Dependency sets reproduce every accepted step's novelty and row count in the exact and release counter arms, and every step's novelty in the adversary corpus"),
     post_execution=dict(
         site="internal/gateway/query.go finalize -> control.ErrExposureBudgetExhausted (ordinal_exposure_v5.go novelty check)",
-        refusals=len(post), excluded_position_one=True,
+        refusals=len(post), excluded_position_one=True, distinct_statements=len({(r["campaign"], r["step_id"]) for r in post}),
+        statement_points=len(points),
         arms=sorted({(r["campaign"], r["arm"]) for r in post}),
         median_ms=round(st.median(all_ms), 1), p10_ms=round(quant(all_ms, .1), 1), p90_ms=round(quant(all_ms, .9), 1),
         min_ms=round(min(all_ms), 1), max_ms=round(max(all_ms), 1), pooled_sd_ms=round(sigma, 2),
         within_step_sd_median_ms=round(sigma_within, 2), within_step_sd_p90_ms=round(quant(within, .9), 2),
         within_step_groups=len(within),
-        by_rows=group_rows,
-        ols_ms_per_row=round(b_rows, 3), ols_se_ms_per_row=round(se_rows, 3),
+        one_result_row=dict(
+            refusals=sum(1 for r in post if r["result_rows"] == 1),
+            full_dependency_min=min(r["full_dependency"] for r in post if r["result_rows"] == 1),
+            full_dependency_max=max(r["full_dependency"] for r in post if r["result_rows"] == 1)),
+        by_result_rows=grouped("result_rows"), by_full_dependency=grouped("full_dependency"),
+        by_novel_dependency=grouped("novel_dependency"),
+        fits=fits,
         accepted_position_one_median_ms=round(st.median(acc_pos1), 1),
         accepted_later_median_ms=round(st.median(acc_rest), 1),
     ),
@@ -194,25 +272,23 @@ out = dict(
         refusals=pre,
         by_row_span={str(k): dict(n=len(v), min_ms=min(v), max_ms=max(v)) for k, v in sorted(pre_by_span.items())},
     ),
-    rate=dict(source="pilot-footprint-08 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
-              micros_per_fact=round(micros_per_fact, 3), se_micros_per_fact=round(r_se * 1000, 3),
-              points=[dict(facts=x, ms=round(y, 1)) for x, y in unl]),
-    bound=dict(
-        model="latency = a + r*F + N(0, sigma^2); I <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max] (mutual information under that prior, not channel capacity)",
-        sigma_ms=round(sigma, 2), resolution_facts=round(resolution_facts),
-        facts_per_row=facts_per_row, max_rows_guard=max_rows_guard,
-        corpus=dict(F_max=F_corpus, bits=round(bits(F_corpus, sigma), 3)),
-        row_guard=dict(F_max=F_guard, bits=round(bits(F_guard, sigma), 3)),
-        row_guard_refusal_slope=dict(
-            rows=max_rows_guard, observed_rows=[min(groups), max(groups)],
-            slope_over_se=round(b_rows / se_rows, 1), span_ms=round(refusal_slope_span_ms, 1),
-            bits=round(refusal_slope_bits, 1),
-            note="OLS slope of the refusals (ms per row, samples treated as independent, statement shape not separated from footprint) extrapolated to the row guard; an extrapolation, not a measurement"),
-        ladder_scale=dict(F_max=F_ladder, bits=round(bits(F_ladder, sigma), 2),
-                          note="never reaches the post-execution site under the bounded profile: refused pre-execution"),
-    ),
+    accepted_scan_rate=dict(
+        source="pilot-footprint-08 unlimited arm, OLS of client_ms on the full Dependency footprint of the 12 accepted rungs (fresh root per rung, so charge equals footprint)",
+        micros_per_fact=round(r_ms_per_fact * 1000.0, 3), se_micros_per_fact=round(r_se * 1000, 3),
+        facts_min=min(x for x, _ in unl), facts_max=max(x for x, _ in unl),
+        facts_per_noise_sd=round(sigma / r_ms_per_fact),
+        points=[dict(facts=x, ms=round(y, 1)) for x, y in unl]),
+    not_established=dict(
+        largest_refused_footprint="no bound on the Dependency footprint a refused query can reach is derived here; the row guard bounds result rows, not the footprint",
+        bits_per_refusal="not reported; schema 1's row-guard figures rested on a facts-per-row ratio that holds for one statement shape only and are withdrawn"),
 )
 (HERE / "results.json").write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
-print(json.dumps({k: out[k] for k in ("rate", "bound")}, indent=1))
-print("post-execution refusals", len(post), "median", out["post_execution"]["median_ms"], "sd", out["post_execution"]["pooled_sd_ms"],
-      "by rows", [(g["rows"], g["n"], g["median_ms"]) for g in group_rows], "slope ms/row", out["post_execution"]["ols_ms_per_row"], "+-", out["post_execution"]["ols_se_ms_per_row"])
+print("post-execution refusals", len(post), "distinct statements", out["post_execution"]["distinct_statements"],
+      "median", out["post_execution"]["median_ms"], "sd", out["post_execution"]["pooled_sd_ms"])
+for variable in VARIABLES:
+    f = fits[variable]
+    print(f"  {variable:17s} range {f['min']}-{f['max']} median spread {f['group_median_spread_ms']} ms | pooled {f['pooled_ms_per_unit']} +- {f['pooled_se']} "
+          f"({f['pooled_slope_over_se']} SE) | per statement {f['per_statement_ms_per_unit']} +- {f['per_statement_se']} ({f['per_statement_slope_over_se']} SE)")
+print("  one-result-row refusals", out["post_execution"]["one_result_row"])
+print("  by full dependency", [(g["value"], g["n"], g["median_ms"]) for g in out["post_execution"]["by_full_dependency"]])
+print("accepted-scan rate", out["accepted_scan_rate"]["micros_per_fact"], "+-", out["accepted_scan_rate"]["se_micros_per_fact"], "us/Fact")

@@ -1,18 +1,28 @@
 {
- "version": 1,
+ "version": 2,
  "sources": {
   "counter_corpus_sha256": "c9b2300307337b2de0bffdcdb6e2c1ebeb9fdeddac10b0ab8c2a67a878f4f22b",
   "rls_corpus_sha256": "39e86d75f10be47847e7db155f28c564c43f4d50d765a99605028b3fc6535b3b",
+  "adversary_corpus_sha256": "d59b8bb42b028b0c24b161b6964fc4c10d8a74fc0baf0fee8fd3cd3753f94aca",
+  "oracle_trace_sample": "evaluation/final-v5-wsl2/raw/formal-v113-publication-05/deployments/rls-unlimited/001/raw/rls.jsonl",
+  "oracle_trace_sample_sha256": "66686d97e6c79facf22549fde672c712991ebadcb242e8b14fa46f127f10699e",
   "campaigns": [
    "pilot-counter-rigor-03",
    "pilot-adversary-05",
    "pilot-footprint-08"
   ]
  },
+ "reconstruction": {
+  "counter_accepted_steps_reproduced": 348,
+  "adversary_steps_reproduced": 32,
+  "note": "oracle Dependency sets reproduce every accepted step's novelty and row count in the exact and release counter arms, and every step's novelty in the adversary corpus"
+ },
  "post_execution": {
   "site": "internal/gateway/query.go finalize -> control.ErrExposureBudgetExhausted (ordinal_exposure_v5.go novelty check)",
   "refusals": 762,
   "excluded_position_one": true,
+  "distinct_statements": 80,
+  "statement_points": 170,
   "arms": [
    [
     "pilot-adversary-05",
@@ -40,45 +50,233 @@
   "within_step_sd_median_ms": 1.62,
   "within_step_sd_p90_ms": 3.81,
   "within_step_groups": 88,
-  "by_rows": [
+  "one_result_row": {
+   "refusals": 492,
+   "full_dependency_min": 2,
+   "full_dependency_max": 12
+  },
+  "by_result_rows": [
    {
-    "rows": 1,
+    "value": 1,
     "n": 492,
     "median_ms": 29.5,
     "p10_ms": 27.4,
     "p90_ms": 32.2
    },
    {
-    "rows": 2,
-    "n": 39,
+    "value": 2,
+    "n": 30,
     "median_ms": 30.1,
-    "p10_ms": 28.6,
-    "p90_ms": 33.0
+    "p10_ms": 29.1,
+    "p90_ms": 33.6
    },
    {
-    "rows": 4,
+    "value": 4,
     "n": 60,
     "median_ms": 29.7,
     "p10_ms": 28.3,
     "p90_ms": 33.7
    },
    {
-    "rows": 5,
-    "n": 81,
-    "median_ms": 29.6,
-    "p10_ms": 27.7,
+    "value": 5,
+    "n": 90,
+    "median_ms": 29.5,
+    "p10_ms": 27.8,
     "p90_ms": 33.2
    },
    {
-    "rows": 6,
+    "value": 6,
     "n": 90,
     "median_ms": 30.2,
     "p10_ms": 28.1,
     "p90_ms": 34.5
    }
   ],
-  "ols_ms_per_row": 0.16,
-  "ols_se_ms_per_row": 0.046,
+  "by_full_dependency": [
+   {
+    "value": 2,
+    "n": 12,
+    "median_ms": 30.4,
+    "p10_ms": 28.2,
+    "p90_ms": 32.6
+   },
+   {
+    "value": 4,
+    "n": 30,
+    "median_ms": 30.1,
+    "p10_ms": 29.1,
+    "p90_ms": 33.6
+   },
+   {
+    "value": 6,
+    "n": 150,
+    "median_ms": 29.1,
+    "p10_ms": 26.8,
+    "p90_ms": 31.5
+   },
+   {
+    "value": 8,
+    "n": 30,
+    "median_ms": 29.8,
+    "p10_ms": 28.0,
+    "p90_ms": 32.0
+   },
+   {
+    "value": 10,
+    "n": 180,
+    "median_ms": 29.6,
+    "p10_ms": 27.7,
+    "p90_ms": 32.5
+   },
+   {
+    "value": 12,
+    "n": 180,
+    "median_ms": 29.7,
+    "p10_ms": 28.1,
+    "p90_ms": 32.7
+   },
+   {
+    "value": 15,
+    "n": 90,
+    "median_ms": 29.5,
+    "p10_ms": 27.8,
+    "p90_ms": 33.2
+   },
+   {
+    "value": 18,
+    "n": 90,
+    "median_ms": 30.2,
+    "p10_ms": 28.1,
+    "p90_ms": 34.5
+   }
+  ],
+  "by_novel_dependency": [
+   {
+    "value": 0,
+    "n": 213,
+    "median_ms": 28.7,
+    "p10_ms": 26.9,
+    "p90_ms": 30.9
+   },
+   {
+    "value": 1,
+    "n": 3,
+    "median_ms": 29.1,
+    "p10_ms": 27.5,
+    "p90_ms": 32.5
+   },
+   {
+    "value": 2,
+    "n": 42,
+    "median_ms": 30.0,
+    "p10_ms": 28.1,
+    "p90_ms": 32.5
+   },
+   {
+    "value": 3,
+    "n": 63,
+    "median_ms": 30.1,
+    "p10_ms": 28.6,
+    "p90_ms": 32.1
+   },
+   {
+    "value": 4,
+    "n": 120,
+    "median_ms": 30.1,
+    "p10_ms": 28.6,
+    "p90_ms": 33.4
+   },
+   {
+    "value": 5,
+    "n": 123,
+    "median_ms": 30.5,
+    "p10_ms": 28.3,
+    "p90_ms": 33.2
+   },
+   {
+    "value": 6,
+    "n": 96,
+    "median_ms": 30.9,
+    "p10_ms": 28.5,
+    "p90_ms": 34.6
+   },
+   {
+    "value": 7,
+    "n": 9,
+    "median_ms": 30.0,
+    "p10_ms": 28.6,
+    "p90_ms": 33.8
+   },
+   {
+    "value": 8,
+    "n": 30,
+    "median_ms": 29.4,
+    "p10_ms": 28.1,
+    "p90_ms": 31.6
+   },
+   {
+    "value": 10,
+    "n": 6,
+    "median_ms": 29.9,
+    "p10_ms": 28.3,
+    "p90_ms": 31.1
+   },
+   {
+    "value": 15,
+    "n": 30,
+    "median_ms": 28.7,
+    "p10_ms": 27.2,
+    "p90_ms": 32.1
+   },
+   {
+    "value": 18,
+    "n": 27,
+    "median_ms": 28.6,
+    "p10_ms": 27.3,
+    "p90_ms": 30.9
+   }
+  ],
+  "fits": {
+   "result_rows": {
+    "min": 1,
+    "max": 6,
+    "distinct_values": 5,
+    "group_median_spread_ms": 0.7,
+    "pooled_ms_per_unit": 0.1493,
+    "pooled_se": 0.046,
+    "pooled_slope_over_se": 3.2,
+    "per_statement_ms_per_unit": 0.0201,
+    "per_statement_se": 0.0501,
+    "per_statement_slope_over_se": 0.4,
+    "span_ms_over_observed_range": 0.75
+   },
+   "full_dependency": {
+    "min": 2,
+    "max": 18,
+    "distinct_values": 8,
+    "group_median_spread_ms": 1.3,
+    "pooled_ms_per_unit": 0.072,
+    "pooled_se": 0.022,
+    "pooled_slope_over_se": 3.3,
+    "per_statement_ms_per_unit": 0.0096,
+    "per_statement_se": 0.0242,
+    "per_statement_slope_over_se": 0.4,
+    "span_ms_over_observed_range": 1.15
+   },
+   "novel_dependency": {
+    "min": 0,
+    "max": 18,
+    "distinct_values": 12,
+    "group_median_spread_ms": 2.3,
+    "pooled_ms_per_unit": 0.028,
+    "pooled_se": 0.0212,
+    "pooled_slope_over_se": 1.3,
+    "per_statement_ms_per_unit": -0.0227,
+    "per_statement_se": 0.0209,
+    "per_statement_slope_over_se": -1.1,
+    "span_ms_over_observed_range": 0.5
+   }
+  },
   "accepted_position_one_median_ms": 114.5,
   "accepted_later_median_ms": 43.5
  },
@@ -197,10 +395,13 @@
    }
   }
  },
- "rate": {
-  "source": "pilot-footprint-08 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
+ "accepted_scan_rate": {
+  "source": "pilot-footprint-08 unlimited arm, OLS of client_ms on the full Dependency footprint of the 12 accepted rungs (fresh root per rung, so charge equals footprint)",
   "micros_per_fact": 0.595,
   "se_micros_per_fact": 0.047,
+  "facts_min": 400,
+  "facts_max": 700000,
+  "facts_per_noise_sd": 4183,
   "points": [
    {
     "facts": 400,
@@ -252,35 +453,8 @@
    }
   ]
  },
- "bound": {
-  "model": "latency = a + r*F + N(0, sigma^2); I <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max] (mutual information under that prior, not channel capacity)",
-  "sigma_ms": 2.49,
-  "resolution_facts": 4183,
-  "facts_per_row": 2,
-  "max_rows_guard": 500,
-  "corpus": {
-   "F_max": 6,
-   "bits": 0.0
-  },
-  "row_guard": {
-   "F_max": 1000,
-   "bits": 0.003
-  },
-  "row_guard_refusal_slope": {
-   "rows": 500,
-   "observed_rows": [
-    1,
-    6
-   ],
-   "slope_over_se": 3.4,
-   "span_ms": 79.8,
-   "bits": 3.2,
-   "note": "OLS slope of the refusals (ms per row, samples treated as independent, statement shape not separated from footprint) extrapolated to the row guard; an extrapolation, not a measurement"
-  },
-  "ladder_scale": {
-   "F_max": 700000,
-   "bits": 5.59,
-   "note": "never reaches the post-execution site under the bounded profile: refused pre-execution"
-  }
+ "not_established": {
+  "largest_refused_footprint": "no bound on the Dependency footprint a refused query can reach is derived here; the row guard bounds result rows, not the footprint",
+  "bits_per_refusal": "not reported; schema 1's row-guard figures rested on a facts-per-row ratio that holds for one statement shape only and are withdrawn"
  }
 }

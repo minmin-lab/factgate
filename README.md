@@ -278,8 +278,11 @@ questions). Ungrouped multi-product queries, partial/duplicate/unprojected
 group keys, aggregate/expression ordering, all pagination on ungrouped or Union
 result encodings, and other projection casts are also rejected fail-closed; the
 enforcement layer never silently rewrites `LEFT JOIN` to `INNER JOIN`.
-Resource-only grants accept the same profile: they differ from
-exposure-enabled grants in accounting, not in the SQL acceptance surface. They
+Resource-only grants go through the same governed SQL entry, but they do not
+accept everything the exposure-enabled path accepts: the online multi-product
+plan requires an exposure profile, so a join that the V5 path executes is
+refused with `SQL_NOT_LOWERABLE` under a resource-only grant (the S2/SF10
+statement of the cost ablation is a measured instance). They
 formerly executed the agent's raw text; that path has been removed, because
 every COMPLETED query must sign the preparation of the statement it executed,
 and a statement that cannot be lowered has no canonical plan for independent

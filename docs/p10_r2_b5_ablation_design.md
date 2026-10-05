@@ -254,3 +254,14 @@ not measured in a comparable form, so no storage ratio is claimed. Traces that
 mix refusals at a budget boundary and concurrent writers on one root are not
 covered by this replay.
 
+### Erratum to the section above (2026-10-05, after the fourth simulated review)
+
+The sentence "Both asymmetries favour the naive side" is wrong for one of the
+two. The difference in timed scope does leave the naive side with less timed
+work. The difference in when and where the two sides ran (another day,
+standalone rather than inside a deployment) has no established direction:
+cache state, checkpoints and host load can move the ratio either way. The
+ratios are descriptive ratios of two unpaired sets of measurements, not a
+lower bound on the representation's gain. The design text above is left as it
+was frozen; the supplement states the corrected reading.
+

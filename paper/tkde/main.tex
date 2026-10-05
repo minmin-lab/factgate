@@ -370,14 +370,12 @@ the per-dimension charge and the ledger's used and limit counters
 successful novel queries reveals $|\Delta_X|$, up to $3\lceil\log_2
 B_X\rceil$ bits of query-set-overlap information across the three
 dimensions; a third, timing channel exists because execution precedes
-settlement, so a refused query's latency grows with the footprint it did
-not release (\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Dependency Fact in the sub-phase pilot; on retained refusals of
-one-to-six-row footprints latency moves \TimingSlopeMSPerRow{}~ms per row
-against \TimingPooledSDMS{}~ms noise, and a linear-Gaussian model gives
-\TimingRowGuardBits{} to \TimingRefusalSlopeBits{} bits per refusal at the
-row guard depending on the rate extrapolated, a conditional estimate, not a
-worst-case bound; supplement), and
+settlement, so a refused query's latency can depend on the footprint it did
+not release (execution costs \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
+per Dependency Fact in the sub-phase pilot; retained refusals with full
+footprints of \TimingFullMin{}--\TimingFullMax{} Facts neither establish nor
+exclude it against \TimingPooledSDMS{}~ms noise, so the channel is
+unquantified and outside the guarantee; supplement), and
 Proposition~\ref{prop:probing-bound} bounds the response payload only;
 returning only the
 remaining budget would be a planning convenience, not a smaller channel
@@ -960,8 +958,8 @@ ledger; at most $B_O$ such counts exist per root family.
 That a refusal itself answers a query is the classical auditing observation
 \cite{denning1980tracker,kenthapadi2005simulatable,nabar2006robustness}.
 The bound is on the response payload: execution and derivation precede
-settlement (Section~\ref{sec:online}), so a refused query's latency is
-proportional to the footprint that was not released, a timing channel the
+settlement (Section~\ref{sec:online}), so a refused query's latency may be
+a function of the footprint that was not released, a timing channel the
 model omits (Section~\ref{sec:limits}). The bound counts comparisons, not
 what a comparison reveals about unreleased facts, and it grows with the
 approved task tree because request
@@ -1252,8 +1250,8 @@ twin (authorization, publication, receipts, no fact accounting) costs
 \BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
 1.7-million-Fact S6 total; fact derivation is the largest accounted share
 (\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6) and the history-set
-leaves \BFiveSSixLedger{}~ms. On the sealed Scale sets a naive one-row-per-fact
-exact ledger (retained pilot, supplement) takes
+leaves \BFiveSSixLedger{}~ms. On the sealed Scale Dependency sets a naive one-row-per-fact
+exact ledger (unpaired pilot, supplement) takes
 \NaiveScaleTenKFullRatio{}--\NaiveScaleTenKZeroRatio{}$\times$ \system's settlement time at $10^4$
 facts and \NaiveScaleMillionFullRatio{}--\NaiveScaleMillionZeroRatio{}$\times$ at $10^6$.
 
@@ -1357,8 +1355,8 @@ so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
 bit while the direct arm answered all three (supplement); the corpus is
 preregistered and the adversary study above probes the strategy space.
-A simulated recipe sweep (supplement) first completes the benign trace and
-first recovers the secret at the same multiplier, $\SweepRecoverAt{}\times$.
+A simulated eight-point recipe sweep (supplement) first admits all
+\SweepBenignAuthorized{} authorized statements and first recovers the secret at one grid point, $\SweepRecoverAt{}\times$.
 
 \textbf{Adaptive trace against per-query control.} The RLS profile replays
 one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace

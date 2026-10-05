@@ -2074,23 +2074,27 @@ end-to-end latency stays within
 \FinalVFiveFootprintRefusedMSMin{}--\FinalVFiveFootprintRefusedMSMax{}~ms
 across the whole ladder, while accepted unlimited rungs grow to
 \FinalVFiveFootprintAcceptedMSMax{}~ms: at both sites the refusal precedes
-footprint derivation, so refusal latency does not scale with the refused
-footprint at these sites.
+footprint derivation. Refusal latency at these sites is not constant; it
+differs between row spans (Section~\ref{sec:timing-supp}, pre-execution
+paragraph).
 
-\subsection{Bandwidth of the Refusal Timing Channel}
+\subsection{Latency of Budget Refusals and the Timing Channel}
 \label{sec:timing-supp}
 
 The main text's threat model names a timing channel: execution and
 derivation precede settlement, so a query refused at settlement has already
-paid for the footprint it did not release. This section measures that channel
-on the retained refusals rather than modelling it. No new run was made; the
-analysis script (\filepath{evaluation/timing-channel/analyze.py}, results
-digest \TimingResultsDigest{}) reads the retained pilot records
-(\TimingCampaigns{}) and the frozen corpora, and every number below is
-reproducible from them. An earlier revision of this section read the
-predecessors of these runs, whose raw files were since lost; its numbers are
-replaced by the ones recomputed here, and two of its statements changed with
-them, as marked below.
+paid for work on facts it did not release. This section reports what the
+retained refusals show about that channel and what they do not. No new run
+was made; the analysis script
+(\filepath{evaluation/timing-channel/analyze.py}, results digest
+\TimingResultsDigest{}) reads the retained pilot records
+(\TimingCampaigns{}), the frozen corpora and the oracle's per-statement
+Dependency sets carried by the sealed campaign's adaptive-trace sample, and
+every number below is reproducible from them. Two earlier revisions of this
+section are superseded. The first read runs whose raw files were since lost.
+Both used one word, footprint, for three different quantities (below), and
+the bits-per-refusal figures both reported rested on that confusion; they
+are withdrawn.
 
 \paragraph{Two sites.}
 The Gateway refuses on budget at two places. The pre-execution guards
@@ -2103,106 +2107,129 @@ ledger was computed, and only then was the query refused. Only the second
 site can leak the unreleased footprint through latency, and it is the site
 every adaptive-trace refusal in the paper hits.
 
+\paragraph{Three quantities.}
+A refused statement $q$ is described by three numbers that must be kept
+apart: its \emph{result rows}, what it returns when admitted; its
+\emph{full Dependency footprint} $|F_D(q)|$; and its \emph{novel part}
+$|F_D(q)\setminus K_D|$, what it would have added to the root's history
+$K_D$ at the moment it was refused. They differ on this very corpus. A
+threshold \code{count(*)} returns one row whatever it reads; the listing of
+the department's six receipts has a full footprint of 18 Facts, three cells
+per row, where a receipt lookup has 2; and a statement repeated after its
+facts were settled has a novel part of zero. The earlier analysis took the
+largest novel charge of an accepted step for the corpus's largest footprint,
+used result rows as the footprint, and converted rows to Facts with the ratio
+of one receipt lookup; none of the three holds across statement shapes. Here
+every refusal carries all three. The Dependency sets of the 100-statement
+trace are the oracle's, the root history is rebuilt from the steps each
+executed sample accepted, and the adversary statements' sets are rebuilt from
+the fixture rows by the oracle's rule. Both reconstructions reproduce the
+frozen corpora exactly before they are used: the novelty and row count of
+\TimingCounterChecked{} accepted steps in the exact and release counter arms,
+and the novelty of all \TimingAdversaryChecked{} adversary steps.
+
 \paragraph{Post-execution refusals.}
-The retained runs contain \TimingRefusals{} post-execution refusals with a
-known footprint: the counter-comparator traces (\code{pilot-counter-rigor-03},
-exact and release arms, three deployments, three samples each) and the
-adversary tiers (\code{pilot-adversary-05}, owner and tightened). The refused
-statement's footprint in rows is the row count the same statement releases
-when accepted elsewhere in the corpus. Position-one steps are excluded: the
-first query on a fresh root costs \TimingAcceptedFirstMS{}~ms accepted against
-\TimingAcceptedLaterMS{}~ms later, a cold-start effect unrelated to footprint.
-Table~\ref{tab:timing-supp} groups the refusals by footprint.
+The retained runs contain \TimingRefusals{} post-execution refusals of
+\TimingDistinctStatements{} distinct statements: the counter-comparator traces
+(\code{pilot-counter-rigor-03}, exact and release arms, three deployments,
+three samples each) and the adversary tiers (\code{pilot-adversary-05}, owner
+and tightened). Position-one steps are excluded: the first query on a fresh
+root costs \TimingAcceptedFirstMS{}~ms accepted against
+\TimingAcceptedLaterMS{}~ms later, a cold-start effect. The refused
+statements' full footprints span \TimingFullMin{}--\TimingFullMax{} Facts,
+their result rows \TimingRowsMin{}--\TimingRowsMax{}, and their novel parts
+\TimingNovelMin{}--\TimingNovelMax{} Facts. The \TimingOneRowRefusals{}
+refusals that return a single row have full footprints from
+\TimingOneRowFullMin{} to \TimingOneRowFullMax{} Facts, which is why result
+rows cannot stand in for the footprint. Table~\ref{tab:timing-supp} groups the
+refusals by full footprint, and Table~\ref{tab:timing-fits-supp} gives the
+least-squares slope of latency on each quantity.
 
 \begin{table}[t]
 \centering
-\caption{Post-execution refusal latency by the footprint that was not
-released (\TimingRefusals{} refusals, ms). The footprint is in released rows
-of the expense Product; each row charges \TimingFactsPerRow{} Dependency
-Facts.}
+\caption{Post-execution refusal latency by the full Dependency footprint
+$|F_D(q)|$ of the refused statement (\TimingRefusals{} refusals, ms).}
 \label{tab:timing-supp}
 \small
 \begin{tabular}{rrrrr}
 \toprule
-Rows & $n$ & Median & p10 & p90 \\
+Facts & $n$ & Median & p10 & p90 \\
 \midrule
-\TimingByRowsTableBody
+\TimingByFullTableBody
 \bottomrule
 \end{tabular}
 \end{table}
 
-The group medians differ by at most \TimingMedianSpreadMS{}~ms across a
-six-fold change in footprint and are not ordered by it. An ordinary
-least-squares fit that treats the refusals as independent gives
-\TimingSlopeMSPerRow{}~ms per row (standard error \TimingSlopeSEMSPerRow{}),
-\TimingRefusalSlopeOverSE{} standard errors from zero. The earlier revision
-reported a slope indistinguishable from zero; on the retained runs that
-statement does not hold and is withdrawn. The fit does not separate footprint
-from statement shape (each footprint group is a different set of statements,
-and most refusals have a one-row footprint), so the slope is an association,
-not a measured cost per unreleased row; it is two orders of magnitude above
-the per-Fact execution rate fitted below, and its cause is not determined.
-Against it stands the noise: the pooled standard deviation is
-\TimingPooledSDMS{}~ms, and the same statement refused repeatedly across
-runs (\TimingWithinStepGroups{} statements with at least six refusals each)
-has a median within-statement standard deviation of \TimingWithinStepSDMS{}~ms
-(p90 \TimingWithinStepSDPNinetyMS{}). Over the one-to-six-row footprints an
-adaptive trace reaches under these budgets, the fitted slope moves latency by
-less than one noise standard deviation, so a single refusal does not resolve
-the footprint; refusals repeated and averaged could.
+\begin{table}[t]
+\centering
+\caption{Refusal latency against each of the three quantities: observed
+range, largest difference between group medians (ms), and least-squares
+slope in ms per unit with its standard error, fitted over all
+\TimingRefusals{} refusals as if independent (pooled) and over one point per
+refused statement state (\TimingStatementPoints{} points, each the median
+latency of its repetitions).}
+\label{tab:timing-fits-supp}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Quantity & Range & Median spread & Pooled slope (SE) & Per-statement slope (SE) \\
+\midrule
+\TimingFitsTableBody
+\bottomrule
+\end{tabular}
+\end{table}
 
-\paragraph{Rate and bound.}
-The channel exists in principle because execution time grows with the
-footprint. The unlimited ladder arm gives the rate: an OLS fit of latency on
-charged Dependency Facts over its twelve accepted rungs is
+The group medians differ by at most \TimingFullSpreadMS{}~ms across a
+nine-fold change in full footprint and are not ordered by it. Fitted over
+all refusals as if they were independent, the slope on the full footprint is
+\TimingFullPooledOverSE{} standard errors from zero and the slope on result
+rows \TimingRowsPooledOverSE{}. Those refusals are repetitions of
+\TimingStatementPoints{} statement states, however, and with one point per
+state no slope is further than \TimingStatementOverSEMax{} standard errors
+from zero. The pooled figures count repetitions as evidence and overstate
+it: the previous revision reported such a pooled slope as a detected
+dependence, and the revision before it reported flat latency; neither
+reading is supported. What the records support is narrower. Over full
+footprints of \TimingFullMin{} to \TimingFullMax{} Facts on a ten-row
+fixture, the differences between groups are smaller than the pooled standard
+deviation of \TimingPooledSDMS{}~ms; the same statement refused repeatedly
+across runs (\TimingWithinStepGroups{} statements with at least six refusals
+each) has a median within-statement standard deviation of
+\TimingWithinStepSDMS{}~ms (p90 \TimingWithinStepSDPNinetyMS{}). The records
+neither establish a dependence of refusal latency on what was refused nor
+exclude one; they say nothing about larger footprints, and nothing about
+what a receiver who repeats and averages refusals could distinguish.
+
+\paragraph{Accepted scans.}
+Execution time does grow with the footprint where footprints are large. Over
+the unlimited ladder's twelve accepted rungs (a fresh root per rung, so the
+charge is the full footprint; \TimingLadderFactsMin{} to
+\TimingLadderFactsMax{} Facts) latency rises by
 \TimingMicrosPerFact{}~$\mu$s per Fact (standard error
 \TimingMicrosPerFactSE{}), the same order as the
 \FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}--\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}~$\mu$s
-per Fact of the sub-phase pilot. With noise $\sigma=\TimingPooledSDMS{}$~ms,
-one refusal resolves the unreleased footprint to about
-$\pm\sigma/r\approx\TimingResolutionFacts{}$ Facts. Modelling latency as
-linear in the footprint with additive Gaussian noise and taking the footprint
-uniform on $[0,F_{\max}]$ bounds the mutual information between footprint and
-latency by $I\le\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/12\sigma^2\bigr)$
-bits per refusal. This is mutual information under one input prior, not the
-channel capacity, which maximizes over input distributions; within the same
-model any distribution on $[0,F_{\max}]$ has variance at most
-$(rF_{\max})^2/4$, so the capacity is at most
-$\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/4\sigma^2\bigr)$, less than
-$\tfrac12\log_2 3\approx0.79$ bits above the uniform-prior figure. Either
-quantity is what an optimal receiver could extract in the model, not what the
-adversary of Section~\ref{sec:adversary-supp} recovers. On this Product
-$F_{\max}$ is set by the pre-execution row guard
-(\code{max_rows}$=\TimingRowGuard{}$, \TimingRowGuardFMax{} Facts), which
-gives $I\le\TimingRowGuardBits{}$ bits; at the corpus's own maximum
-(\TimingCorpusFMax{} Facts) it is \TimingCorpusBits{}. These figures use the
-ladder's per-Fact rate. With the slope fitted on the refusals themselves,
-extrapolated linearly from their one-to-six-row range to the row guard
-(\TimingRefusalSlopeSpanMS{}~ms across \TimingRowGuard{} rows), the same
-formula gives \TimingRefusalSlopeBits{} bits per refusal. Neither is a
-measurement at the row guard, and the two rates differ by two orders of
-magnitude, so the model's answer ranges from \TimingRowGuardBits{} to
-\TimingRefusalSlopeBits{} bits depending on the rate it is given; the earlier
-revision reported only the smaller figure. The
-\TimingLadderBits{}-bit figure for a \TimingLadderFMax{}-Fact scan is the
-same uniform-prior bound if such a scan reached the post-execution site; under
-the bounded profile it does not, because the ladder shows the guards refusing
-it before execution. The channel is therefore governed by the row guard, which
-is the deployment control the main text's limitations section asks for, and the leak an
-unguarded deployment would accept is the \TimingLadderBits{}-bit line.
-These figures are conditional model estimates, not a security bound for the
-deployed system: the slope is an OLS fit on one ladder, not the maximum over
-query shapes; the pooled standard deviation is the noise this harness
-observed, not noise an adversary who averages repeated measurements or
-conditions on load cannot reduce; and the bits figures are mutual information
-under the uniform prior, with the capacity remark above holding only inside
-the linear-Gaussian model and per refusal, not across adaptively chosen
-sequences of queries. What the retained data
-establishes empirically is narrower: on \TimingRefusals{} post-execution
-refusals with footprints of one to six rows, the latency differences between
-footprint groups stayed below one noise standard deviation; the
-worst-case leakage of the timing channel is outside the paper's guarantee,
-as the main text states.
+per Fact of the sub-phase pilot. At that rate a difference of about
+\TimingFactsPerNoiseSD{} Facts corresponds to one standard deviation of the
+refusals' latency. That is a scale for accepted scans, not a measurement at
+the refusal site and not a limit on what can be resolved.
+
+\paragraph{What is not established.}
+Under a model in which latency is linear in the footprint with independent
+additive Gaussian noise, the information one refusal carries about the
+footprint is bounded above by
+$\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/12\sigma^2\bigr)$ bits for a footprint
+uniform on $[0,F_{\max}]$, and by the same expression with $4$ in place of
+$12$ for any distribution on that interval; the two upper bounds differ by
+less than $\tfrac12\log_2 3$ bits, and neither is claimed to be achievable.
+This pilot supplies neither parameter for the refusal site. No rate $r$ is
+established for refused statements (Table~\ref{tab:timing-fits-supp}). And
+no $F_{\max}$: the pre-execution row guard bounds result rows, not the
+Dependency footprint, because an aggregate returns one row over many input
+rows, so the figures the earlier revisions gave at the row guard had no
+general basis. No bits-per-refusal figure is reported. The leakage of the
+timing channel is not quantified by this paper and lies outside its
+guarantee, as the main text states; padding or batching refusals is the
+deployment control.
 
 \paragraph{Pre-execution site.}
 The ladder's refusals carry a second, weaker signal that is not about
@@ -2412,18 +2439,22 @@ realized these tables).}
 Three readings follow. First, under the owner recipe ($m=1$) the benign trace
 loses one statement in the pilot (two in the replay) while the adversary
 recovers \SweepBitsOne{} of 11 bits and greedy extraction reaches the granted
-universe (\SweepGreedyOne{}); $m=\SweepRecoverAt{}$ is the first evaluated
-multiplier at which the replayed benign trace is complete and also the first
-at which the secret is fully recovered, so on this grid no multiplier
-completes the benign trace while withholding the secret, and the points
+universe (\SweepGreedyOne{}); among the eight multipliers evaluated,
+$m=\SweepRecoverAt{}$ is the first at which the closed-form model admits all
+\SweepBenignAuthorized{} authorized statements and also the first at which the
+bisection recovers the hidden scalar, so on this grid no multiplier admits
+every statement while withholding the secret, and the points
 between $1$ and $\SweepRecoverAt{}$ trade a refused benign statement against
 unrecovered bits. Eight grid points on one trace and one scalar do not
 establish an operating interval: nothing is claimed between grid points or
-for other traces. Second, the bits curve is
-linear in $m$ because each probe's Outcome charge is data-independent, which
-is the $\lfloor B_O/2\rfloor$ bound of the adversary study seen across
-budgets, whereas benign admission saturates once the largest
-single-statement footprint fits. Third, at $m=1$ the replay admits one
+for other traces, and admitting every authorized statement is not completing
+a task. Second, the bits curve is a staircase, not a line: each probe's
+Outcome charge is data-independent, so the recovered bits follow the
+$\lfloor B_O/2\rfloor$ bound of the adversary study on the rounded budget
+(\SweepBitsQuarter{}, \SweepBitsHalf{}, \SweepBitsThreeQuarter{},
+\SweepBitsOne{}, \SweepBitsOneHalf{} over the first five multipliers) and
+stop at the \SweepBitsTwo{} probes the ladder needs, whereas benign admission
+saturates once the largest single-statement footprint fits. Third, at $m=1$ the replay admits one
 statement fewer than the pilot; the two differ in their footprint model
 (scanned rows where the production rule charges output cells), and because
 admission is path-dependent the sign of that difference at the other
@@ -2575,18 +2606,17 @@ Four readings. At a million facts the simple exact ledger is far slower:
 \NaiveScaleMillionZeroNaiveS{}~s against \NaiveScaleMillionZeroVFiveMS{}~ms
 with no overlap (\NaiveScaleMillionZeroRatio{}$\times$) and
 \NaiveScaleMillionFullNaiveS{}~s at full overlap
-(\NaiveScaleMillionFullRatio{}$\times$), because it pays one index probe
-per candidate fact even when nothing is new. At $10^5$ facts the ratio is
-\NaiveScaleHundredKZeroRatio{}$\times$ falling to
-\NaiveScaleHundredKFullRatio{}$\times$ with overlap. At $10^4$ facts the
-optimized representation buys nothing: the naive ledger takes
-\NaiveScaleTenKZeroNaiveMS{}~ms against \NaiveScaleTenKZeroVFiveMS{}~ms with
-no overlap (\NaiveScaleTenKZeroRatio{}$\times$) and is faster than V5 at
-90\% and 100\% overlap (\NaiveScaleTenKFullRatio{}$\times$ at full
-overlap), since V5 settlement at that size is dominated by the fixed cost of
-its transaction. The benefit is therefore a property of large footprints,
-not of the mechanism at every size, and the main text's claim is limited
-accordingly. Of the priors written before execution, the zero-overlap ones
+(\NaiveScaleMillionFullRatio{}$\times$); the naive ledger issues one
+insert-or-conflict per candidate fact even when nothing is new. At $10^5$
+facts the ratio is \NaiveScaleHundredKZeroRatio{}$\times$ falling to
+\NaiveScaleHundredKFullRatio{}$\times$ with overlap. At $10^4$ facts there
+is no advantage that holds across overlaps: V5 is faster in the no-overlap
+and 50\% cells (the naive ledger takes \NaiveScaleTenKZeroNaiveMS{}~ms
+against \NaiveScaleTenKZeroVFiveMS{}~ms with no overlap,
+\NaiveScaleTenKZeroRatio{}$\times$), and the naive ledger is faster in the
+90\% and 100\% cells (\NaiveScaleTenKFullRatio{}$\times$ at full overlap).
+Why the order reverses at that size was not separated by this pilot. The
+main text's claim is limited to these observed ratios. Of the priors written before execution, the zero-overlap ones
 held (at least $10\times$ at $10^5$ and $10^6$ facts, within $5\times$ at
 $10^4$); the prior that the naive ledger's full-overlap time would stay at
 least half its zero-overlap time did not (it is
@@ -2604,13 +2634,21 @@ Limits of the pair. The V5 figure is the Gateway's whole Control settlement
 transaction (reservation, three dimensions, head compare-and-swap, receipt
 bookkeeping) measured inside a compose deployment during the sealed campaign;
 the naive figure is that ledger's transaction alone, measured standalone on a
-later day on the same host and image. Both differences favour the naive
-side, so the large-footprint ratios are not inflated by them and part of the
-naive ledger's lead at $10^4$ facts is work V5 does and the naive ledger does
-not. The comparison concerns settlement only; derivation, which the ablation
-above shows to dominate the governed cost, is the same under either ledger.
-Traces that mix refusals at a budget boundary and concurrent writers on one
-root are not covered.
+later day on the same host and image. The two sides settle the same
+Dependency sets, but they are not paired measurements: V5's timed scope
+includes control-transaction work the naive side does not do, and the
+effect of running on another day outside a deployment (cache state,
+checkpoints, host load) is not quantified and has no known direction. The
+ratios are therefore descriptive ratios of these two sets of measurements,
+not a lower bound on what the optimized representation gains. The inputs
+are identical in the dimension that carries the scale only: Release and
+Outcome are synthetic hashes with the sealed cardinalities and charges, not
+the production FactIDs. Each cell settles one candidate against a
+pre-seeded history and then settles it again; that is not a long trajectory
+of many queries over a growing history. The comparison concerns settlement
+only; derivation, which the ablation above shows to dominate the governed
+cost, is the same under either ledger. Traces that mix refusals at a budget
+boundary and concurrent writers on one root are not covered.
 
 \subsection{Per-query data-flow control on the adaptive trace: the Passant artifact}
 \label{sec:passant-supp}
@@ -3176,32 +3214,42 @@ fragment has no way to bucket a date or to divide. The
 sheet decided where those statements were first rejected, not whether they
 were admitted.
 
-The corrected arm admits \SheetCorrectedAdmitted{} of \HeldoutQueries{}, a
-median of \SheetCorrectedMedian{} against \SheetOriginalMedian{}. That
-difference is not evidence of a sheet effect of that size. In both arms
-\SheetFencedRange{} statements per repetition fail to parse only because the
-agent wrapped its SQL in a Markdown code fence despite the prompt; with an
-enclosing fence removed and nothing else changed (a post hoc view that is
-not part of the frozen design, digest \SheetPosthocDigest{}) the arms admit
-\SheetOriginalUnfenced{} and \SheetCorrectedUnfenced{}, and on the
-\SheetExpenseQuestions{} questions over the expense Products, the only ones
-whose sheet text changed, \SheetOriginalUnfencedExpense{} against
-\SheetCorrectedUnfencedExpense{}; the rest of the gap lies in questions
-whose sheet text is identical in both arms
-(\SheetOriginalUnfencedOther{} against \SheetCorrectedUnfencedOther{}).
-\SheetGainedEveryRep{} question is gained in every repetition
-(\SheetGainedEveryRepNames{}, a \code{HAVING} aggregate the agent now also
-selects), which the removed constructs do not explain; none is lost in every
-repetition.
+The corrected arm admits \SheetCorrectedAdmitted{} of \HeldoutQueries{}
+(\SheetCorrectedTotal{} of \SheetArmStatements{} statements) against
+\SheetOriginalTotal{} of \SheetArmStatements{} for the original arm. In both
+arms \SheetFencedRange{} statements per repetition fail to parse only
+because the agent wrapped its SQL in a Markdown code fence despite the
+prompt; with an enclosing fence removed and nothing else changed (a post hoc
+view that is not part of the frozen design, digest \SheetPosthocDigest{})
+the arms admit \SheetOriginalUnfenced{} and \SheetCorrectedUnfenced{}. Split
+by Product family in that view, the \SheetExpenseQuestions{} questions over
+the expense Products give \SheetOriginalUnfencedExpense{} against
+\SheetCorrectedUnfencedExpense{} and the others
+\SheetOriginalUnfencedOther{} against \SheetCorrectedUnfencedOther{}. The
+split is descriptive only: every prompt contains the whole sheet, so the
+questions over the other Products also received the changed text and are
+not an untreated control. \SheetGainedEveryRep{} question is gained in every
+repetition (\SheetGainedEveryRepNames{}, a \code{HAVING} aggregate the agent
+now also selects); none is lost in every repetition.
 
-Reading: the held-out rate is a property of the language boundary and of the
-agent's output discipline, not an artifact of the sheet; correcting the
-sheet moves it by a few statements at most, within what three repetitions
-can resolve. Of the priors, the corrected arm's rejections on the removed
-constructs (expected 0--3 per repetition) held; the original arm was
-expected at 19--25 and two repetitions gave 18; the median difference was
-expected between 0 and $+4$ and is $+\SheetMedianDiff{}$, below the $+6$ set
-beforehand as the sign that the sheet was the dominant limiter. One prior
+Reading. In this two-arm, three-repetition pilot, correcting the three false
+statements reduced the outputs whose first rejection falls on those
+constructs; the admitted total moved from \SheetOriginalTotal{} to
+\SheetCorrectedTotal{} of \SheetArmStatements{}; and the statements written
+for the \HeldoutSheetAdvertised{} questions concerned stayed at
+\SheetSevenAdmitted{} of \SheetSevenStatements{} admitted
+(\SheetSevenAdmittedUnfenced{} with fences removed). Correcting these three
+statements alone therefore did not remove the main rejections observed here.
+The pilot does not bound the sheet's effect and does not separate the
+contributions of the sheet, of generation randomness, and of whether the
+questions are expressible in the fragment at all. Of the priors, the
+corrected arm's rejections on the removed constructs (expected 0--3 per
+repetition) held; the original arm was expected at 19--25 and two
+repetitions gave 18; the median difference was expected between 0 and $+4$
+and is $+\SheetMedianDiff{}$. The $+6$ written beforehand as the sign of a
+dominant sheet effect was a decision threshold for this study, not a
+statistical bound, and staying below it is not evidence that the effect is
+small. One prior
 was wrong in its mechanism: the two year-filter questions were expected to
 become admissible as date ranges, and the agent wrote typed \code{DATE}
 literals, which the fragment rejects. The fence defect was not anticipated:

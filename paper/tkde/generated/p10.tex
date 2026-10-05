@@ -46,43 +46,53 @@
 \newcommand{\SweepBenignAuthorized}{23}
 \newcommand{\SweepBenignFirstRefusalOne}{q23}
 \newcommand{\SweepRecoverAt}{2}
-\newcommand{\TimingResultsDigest}{\texttt{b4f0e43d633b}}
+\newcommand{\TimingResultsDigest}{\texttt{b52b0bfa8f70}}
 \newcommand{\TimingRefusals}{762}
+\newcommand{\TimingDistinctStatements}{80}
+\newcommand{\TimingStatementPoints}{170}
+\newcommand{\TimingCounterChecked}{348}
+\newcommand{\TimingAdversaryChecked}{32}
 \newcommand{\TimingWithinStepGroups}{88}
-\newcommand{\TimingRefusedMedianMS}{29.6}
-\newcommand{\TimingRefusedPTenMS}{27.6}
-\newcommand{\TimingRefusedPNinetyMS}{32.6}
-\newcommand{\TimingRefusedMinMS}{25.4}
-\newcommand{\TimingRefusedMaxMS}{45.9}
 \newcommand{\TimingPooledSDMS}{2.49}
 \newcommand{\TimingWithinStepSDMS}{1.62}
 \newcommand{\TimingWithinStepSDPNinetyMS}{3.81}
-\newcommand{\TimingSlopeMSPerRow}{0.160}
-\newcommand{\TimingSlopeSEMSPerRow}{0.046}
+\newcommand{\TimingFullMin}{2}
+\newcommand{\TimingFullMax}{18}
+\newcommand{\TimingRowsMin}{1}
+\newcommand{\TimingRowsMax}{6}
+\newcommand{\TimingNovelMin}{0}
+\newcommand{\TimingNovelMax}{18}
+\newcommand{\TimingFullSpreadMS}{1.3}
+\newcommand{\TimingRowsSpreadMS}{0.7}
+\newcommand{\TimingNovelSpreadMS}{2.3}
+\newcommand{\TimingOneRowRefusals}{492}
+\newcommand{\TimingOneRowFullMin}{2}
+\newcommand{\TimingOneRowFullMax}{12}
+\newcommand{\TimingFullPooledOverSE}{3.3}
+\newcommand{\TimingRowsPooledOverSE}{3.2}
+\newcommand{\TimingStatementOverSEMax}{1.1}
 \newcommand{\TimingAcceptedFirstMS}{114.5}
 \newcommand{\TimingAcceptedLaterMS}{43.5}
 \newcommand{\TimingMicrosPerFact}{0.59}
 \newcommand{\TimingMicrosPerFactSE}{0.05}
-\newcommand{\TimingResolutionFacts}{4,183}
-\newcommand{\TimingFactsPerRow}{2}
-\newcommand{\TimingRowGuard}{500}
-\newcommand{\TimingCorpusFMax}{6}
-\newcommand{\TimingCorpusBits}{0.000}
-\newcommand{\TimingRowGuardFMax}{1,000}
-\newcommand{\TimingRowGuardBits}{0.003}
-\newcommand{\TimingLadderFMax}{700,000}
-\newcommand{\TimingLadderBits}{5.6}
-\newcommand{\TimingRefusalSlopeBits}{3.2}
-\newcommand{\TimingRefusalSlopeSpanMS}{80}
-\newcommand{\TimingRefusalSlopeOverSE}{3.4}
-\newcommand{\TimingMedianSpreadMS}{0.7}
+\newcommand{\TimingLadderFactsMin}{400}
+\newcommand{\TimingLadderFactsMax}{700,000}
+\newcommand{\TimingFactsPerNoiseSD}{4,183}
 \newcommand{\TimingCampaigns}{\code{pilot-counter-rigor-03}, \code{pilot-adversary-05}, \code{pilot-footprint-08}}
-\newcommand{\TimingByRowsTableBody}{%
-1 & 492 & 29.5 & 27.4 & 32.2 \\
-2 & 39 & 30.1 & 28.6 & 33.0 \\
-4 & 60 & 29.7 & 28.3 & 33.7 \\
-5 & 81 & 29.6 & 27.7 & 33.2 \\
-6 & 90 & 30.2 & 28.1 & 34.5 \\%
+\newcommand{\TimingByFullTableBody}{%
+2 & 12 & 30.4 & 28.2 & 32.6 \\
+4 & 30 & 30.1 & 29.1 & 33.6 \\
+6 & 150 & 29.1 & 26.8 & 31.5 \\
+8 & 30 & 29.8 & 28.0 & 32.0 \\
+10 & 180 & 29.6 & 27.7 & 32.5 \\
+12 & 180 & 29.7 & 28.1 & 32.7 \\
+15 & 90 & 29.5 & 27.8 & 33.2 \\
+18 & 90 & 30.2 & 28.1 & 34.5 \\%
+}
+\newcommand{\TimingFitsTableBody}{%
+Result rows & 1--6 & 0.7 & 0.149 (0.046) & 0.020 (0.050) \\
+Full footprint $|F_D(q)|$ (Facts) & 2--18 & 1.3 & 0.072 (0.022) & 0.010 (0.024) \\
+Novel part $|F_D(q)\setminus K_D|$ (Facts) & 0--18 & 2.3 & 0.028 (0.021) & -0.023 (0.021) \\%
 }
 \newcommand{\TimingPreSmallSpanMS}{27.6--60.1}
 \newcommand{\TimingPreLargeSpanMS}{77.9--81.2}
@@ -327,6 +337,9 @@ S6/100k-x16 & 701 & 3146 & 3217 & 2313 & 72 & 146 & 382 & 30/30 \\%
 \newcommand{\SheetHarnessRetries}{0}
 \newcommand{\SheetOriginalAdmitted}{22, 18, 18}
 \newcommand{\SheetCorrectedAdmitted}{23, 23, 21}
+\newcommand{\SheetOriginalTotal}{58}
+\newcommand{\SheetCorrectedTotal}{67}
+\newcommand{\SheetArmStatements}{120}
 \newcommand{\SheetOriginalRange}{18--22}
 \newcommand{\SheetCorrectedRange}{21--23}
 \newcommand{\SheetOriginalMedian}{18}
