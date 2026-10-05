@@ -7,8 +7,8 @@ untracked so that a rebuild never dirties the tree.
 
 | file | pages | sha256 |
 |---|---|---|
-| main.pdf | 12 | d97145a9461f86fa2f4509c498933aebd40c8134162b31d716e12f047e6e110f |
-| supplement.pdf | 36 | 8817fe2ad14b8c8d88bace56ea9c2d23cd8141ab874b3589b05ab7c4db397be1 |
+| main.pdf | 12 | af90b65f7f97163ee16b1fd172ae30abe5890225106293568d52695a76a96341 |
+| supplement.pdf | 36 | 862e5758b6206e052c86b1f67896b2427669014cbed0e6422b5d4060ebb3b3c1 |
 
-Source: paper sources at commit 4f86922, built 2026-10-05 (review round 3: sweep lower bound withdrawn, timing channel recomputed from surviving runs, evidence map extended, same-input ledger comparison and corrected-sheet held-out rerun added, artifact scope corrected to the deposited recomputation set).
+Source: paper sources at commit ddb90df, built 2026-10-05 (review round 4: refusal-latency analysis redone with result rows, full footprint and novel part kept apart, all bits-per-refusal figures withdrawn; ledger-comparison and sheet-rerun readings narrowed).
 Refresh these copies whenever the manuscript changes; a stale copy is worse than none.
