@@ -1442,10 +1442,12 @@ a boundary that is asymmetric by construction and ranks nothing.
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
 PostgreSQL 16.14 image (supplement). The
 repository at the cited commits (\url{https://github.com/minmin-lab/factgate},
-with the evidence pack and the digests of every retained sample) and the
-retained raw samples (48 JSONL files, 591~MB; deposit status and DOI in the
-repository's \code{README}) form the artifact;
-every digest chain and macro is recomputable from it. Numbers attributed to the campaign come from
+with the evidence pack and the digest of every deposited file) and the
+retained raw evidence (\RawEvidenceFiles{} files, \RawEvidenceMB{}~MB: the
+campaign's \RawEvidenceSealedSamples{} sample files, its digest-chain records,
+and the retained pilots' samples; deposit status and DOI in the repository's
+\code{README}) form the artifact; every digest chain and macro is recomputable
+from it, as a fresh checkout confirmed. Numbers attributed to the campaign come from
 the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
 three executions per profile whose per-execution novel medians differ by at

@@ -426,14 +426,36 @@ environment, not zero values or measured results.
 
 ### Artifact
 
-The paper's artifact is this repository at the commits cited in the paper
-(`paper/tkde/generated/evidence.tex` pins the sealed campaign commit and the
-digest of every retained sample and evidence file) plus the retained raw
-samples of the sealed campaign (48 JSONL files, 591 MB), which are too large
-for the repository and are deposited separately. DOI of the raw-sample
-deposit: _pending deposit by the author_ (this line is the single place the
-paper points to for it). Every macro in the paper is recomputed from the
-repository and the samples by `make paper-final-check`.
+The paper's artifact is this repository at the commits cited in the paper plus
+the raw evaluation evidence, which is too large for the repository and is
+deposited separately.
+
+- **What is deposited:** 216 files, 614 MB (88 MB as one `tar.gz`), in their
+  repository-relative paths under `evaluation/final-v5-wsl2/raw/`: the sealed
+  campaign's 48 JSONL sample files (593 MB), its campaign evidence record, the
+  33 deployment records that carry the sample digests, two non-deployment
+  manifests, and the sample files and records of the retained pilot runs the
+  supplement reports. It is exactly the set of raw files the two macro
+  generators and the analysis scripts open.
+- **What the repository pins:**
+  [`evaluation/final-v5-wsl2/raw-evidence-manifest.sha256`](evaluation/final-v5-wsl2/raw-evidence-manifest.sha256)
+  lists the SHA-256 of every deposited file, and
+  [`raw-evidence-deposit.json`](evaluation/final-v5-wsl2/raw-evidence-deposit.json)
+  records the archive's digests and location.
+  `evaluation/final-v5-wsl2/publication-evidence-v1.json` pins the sealed
+  campaign's evidence digest, from which the chain runs through the deployment
+  records to the sample files.
+- **DOI of the raw-evidence deposit:** `10.5281/zenodo.23149437` (Zenodo).
+  **Status: reserved; the record is a draft and the DOI does not resolve until
+  the author publishes it.** This line is the single place the paper points to
+  for it.
+- **Recomputing:** clone the repository, extract the archive at its root, and
+  run `python3 paper/tkde/generate_evidence.py --evidence-mode final` and
+  `python3 paper/tkde/generate_p10_evidence.py`; both fail closed on a digest
+  mismatch. On 2026-10-05 this reproduced `paper/tkde/generated/evidence.tex`
+  and `p10.tex` byte for byte in a fresh checkout that held nothing but the
+  repository and the archive. `make paper-final-check` additionally builds the
+  PDFs.
 
 ## Limitations
 

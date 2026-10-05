@@ -1,0 +1,23 @@
+{
+ "version": 1,
+ "purpose": "The raw evidence deposited outside the repository: what it contains, the archive's digests, and where it is. raw-evidence-manifest.sha256 lists the SHA-256 of every deposited file.",
+ "files": 216,
+ "bytes": 614348339,
+ "sealed_campaign": "formal-v113-publication-05",
+ "sealed_sample_files": 48,
+ "sealed_sample_bytes": 593043732,
+ "run_directories": 22,
+ "manifest_sha256": "5a41d7e8ca1a1ac0fd0b8262f13fbbfbf64391e2b65cd2a5cd59b7d9f3a6b390",
+ "archive": {
+  "name": "factgate-raw-evidence-v1.tar.gz",
+  "size": 87689149,
+  "md5": "4d541ac7361ce863dc8b0fd71468f66f",
+  "sha256": "f4e7d09c76459c6c07746058baa135ea483fca65c5eeb9be550e6bc12275a747"
+ },
+ "repository": "zenodo",
+ "record_id": 23149437,
+ "doi": "10.5281/zenodo.23149437",
+ "status": "draft",
+ "status_note": "DOI reserved and files uploaded on 2026-10-05; the record is a draft until the author publishes it, and the DOI does not resolve before that",
+ "recomputation_check": "2026-10-05: in a fresh checkout at fca3b00 with only this archive extracted, generate_evidence.py --evidence-mode final and generate_p10_evidence.py reproduced generated/evidence.tex and generated/p10.tex byte for byte"
+}

@@ -572,5 +572,33 @@ if (sh_dir / "summary.json").exists():
         rf"\newcommand{{\SheetLostEveryRep}}{{{len(sm['questions_lost_in_every_repetition'])}}}",
     ]
 
+# --- raw evidence deposited outside the repository --------------------------
+dep = json.loads((ROOT / "evaluation/final-v5-wsl2/raw-evidence-deposit.json").read_text())
+man_path = ROOT / "evaluation/final-v5-wsl2/raw-evidence-manifest.sha256"
+if hashlib.sha256(man_path.read_bytes()).hexdigest() != dep["manifest_sha256"]:
+    raise SystemExit("raw-evidence-deposit.json does not describe the tracked manifest")
+man_rows = [line.split("  ", 1) for line in man_path.read_text().splitlines()]
+if len(man_rows) != dep["files"]:
+    raise SystemExit("raw-evidence manifest and deposit record disagree on the file count")
+# Where the raw files are present, they must be the deposited bytes.
+_present = [(digest, ROOT / rel) for digest, rel in man_rows if (ROOT / rel).is_file()]
+if _present:
+    if len(_present) != len(man_rows) or sum(f.stat().st_size for _, f in _present) != dep["bytes"]:
+        raise SystemExit("raw evidence on disk is not the deposited set (file count or total size differs)")
+    for digest, f in _present:
+        if hashlib.sha256(f.read_bytes()).hexdigest() != digest:
+            raise SystemExit(f"{f}: differs from the deposited manifest")
+if dep["status"] not in ("draft", "published"):
+    raise SystemExit("raw-evidence-deposit.json: unknown status")
+lines += [
+    rf"\newcommand{{\RawEvidenceFiles}}{{{dep['files']}}}",
+    rf"\newcommand{{\RawEvidenceMB}}{{{dep['bytes'] / 1e6:.0f}}}",
+    rf"\newcommand{{\RawEvidenceSealedSamples}}{{{dep['sealed_sample_files']}}}",
+    rf"\newcommand{{\RawEvidenceSealedMB}}{{{dep['sealed_sample_bytes'] / 1e6:.0f}}}",
+    rf"\newcommand{{\RawEvidenceRuns}}{{{dep['run_directories']}}}",
+    rf"\newcommand{{\RawEvidenceArchiveMB}}{{{dep['archive']['size'] / 1e6:.0f}}}",
+    rf"\newcommand{{\RawEvidenceDOI}}{{{dep['doi']}}}",
+]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)
