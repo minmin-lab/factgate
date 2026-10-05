@@ -13,7 +13,7 @@ arms is the metering unit alone.
 Inputs (retained, digest-bound in the output):
   * the sealed publication campaign's unlimited RLS sample: per-step row count
     and the independent oracle's per-step Release/Dependency/Outcome fact sets
-    (evaluation/final-v5-wsl2/raw/formal-v113-publication-03/.../rls-unlimited/001)
+    (evaluation/final-v5-wsl2/raw/formal-v113-publication-05/.../rls-unlimited/001)
   * the counter corpus orderings and step ids (evaluation/finalv5counter/corpus-v1.json)
   * the pilot budget profiles (config/profiles/counter-*.catalog.yaml)
 
@@ -33,7 +33,7 @@ import hashlib, json, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = pathlib.Path(__file__).resolve().parent
-SEALED = ROOT / "evaluation/final-v5-wsl2/raw/formal-v113-publication-03/deployments/rls-unlimited/001/raw/rls.jsonl"
+SEALED = ROOT / "evaluation/final-v5-wsl2/raw/formal-v113-publication-05/deployments/rls-unlimited/001/raw/rls.jsonl"
 CORPUS = ROOT / "evaluation/finalv5counter/corpus-v1.json"
 
 

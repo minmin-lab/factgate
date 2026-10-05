@@ -194,6 +194,15 @@ lines += [
 
 # --- B4: counter comparators under one aligned failure policy -----------
 ca = json.loads((ROOT / "evaluation/counter-aligned/results.json").read_text())
+# The replay must have read the sealed campaign the paper cites, and the file
+# it read must still be that file (it kept reading a lost campaign's sample
+# until 2026-10-05; see the pilot-run guard above for the same failure).
+_sealed_id = json.loads((ROOT / "evaluation/final-v5-wsl2/publication-evidence-v1.json").read_text())["campaign"]["id"]
+_sealed_sample = ROOT / ca["sources"]["sealed_sample"]
+if f"/raw/{_sealed_id}/" not in ca["sources"]["sealed_sample"]:
+    raise SystemExit(f"counter-aligned results.json reads {ca['sources']['sealed_sample']}, not the sealed campaign {_sealed_id}; rerun evaluation/counter-aligned/replay.py")
+if hashlib.sha256(_sealed_sample.read_bytes()).hexdigest() != ca["sources"]["sealed_sha256"]:
+    raise SystemExit("counter-aligned results.json: the sealed sample changed since the replay")
 label = {"exact": "exact set floors", "release": "release-set only", "rows": "cumulative row counter", "queries": "query counter"}
 cells = {(c["arm"], c["order"]): c for c in ca["aligned"]}
 ex = ca["executed_default_products"]
