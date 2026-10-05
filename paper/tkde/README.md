@@ -9,6 +9,10 @@ signed settlement receipts with separately audited availability. Clearance
 language is a narrative analogy, not a replacement for the formal
 publication, ledger, receipt, and artifact-state definitions.
 
+Built PDFs for reviewers are tracked in [`review/`](review/): `review/main.pdf`
+and `review/supplement.pdf`, with the source commit in `review/README.md`. The
+build outputs `main.pdf` and `supplement.pdf` in this directory stay untracked.
+
 ## M3 exactness boundary
 
 - Exactness is profile-relative: within the admitted language, FactGate computes

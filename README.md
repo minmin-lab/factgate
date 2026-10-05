@@ -11,6 +11,14 @@ The paper title is **FactGate: A Task-Scoped Data Gateway for AI Agents with
 Cumulative Exposure Accounting**. The research name is FactGate in titles,
 prose, and figures; it has no abbreviation.
 
+**Reading the paper:** built PDFs are in [`paper/tkde/review/`](paper/tkde/review/)
+— [`main.pdf`](paper/tkde/review/main.pdf) (the 12-page manuscript) and
+[`supplement.pdf`](paper/tkde/review/supplement.pdf) (proofs, per-cell tables,
+evidence map). [`paper/tkde/review/README.md`](paper/tkde/review/README.md)
+records the source commit they were built from. LaTeX sources are
+`paper/tkde/main.tex` and `paper/tkde/supplement.tex`; every number in them is a
+macro defined in `paper/tkde/generated/`.
+
 Evidence-bound identifiers such as `taskgate-*`, `TASKGATE-*`,
 `taskgate_ordinal`, `/.well-known/taskgate/...`, and the `bdg` arm label and
 `bdg_*` field names inside the sealed evaluation contracts and evidence remain
