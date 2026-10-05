@@ -7,8 +7,8 @@ untracked so that a rebuild never dirties the tree.
 
 | file | pages | sha256 |
 |---|---|---|
-| main.pdf | 12 | 978d7666ed78c55d6987a0e7af5c06e352c38b9fe20db4403a09fcfa3e7fa78e |
-| supplement.pdf | 37 | 3dd34ff7ea6ef42f25e4e8a70dbc3bc57b2376c37ec7587df3df68c36c9f0fa8 |
+| main.pdf | 12 | bf0bd160a3bd8d1935aca32cd8230bc233daa4cc55ae70e1ac820309381f391c |
+| supplement.pdf | 37 | e7ca9defb8c20e98a29b27f01d7f7525168e8cc5fce0b850083de89ad084fd02 |
 
-Source: paper sources at commit 95f5a6c, built 2026-10-05 (review round 6: basis of the refusal-site attribution stated in resource terms; main text unchanged since ddb90df).
+Source: paper sources at commit 9b913c1, built 2026-10-05 (readability pass over the main text: long sentences split, no number, citation or formula changed; supplement unchanged since 95f5a6c).
 Refresh these copies whenever the manuscript changes; a stale copy is worse than none.
