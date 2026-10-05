@@ -69,24 +69,24 @@ retries, rewrites, and delegated subtasks, and row or query counters are
 order-dependent. \system is a release layer for immutable reporting
 publications that turns one approved task into a cumulative contract: three
 set-valued budgets over declared identities (result, positive-output
-dependency, and outcome facts) shared by the root task and its descendants.
+dependency, and outcome facts) shared by the root task and descendants.
 Exact set novelty against the root-family ledger is settled atomically on one
 PostgreSQL snapshot before any result becomes retrievable. The guarantee is bounded
 \emph{release}: within one root family and publication epoch, at most
 the approved number of distinct declared facts of each kind becomes
-available for every admitted sequence; inference from answered or refused
-predicates is not bounded. Accounting is exact with
-respect to the declared rules over a closed fragment (connected
+available, whatever the admitted sequence; inference from answered or refused
+predicates is not bounded. Accounting is exact under declared rules over
+a closed fragment (connected
 equijoins, grouping, bounded unions, nested Views, derived-cell arithmetic)
-that admits \HeldoutLowerablePct\% of \HeldoutQueries{} LLM-written
-statements written after the fragment froze (\AgentWorkloadLowerablePct\% of
+that admits \HeldoutLowerablePct\% of \HeldoutQueries{} held-out LLM-written
+statements (\AgentWorkloadLowerablePct\% of
 a development set adapted during construction). Ordinals, bitmaps, and a
 Merkle-radix set keep novelty exact at $10^7$ facts. A
 single-host campaign (\FinalVFivePublicationMeasuredSamples{} samples)
 charges every scripted decomposition once, keeps an adaptive trace within
 its budgets, and costs
 \FinalVFivePublicationOverheadMin{}--\FinalVFivePublicationOverheadMax{}$\times$
-a direct query; settlement alone takes a median
+a direct query; settlement takes a median
 \FinalVFivePublicationScaleSettleMillionMS{}~ms against a million-fact
 history at zero overlap.
 \end{abstract}
@@ -103,42 +103,42 @@ budget, dependency footprint, outcome accounting
 An adaptive agent adds, ``How much policy-defined exposure has this task
 acquired?'' Within one approved task, an agent may split projections,
 overlap pages, retry, rewrite, and delegate (each child grant
-human-approved) while individual queries remain legal, and per-query
+human-approved) while individual queries remain legal. Per-query
 authorization and row limits do not state the root family's distinct
 cumulative exposure. \system accounts that contract-defined quantity, not the
 agent's knowledge. Data-flow control (DFC) asks whether a SQL flow is
-allowed \cite{summers2026dataflow,summers2026passant}; conditional on
+allowed \cite{summers2026dataflow,summers2026passant}; given
 authorization and any DFC check, \system asks whether the next allowed execution
 fits the root's cumulative contract.
 
 Query count ignores answer size, row count makes a one-row aggregate over
-millions of source rows look cheap, and bytes depend on encoding; query
+millions of source rows look cheap, and bytes depend on encoding. Query
 pricing develops anti-arbitrage objectives
 \cite{koutris2012query,deep2017qirana,peng2025aria} and provenance explains
-where results came from \cite{green2007provenance,amsterdamer2011aggregate},
-whereas \system asks how human authorization can create a stateful release
+where results came from \cite{green2007provenance,amsterdamer2011aggregate};
+\system asks how human authorization can create a stateful release
 budget conserved across adaptive querying and delegation. Enterprise
 operational analytics commonly serves scheduled ETL outputs rather than
-OLTP primaries; \system compiles each completed cut into an immutable
-publication, new roots may bind the next cut, and unfinished roots stay on
-the prior one through version routing or fail closed, so \system bounds the
+OLTP primaries. \system compiles each completed cut into an immutable
+publication; new roots may bind the next cut, and unfinished roots stay on
+the prior one through version routing or fail closed. It therefore bounds the
 governed release of declared facts within one reporting epoch, not
 freshness over a changing database.
 
-Large enterprises already operate lakes or warehouses, reporting marts, Data
+Large enterprises operate lakes or warehouses, reporting marts, Data
 Catalogs, identity directories, and approval workflows, but none turns one
 approved purpose into an enforceable contract across an agent's queries,
 retries, pages, and delegated subtasks. Marketplace-integrated agents close the discovery-and-request half of this
 gap (Data Product MCP
 \cite{tonnarelli2026dataproductmcp,dietz2025automating,bitol2025odcs}), but
-once a purpose is approved, per-query checks still do not state how much
+after approval, per-query checks still do not state how much
 governed data the task has released. \system starts at that boundary
 as a brownfield-compatible egress layer at the governed serving tier.
 The reporting pipeline supplies immutable publications, the Catalog
 supplies Products and attested keys, and identity/workflow
-systems supply subject, purpose, and approval; \system compiles these into a
-signed task contract at the database boundary; the raw lake is never
-exposed to the agent.
+systems supply subject, purpose, and approval. \system compiles these into a
+signed task contract at the database boundary and never exposes the raw lake
+to the agent.
 
 \system budgets the root task in three set-valued dimensions. \emph{Accounted
 result exposure} identifies selected result values (wire label \emph{release});
@@ -151,13 +151,13 @@ add no novelty: related thresholds reuse shared atoms but charge different
 literals/composites; exact replay is free.
 
 The system follows a withhold-before-settlement discipline
-(\code{reserve -> replay lookup / execute+stream -> derive -> settle -> publish}):
-the visible query and ordinal companion share one frozen PostgreSQL snapshot
-and remain withheld while one Control transaction computes exact set novelty,
-checks all limits, advances the root head, and commits audit, receipt, and a
-PENDING intent; a recoverable object-store step then promotes the staged
-object and a second transaction records AVAILABLE/CONSUMED
-(Fig.~\ref{fig:architecture-settlement}).
+(\code{reserve -> replay lookup / execute+stream -> derive -> settle -> publish};
+Fig.~\ref{fig:architecture-settlement}). The visible query and ordinal
+companion share one frozen PostgreSQL snapshot and remain withheld while one
+Control transaction computes exact set novelty, checks all limits, advances
+the root head, and commits audit, receipt, and a PENDING intent. A recoverable
+object-store step then promotes the staged object, and a second transaction
+records AVAILABLE/CONSUMED.
 
 \begin{figure*}[t]
 \centering
@@ -241,34 +241,34 @@ Beneath the accounting sits a task-scoped authorization substrate: a control
 plane that turns an approved task into a signed, budgeted, auditable database
 session with safe views, row scope, denied fields, operation limits,
 per-session counters, and receipts. Everything that makes the budget a set
-rather than a counter is this article's contribution, organized around three
-difficulties: deriving an admitted query's fact sets exactly (1--2);
+rather than a counter is this article's contribution. It is organized
+around three difficulties: deriving an admitted query's fact sets exactly (1--2);
 deciding which rewrites preserve identity and which create a new Outcome
 (3); and keeping retrievable results tied to settled facts under
 concurrency, failure, replay, and delegation (3--5). The five
 implementation-backed contributions are:
 
-(1) a typed FactID semantics for accounted Result, positive-output
+(1) A typed FactID semantics for accounted Result, positive-output
 Dependency, and canonical-atom/composite Outcome sets in a restricted
-algebra; (2) a same-snapshot ordinal companion for a closed reporting
-fragment---one-Product and connected equijoin queries (two- and
-three-source joins evaluated end to end; up to 16 roles admitted by the
-compiler), two-branch
+algebra. (2) A same-snapshot ordinal companion for a closed reporting
+fragment. The fragment covers one-Product and connected equijoin queries
+(two- and three-source joins evaluated end to end; up to 16 roles admitted
+by the compiler), two-branch
 union, grouping with HAVING and the admitted aggregates (COUNT, COUNT
-DISTINCT, SUM, MIN, MAX, exact AVG), plus single-Product exact
-$\{+,-,\times\}$ projections settled as derived cells, into which bounded
-nested Views flatten; no scalar functions, division, OR, subqueries, or outer joins
-(Section~\ref{sec:limits} measures the consequence); (3)
-profile-relative novelty, exact by the declared rules and verified as
-consistent with our reference implementation, and
-atomic three-budget settlement per root family and publication epoch,
-refined by immutable ordinal dictionaries, compressed bitmaps, and an exact
-Merkle-radix Outcome set, with settlement before \code{AVAILABLE},
-zero-novelty semantic replay, and a rejection that leaks a threshold bit
-bounded by the request budget; (4) signed, monotonic delegation whose
+DISTINCT, SUM, MIN, MAX, exact AVG), and single-Product exact
+$\{+,-,\times\}$ projections settled as derived cells; bounded
+nested Views flatten into it. It has no scalar functions, division, OR,
+subqueries, or outer joins (Section~\ref{sec:limits} measures the
+consequence). (3) Profile-relative novelty and atomic three-budget
+settlement per root family and publication epoch. Novelty is exact by the
+declared rules and verified as consistent with our reference implementation;
+it is refined by immutable ordinal dictionaries, compressed bitmaps, and an
+exact Merkle-radix Outcome set. Settlement precedes \code{AVAILABLE},
+semantic replay has zero novelty, and a rejection leaks a threshold bit
+bounded by the request budget. (4) Signed, monotonic delegation whose
 descendants share one root-family ledger, so fan-out cannot multiply
 release capacity, while per-task request budgets multiply refusal capacity
-by the approved tree size; and (5) algebraic
+by the approved tree size. (5) Algebraic
 propositions, a normal-form soundness theorem, an abstract settlement-safety
 property sanity-checked by two-fact TLA+ models, and executable
 Go/PostgreSQL differential, generated-plan, and fault-injection evidence.
@@ -284,10 +284,10 @@ enforcement/release coupling.
 \textbf{History, pricing, and provenance.} Auditing reconstructs access or
 determines whether a history fixes forbidden data; simulatable auditing
 also protects denial
-\cite{agrawal2004hippocratic,motwani2008auditing,kenthapadi2005simulatable};
-query pricing studies determinacy, history, and information gain
-\cite{koutris2012query,deep2017qirana,peng2025aria}; DP accounting and answer
-reuse bound $\epsilon$ \cite{dwork2014foundations,mazmudar2022cachedp};
+\cite{agrawal2004hippocratic,motwani2008auditing,kenthapadi2005simulatable}.
+Query pricing studies determinacy, history, and information gain
+\cite{koutris2012query,deep2017qirana,peng2025aria}, and DP accounting and answer
+reuse bound $\epsilon$ \cite{dwork2014foundations,mazmudar2022cachedp}.
 DProvDB \cite{zhang2023dprovdb} is the closest shape---a persistent
 per-analyst cumulative budget---but meters DP loss over noised views, not
 an exact declared-identity set (reproduced side-by-side: supplement).
@@ -317,19 +317,19 @@ evaluated; Passant artifact replay: supplement).
 
 \textbf{Authorization, delegation, and agent controls.} Task-based and
 purpose-based authorization scope rights to an activity or a declared purpose
-\cite{thomas1997tbac,byun2008purpose}, attenuation-only delegation is the
-macaroon model \cite{birgisson2014macaroons}, query-rewriting fine-grained
+\cite{thomas1997tbac,byun2008purpose}, and attenuation-only delegation is the
+macaroon model \cite{birgisson2014macaroons}. Query-rewriting fine-grained
 control \cite{rizvi2004extending} is the per-query comparator for the closed
-fragment, and usage/history control, RLS/VPD, ABAC, and query-policy systems
+fragment; usage/history control, RLS/VPD, ABAC, and query-policy systems
 establish ongoing authority, quotas, and rows
-\cite{park2004ucon,abadi2003history,li2003delegation,postgres16rls,mehta2017qapla,zhang2022blockaid}; MCP authorization
+\cite{park2004ucon,abadi2003history,li2003delegation,postgres16rls,mehta2017qapla,zhang2022blockaid}. MCP authorization
 and delegation scope capability invocation
-\cite{mcp2025spec,south2025delegation}; AgentDojo evaluates
+\cite{mcp2025spec,south2025delegation}. AgentDojo evaluates
 model behavior under prompt injection \cite{debenedetti2024agentdojo} and
-SafeNLIDB inference risk on the model side \cite{liu2026safenlidb};
-provenance-based access control \cite{park2012pbac} and CaMeL's tool-layer
+SafeNLIDB inference risk on the model side \cite{liu2026safenlidb}.
+Provenance-based access control \cite{park2012pbac} and CaMeL's tool-layer
 capabilities \cite{debenedetti2025camel} decide admission, not cumulative
-release; GAAP's persistent cross-tool flow state \cite{stanley2026gaap}
+release, and GAAP's persistent cross-tool flow state \cite{stanley2026gaap}
 spans steps and services outside \system's scope. \system assumes the authorization boundary, settles every descendant
 against one root ledger, treats the agent and its SQL as untrusted, and
 claims neither result sanitization, flow tracking, nor inference safety.
@@ -348,36 +348,38 @@ exercised by the evaluation. Page-by-page sweeps are bounded by $B_R$
 (Section~\ref{sec:calibration}); aggregates that read far more base facts
 than a purpose warrants by $B_D$ (the adaptive trace); delegation fan-out
 by the shared root ledger (the delegated child's refusal). Probe ladders
-$B_O$ bounds in count but not in recovery: under the default $B_O=128$ a
-binary search recovers a 64-bit cell in 64 settled probes, and $B_Q$ adds
-128 refusal bits per task; an executed adversary study realizes the bound
-live: recovery capped at $\lfloor B_O/2\rfloor$ bits under owner-derived
-tiers (\FinalVFiveAdversaryOwnerBits{}/\FinalVFiveAdversaryTightenedBits{}
-bits), exact recovery only under a loosened grant, greedy extraction
-stopped exactly at $B_D$ (retained pilot, supplement). Four
+are bounded by $B_O$ in count but not in recovery: under the default
+$B_O=128$ a binary search recovers a 64-bit cell in 64 settled probes, and
+$B_Q$ adds 128 refusal bits per task. An executed adversary study realizes
+the bound live (retained pilot, supplement): recovery is capped at
+$\lfloor B_O/2\rfloor$ bits under owner-derived tiers
+(\FinalVFiveAdversaryOwnerBits{}/\FinalVFiveAdversaryTightenedBits{}
+bits), exact recovery occurs only under a loosened grant, and greedy
+extraction stops exactly at $B_D$. Four
 boundaries hold at this goal: it counts declared identities, not inference;
 page order is order-only in the Catalog tie-break keys alone (the
 \code{ORDER BY} rule below); fresh per-root, per-epoch capacity bounds
 cross-day release by the approval workflow, not by \system; and the settlement
-decision is two data-dependent counter channels. A rejected attempt is a chosen membership
-question over unaccounted facts answered by one bit, charged against $B_Q$
+decision is two data-dependent counter channels. The first is rejection: a
+rejected attempt is a chosen membership question over unaccounted facts
+answered by one bit. It is charged against $B_Q$
 only and never $B_O$, so rejection capacity is $\sum B_Q$ over the approved
 task tree, not $B_X$ (Section~\ref{sec:online}): under the default route
 ($B_O{=}B_Q{=}128$) a $k$-task tree can settle 128 distinct predicates in
-total but take $128k$ refusals; a settled response returns
-the per-dimension charge and the ledger's used and limit counters
-(\code{exposure}, \code{exposure_budget}), so each of at most $B_O$
-successful novel queries reveals $|\Delta_X|$, up to $3\lceil\log_2
+total but take $128k$ refusals. The second is the settled response, which
+returns the per-dimension charge and the ledger's used and limit counters
+(\code{exposure}, \code{exposure_budget}). Each of at most $B_O$
+successful novel queries thus reveals $|\Delta_X|$, up to $3\lceil\log_2
 B_X\rceil$ bits of query-set-overlap information across the three
-dimensions; a third, timing channel exists because execution precedes
+dimensions. A third, timing channel exists because execution precedes
 settlement, so a refused query's latency can depend on the footprint it did
-not release (execution costs \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
+not release. Execution costs \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
 per Dependency Fact in the sub-phase pilot; retained refusals with full
 footprints of \TimingFullMin{}--\TimingFullMax{} Facts neither establish nor
-exclude it against \TimingPooledSDMS{}~ms noise, so the channel is
-unquantified and outside the guarantee; supplement), and
-Proposition~\ref{prop:probing-bound} bounds the response payload only;
-returning only the
+exclude the dependence against \TimingPooledSDMS{}~ms noise, so the channel
+is unquantified and outside the guarantee (supplement).
+Proposition~\ref{prop:probing-bound} bounds the response payload only.
+Returning only the
 remaining budget would be a planning convenience, not a smaller channel
 (remaining equals prior remaining minus charge). The model
 trusts identity, attribute, and approval assertions; Catalog and
@@ -394,7 +396,7 @@ mutable transactional database.
 A publication epoch $P_e$ binds a datasource, its schema, the snapshot
 bundle mapping every stable role to its immutable reporting publication,
 the Catalog, and the ordinal dictionaries (descriptor and digest $h_e$ in
-the supplement); the signed Catalog SHA transitively commits them, the
+the supplement). The signed Catalog SHA transitively commits them. The
 upstream synchronization cutoff is a trusted ETL premise, and a new
 synchronization creates $P_{e+1}$ rather than mutating $P_e$.
 \end{definition}
@@ -405,8 +407,8 @@ follow a rollover is reissued). Let $\mathsf Q(T)$ contain every query issued by
 $T$ or any delegated descendant. Then $\operatorname{publication}(T)=P_e$
 and $\operatorname{publication}(q)=P_e$ for every $q\in\mathsf Q(T)$.
 The Catalog transitively binds the grant and FactID environment to that
-epoch; ledger state, replay metadata, evidence, audits, and receipts carry
-the same bindings, and execution, settlement, and replay fail closed if
+epoch. Ledger state, replay metadata, evidence, audits, and receipts carry
+the same bindings; execution, settlement, and replay fail closed if
 they differ, so an active root cannot switch publications.
 
 \subsection{Facts and Task State}
@@ -414,14 +416,14 @@ they differ, so an active root cannot switch publications.
 \begin{definition}[Approved task]
 \label{def:task}
 An approved root task is the immutable authorization boundary
-$T=(P,S,B,C)$ with ceilings $B=(B_R,B_D,B_O)$,
-where $P$ is the signed policy grant over the principal, data products,
-fields, and scopes; $S$ is the immutable publication/snapshot binding of the
-epoch above; $B$ gives the release, positive-output
+$T=(P,S,B,C)$ with ceilings $B=(B_R,B_D,B_O)$.
+Here $P$ is the signed policy grant over the principal, data products,
+fields, and scopes, and $S$ is the immutable publication/snapshot binding of
+the epoch above. $B$ gives the release, positive-output
 dependency-footprint, and query-outcome ceilings together with the request
-budget $B_Q$ (the maximum number of settled or rejected attempts; a
+budget $B_Q$, the maximum number of settled or rejected attempts; a
 rejection consumes one unit plus its admission-reserved rows and database
-time and charges no exposure set); and $C$ is the signed set of
+time and charges no exposure set. Finally, $C$ is the signed set of
 semantic and execution constraints and row/time guards.  In particular, $C$ binds the effect
 profile and closed QueryPlan language, type/collation versions, semantic-View
 contracts, delegation rules, replay identity, and result handling.  The
@@ -442,19 +444,19 @@ catalog-owned source namespace (not a view alias), $s$ an immutable snapshot,
 $e$ a canonical stable entity key, $a$ a role-qualified field ID, $\tau\in\mathcal T$, and
 $C_\tau(v)$ its typed canonical value.  Base identities are
 $f_{row}=\langle\varpi,\nu,s,e\rangle$ and
-$f_{cell}=\langle\varpi,\nu,s,e,a,\tau,C_\tau(v)\rangle$; a derived identity is
-$f_d=\langle\varpi,\mathcal B,k_o,N_\varpi(x),\tau,C_\tau(v),CW(W)\rangle$,
-where $\mathcal B=\operatorname{sort}\{(\nu,s)\}$ is the relation's snapshot
+$f_{cell}=\langle\varpi,\nu,s,e,a,\tau,C_\tau(v)\rangle$. A derived identity is
+$f_d=\langle\varpi,\mathcal B,k_o,N_\varpi(x),\tau,C_\tau(v),CW(W)\rangle$.
+Here $\mathcal B=\operatorname{sort}\{(\nu,s)\}$ is the relation's snapshot
 bundle, $k_o$ is the canonical output-row entity key, $N_\varpi(x)$ erases aliases
 and normalizes the supported expression, and
 $W:\facts_{base}\rightharpoonup\mathbb N^+$
-is a finite-support witness multiset (empty support allowed); the
+is a finite-support witness multiset (empty support allowed). The
 product identity is the namespace projection of $\mathcal B$, not a
 caller-supplied name. $CW(W)$ length-prefixes the sorted
-$(\operatorname{FactHash}(f),W(f))$ pairs, the durable key is
+$(\operatorname{FactHash}(f),W(f))$ pairs. The durable key is
 $\mathrm{SHA256}(d_R\|\operatorname{Canon}(f))$ under the release/dependency
-separator $d_R$, Control PostgreSQL stores $\operatorname{Canon}(f)$
-and aborts on a same-hash, different-payload row, and Outcome facts use
+separator $d_R$; Control PostgreSQL stores $\operatorname{Canon}(f)$
+and aborts on a same-hash, different-payload row. Outcome facts use
 disjoint tagged kinds under separator $d_O$.
 
 Let $N(q)$ be the accepted query normal form, $h_N$ its SHA-256, $m$ the
@@ -475,11 +477,11 @@ $k_c=\code{COMPOSITE_OUTCOME}$. \system creates one semantic composite object
 $c_q=\langle k_c,\varpi,\operatorname{profile}(N),h_N,h_y,m,h_c,h_A,|A(q)|\rangle$;
 the query's Outcome Facts are $\facts_O(q)=A(q)\cup\{c_q\}$ and $M_O(q)$
 is the set of their $\operatorname{FactHash}_O$ values.
-Repeated literals and supported rewrites thus reuse atom identities, while
-the composite commits to the normalized query, exact result observation,
+Repeated literals and supported rewrites thus reuse atom identities. The
+composite commits to the normalized query, exact result observation,
 and complete atom set, so every distinct successful query (every page
-included) adds one composite and $B_O$ also caps distinct successful
-queries; the Merkle-radix set stores $M_O(q)$, empty results and scalar
+included) adds one composite, and $B_O$ also caps distinct successful
+queries. The Merkle-radix set stores $M_O(q)$; empty results and scalar
 zero stay explicit, and the signed grant bounds literal occurrences, unique
 atoms, and payloads before settlement.
 
@@ -505,7 +507,7 @@ query/result identity defined above.
 \end{definition}
 
 \emph{Example (charged by the operator rules of Section~\ref{sec:effect-extraction}).} Over a five-row Product with fields $(id,dept,amt)$, the
-query $\pi_{id,amt}\sigma_{dept='S'}$ selects rows $r_1$--$r_3$ and charges
+query $\pi_{id,amt}\sigma_{dept='S'}$ selects rows $r_1$--$r_3$. It charges
 $6$ Result cells, $12$ Dependency facts (each selected row's row fact, its
 $dept$ cell read by the predicate, and its two visible cells), and $2$
 Outcome facts (the atom $dept{=}\text{'S'}$ and the composite). Splitting it
@@ -592,13 +594,13 @@ next query $\sigma_{dept='T'}$ needs new base and Outcome facts, so its
 $\Delta_T$ no longer fits, and it is refused uncharged---the ledger still
 reads $(6,12,7)$.
 Exactness rests on four accounting obligations, proved for the closed
-language in the supplement (O1--O4): (O1) every selected cell of a successful result
-has its materialized identity in $\facts_R$; (O2) $\facts_D^\varpi$ is exactly
+language in the supplement (O1--O4). (O1) Every selected cell of a successful result
+has its materialized identity in $\facts_R$. (O2) $\facts_D^\varpi$ is exactly
 the declared inductive footprint (retained predicate fields, join keys, group
 keys, complete aggregate arguments), excluding rejected rows and non-output
-pages; (O3) the listed rewrites, splits, page partitions, overlaps,
-retries, join support, and delegation cannot reduce cumulative charge;
-(O4) each success creates one composite and its atoms, exact replay reuses
+pages. (O3) The listed rewrites, splits, page partitions, overlaps,
+retries, join support, and delegation cannot reduce cumulative charge.
+(O4) Each success creates one composite and its atoms, exact replay reuses
 them, and a rejected attempt creates none, charged only to $B_Q$.
 
 Six obligations separate the assurance layers (O1--O4 semantic claims, O5
@@ -782,17 +784,17 @@ The theorem is the analogue, for the release/dependency effect and rules
 R1--R6, of the invariance of semiring provenance under equivalent
 positive-algebra rewrites \cite{green2007provenance,amsterdamer2011aggregate};
 what is new is the effect function it preserves, not the proof pattern.
-The rewrite set is exactly: (R1) erase aliases and display names to Catalog
-stable roles; (R2) canonicalize qualified field, function, and operator
-spellings and typed literals; (R3) sort commutative components---AND
+The rewrite set is exactly six rules. (R1) Erase aliases and display names
+to Catalog stable roles. (R2) Canonicalize qualified field, function, and
+operator spellings and typed literals. (R3) Sort commutative components---AND
 conjuncts, projections, aggregates, group keys, union operands, and join
-operand/predicate order---by typed stable identity; (R4) fold an accepted
+operand/predicate order---by typed stable identity. (R4) Fold an accepted
 connected equi-join graph into one canonical binary term (after the graph
-boundary only, never reassociating arbitrary SQL); (R5) collapse an
+boundary only, never reassociating arbitrary SQL). (R5) Collapse an
 identical duplicate union branch only when its child carries a full-tuple
 distinctness proof (Union and Group produce one, Select and Page preserve
-it, Project preserves it only for an unchanged schema, Scan has none);
-(R6) canonicalize the Catalog page-order suffix. The supplement states a
+it, Project preserves it only for an unchanged schema, Scan has none).
+(R6) Canonicalize the Catalog page-order suffix. The supplement states a
 per-rule effect-preservation lemma with these side conditions; RQ2's
 zero-charge guarantee covers exactly R1--R6.
 
@@ -842,13 +844,13 @@ the semantic-View path eliminates a bounded nested DAG into them. Union is
 structured-plan only, pagination is one-product only, and ``online'' does
 not mean arbitrary SQL. For joins, the PostgreSQL AST and Catalog types
 feed the canonical $G_J$ builder, which emits the multi-way join operator
-and the deterministic binary SQL/effect fold; unsupported joins, set trees,
+and the deterministic binary SQL/effect fold. Unsupported joins, set trees,
 and pagination fail closed, and callers cannot supply roles, SQL fragments,
 FactIDs, or provenance. For semantic Views, one catalog snapshot checks
 definitions, interfaces, and dependency edges, expands safe acyclic Views
-to materialized leaves, and emits the same core; four digests (root
+to materialized leaves, and emits the same core. Four digests (root
 definition, dependency closure, canonical plan, public interface) bind into
-the Grant and query, drift requires a new approval, and execution resolves
+the Grant and query; drift requires a new approval, and execution resolves
 least-privilege terminal scopes before reservation.
 
 \subsection{Snapshot Publication and Ordinal Compilation}
@@ -856,15 +858,15 @@ least-privilege terminal scopes before reservation.
 The publication compiler turns each frozen snapshot into immutable
 per-row/per-field segments, sorting full Fact hashes and assigning 32-bit
 ordinals (a FactID--ordinal bijection $D_j$ per segment; Roaring compression
-changes representation, not membership \cite{chambi2016roaring}); a sidecar
+changes representation, not membership \cite{chambi2016roaring}). A sidecar
 maps entity keys to ordinals, payloads stay cold, and one manifest binds
 snapshot, schemas, sidecar, dictionaries, and digests, so any collision
 blocks publication.
 Online, visible SQL and the companion run in one read-only
-\code{REPEATABLE READ} transaction; the companion retains every required
-dependency, a k-way hash merge reproduces the witness commitment,
-Release/Dependency use segmented Roaring bitmaps, Outcome hashes enter an
-exact Merkle-radix set, and invalid handles, manifests, encodings, overflow,
+\code{REPEATABLE READ} transaction. The companion retains every required
+dependency, and a k-way hash merge reproduces the witness commitment.
+Release/Dependency use segmented Roaring bitmaps, and Outcome hashes enter an
+exact Merkle-radix set. Invalid handles, manifests, encodings, overflow,
 or truncation fail closed.
 
 Decoding is exact: within one dictionary segment, bitmap OR, ANDNOT, and
@@ -938,17 +940,17 @@ replay returns the first status without re-executing.
 
 A rejected attempt returns only the code
 \code{EXPOSURE_BUDGET_EXHAUSTED}---no dimension, count, or row (evaluation
-tables name the oracle's projection, not a response field); it charges no exposure, in particular no Outcome atom, and
+tables name the oracle's projection, not a response field). It charges no exposure, in particular no Outcome atom, and
 is recorded as a failed query (contributing no set,
-Definition~\ref{def:task-exposure}) consuming $B_Q$ and its admission
-reservation (Section~\ref{sec:model}); $B_Q$ is an exposure parameter,
+Definition~\ref{def:task-exposure}) that consumes $B_Q$ and its admission
+reservation (Section~\ref{sec:model}). $B_Q$ is an exposure parameter,
 not a resource guard.
 
 \begin{proposition}[Probing bound]
 \label{prop:probing-bound}
 Each rejected attempt reveals one comparison outcome---whether its novel
 effect fits the remaining budgets---and consumes one unit of the attempting
-task's own $B_Q$, which the prototype accounts per task; a delegated child
+task's own $B_Q$, which the prototype accounts per task. A delegated child
 signs its own $B_Q$ no larger than its parent's, so a task tree of $k$ tasks
 obtains at most $\sum_{i\le k}B_Q^{(i)}$ comparisons in total, independently
 of $B_R$, $B_D$, and $B_O$. Each successful novel query additionally
@@ -996,14 +998,14 @@ child re-issuing the split $\pi_{id}$ replays at $0/0/0$ against the
 shared ledger; a child attempting $\sigma_{dept='T'}$ is refused by the
 same $\Delta_T$. Settlement checks the settling task's signed ceiling against the
 family total, so a lower-ceiling child adds novel facts only while the
-family total stays within it and otherwise settles only zero-novelty
-replays: a narrower child must not widen the family.
+family total stays within it and otherwise only zero-novelty
+replays: a narrower child cannot widen the family.
 
-Conservation stops at the root and at the publication epoch: a second root
+Conservation stops at the root and at the publication epoch. A second root
 for the same principal, or a root approved on $P_{e+1}$, has an independent
-ledger, so two approved roots on one Product double its capacity and
+ledger. Two approved roots on one Product thus double its capacity, and
 unchanged content may be accounted again under $P_{e+1}$ (snapshot identity
-is part of FactID identity); an existing root continues against $P_e$ through
+is part of FactID identity). An existing root continues against $P_e$ through
 a retained route or fails closed. Cross-root deduplication would need a
 tenant-wide semantic identity outside the task-scoped guarantee.
 
@@ -1120,16 +1122,16 @@ and \ArtifactFormalStates{} states; bounds in the supplement): sanity
 checks of the specification that abstract away SQL, rows, hashes,
 signatures, and ciphertext. Executable Go/PostgreSQL differential, concurrency, tamper, and
 fault-injection tests check implementation correspondence (the supplement
-maps layers and gaps); among them a randomized root-family test settles
+maps layers and gaps). Among them, a randomized root-family test settles
 \VFiveFamilyPropertyQueries{} random observation sets over
 \VFiveFamilyPropertySeeds{} random delegation trees (up to
 \VFiveFamilyPropertyMaxTasks{} tasks, \VFiveFamilyPropertyNarrowedTasks{}
 of them with ceilings drawn below their parent's) in sequential steps and
-concurrent bursts against the live Control store, checking after every
-step that the committed head equals a separately kept plain-set union in
+concurrent bursts against the live Control store. After every step it
+checks that the committed head equals a separately kept plain-set union in
 all three dimensions, never exceeds the root's or the settling task's
 ceiling, and matches the ceiling rule's admit/refuse decision and
-exact-novelty charge (\VFiveFamilyPropertyRefused{} refusals in all); it
+exact-novelty charge (\VFiveFamilyPropertyRefused{} refusals in all). It
 drives the settlement engine directly, not SQL lowering. We claim bounded
 model checking plus implementation evidence, not a mechanized refinement.
 
@@ -1138,12 +1140,12 @@ model checking plus implementation evidence, not a mechanized refinement.
 
 \subsection{Questions and Reproducibility}
 
-RQ1 asks ground-truth Fact membership, RQ2 rewrite and charge invariance,
-RQ3 conservation under adaptive execution, delegation, and concurrency, RQ4
+RQ1 asks ground-truth Fact membership; RQ2, rewrite and charge invariance;
+RQ3, conservation under adaptive execution, delegation, and concurrency; RQ4,
 ordinal/bitmap acceptance (answered by the campaign's Scale profile; the
-archived V4 run is reported only in the supplement), and RQ5 daily
-publication and retained routing
-(RQ1--RQ3 regenerate digest-bound corpus \ExposureCorpusHash{}); every call
+archived V4 run is reported only in the supplement); and RQ5, daily
+publication and retained routing.
+RQ1--RQ3 regenerate digest-bound corpus \ExposureCorpusHash{}, and every call
 uses a complete signed profile. Medians and p95 are Type-7
 quantiles \cite{hyndman1996quantiles} over the stated samples; ProvSQL
 provenance capture is the same-host cost reference
@@ -1152,40 +1154,40 @@ provenance capture is the same-host cost reference
 
 RQ1's oracle (\RQOnePassed{}/\RQOneCases{} cases) is a separate
 implementation over \RQOneRows{} rows that imports no production policy
-code; the campaign's oracle package is likewise a separate implementation
-of the FactID wire contract, written by us from the same specification (so
-agreement is implementation-to-specification, not a third party's reading;
-such oracles cannot detect specification errors or a shared misreading of
-PostgreSQL semantics, so we claim consistency with our oracle rather than
-independent validation, and RQ1's \RQOneCases{} and RQ3's \RQThreeCases{}
-cases are regression evidence, not statistical evidence; one check shares
-nothing with our specification: a pilot-class rerun
-(\FinalVFiveProvSQLLeafSamples{} samples) expands ProvSQL's own
-circuit to its base tuples on the paired join cells and finds them equal,
-member by member, to the oracle's \FinalVFiveProvSQLLeafTotalRowFacts{}
-base-row facts, to which \system's Dependency sets are linked in turn),
-whose import boundary excludes
-every production package (enforced by a dependency test), fixes the
+code. The campaign's oracle package is likewise a separate implementation
+of the FactID wire contract, written by us from the same specification. Its
+import boundary excludes
+every production package (enforced by a dependency test). It fixes the
 expected Fact cardinalities of all
-\FinalVFivePublicationIndependentOracleSamples{} Scale and trace samples,
+\FinalVFivePublicationIndependentOracleSamples{} Scale and trace samples
 and is linked member by member, through the activated publication
 dictionaries, to every committed Dependency set of the Scale and ProvSQL
 cells (\FinalVFivePublicationScaleDependencyLinksVerified{} and
 \FinalVFivePublicationProvSQLDependencyLinksVerified{} set verifications,
 none with a missing or extra ordinal, up to
-\FinalVFivePublicationScaleDependencyLinkMaxFacts{} Facts per set), whereas
-the archived \RQFourVFourOracleFacts{}-Fact RQ4 check
+\FinalVFivePublicationScaleDependencyLinkMaxFacts{} Facts per set).
+Agreement is thus implementation-to-specification, not a third party's
+reading. Such oracles cannot detect specification errors or a shared
+misreading of PostgreSQL semantics, so we claim consistency with our oracle
+rather than independent validation; RQ1's \RQOneCases{} and RQ3's
+\RQThreeCases{} cases are regression evidence, not statistical evidence.
+One check shares nothing with our specification: a pilot-class rerun
+(\FinalVFiveProvSQLLeafSamples{} samples) expands ProvSQL's own
+circuit to its base tuples on the paired join cells and finds them equal,
+member by member, to the oracle's \FinalVFiveProvSQLLeafTotalRowFacts{}
+base-row facts, to which \system's Dependency sets are linked in turn.
+The archived \RQFourVFourOracleFacts{}-Fact RQ4 check
 (\RQFourVFourGatesPassed{}/\RQFourVFourGatesTotal{} gates, one index build)
 shares the FactID encoder and is only derivation-independent. RQ1--RQ3
 and RQ5 are regenerated at the submission commit; the campaign is sealed at
 \FinalVFivePublicationCommit{}. RQ2
 (\RQTwoExposureCases{} cases, \RQTwoExposureMismatches{} mismatches)
-requires equal Result/Dependency sets and zero bidirectional charge; RQ3
+requires equal Result/Dependency sets and zero bidirectional charge. RQ3
 (\RQThreeCases{} cases, deterministic and as PostgreSQL race tests) covers
-split, page, retry, snapshot identity, joins/unions, and delegation;
+split, page, retry, snapshot identity, joins/unions, and delegation.
 RQ5 passes \RQFiveChecksPassed{}/\RQFiveChecksTotal{} rollover checks
 across \RQFiveTransitions{} transitions (build and activation timings:
-supplement); Outcome
+supplement). Outcome
 regressions cover empty
 probes, replay, radix tamper, and digest binding. Beyond the hand-written
 cases, a generated-plan campaign (\GeneratedPlans{} random plans over
@@ -1209,17 +1211,17 @@ governed execution), and the replays; ``sealed campaign'' denotes the frozen
 protocol's runs (retained pilots are supplementary, never eligible). The frozen
 campaign (\FinalVFivePublicationCampaign{}, commit
 \FinalVFivePublicationCommit{}) executed all
-\FinalVFivePublicationTotalCells{} frozen cells
-(\FinalVFivePublicationProfileCells{} profile cells across
+\FinalVFivePublicationTotalCells{} frozen cells:
+\FinalVFivePublicationProfileCells{} profile cells across
 \FinalVFivePublicationDeployments{} fresh deployments of
 \FinalVFivePublicationProfiles{} profiles, each deployed
 \FinalVFivePublicationFreshExecutions{} times, plus
 \FinalVFivePublicationScaleNonProfileCells{} Scale and
 \FinalVFivePublicationCompilerNonProfileCells{} Compiler deployment-free
-cells), every one of its \FinalVFivePublicationMeasuredSamples{} measured
-samples passing (all per-sample invariant and oracle checks; deterministic,
-not statistical), with a verified Receipt on every governed arm;
-compiler-admitted join widths and role counts beyond the measured cells
+cells. Every one of its \FinalVFivePublicationMeasuredSamples{} measured
+samples passed (all per-sample invariant and oracle checks; deterministic,
+not statistical), with a verified Receipt on every governed arm.
+Compiler-admitted join widths and role counts beyond the measured cells
 stay unmeasured (supplement).
 Table~\ref{tab:baseline-main} gives
 the per-cell medians: across the \FinalVFivePublicationBaselineCells{}
@@ -1227,12 +1229,12 @@ Baseline cells (sixteen workload/scale pairs with direct, novel, and the
 protocol-defined replay cells) a novel governed query costs
 \FinalVFivePublicationOverheadMin{}--\FinalVFivePublicationOverheadMax{}
 times its direct PostgreSQL equivalent. That cost follows the total Fact
-effect the query materializes, not its visible row count: S2/SF10 returns
+effect the query materializes, not its visible row count. S2/SF10 returns
 \FinalVFivePublicationSTwoRows{} grouped rows over
 \FinalVFivePublicationSTwoDependencyFacts{} dependencies in
 \FinalVFivePublicationSTwoNovelS{}~s, longer than S1/SF10 needs to release
 \FinalVFivePublicationSOneReleaseFacts{} Facts
-(\FinalVFivePublicationSOneNovelS{}~s), while the result-heavy S6 cells cost
+(\FinalVFivePublicationSOneNovelS{}~s). The result-heavy S6 cells cost
 more per Fact than S2, so Release materialization is at least as expensive
 per Fact as Dependency derivation. Settlement is not where exactness is
 paid: the Scale profile below settles against a million-Fact history in
@@ -1242,15 +1244,15 @@ single-threaded Go-side ordinal consumption and witness merging dominate
 (\FinalVFiveSubphaseGoSidePctSOneSFOne{}--\FinalVFiveSubphaseGoSidePctSSixHundredKByteSixteen\%
 of the phase,
 \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Fact), so multi-second latency suits batch, not interactive, agents;
-the bottleneck is single-threaded implementation, and replay buys database
+per Fact). Multi-second latency thus suits batch, not interactive, agents.
+The bottleneck is single-threaded implementation, and replay buys database
 silence, zero charge, and audit identity, not time. A retained cost
-ablation (supplement) adds the accounting-off arm the sealed campaign lacks: an executed exposure-free Catalog
+ablation (supplement) adds the accounting-off arm the sealed campaign lacks. An executed exposure-free Catalog
 twin (authorization, publication, receipts, no fact accounting) costs
 \BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
-1.7-million-Fact S6 total; fact derivation is the largest accounted share
-(\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6) and the history-set
-leaves \BFiveSSixLedger{}~ms. On the sealed Scale Dependency sets a naive one-row-per-fact
+1.7-million-Fact S6 total. Fact derivation is the largest accounted share
+(\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6), and the history-set
+leaves take \BFiveSSixLedger{}~ms. On the sealed Scale Dependency sets a naive one-row-per-fact
 exact ledger (unpaired pilot, supplement) takes
 \NaiveScaleTenKFullRatio{}--\NaiveScaleTenKZeroRatio{}$\times$ \system's settlement time at $10^4$
 facts and \NaiveScaleMillionFullRatio{}--\NaiveScaleMillionZeroRatio{}$\times$ at $10^6$.
@@ -1271,40 +1273,40 @@ Cell & Rows & Rel. & Dep. & Direct & Novel & Sem. & Idem. & Over. \\
 \bottomrule
 \end{tabular}
 \end{table}
-All \FinalVFivePublicationReplayZeroSQLSamples{} replay samples issued zero
-business SQL and charged no Facts (the row budget is still consumed), but
-replay is no latency win: semantic replay exceeds direct re-execution in
+All \FinalVFivePublicationReplayZeroSQLSamples{} replay samples issued no
+business SQL and charged no Facts (row budget still consumed). Replay is no
+latency win: semantic replay exceeds direct re-execution in
 every cell; only idempotent replay at S2/SF10 undercuts it.
 
-The supplement's phase table shows where that time goes: the Gateway
-reports six non-overlapping server phases per governed response, and the
+The supplement's phase table shows where that time goes. The Gateway
+reports six non-overlapping server phases per governed response. The
 largest phase of S1/SF1 is \texttt{\FinalVFivePublicationPhaseDominantSOneSFOne{}}
 (\FinalVFivePublicationPhaseDominantSharePctSOneSFOne\% of its server total) and
 of S6/100k-x16 is \texttt{\FinalVFivePublicationPhaseDominantSSixHundredKByteSixteen{}}
-(\FinalVFivePublicationPhaseDominantSharePctSSixHundredKByteSixteen\%);
-the Control settlement transaction that computes exact novelty and advances
+(\FinalVFivePublicationPhaseDominantSharePctSSixHundredKByteSixteen\%).
+The Control settlement transaction that computes exact novelty and advances
 the root head takes \FinalVFivePublicationPhaseSettlementMSSOneSFOne{}~ms at
 S1/SF1 and \FinalVFivePublicationPhaseSettlementMSSSixHundredKByteSixteen{}~ms
-at S6/100k-x16; the other four phases (prepare, artifact staging,
+at S6/100k-x16. The other four phases (prepare, artifact staging,
 publication, finalize) are the governed floor every response pays,
-replays included, so the semantic-replay median of a cell bounds that floor
-and the rest of the novel median is derivation plus settlement.
+replays included; the semantic-replay median of a cell thus bounds that
+floor, and the rest of the novel median is derivation plus settlement.
 Same-root contention is measured separately: rounds of 10 and 50 concurrent
 requests against one root family at its budget boundary. A single request
 drains in \FinalVFivePublicationConcurrencySerialDrainPFiftyMS{}~ms (serial
-control); a round of 50 under natural contention drains in
+control). A round of 50 under natural contention drains in
 \FinalVFivePublicationConcurrencyFiftyNaturalDrainPFiftyMS{}~ms p50 and
 \FinalVFivePublicationConcurrencyFiftyNaturalDrainPNinetyFiveMS{}~ms p95,
 i.e., \FinalVFivePublicationConcurrencyFiftyNaturalRequestsPerSecond{}--\FinalVFivePublicationConcurrencyTenNaturalRequestsPerSecond{}
 contending requests per second across the measured widths and modes through
-one root head, one of which settles novel work per round; every generated round met the contention condition (30
+one root head, one of which settles novel work per round. Every generated round met the contention condition (30
 per cell and deployment, none discarded), and the supplement tabulates every
 width and mode. Because every descendant settles on one root head, a task
 tree's settlement throughput is bounded by that head; per-dimension or
-batched settlement could relax the bound; with budget to spare, one head
+batched settlement could relax the bound. With budget to spare, one head
 settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second
-(four roots \ThroughputFourRootFiftyDisjointNPS{}); at fifty contenders on
-one head \ThroughputOneRootFiftyRefused{} of
+(four roots \ThroughputFourRootFiftyDisjointNPS{}). At fifty contenders on
+one head, \ThroughputOneRootFiftyRefused{} of
 \ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
 sixteen head-CAS retries---uncharged, ledger exact, client resubmits---and
 with up to \RetryK{} resubmissions \RetryOneRootFiftyCompletionPct\% settled
@@ -1349,12 +1351,12 @@ for the six-step pagination in either order), each distinct page or range
 shape settled one composite, replays and rewrites charged nothing, and both
 set-operation variants failed closed. In the ladder, two count probes (one
 from a delegated child) and a detail primer consume the root's Outcome
-ceiling of \FinalVFivePublicationAttackThresholdCeiling{}; the child's third
+ceiling of \FinalVFivePublicationAttackThresholdCeiling{}. The child's third
 probe is refused with \FinalVFivePublicationAttackThresholdRejectionCode{},
 so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
-bit while the direct arm answered all three (supplement); the corpus is
-preregistered and the adversary study above probes the strategy space.
+bit while the direct arm answered all three (supplement). The corpus is
+preregistered, and the adversary study above probes the strategy space.
 A simulated eight-point recipe sweep (supplement) first admits all
 \SweepBenignAuthorized{} authorized statements and first recovers the secret at one grid point, $\SweepRecoverAt{}\times$.
 
@@ -1362,7 +1364,7 @@ A simulated eight-point recipe sweep (supplement) first admits all
 one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace
 (receipt look-ups, pages, equivalent predicate spellings, repeated
 aggregations, branches chosen from prior scalars) through three arms on one
-Product: PostgreSQL row-level security with a department policy and column
+Product. The arms are PostgreSQL row-level security with a department policy and column
 grants, \system with an unlimited ledger, and \system bounded at
 $\lfloor 0.7\,U\rfloor$ of the trace's distinct facts
 $U=\FinalVFivePublicationRLSUnionRelease{}/\FinalVFivePublicationRLSUnionDependency{}/\FinalVFivePublicationRLSUnionOutcome{}$
@@ -1371,30 +1373,30 @@ as counted by a separate trace-union oracle (budgets
 \FinalVFivePublicationRLSPerCell{} samples per arm, identical in every one).
 RLS answered all \FinalVFivePublicationRLSQueries{} queries
 (\FinalVFivePublicationRLSRowsRLS{} rows) in
-\FinalVFivePublicationRLSDrainRLSMS{}~ms; \system-unlimited answered all in
-\FinalVFivePublicationRLSDrainUnlimitedS{}~s and its final ledger equals the
-oracle's union; \system-bounded answered
-\FinalVFivePublicationRLSBoundedSuccessful{},
+\FinalVFivePublicationRLSDrainRLSMS{}~ms. \system-unlimited answered all in
+\FinalVFivePublicationRLSDrainUnlimitedS{}~s, and its final ledger equals the
+oracle's union. \system-bounded answered
+\FinalVFivePublicationRLSBoundedSuccessful{} and
 refused query \FinalVFivePublicationRLSBoundedRefusalIndex{}---the first
 whose oracle prefix exceeds a budget (Fig.~\ref{fig:rls-trace})---with
-\FinalVFivePublicationAttackThresholdRejectionCode{}, released nothing
-afterwards, and ended at \FinalVFivePublicationRLSBoundedLedger{}. A control
+\FinalVFivePublicationAttackThresholdRejectionCode{}; it released nothing
+afterwards and ended at \FinalVFivePublicationRLSBoundedLedger{}. A control
 step outside the policy rows and the column grant is refused at the column
-under both (supplement), so \system composes with per-query authorization;
-RLS admitting every query is definitional (no cumulative budget): the
+under both (supplement), so \system composes with per-query authorization.
+That RLS admits every query is definitional (no cumulative budget); the
 comparison shows where a set budget binds. The counter comparators are also \emph{executed}, across three fresh
 deployments that each realized the same outcome (retained pilot,
-supplement): the same trace under row-, query-, and release-set budgets
-fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit
-(unlike the supplement's campaign-derived counter replay, calibrated
-to the set ledger's stopping point), in three orders each,
+supplement). The same trace ran under row-, query-, and release-set budgets
+fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit, in
+three orders each (unlike the supplement's campaign-derived counter replay,
+calibrated to the set ledger's stopping point). The counters
 released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
 every order; the exact floors capped release at
 \FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products
-(counters truncate and archive; exposure refuses without archiving);
-replayed under one refuse-whole, task-alive rule, only the row counter
+(counters truncate and archive; exposure refuses without archiving).
+Replayed under one refuse-whole, task-alive rule, only the row counter
 moves (\AlignedRowsNaturalExecuted{}$\to$\AlignedRowsNaturalAdmitted{}
-admitted) and the set floors remain the only budget bounding the released
+admitted), and the set floors remain the only budget bounding the released
 set (supplement).
 
 
@@ -1438,13 +1440,13 @@ a boundary that is asymmetric by construction and ranks nothing.
 \subsection{Reproducibility Boundary}
 
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
-PostgreSQL 16.14 image (supplement). The
+PostgreSQL 16.14 image (supplement). The artifact is the
 repository at the cited commits (\url{https://github.com/minmin-lab/factgate},
 with the evidence pack and the digest of every deposited file) and the
 retained raw evidence (\RawEvidenceFiles{} files, \RawEvidenceMB{}~MB: the
 campaign's \RawEvidenceSealedSamples{} sample files, its digest-chain records,
-and the retained pilots' samples; Zenodo, doi:\RawEvidenceDOI{}) form the
-artifact; every digest chain and macro is recomputable
+and the retained pilots' samples; Zenodo, doi:\RawEvidenceDOI{}).
+Every digest chain and macro is recomputable
 from it, as a fresh checkout confirmed. Numbers attributed to the campaign come from
 the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
@@ -1466,36 +1468,38 @@ governance units, not bits; \system omits rejected rows, non-output
 groups/pages, rank-only inputs, correlations, background knowledge, and
 physical reads, and provides neither minimal causality nor differential
 privacy (Section~\ref{sec:model}). \textbf{Query and identity scope.} Evidence uses
-frozen, manifest-proven publications; the closed fragment is a
+frozen, manifest-proven publications. The closed fragment is a
 reporting-Product fragment, not ad-hoc analytics: the production lowerer
 admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
 (first rejections: subqueries
 \TPCHSubqueryQueries{}, arithmetic \TPCHArithmeticQueries{}, multi-product
-\code{LIMIT}), and
+\code{LIMIT}) and
 \SSBLowerableExplicitJoin{} of the \SSBQueries{} Star Schema Benchmark
-reporting queries (supplement tables);
-LLM-written SQL from the Product sheet alone: of \HeldoutQueries{} held-out
-questions written after the fragment froze, \HeldoutLowerable{}
-(\HeldoutLowerablePct\%) lower unedited (admission, answers ungraded; \HeldoutEngineeringGaps{} engineering
-gaps, \HeldoutNewRule{} new rules, \HeldoutAgentDefects{} agent output; \SheetCorrectedRange{} under a corrected sheet, pilot); the
-development set, adapted after its first pass, lowers
-\AgentWorkloadLowerable{} of \AgentWorkloadQueries{}
-(\AgentWorkloadLowerablePct\%) and measures iteration, not the frozen
-boundary; in a two-objective agent study (\AgentRuns{} runs, supplement) an
-off-the-shelf agent completes the legitimate objective in every run after one
-refused listing and its count-only probe stops at six probes; the rest stop
+reporting queries (supplement tables).
+For LLM-written SQL from the Product sheet alone, \HeldoutLowerable{}
+(\HeldoutLowerablePct\%) of \HeldoutQueries{} held-out
+questions written after the fragment froze lower unedited (admission, answers ungraded;
+\SheetCorrectedRange{} under a corrected sheet, pilot). Of the rest,
+\HeldoutEngineeringGaps{} are engineering
+gaps, \HeldoutNewRule{} need new rules, and \HeldoutAgentDefects{} is agent output; they stop
 first at scalar functions, division or a subquery inside
 arithmetic, non-literal comparisons, \code{BETWEEN}/\code{LIKE}, \code{OR},
 \code{LEFT JOIN}, or \code{LIMIT} over a join. Non-literal comparisons,
-\code{OR}, and outer joins need new rules (sketched in the supplement). Stable keys and
+\code{OR}, and outer joins need new rules (sketched in the supplement). The
+development set, adapted after its first pass, lowers
+\AgentWorkloadLowerable{} of \AgentWorkloadQueries{}
+(\AgentWorkloadLowerablePct\%) and measures iteration, not the frozen
+boundary. In a two-objective agent study (\AgentRuns{} runs, supplement) an
+off-the-shelf agent completes the legitimate objective in every run after one
+refused listing, and its count-only probe stops at six probes. Stable keys and
 publications are trusted declarations, with View drift checked at request,
 approval, and execution.
 
 \textbf{Applicability envelope.} Publication artifacts cost
 \RQFiveBytesPerFact{}~B and \RQFiveBuildMicrosPerFact{}~$\mu$s per Fact
-(RQ5 Day~0); a $10^9$-Fact Product
-would need hundreds of gigabytes and hours per build, so the envelope is $10^5$--$10^6$-row Products, with a
-retained pilot ladder settling \FinalVFiveScaleSevenLargestDependency{}
+(RQ5 Day~0). A $10^9$-Fact Product
+would need hundreds of gigabytes and hours per build, so the envelope is $10^5$--$10^6$-row Products; a
+retained pilot ladder settles \FinalVFiveScaleSevenLargestDependency{}
 Dependency facts in one query (supplement). Same-root
 settlement serializes on the head (Section~\ref{sec:evaluation}).
 
