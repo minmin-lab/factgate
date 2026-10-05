@@ -372,12 +372,12 @@ B_X\rceil$ bits of query-set-overlap information across the three
 dimensions; a third, timing channel exists because execution precedes
 settlement, so a refused query's latency grows with the footprint it did
 not release (\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
-per Dependency Fact in the sub-phase pilot; on the retained refusals its
-latency is flat in the refused footprint, \TimingSlopeMSPerRow{}~ms per row
-against \TimingPooledSDMS{}~ms noise, and under a linear-Gaussian model with
-a uniform prior and these empirical parameters the row guard bounds it at
-about \TimingRowGuardBits{} bits per refusal; this is a conditional model
-estimate, not a worst-case bound for the deployed system, supplement), and
+per Dependency Fact in the sub-phase pilot; on retained refusals of
+one-to-six-row footprints latency moves \TimingSlopeMSPerRow{}~ms per row
+against \TimingPooledSDMS{}~ms noise, and a linear-Gaussian model gives
+\TimingRowGuardBits{} to \TimingRefusalSlopeBits{} bits per refusal at the
+row guard depending on the rate extrapolated, a conditional estimate, not a
+worst-case bound; supplement), and
 Proposition~\ref{prop:probing-bound} bounds the response payload only;
 returning only the
 remaining budget would be a planning convenience, not a smaller channel
@@ -1246,14 +1246,14 @@ of the phase,
 \FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
 per Fact), so multi-second latency suits batch, not interactive, agents;
 the bottleneck is single-threaded implementation, and replay buys database
-silence, zero charge, and audit identity, not time. A four-arm cost
-ablation (supplement) splits the governed total: an exposure-free Catalog
+silence, zero charge, and audit identity, not time. A retained cost
+ablation (supplement) adds the accounting-off arm the sealed campaign lacks: an executed exposure-free Catalog
 twin (authorization, publication, receipts, no fact accounting) costs
 \BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
 1.7-million-Fact S6 total; fact derivation is the largest accounted share
 (\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6) and the history-set
-leaves \BFiveSSixLedger{}~ms, against seconds per million-fact statement for
-a naive one-row-per-fact ledger (different inputs; supplement).
+leaves \BFiveSSixLedger{}~ms; no same-input run against a naive exact
+ledger exists, so no speed-up is claimed (supplement).
 
 \begin{table}[t]
 \centering
@@ -1288,8 +1288,7 @@ S1/SF1 and \FinalVFivePublicationPhaseSettlementMSSSixHundredKByteSixteen{}~ms
 at S6/100k-x16; the other four phases (prepare, artifact staging,
 publication, finalize) are the governed floor every response pays,
 replays included, so the semantic-replay median of a cell bounds that floor
-and the rest of the novel median is derivation plus settlement. No arm runs
-the governed path with accounting disabled.
+and the rest of the novel median is derivation plus settlement.
 Same-root contention is measured separately: rounds of 10 and 50 concurrent
 requests against one root family at its budget boundary. A single request
 drains in \FinalVFivePublicationConcurrencySerialDrainPFiftyMS{}~ms (serial
@@ -1356,8 +1355,8 @@ so the agent learned \FinalVFivePublicationAttackThresholdAnswered{} of
 \FinalVFivePublicationAttackThresholdProbes{} thresholds plus one refusal
 bit while the direct arm answered all three (supplement); the corpus is
 preregistered and the adversary study above probes the strategy space.
-A recipe sweep (supplement) completes the benign trace and recovers the
-secret at $\SweepRecoverAt{}\times$: the useful range is $1\le m<\SweepRecoverAt{}$.
+A simulated recipe sweep (supplement) first completes the benign trace and
+first recovers the secret at the same multiplier, $\SweepRecoverAt{}\times$.
 
 \textbf{Adaptive trace against per-query control.} The RLS profile replays
 one deterministic \FinalVFivePublicationRLSQueries{}-query adaptive trace
@@ -1442,17 +1441,17 @@ All measurements ran on one laptop-class WSL2 host with a digest-pinned
 PostgreSQL 16.14 image (supplement). The
 repository at the cited commits (\url{https://github.com/minmin-lab/factgate},
 with the evidence pack and the digests of every retained sample) and the
-retained raw samples (48 JSONL files, 591~MB, deposited separately under a
-DOI recorded in the repository's \code{README}) form the artifact;
-every digest chain and macro is recomputable from it. Every campaign number above comes from
+retained raw samples (48 JSONL files, 591~MB; deposit status and DOI in the
+repository's \code{README}) form the artifact;
+every digest chain and macro is recomputable from it. Numbers attributed to the campaign come from
 the sealed campaign: one submission commit (\FinalVFivePublicationCommit{}),
 \FinalVFivePublicationDeployments{} fresh isolated deployments on one host,
 three executions per profile whose per-execution novel medians differ by at
 most \FinalVFivePublicationNovelSpreadMaxPct\% of the pooled median (direct
 \FinalVFivePublicationDirectSpreadMaxPct\%, concurrency
-\FinalVFivePublicationConcurrencySpreadMaxPct\%); the supplement maps each
-number to its commit and raw file and alone cites the retained pilot
-(\FinalVFivePilotArtifactCommit{}). RQ1--RQ3 use small
+\FinalVFivePublicationConcurrencySpreadMaxPct\%). Numbers marked pilot,
+retained, or simulated come from later non-publication runs; the supplement
+maps each number to its class, run, and file. RQ1--RQ3 use small
 fixtures; ordinal/bitmap evidence is warm, single-host, TPC-H-derived (not
 official); RQ5 sums three sequential warm child intervals. No result is generalized to cold-cache, multi-node,
 or production-SLO behavior.
@@ -1475,7 +1474,7 @@ admits \TPCHLowerableExplicitJoin{} of the \TPCHQueries{} TPC-H templates
 reporting queries (supplement tables);
 LLM-written SQL from the Product sheet alone: of \HeldoutQueries{} held-out
 questions written after the fragment froze, \HeldoutLowerable{}
-(\HeldoutLowerablePct\%) lower unedited (\HeldoutEngineeringGaps{} engineering
+(\HeldoutLowerablePct\%) lower unedited (admission, answers ungraded; \HeldoutEngineeringGaps{} engineering
 gaps, \HeldoutNewRule{} new rules, \HeldoutAgentDefects{} agent output); the
 development set, adapted after its first pass, lowers
 \AgentWorkloadLowerable{} of \AgentWorkloadQueries{}

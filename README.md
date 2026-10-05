@@ -238,9 +238,11 @@ LIMIT 20;
 ```
 
 `taskgate-reporting-sql-v1` covers single-product
-projection/filter/order/limit/offset, `COUNT(*)`, `COUNT(column)`, `SUM`,
-`MIN`, `MAX`, and connected INNER equi-join graphs over 2–16 distinct Catalog
-stable roles. Each edge may carry one or more column-to-column equality
+projection/filter/order/limit/offset, `COUNT(*)`, `COUNT(column)`,
+`COUNT(DISTINCT column)`, `SUM`, `MIN`, `MAX`, exact `AVG`, `HAVING` as a
+conjunction of comparisons between a selected aggregate and a literal, derived
+projections built from binary `+`, `-`, `*` under an explicit alias, and
+connected INNER equi-join graphs over 2–16 distinct Catalog stable roles. Each edge may carry one or more column-to-column equality
 predicates. The 16-source ceiling is an operational complexity/DoS ceiling that
 bounds generated SQL width, provenance row counts, and PostgreSQL planning
 work; requests are further constrained by a 1 MiB transport body, PostgreSQL
@@ -261,9 +263,15 @@ sorted grouped join, which produces PostgreSQL wire `text` under
 
 Full SQL intentionally remains unsupported. Self-joins,
 outer/cross/non-equality/`NATURAL`/`USING` joins, disconnected join graphs,
-subqueries, CTEs, set operations, window functions, `HAVING`, positional
-group/order, explicit `NULLS FIRST/LAST`, and `ORDER BY USING` are outside
-the profile. Ungrouped multi-product queries, partial/duplicate/unprojected
+subqueries, CTEs, set operations, window functions, `OR` in `WHERE`, scalar
+functions such as `to_char`/`date_trunc`, division, typed date literals,
+column-to-column comparisons in `WHERE`, a `HAVING` aggregate that is not
+selected, positional group/order, explicit `NULLS FIRST/LAST`, and
+`ORDER BY USING` are outside the profile. On 40 held-out questions written
+after the profile froze, an unaided LLM's first statement is admitted for 22
+(`evaluation/agentworkload-heldout/`; admission only, the answers were not
+graded, and the product sheet given to the agent lists `to_char`,
+`date_trunc` and `/` as allowed although the profile rejects them). Ungrouped multi-product queries, partial/duplicate/unprojected
 group keys, aggregate/expression ordering, all pagination on ungrouped or Union
 result encodings, and other projection casts are also rejected fail-closed; the
 enforcement layer never silently rewrites `LEFT JOIN` to `INNER JOIN`.
@@ -398,9 +406,11 @@ The current evaluation also includes same-root delegation/concurrent
 settlement tests, controlled view-compiler properties, and the versioned daily
 publication harness. The attack-related evidence shows that the implemented
 deterministic split/merge, overlapping pagination, retry, and outcome-probing
-cases all enter the same cumulative ledger; the repository does not yet report
-a complete end-to-end attack campaign driven by a live LLM across fresh roots
-against an authorization-only baseline. Scope and outstanding items are in the
+cases all enter the same cumulative ledger. A pilot-class study drives a live
+LLM agent under RLS-only and under FactGate (two objectives, 36 runs over
+three fresh deployments; `evaluation/agent-pilot/`, reported in the paper's
+supplement); it is a small scenario study, and the repository does not report
+a campaign-scale attack evaluation driven by a live LLM. Scope and outstanding items are in the
 [TKDE experiment guide](docs/experiment-guide.md).
 
 The executable method documents added in this revision define the

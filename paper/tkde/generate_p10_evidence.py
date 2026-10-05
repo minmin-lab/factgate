@@ -5,7 +5,7 @@ Separate from generate_evidence.py, which is a frozen measured path of the
 sealed campaign. Everything emitted here is supplementary evidence produced
 after the freeze; each source file is digest-bound in the emitted macros.
 """
-import hashlib, json, pathlib, subprocess
+import hashlib, json, pathlib, re, subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "paper/tkde/generated/p10.tex"
@@ -43,6 +43,20 @@ for run in reg["runs"]:
         raise SystemExit(f"p10 pilot run {run['id']}: sample digest differs from the registry")
     if n != run["measured_samples"]:
         raise SystemExit(f"p10 pilot run {run['id']}: {n} samples, registry declares {run['measured_samples']}")
+
+# --- guard: nothing downstream may read or cite a superseded pilot run ------
+# A rerun replaces a run in the registries only; analyses that read raw files
+# by run id and prose that names a run do not follow by themselves (the timing
+# analysis kept reading runs lost in the 2026-09-19 host rebuild until
+# 2026-10-05). Fail closed instead of relying on a manual sweep.
+_pilot_reg = json.loads((ROOT / "evaluation/final-v5-wsl2/pilot-evidence-v1.json").read_text())
+SUPERSEDED = {r["id"] for r in _pilot_reg["runs"] + reg["runs"] if r.get("superseded_by") not in (None, "", "None")}
+LIVE_RUNS = {r["id"] for r in _pilot_reg["runs"] + reg["runs"]} - SUPERSEDED
+for _tex in ("paper/tkde/main.tex", "paper/tkde/supplement.tex"):
+    _text = (ROOT / _tex).read_text()
+    for _run in sorted(SUPERSEDED):
+        if re.search(re.escape(_run) + r"(?!\d)", _text):
+            raise SystemExit(f"{_tex} cites superseded pilot run {_run}; cite its replacement")
 
 # --- B1: held-out agent-written workload -------------------------------
 hd = ROOT / "evaluation/agentworkload-heldout"
@@ -85,10 +99,21 @@ AGENT = {"q25"}
 rejected = {r["query"] for r in p["results"] if not r["lowerable"]}
 assert rejected == ENG | NEW | AGENT, sorted(rejected ^ (ENG | NEW | AGENT))
 counts = {"eng": len(ENG), "new": len(NEW), "agent": len(AGENT)}
+# Statements whose FIRST rejection is at a construct the product sheet handed
+# to the agent lists as allowed (to_char, date_trunc, "/"); checked against
+# the SQL and the rejection message so the count cannot drift from the files.
+SHEET = {"q06", "q12", "q14", "q36", "q40", "q09", "q38"}
+assert SHEET <= rejected
+for r in p["results"]:
+    sql = (hd / "queries" / f"{r['query']}.sql").read_text().lower()
+    at_function = ("to_char(" in sql or "date_trunc(" in sql) and r.get("reason") in ("AGGREGATE_UNSUPPORTED", "FILTER_PREDICATE_UNSUPPORTED")
+    at_division = r.get("message", "").startswith("Only binary +, -, and *")
+    assert (r["query"] in SHEET) == (not r["lowerable"] and (at_function or at_division)), r["query"]
 lines += [
     rf"\newcommand{{\HeldoutEngineeringGaps}}{{{counts['eng']}}}",
     rf"\newcommand{{\HeldoutNewRule}}{{{counts['new']}}}",
     rf"\newcommand{{\HeldoutAgentDefects}}{{{counts['agent']}}}",
+    rf"\newcommand{{\HeldoutSheetAdvertised}}{{{len(SHEET)}}}",
 ]
 
 # --- B3: budget-utility sweep (admission arithmetic) -------------------
@@ -120,6 +145,9 @@ lines.append(rf"\newcommand{{\SweepBenignFirstRefusalOne}}{{{byb[1]['first_budge
 lines.append(rf"\newcommand{{\SweepRecoverAt}}{{{min(r['multiplier'] for r in ad if r['secret_recovered'])}}}")
 # --- B7: refusal timing-channel bandwidth (retained data only) ----------
 tc = json.loads((ROOT / "evaluation/timing-channel/results.json").read_text())
+for _run in tc["sources"]["campaigns"]:
+    if _run not in LIVE_RUNS:
+        raise SystemExit(f"timing-channel results.json was computed from {_run}, which is not a live registered pilot run; rerun evaluation/timing-channel/analyze.py")
 po, bd, rt = tc["post_execution"], tc["bound"], tc["rate"]
 lines += [
     rf"\newcommand{{\TimingResultsDigest}}{{\texttt{{{sha12(ROOT/'evaluation/timing-channel/results.json')}}}}}",
@@ -148,6 +176,11 @@ lines += [
     rf"\newcommand{{\TimingRowGuardBits}}{{{bd['row_guard']['bits']:.3f}}}",
     rf"\newcommand{{\TimingLadderFMax}}{{{bd['ladder_scale']['F_max']:,}}}",
     rf"\newcommand{{\TimingLadderBits}}{{{bd['ladder_scale']['bits']:.1f}}}",
+    rf"\newcommand{{\TimingRefusalSlopeBits}}{{{bd['row_guard_refusal_slope']['bits']:.1f}}}",
+    rf"\newcommand{{\TimingRefusalSlopeSpanMS}}{{{bd['row_guard_refusal_slope']['span_ms']:.0f}}}",
+    rf"\newcommand{{\TimingRefusalSlopeOverSE}}{{{bd['row_guard_refusal_slope']['slope_over_se']:.1f}}}",
+    rf"\newcommand{{\TimingMedianSpreadMS}}{{{max(g['median_ms'] for g in po['by_rows']) - min(g['median_ms'] for g in po['by_rows']):.1f}}}",
+    rf"\newcommand{{\TimingCampaigns}}{{{', '.join(chr(92)+'code{'+c+'}' for c in tc['sources']['campaigns'])}}}",
 ]
 body = " \\\\\n".join(f"{g['rows']} & {g['n']} & {g['median_ms']} & {g['p10_ms']} & {g['p90_ms']}" for g in po["by_rows"])
 lines.append(r"\newcommand{\TimingByRowsTableBody}{%" + "\n" + body + r" \\%" + "\n}")

@@ -4,9 +4,9 @@
   "counter_corpus_sha256": "c9b2300307337b2de0bffdcdb6e2c1ebeb9fdeddac10b0ab8c2a67a878f4f22b",
   "rls_corpus_sha256": "39e86d75f10be47847e7db155f28c564c43f4d50d765a99605028b3fc6535b3b",
   "campaigns": [
-   "pilot-counter-rigor-02",
-   "pilot-adversary-04",
-   "pilot-footprint-07"
+   "pilot-counter-rigor-03",
+   "pilot-adversary-05",
+   "pilot-footprint-08"
   ]
  },
  "post_execution": {
@@ -15,72 +15,72 @@
   "excluded_position_one": true,
   "arms": [
    [
-    "pilot-adversary-04",
+    "pilot-adversary-05",
     "adversary-owner"
    ],
    [
-    "pilot-adversary-04",
+    "pilot-adversary-05",
     "adversary-tightened"
    ],
    [
-    "pilot-counter-rigor-02",
+    "pilot-counter-rigor-03",
     "counter-exact"
    ],
    [
-    "pilot-counter-rigor-02",
+    "pilot-counter-rigor-03",
     "counter-release"
    ]
   ],
-  "median_ms": 29.5,
-  "p10_ms": 27.8,
-  "p90_ms": 32.2,
-  "min_ms": 26.2,
-  "max_ms": 43.5,
-  "pooled_sd_ms": 2.01,
-  "within_step_sd_median_ms": 1.54,
-  "within_step_sd_p90_ms": 2.35,
+  "median_ms": 29.6,
+  "p10_ms": 27.6,
+  "p90_ms": 32.6,
+  "min_ms": 25.4,
+  "max_ms": 45.9,
+  "pooled_sd_ms": 2.49,
+  "within_step_sd_median_ms": 1.62,
+  "within_step_sd_p90_ms": 3.81,
   "within_step_groups": 88,
   "by_rows": [
    {
     "rows": 1,
     "n": 492,
-    "median_ms": 29.4,
-    "p10_ms": 27.8,
+    "median_ms": 29.5,
+    "p10_ms": 27.4,
     "p90_ms": 32.2
    },
    {
     "rows": 2,
     "n": 39,
-    "median_ms": 29.5,
-    "p10_ms": 27.6,
-    "p90_ms": 32.2
+    "median_ms": 30.1,
+    "p10_ms": 28.6,
+    "p90_ms": 33.0
    },
    {
     "rows": 4,
     "n": 60,
-    "median_ms": 29.5,
-    "p10_ms": 28.2,
-    "p90_ms": 32.2
+    "median_ms": 29.7,
+    "p10_ms": 28.3,
+    "p90_ms": 33.7
    },
    {
     "rows": 5,
     "n": 81,
-    "median_ms": 29.8,
-    "p10_ms": 28.1,
+    "median_ms": 29.6,
+    "p10_ms": 27.7,
     "p90_ms": 33.2
    },
    {
     "rows": 6,
     "n": 90,
-    "median_ms": 29.5,
-    "p10_ms": 27.7,
-    "p90_ms": 32.3
+    "median_ms": 30.2,
+    "p10_ms": 28.1,
+    "p90_ms": 34.5
    }
   ],
-  "ols_ms_per_row": 0.071,
-  "ols_se_ms_per_row": 0.038,
-  "accepted_position_one_median_ms": 75.0,
-  "accepted_later_median_ms": 42.1
+  "ols_ms_per_row": 0.16,
+  "ols_se_ms_per_row": 0.046,
+  "accepted_position_one_median_ms": 114.5,
+  "accepted_later_median_ms": 43.5
  },
  "pre_execution": {
   "site": "internal/gateway/physical_derivation.go DeriveLimits / reservation guards; nothing executed",
@@ -91,7 +91,7 @@
     "columns": 2,
     "expected_dependency": 500,
     "code": "EXPOSURE_BUDGET_EXHAUSTED",
-    "ms": 44.5
+    "ms": 60.1
    },
    {
     "rung": "rung-03-100x4",
@@ -99,7 +99,7 @@
     "columns": 4,
     "expected_dependency": 700,
     "code": "EXPOSURE_BUDGET_EXHAUSTED",
-    "ms": 48.5
+    "ms": 52.6
    },
    {
     "rung": "rung-04-1000x1",
@@ -107,7 +107,7 @@
     "columns": 1,
     "expected_dependency": 4000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 27.6
+    "ms": 35.7
    },
    {
     "rung": "rung-05-1000x2",
@@ -115,7 +115,7 @@
     "columns": 2,
     "expected_dependency": 5000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 35.6
+    "ms": 27.6
    },
    {
     "rung": "rung-06-1000x4",
@@ -123,7 +123,7 @@
     "columns": 4,
     "expected_dependency": 7000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 27.7
+    "ms": 29.0
    },
    {
     "rung": "rung-07-10000x1",
@@ -131,7 +131,7 @@
     "columns": 1,
     "expected_dependency": 40000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 31.6
+    "ms": 38.7
    },
    {
     "rung": "rung-08-10000x2",
@@ -139,7 +139,7 @@
     "columns": 2,
     "expected_dependency": 50000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 31.2
+    "ms": 43.4
    },
    {
     "rung": "rung-09-10000x4",
@@ -147,7 +147,7 @@
     "columns": 4,
     "expected_dependency": 70000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 34.4
+    "ms": 32.5
    },
    {
     "rung": "rung-10-100000x1",
@@ -155,7 +155,7 @@
     "columns": 1,
     "expected_dependency": 400000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 75.6
+    "ms": 77.9
    },
    {
     "rung": "rung-11-100000x2",
@@ -163,7 +163,7 @@
     "columns": 2,
     "expected_dependency": 500000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 79.8
+    "ms": 78.1
    },
    {
     "rung": "rung-12-100000x4",
@@ -171,91 +171,91 @@
     "columns": 4,
     "expected_dependency": 700000,
     "code": "EXPOSURE_EVIDENCE_REQUIRED",
-    "ms": 80.7
+    "ms": 81.2
    }
   ],
   "by_row_span": {
    "100": {
     "n": 2,
-    "min_ms": 44.5,
-    "max_ms": 48.5
+    "min_ms": 52.6,
+    "max_ms": 60.1
    },
    "1000": {
     "n": 3,
     "min_ms": 27.6,
-    "max_ms": 35.6
+    "max_ms": 35.7
    },
    "10000": {
     "n": 3,
-    "min_ms": 31.2,
-    "max_ms": 34.4
+    "min_ms": 32.5,
+    "max_ms": 43.4
    },
    "100000": {
     "n": 3,
-    "min_ms": 75.6,
-    "max_ms": 80.7
+    "min_ms": 77.9,
+    "max_ms": 81.2
    }
   }
  },
  "rate": {
-  "source": "pilot-footprint-07 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
-  "micros_per_fact": 0.681,
-  "se_micros_per_fact": 0.021,
+  "source": "pilot-footprint-08 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
+  "micros_per_fact": 0.595,
+  "se_micros_per_fact": 0.047,
   "points": [
    {
     "facts": 400,
-    "ms": 104.6
+    "ms": 208.9
    },
    {
     "facts": 500,
-    "ms": 79.3
+    "ms": 91.4
    },
    {
     "facts": 700,
-    "ms": 77.2
+    "ms": 77.7
    },
    {
     "facts": 4000,
-    "ms": 65.3
+    "ms": 107.6
    },
    {
     "facts": 5000,
-    "ms": 69.0
+    "ms": 80.3
    },
    {
     "facts": 7000,
-    "ms": 74.6
+    "ms": 80.4
    },
    {
     "facts": 40000,
-    "ms": 107.7
+    "ms": 122.1
    },
    {
     "facts": 50000,
-    "ms": 112.2
+    "ms": 126.1
    },
    {
     "facts": 70000,
-    "ms": 135.8
+    "ms": 137.2
    },
    {
     "facts": 400000,
-    "ms": 383.5
+    "ms": 362.2
    },
    {
     "facts": 500000,
-    "ms": 426.5
+    "ms": 395.7
    },
    {
     "facts": 700000,
-    "ms": 534.2
+    "ms": 514.7
    }
   ]
  },
  "bound": {
-  "model": "latency = a + r*F + N(0, sigma^2); C <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max]",
-  "sigma_ms": 2.01,
-  "resolution_facts": 2955,
+  "model": "latency = a + r*F + N(0, sigma^2); I <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max] (mutual information under that prior, not channel capacity)",
+  "sigma_ms": 2.49,
+  "resolution_facts": 4183,
   "facts_per_row": 2,
   "max_rows_guard": 500,
   "corpus": {
@@ -264,11 +264,22 @@
   },
   "row_guard": {
    "F_max": 1000,
-   "bits": 0.007
+   "bits": 0.003
+  },
+  "row_guard_refusal_slope": {
+   "rows": 500,
+   "observed_rows": [
+    1,
+    6
+   ],
+   "slope_over_se": 3.4,
+   "span_ms": 79.8,
+   "bits": 3.2,
+   "note": "OLS slope of the refusals (ms per row, samples treated as independent, statement shape not separated from footprint) extrapolated to the row guard; an extrapolation, not a measurement"
   },
   "ladder_scale": {
    "F_max": 700000,
-   "bits": 6.1,
+   "bits": 5.59,
    "note": "never reaches the post-execution site under the bounded profile: refused pre-execution"
   }
  }

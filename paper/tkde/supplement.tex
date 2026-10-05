@@ -744,7 +744,7 @@ Randomized root-family sequences & \VFiveFamilyPropertySeeds{} seeds, \VFiveFami
 
 \textbf{Randomized root-family sequences.} The same raw log carries
 \code{TestOrdinalRootFamilyRandomSequencesConserveExactNovelty}
-(\filepath{internal/control/ordinal\_family\_property\_test.go}). For each of
+(\filepath{internal/control/ordinal_family_property_test.go}). For each of
 \VFiveFamilyPropertySeeds{} seeds it approves a root with random limits
 (6--41 Result, 8--63 Dependency, 3--8 Outcome facts), grows a random
 delegation tree of up to \VFiveFamilyPropertyMaxTasks{} tasks whose
@@ -819,9 +819,13 @@ Campaign & \FinalVFivePublicationCampaign{}: \FinalVFivePublicationDeployments{}
 
 Table~\ref{tab:number-map-supp} maps every group of reported numbers to the
 commit it was measured at, the retained file it is recomputed from, and the
-command that regenerates it. Every macro in the manuscript is emitted by
-\code{paper/tkde/generate_evidence.py}, which fails closed when a file, digest,
-or commit binding disagrees.
+command that regenerates it, and its last column gives the evidence class:
+sealed campaign, regenerated regression, retained pilot (never publication
+evidence), simulation, or analysis of retained records. Every macro in the
+manuscript is emitted by \code{paper/tkde/generate_evidence.py} (rows above
+the rule) or \code{paper/tkde/generate_p10_evidence.py} (rows below it,
+the studies added after the campaign was sealed); both fail closed when a
+file, digest, or commit binding disagrees.
 
 \begin{table}[h]
 \centering
@@ -841,12 +845,21 @@ Publication campaign (main Table~1; Tables~\ref{tab:baseline-publication}, \ref{
 Attack corpus, adaptive trace, Scale, ProvSQL pairing, RQ5 cells (Sections~\ref{sec:attack-publication-supp}--\ref{sec:scale-publication-supp}) & \FinalVFivePublicationCommit{} & the same campaign's \filepath{deployments/*/raw/*.jsonl} plus \filepath{evaluation/finalv5attack/corpus-v1.json} (digest \FinalVFivePublicationAttackCorpusDigest{}) & \code{make paper-evidence} \\
 Sub-phase pilot (Section~\ref{sec:subphase-pilot-supp}) & f8c9c53528fe, 9a0b2107d1ed & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/subphase-pilot-17}, \filepath{raw/subphase-pilot-13} & pilot; not publication evidence \\
 ProvSQL base-tuple cross-check (Section~\ref{sec:provsql-leaves-supp}) & \FinalVFiveProvSQLLeafCommit{} & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/provsql-leaf-pilot-05} & pilot; not publication evidence \\
-Retained pilot (Table VIII) & \FinalVFivePilotArtifactCommit{} & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ pilot run directories & not publication evidence \\
+Retained pilots (Table VIII; counter arms, benign trace, footprint ladder, scale ladder, DP comparison, adversary: Sections~\ref{sec:counter-executed-supp}, \ref{sec:benign-supp}, \ref{sec:footprint-supp}, \ref{sec:scale7-supp}--\ref{sec:adversary-supp}) & per run, in the registry (Table VIII: \FinalVFivePilotArtifactCommit{}) & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ pilot run directories & pilot; not publication evidence \\
 Generated-plan campaign (Section~\ref{sec:generated-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/generatedalgebra/results.json} (digest \GeneratedResultsDigest{}) & \code{make eval-generated-algebra} \\
 TPC-H lowerability (Section~\ref{sec:tpch-lowerability-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/tpchlowerability/results.json} (digest \TPCHResultsDigest{}) & \code{make eval-tpch-lowerability} \\
 SSB lowerability (Section~\ref{sec:ssb-lowerability-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/ssblowerability/results.json} (digest \SSBResultsDigest{}) & \code{make eval-ssb-lowerability} \\
 Agent-written workload (Section~\ref{sec:agent-workload-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/agentworkload/results.json} (digest \AgentWorkloadResultsDigest{}) & \code{make eval-agent-workload-lowerability} \\
 TLC (Table VI) & tracked at \EvidenceChainCommit{} & \filepath{formal/results/*.json}, \filepath{*.log} & \code{make formal} \\
+\midrule
+Held-out workload (Section~\ref{sec:heldout-supp}) & questions frozen at \HeldoutFreezeCommit{} & \filepath{evaluation/agentworkload-heldout/results.json} (digest \HeldoutResultsDigest{}) & static lowering, not executed; \code{agent-workload-lowerability} \\
+LLM-agent pilot (Section~\ref{sec:agent-pilot-supp}) & per run, in the registry & \filepath{evaluation/agent-pilot/results.json} (digest \AgentResultsDigest{}, run \AgentCampaign{}); \filepath{p10-pilot-evidence-v1.json} $\to$ raw & pilot; \filepath{evaluation/agent-pilot/analyze.py} \\
+Throughput and client-retry pilots (Section~\ref{sec:throughput-supp}) & per run, in the registry & \filepath{evaluation/throughput-pilot/results.json} (digest \ThroughputResultsDigest{}, run \ThroughputCampaign{}), \filepath{throughput-retry/results.json} (digest \RetryResultsDigest{}, run \RetryCampaign{}) & pilot \\
+Cost ablation and naive ledger (Section~\ref{sec:ablation-supp}) & per run, in the results file & \filepath{evaluation/b5-ablation/results.json} (digest \BFiveResultsDigest{}) & pilot; arms i, iv executed, ii composed, naive ledger on another input \\
+Budget sweep (Section~\ref{sec:sweep-supp}) & tracked & \filepath{evaluation/budget-utility-sweep/results.json} (digest \SweepResultsDigest{}) & simulation, not executed; \filepath{evaluation/cmd/budget-utility-sweep} \\
+Timing channel (Section~\ref{sec:timing-supp}) & per run, in the registry & \filepath{evaluation/timing-channel/results.json} (digest \TimingResultsDigest{}; runs \TimingCampaigns{}) & analysis of retained pilot records; \filepath{evaluation/timing-channel/analyze.py} \\
+Aligned counter replay (Section~\ref{sec:counter-aligned-supp}) & tracked & \filepath{evaluation/counter-aligned/results.json} (digest \AlignedResultsDigest{}) & replay over the sealed trace; \filepath{evaluation/counter-aligned/replay.py} \\
+Passant replay (Section~\ref{sec:passant-supp}) & Passant \PassantCommit{} & \filepath{evaluation/passant-comparison/results.json} (digest \PassantResultsDigest{}) & standalone replay; \filepath{evaluation/passant-comparison/replay.py} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1547,16 +1560,16 @@ budget to spare, how many legitimate novel queries does the Gateway keep
 completing per second on one root head and across independent roots, at
 what tail latency, and with how many conflicts? The pilot
 \ThroughputCampaign{} (design frozen before execution in
-\filepath{docs/p10\_b6\_throughput\_experiment\_design.md}; results digest
+\filepath{docs/p10_b6_throughput_experiment_design.md}; results digest
 \ThroughputResultsDigest{}) answers it on three fresh deployments of the
 benign-x4 profile, whose approval route grants 896 queries, 100{,}000 rows
 and 107{,}628\,/\,5{,}800{,}000\,/\,224 Release\,/\,Dependency\,/\,Outcome
-facts per root, over the 100{,}000-row \code{final\_v5\_result\_heavy}
+facts per root, over the 100{,}000-row \code{final_v5_result_heavy}
 Product. A cell provisions $K$ root tasks with $N$ delegated contenders each
 through the real request/OA/grant path; in each of two rounds every
-contender issues one \code{query\_sql} at once and the round drains when
+contender issues one \code{query_sql} at once and the round drains when
 the last returns. Footprints are \emph{disjoint} (one distinct row per
-contender), \emph{nested} (\code{row\_id <= 10i}), or \emph{identical}
+contender), \emph{nested} (\code{row_id <= 10i}), or \emph{identical}
 (the same row for all), offset between rounds so no round repeats a
 footprint. Table~\ref{tab:throughput-supp} reports \ThroughputRounds{}
 rounds. Two properties are reported separately because they are different
@@ -1624,11 +1637,11 @@ to relax the head bound.
 
 \paragraph{With client resubmission.}
 A follow-up pilot (\RetryCampaign{}; design frozen before execution in
-\filepath{docs/p10\_r2\_c4b\_throughput\_retry\_design.md}, results digest
+\filepath{docs/p10_r2_c4b_throughput_retry_design.md}, results digest
 \RetryResultsDigest{}) reruns the fifty-contender cells on three fresh
 deployments with a client that resubmits a \code{CONFLICT} refusal up to
 \RetryK{} times after a 50--150~ms jittered pause, each resubmission under a
-fresh \code{request\_id} because the refused query is a settled
+fresh \code{request_id} because the refused query is a settled
 \code{FAILED} record that an idempotent retry would replay. The retry count
 and the pause were fixed a priori (the server already retries the head
 sixteen times per attempt), not fitted. A zero-retry control pass on the
@@ -1899,8 +1912,10 @@ campaign class \code{pilot} rather than appropriating the protocol flag;
 and (iii) \emph{single-deployment pilots}. The three studies here are
 class \code{pilot} (\code{publication_eligible} \code{false}), registered
 in \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json}
-(runs \code{pilot-counter-rigor-02}, \code{pilot-benign-05},
-\code{pilot-footprint-07}, \code{pilot-adversary-04}) with digest-bound corpora whose per-step
+(runs \code{pilot-counter-rigor-03}, \code{pilot-benign-07},
+\code{pilot-footprint-08}, \code{pilot-adversary-05}; each is the registered
+rerun of a run whose raw files were lost in a host rebuild, and the registry
+keeps the superseded entries) with digest-bound corpora whose per-step
 expected-outcome tables were frozen before execution; each run's job was to
 show the deployed Gateway realizing exactly its frozen table, and each did.
 
@@ -1917,7 +1932,7 @@ the same $\lfloor 0.7\,U\rfloor$ recipe applied to that control's own unit
 (rows, steps, and distinct Release facts respectively) and frozen before
 execution. Each arm ran in three frozen orders: the trace's natural order, a
 seeded Fisher--Yates shuffle, and a novelty-first order, across three fresh
-deployments (\code{pilot-counter-rigor-02}, 36 measured samples). All
+deployments (\code{pilot-counter-rigor-03}, 36 measured samples). All
 twelve arm-by-order cells realized the frozen expectation table exactly in
 every one of the three deployments, with zero cross-deployment
 inconsistency, including
@@ -1940,7 +1955,7 @@ released by the end; only the set floors bound the released set itself.
 \begin{table}[t]
 \centering
 \caption{Executed counter comparator arms (retained pilot
-\code{pilot-counter-rigor-02}, three fresh deployments, 36 measured
+\code{pilot-counter-rigor-03}, three fresh deployments, 36 measured
 samples, each deployment realizing this table identically): per arm,
 queries accepted, first refusal step, and final distinct Dependency facts,
 each reported as natural\,/\,shuffled\,/\,novelty-first order.}
@@ -2070,8 +2085,12 @@ derivation precede settlement, so a query refused at settlement has already
 paid for the footprint it did not release. This section measures that channel
 on the retained refusals rather than modelling it. No new run was made; the
 analysis script (\filepath{evaluation/timing-channel/analyze.py}, results
-digest \TimingResultsDigest{}) reads the retained pilot records and the frozen
-corpora, and every number below is reproducible from them.
+digest \TimingResultsDigest{}) reads the retained pilot records
+(\TimingCampaigns{}) and the frozen corpora, and every number below is
+reproducible from them. An earlier revision of this section read the
+predecessors of these runs, whose raw files were since lost; its numbers are
+replaced by the ones recomputed here, and two of its statements changed with
+them, as marked below.
 
 \paragraph{Two sites.}
 The Gateway refuses on budget at two places. The pre-execution guards
@@ -2086,9 +2105,9 @@ every adaptive-trace refusal in the paper hits.
 
 \paragraph{Post-execution refusals.}
 The retained runs contain \TimingRefusals{} post-execution refusals with a
-known footprint: the counter-comparator traces (\code{pilot-counter-rigor-02},
+known footprint: the counter-comparator traces (\code{pilot-counter-rigor-03},
 exact and release arms, three deployments, three samples each) and the
-adversary tiers (\code{pilot-adversary-04}, owner and tightened). The refused
+adversary tiers (\code{pilot-adversary-05}, owner and tightened). The refused
 statement's footprint in rows is the row count the same statement releases
 when accepted elsewhere in the corpus. Position-one steps are excluded: the
 first query on a fresh root costs \TimingAcceptedFirstMS{}~ms accepted against
@@ -2112,37 +2131,61 @@ Rows & $n$ & Median & p10 & p90 \\
 \end{tabular}
 \end{table}
 
-The medians move by less than half a millisecond across a six-fold change in
-footprint. An ordinary least-squares fit gives
-\TimingSlopeMSPerRow{}~ms per row (standard error
-\TimingSlopeSEMSPerRow{}), not distinguishable from zero at two standard
-errors and thirty times smaller than the noise: the pooled standard deviation
-is \TimingPooledSDMS{}~ms, and the same statement refused repeatedly across
+The group medians differ by at most \TimingMedianSpreadMS{}~ms across a
+six-fold change in footprint and are not ordered by it. An ordinary
+least-squares fit that treats the refusals as independent gives
+\TimingSlopeMSPerRow{}~ms per row (standard error \TimingSlopeSEMSPerRow{}),
+\TimingRefusalSlopeOverSE{} standard errors from zero. The earlier revision
+reported a slope indistinguishable from zero; on the retained runs that
+statement does not hold and is withdrawn. The fit does not separate footprint
+from statement shape (each footprint group is a different set of statements,
+and most refusals have a one-row footprint), so the slope is an association,
+not a measured cost per unreleased row; it is two orders of magnitude above
+the per-Fact execution rate fitted below, and its cause is not determined.
+Against it stands the noise: the pooled standard deviation is
+\TimingPooledSDMS{}~ms, and the same statement refused repeatedly across
 runs (\TimingWithinStepGroups{} statements with at least six refusals each)
 has a median within-statement standard deviation of \TimingWithinStepSDMS{}~ms
-(p90 \TimingWithinStepSDPNinetyMS{}). At the footprints an adaptive trace
-reaches under these budgets, the channel is below the noise floor.
+(p90 \TimingWithinStepSDPNinetyMS{}). Over the one-to-six-row footprints an
+adaptive trace reaches under these budgets, the fitted slope moves latency by
+less than one noise standard deviation, so a single refusal does not resolve
+the footprint; refusals repeated and averaged could.
 
 \paragraph{Rate and bound.}
 The channel exists in principle because execution time grows with the
 footprint. The unlimited ladder arm gives the rate: an OLS fit of latency on
 charged Dependency Facts over its twelve accepted rungs is
 \TimingMicrosPerFact{}~$\mu$s per Fact (standard error
-\TimingMicrosPerFactSE{}), consistent with the
+\TimingMicrosPerFactSE{}), the same order as the
 \FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}--\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}~$\mu$s
 per Fact of the sub-phase pilot. With noise $\sigma=\TimingPooledSDMS{}$~ms,
 one refusal resolves the unreleased footprint to about
-$\pm\sigma/r\approx\TimingResolutionFacts{}$ Facts. Treating the channel as
-Gaussian with the footprint uniform on $[0,F_{\max}]$ gives the capacity
-upper bound $C\le\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/12\sigma^2\bigr)$
-bits per refusal; the bound is what an optimal receiver could extract under
-that prior, not what the adversary of Section~\ref{sec:adversary-supp}
-recovers. On this Product $F_{\max}$ is set by the pre-execution row guard
+$\pm\sigma/r\approx\TimingResolutionFacts{}$ Facts. Modelling latency as
+linear in the footprint with additive Gaussian noise and taking the footprint
+uniform on $[0,F_{\max}]$ bounds the mutual information between footprint and
+latency by $I\le\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/12\sigma^2\bigr)$
+bits per refusal. This is mutual information under one input prior, not the
+channel capacity, which maximizes over input distributions; within the same
+model any distribution on $[0,F_{\max}]$ has variance at most
+$(rF_{\max})^2/4$, so the capacity is at most
+$\tfrac12\log_2\!\bigl(1+(rF_{\max})^2/4\sigma^2\bigr)$, less than
+$\tfrac12\log_2 3\approx0.79$ bits above the uniform-prior figure. Either
+quantity is what an optimal receiver could extract in the model, not what the
+adversary of Section~\ref{sec:adversary-supp} recovers. On this Product
+$F_{\max}$ is set by the pre-execution row guard
 (\code{max_rows}$=\TimingRowGuard{}$, \TimingRowGuardFMax{} Facts), which
-gives $C\le\TimingRowGuardBits{}$ bits; at the corpus's own maximum
-(\TimingCorpusFMax{} Facts) it is \TimingCorpusBits{}. The
+gives $I\le\TimingRowGuardBits{}$ bits; at the corpus's own maximum
+(\TimingCorpusFMax{} Facts) it is \TimingCorpusBits{}. These figures use the
+ladder's per-Fact rate. With the slope fitted on the refusals themselves,
+extrapolated linearly from their one-to-six-row range to the row guard
+(\TimingRefusalSlopeSpanMS{}~ms across \TimingRowGuard{} rows), the same
+formula gives \TimingRefusalSlopeBits{} bits per refusal. Neither is a
+measurement at the row guard, and the two rates differ by two orders of
+magnitude, so the model's answer ranges from \TimingRowGuardBits{} to
+\TimingRefusalSlopeBits{} bits depending on the rate it is given; the earlier
+revision reported only the smaller figure. The
 \TimingLadderBits{}-bit figure for a \TimingLadderFMax{}-Fact scan is the
-capacity that would exist if such a scan reached the post-execution site; under
+same uniform-prior bound if such a scan reached the post-execution site; under
 the bounded profile it does not, because the ladder shows the guards refusing
 it before execution. The channel is therefore governed by the row guard, which
 is the deployment control the main text's limitations section asks for, and the leak an
@@ -2151,21 +2194,23 @@ These figures are conditional model estimates, not a security bound for the
 deployed system: the slope is an OLS fit on one ladder, not the maximum over
 query shapes; the pooled standard deviation is the noise this harness
 observed, not noise an adversary who averages repeated measurements or
-conditions on load cannot reduce; and the uniform prior gives the mutual
-information under that prior, not the channel capacity over all input
-distributions or over adaptively chosen queries. What the retained data
-establishes empirically is that on \TimingRefusals{} post-execution refusals
-the latency did not move with the refused footprint within the noise; the
+conditions on load cannot reduce; and the bits figures are mutual information
+under the uniform prior, with the capacity remark above holding only inside
+the linear-Gaussian model and per refusal, not across adaptively chosen
+sequences of queries. What the retained data
+establishes empirically is narrower: on \TimingRefusals{} post-execution
+refusals with footprints of one to six rows, the latency differences between
+footprint groups stayed below one noise standard deviation; the
 worst-case leakage of the timing channel is outside the paper's guarantee,
 as the main text states.
 
 \paragraph{Pre-execution site.}
 The ladder's refusals carry a second, weaker signal that is not about
 unreleased data: their latency depends on the row span the agent itself
-wrote. The eleven bounded-arm refusals (one deployment) fall into two levels,
-\TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows and
-\TimingPreLargeSpanMS{}~ms for the $10^5$-row rungs: at most one bit per
-refusal, and it describes the query, not the ledger.
+wrote. The eleven bounded-arm refusals (one deployment) fall into two
+disjoint ranges, \TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows
+and \TimingPreLargeSpanMS{}~ms for the $10^5$-row rungs; whatever it carries
+describes the query the agent wrote, not the ledger.
 
 \subsection{A SUM ladder past $10^7$ Dependency facts in one query}
 \label{sec:scale7-supp}
@@ -2205,7 +2250,7 @@ charges nothing: at this scale the governed replay undercuts even the
 ungoverned direct execution, the crossover the main text's replay
 discussion states. Artifact cost is part of the claim: the publication's
 compiled bundle is 14~GB (about 1.2~KB per declared fact) and compiles
-in 28 minutes at a 21~GB peak; \code{campaign\_class} stays pilot.
+in 28 minutes at a 21~GB peak; \code{campaign_class} stays pilot.
 
 \subsection{Budget semantics beside a DP provenance system}
 \label{sec:compare7-supp}
@@ -2254,7 +2299,7 @@ accepted probes recover it exactly); \emph{greedy} maximizes distinct
 Dependency facts, widest listing first. Per-step outcomes were frozen by
 simulation over the independent oracle before execution; all six
 tier-by-strategy cells realized their frozen tables identically in each of
-three fresh deployments (\code{pilot-adversary-04}, 18 measured samples,
+three fresh deployments (\code{pilot-adversary-05}, 18 measured samples,
 zero cross-deployment inconsistency).
 
 Table~\ref{tab:adversary-supp} reports the cells. Each accepted probe
@@ -2276,7 +2321,7 @@ the same count over the same rows reuse one Release fact.
 
 \begin{table}[t]
 \centering
-\caption{Optimizing adversary (retained pilot \code{pilot-adversary-04},
+\caption{Optimizing adversary (retained pilot \code{pilot-adversary-05},
 three fresh deployments each realizing this table identically): per
 owner-derived tier, bisection accepted/refused probes, recovered bits, the
 proven interval or exact value, and greedy accepted/refused with final
@@ -2308,14 +2353,23 @@ each statement's Dependency novelty is the set difference against the
 history the replay itself admitted (so a refusal changes what later
 statements cost), while Release and Outcome follow the recipe's per-statement
 sums because the corpus records their counts, not their fact sets. The
-closed-form footprints over-approximate the production rule (they count a
-page's scanned rows where the rule counts output cells; e.g., the executed
-ledger charged 845,000 Dependency facts for the statement the corpus models
-at 1,450,000), so at each multiplier the replay admits no more statements
-than the deployed ledger would on the same trace; at the executed points it
-admits \SweepBenignOneAdmitted{} of \SweepBenignAuthorized{} at $1\times$
-(first refusal \SweepBenignFirstRefusalOne{}) where the pilot admitted 22
-(first refusal q26), and all at $2\times$ and $4\times$ as the pilots did.
+closed-form footprints over-approximate the production rule statement by
+statement (they count a page's scanned rows where the rule counts output
+cells; e.g., the executed ledger charged 845,000 Dependency facts for the
+statement the corpus models at 1,450,000). That containment does not order
+the admitted counts, because admission is path-dependent: a statement the
+model refuses at an overstated cost leaves budget for later statements that
+a ledger which admitted it would refuse. With one binding dimension and a
+budget of 3, the candidate sets $\{a,b\}$, $\{c,d,e\}$, $\{c,d\}$ admit one
+statement, while the same sequence with the first set overstated as
+$\{a,b,x,y\}$ admits two. The curve is therefore a scenario simulation under
+the closed-form model, neither a lower nor an upper bound on what the
+deployed ledger would admit; the previous revision of this paragraph called
+it a lower bound, and that claim is withdrawn. Simulation and execution can
+be compared only where both exist: the replay admits
+\SweepBenignOneAdmitted{} of \SweepBenignAuthorized{} at $1\times$ (first
+refusal \SweepBenignFirstRefusalOne{}) where the pilot admitted 22 (first
+refusal q26), and all at $2\times$ and $4\times$ as the pilots did.
 An earlier revision of this study also plotted a second curve that replayed
 the per-statement charges recorded in the executed $4\times$ arm as fixed
 increments and called it an upper bound; that replay does not update the
@@ -2345,8 +2399,9 @@ Figure~\ref{fig:sweep-supp} plots all three.
 \end{axis}
 \end{tikzpicture}
 \caption{Benign statement admission versus adversarial extraction as the
-owner recipe is scaled by $m$ (exact admission replay over the frozen
-corpora; not executed). Executed points: benign $1\times$ replays to
+owner recipe is scaled by $m$ (scenario simulation: admission arithmetic over
+the frozen corpora's closed-form footprints at eight multipliers; not
+executed, and not a bound on the deployed ledger). Executed points: benign $1\times$ replays to
 \SweepBenignOneAdmitted{}/\SweepBenignAuthorized{} (pilot: 22/23, first
 refusal q26) and $2\times$/$4\times$ all; adversary owner tier
 \SweepBitsOne{} bits and greedy \SweepGreedyOne{}, loosened 11 bits (pilots
@@ -2357,17 +2412,22 @@ realized these tables).}
 Three readings follow. First, under the owner recipe ($m=1$) the benign trace
 loses one statement in the pilot (two in the replay) while the adversary
 recovers \SweepBitsOne{} of 11 bits and greedy extraction reaches the granted
-universe (\SweepGreedyOne{}); at $m=\SweepRecoverAt{}$ the benign trace is
-complete and the secret is fully recovered, so on this trace the useful
-operating range is $1\le m<\SweepRecoverAt{}$. Second, the bits curve is
+universe (\SweepGreedyOne{}); $m=\SweepRecoverAt{}$ is the first evaluated
+multiplier at which the replayed benign trace is complete and also the first
+at which the secret is fully recovered, so on this grid no multiplier
+completes the benign trace while withholding the secret, and the points
+between $1$ and $\SweepRecoverAt{}$ trade a refused benign statement against
+unrecovered bits. Eight grid points on one trace and one scalar do not
+establish an operating interval: nothing is claimed between grid points or
+for other traces. Second, the bits curve is
 linear in $m$ because each probe's Outcome charge is data-independent, which
 is the $\lfloor B_O/2\rfloor$ bound of the adversary study seen across
 budgets, whereas benign admission saturates once the largest
-single-statement footprint fits. Third, the replay's one-statement shortfall
-at $m=1$ against the pilot is the cost of a conservative recipe model
-(scanned rows charged where the production rule charges output cells); a
-recipe derived from the production rule would admit at least as much at
-every $m$. This is a study of one fixed benign trace and one hidden scalar
+single-statement footprint fits. Third, at $m=1$ the replay admits one
+statement fewer than the pilot; the two differ in their footprint model
+(scanned rows where the production rule charges output cells), and because
+admission is path-dependent the sign of that difference at the other
+multipliers is not implied. This is a study of one fixed benign trace and one hidden scalar
 under closed-form charges; it is not a utility measurement across tasks, it
 does not model an agent that rewrites its next statement after a refusal
 (the agent study of Section~\ref{sec:agent-pilot-supp} does), and the multipliers
@@ -2381,7 +2441,7 @@ The main text's governed overhead is one number per cell; a reviewer
 asked what share of it every governance system would pay, what fact
 derivation adds, what the history set adds, and what the optimised
 representation buys over a simple correct one. A pilot (design frozen before
-execution in \filepath{docs/p10\_r2\_b5\_ablation\_design.md}, results digest
+execution in \filepath{docs/p10_r2_b5_ablation_design.md}, results digest
 \BFiveResultsDigest{}) answers it with four arms on the frozen Baseline
 statements, without changing a measured path. Arm~(i) runs the deployed
 Gateway on an exposure-free twin of the master Catalog (same sources,
@@ -2399,7 +2459,11 @@ frozen code and is composed: arm~(iv) minus its measured ledger leaves
 (reservation lock, ledger lock, fact store, Outcome-radix load/difference/
 persist); the composition is audited by checking that arm~(ii) minus arm~(i)
 equals the derivation leaves (provenance query, ordinal stream consumer,
-visible preparation, ordinal finish) up to a stated residual. Arm~(iii), the
+visible preparation, ordinal finish) up to a stated residual. Arm~(ii) is
+therefore a timing decomposition of arm~(iv), not an execution with the
+ledger switched off: whatever the ledger costs outside its own leaves (cache
+and allocator pressure, lock and transaction waits) stays in the composed
+figure, and only arms~(i) and~(iv) are executed measurements. Arm~(iii), the
 naive exact-set ledger, is a separate measurement described below.
 Table~\ref{tab:ablation-supp} reports medians.
 
@@ -2407,11 +2471,11 @@ Table~\ref{tab:ablation-supp} reports medians.
 \centering
 \caption{Cost ablation on the frozen Baseline statements (medians over
 \BFiveSamplesPerCell{} novel samples on \BFiveDeployments{} fresh
-deployments per arm; ms): Gateway \code{server\_total} under the
+deployments per arm; ms): Gateway \code{server_total} under the
 exposure-free twin (arm~i), composed arm~ii, and the V5 Catalog (arm~iv);
 arm~iv's derivation leaves and ledger leaves; the business PostgreSQL and
 result-encoding leaves for scale; settled samples i/iv. S2/SF10 is refused on
-the exposure-free path (\code{SQL\_NOT\_LOWERABLE}: the online multi-Product
+the exposure-free path (\code{SQL_NOT_LOWERABLE}: the online multi-Product
 plan is coupled to the V5 exposure profile), so it has no arm~i.}
 \label{tab:ablation-supp}
 \small
@@ -2451,13 +2515,20 @@ statements with the same refusals as the exact sweep replay
 trials, spends \NaiveLargestInsertSecMin{}--\NaiveLargestInsertSecMax{}~s on
 its largest admitted statement (971,431 candidate facts), and holds
 \NaiveFactRows{} fact rows in \NaiveTotalMBMin{}--\NaiveTotalMBMax{}~MB
-(about \NaiveBytesPerFact{} bytes per fact, index included). Against the
-\BFiveSSixLedger{}~ms ledger leaves the V5 representation needs at 1.7
-million Facts, this is a difference of two orders of magnitude in time and
-storage, with the caveat that the inputs differ (the benign trace's
-Dependency sets versus the S6 statement): a same-input replay of the V5
-observations through both ledgers was designed but not executed in this
-revision. Limits: one host, pilot class, S2 measured under accounting only,
+(about \NaiveBytesPerFact{} bytes per fact, index included). These figures
+are not a comparison with the V5 ledger and no speed-up or storage ratio is
+claimed from them: the \BFiveSSixLedger{}~ms ledger leaves of arm~(iv) were
+measured on a different input (the S6 statement, 1.7 million Facts) inside
+the Gateway's settlement transaction, while the naive ledger replayed the
+benign trace's Dependency sets standalone, and the two differ in input,
+persistence path and concurrency. The comparison that would support a ratio
+feeds the same normalized candidate sets in the same order to both ledgers
+under the same transaction and durability settings, checks that every
+accept/refuse decision, every per-dimension charge and the final decoded
+sets are equal, and only then compares time and storage; it is designed
+(\filepath{docs/p10_r2_b5_ablation_design.md}) but not executed in
+this revision, so the benefit of the optimized representation over a simple
+exact one is not quantified here. Limits: one host, pilot class, S2 measured under accounting only,
 arm~(ii) composed rather than executed, and the S1/S2 cells here are the
 master-Catalog Baseline cells over the deterministic fixture, not the
 TPC-H-derived profiles of the sub-phase pilot.
@@ -2976,6 +3047,24 @@ arithmetic comparisons, division and conditional arithmetic in projections,
 a correlated subquery), and \HeldoutAgentDefects{} statement failed to parse
 because the assistant appended prose to its SQL. The held-out rate is the
 number to cite for generalization; the development-set rate is not.
+
+The rate answers one of three questions that should not be merged.
+\emph{Expressibility}, whether the fragment has some statement for the
+question, is not measured: a rejection shows that the agent's one spelling is
+outside the fragment, not that no admitted spelling exists, and no rewrite
+loop was run. \emph{Generation}, whether an unaided agent writes an admitted
+statement at its first attempt, is what the \HeldoutLowerablePct\% measures,
+and the instrument confounds it: \HeldoutSheetAdvertised{} of the
+\HeldoutRejected{} first rejections fall on a construct the product sheet
+lists as allowed (\code{to_char}, \code{date_trunc}, \code{/}), so they
+reflect the sheet/lowerer mismatch as much as the language boundary, and no
+rerun under a sheet that matches the lowerer was made. \emph{Correctness},
+whether an admitted statement answers its question, is not measured either:
+the \HeldoutLowerable{} admitted statements were lowered, not executed, and
+none was graded against a reference answer. The figure is an admission rate
+of first-attempt statements, not a task-completion rate; the only graded
+end-to-end evidence in this paper is the two-objective agent pilot of
+Section~\ref{sec:agent-pilot-supp}.
 
 \begin{table}[t]
 \centering

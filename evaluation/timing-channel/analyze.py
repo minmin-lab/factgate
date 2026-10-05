@@ -12,23 +12,29 @@ results.json next to this file. Two refusal sites are analysed separately:
                        (EXPOSURE_BUDGET_EXHAUSTED at DeriveLimits and
                        EXPOSURE_EVIDENCE_REQUIRED): nothing executed.
 
-Post-execution refusals come from pilot-counter-rigor-02 (arms counter-exact and
-counter-release, 3 deployments x 3 samples x 100-step trace) and pilot-adversary-04
+Post-execution refusals come from pilot-counter-rigor-03 (arms counter-exact and
+counter-release, 3 deployments x 3 samples x 100-step trace) and pilot-adversary-05
 (owner and tightened tiers, 3 deployments each). The refused step's footprint in
 rows is taken from the corpus (the row count the same statement releases when
 accepted; refused steps charge nothing, so it is not in the refused record).
 Position-1 steps are excluded: the first query on a fresh root pays a cold-start
 cost that is visible on accepted steps too.
 
-Pre-execution refusals come from pilot-footprint-07 (bounded arm, one deployment).
+Pre-execution refusals come from pilot-footprint-08 (bounded arm, one deployment).
 The per-fact execution rate comes from the same campaign's unlimited arm.
 
 Channel model (reported as an upper bound, not an estimate of what an adversary
 recovers): latency = a + r * F + noise, noise sd sigma measured from repeated
 refusals of the same statement across runs. For a footprint prior uniform on
-[0, F_max], the Gaussian-channel capacity per refusal is at most
-    C = 1/2 * log2(1 + (r * F_max)^2 / (12 sigma^2))  bits,
-and one refusal resolves F to about +-sigma/r facts.
+[0, F_max], the mutual information per refusal is at most
+    I = 1/2 * log2(1 + (r * F_max)^2 / (12 sigma^2))  bits
+(mutual information under that prior, not the channel capacity, which
+maximizes over input distributions and replaces 12 by 4 in the same model),
+and one refusal resolves F to about +-sigma/r facts. The rate r is the
+per-fact execution rate of the unlimited ladder; the same formula is also
+evaluated with the slope observed on the refusals themselves, extrapolated
+from their one-to-six-row range to the row guard, because the two rates
+differ by two orders of magnitude and the bits figure depends on the choice.
 """
 import glob, hashlib, json, math, pathlib, statistics as st
 
@@ -81,7 +87,7 @@ def adversary_rows(strategy, threshold):
 # ------------------------------------------------- post-execution refusals
 post = []  # dict(campaign, arm, deployment, step_id, position, rows, ms)
 by_step = {}
-for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-02/deployments/counter-*/*/raw/*.jsonl"))):
+for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-03/deployments/counter-*/*/raw/*.jsonl"))):
     arm = f.split("/")[-4]
     if arm not in ("counter-exact", "counter-release"):
         continue  # rows/queries arms refuse with TASK_NOT_ACTIVE before the gateway path
@@ -93,18 +99,18 @@ for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-02/deployments/counter-
                 continue
             if step["position"] == 1:
                 continue
-            rec = dict(campaign="pilot-counter-rigor-02", arm=arm, deployment=dep, step_id=step["step_id"],
+            rec = dict(campaign="pilot-counter-rigor-03", arm=arm, deployment=dep, step_id=step["step_id"],
                        position=step["position"], rows=rows_of[step["step_id"]], ms=step["client_ms"])
             post.append(rec)
             by_step.setdefault((arm, step["step_id"]), []).append(step["client_ms"])
-for f in sorted(glob.glob(str(RAW / "pilot-adversary-04/deployments/*/*/raw/adversary.jsonl"))):
+for f in sorted(glob.glob(str(RAW / "pilot-adversary-05/deployments/*/*/raw/adversary.jsonl"))):
     arm, dep = f.split("/")[-4], f.split("/")[-3]
     for line in open(f):
         v = json.loads(line)["sample"]["adversary_verification"]
         for step in v["steps"]:
             if not step["rejected"] or step["position"] == 1:
                 continue
-            rec = dict(campaign="pilot-adversary-04", arm=arm, deployment=dep, step_id=step["step_id"],
+            rec = dict(campaign="pilot-adversary-05", arm=arm, deployment=dep, step_id=step["step_id"],
                        position=step["position"], rows=adversary_rows(v["strategy"], step["threshold"]),
                        ms=step["client_ms"])
             post.append(rec)
@@ -123,7 +129,7 @@ within = [st.pstdev(v) for v in by_step.values() if len(v) >= 6]
 a_rows, b_rows, se_rows = ols([r["rows"] for r in post], all_ms)
 # accepted steps of the same traces, for the cold-start note and the contrast
 acc_pos1, acc_rest = [], []
-for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-02/deployments/counter-exact/*/raw/*.jsonl"))):
+for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-03/deployments/counter-exact/*/raw/*.jsonl"))):
     for line in open(f):
         for step in json.loads(line)["sample"]["counter_verification"]["steps"]:
             if step["accepted"]:
@@ -132,7 +138,7 @@ for f in sorted(glob.glob(str(RAW / "pilot-counter-rigor-02/deployments/counter-
 # ---------------------------------------------- pre-execution refusals (ladder)
 ladder = {}
 for arm in ("footprint-bounded", "footprint-unlimited"):
-    f = RAW / f"pilot-footprint-07/deployments/{arm}/001/raw/footprint.jsonl"
+    f = RAW / f"pilot-footprint-08/deployments/{arm}/001/raw/footprint.jsonl"
     ladder[arm] = json.loads(f.read_text().splitlines()[0])["sample"]["footprint_verification"]["rungs"]
 unl = [(r["charged_dependency_facts"], r["client_ms"]) for r in ladder["footprint-unlimited"] if r["accepted"]]
 _, r_ms_per_fact, r_se = ols([x for x, _ in unl], [y for _, y in unl])
@@ -158,13 +164,17 @@ max_rows_guard = 500  # config/profiles/*.catalog.yaml max_rows of the pilot bud
 F_corpus = max(dep_of.values())
 F_guard = max_rows_guard * facts_per_row
 F_ladder = max(x for x, _ in unl)
+# The same formula with the slope fitted on the refusals (ms per row),
+# extrapolated linearly from the observed rows to the row guard.
+refusal_slope_span_ms = b_rows * max_rows_guard
+refusal_slope_bits = 0.5 * math.log2(1.0 + refusal_slope_span_ms ** 2 / (12.0 * sigma * sigma))
 resolution_facts = sigma / r_ms_per_fact
 out = dict(
     version=1,
     sources=dict(
         counter_corpus_sha256=sha(ROOT / "evaluation/finalv5counter/corpus-v1.json"),
         rls_corpus_sha256=sha(ROOT / "evaluation/finalv5rls/corpus-v1.json"),
-        campaigns=["pilot-counter-rigor-02", "pilot-adversary-04", "pilot-footprint-07"],
+        campaigns=["pilot-counter-rigor-03", "pilot-adversary-05", "pilot-footprint-08"],
     ),
     post_execution=dict(
         site="internal/gateway/query.go finalize -> control.ErrExposureBudgetExhausted (ordinal_exposure_v5.go novelty check)",
@@ -184,15 +194,20 @@ out = dict(
         refusals=pre,
         by_row_span={str(k): dict(n=len(v), min_ms=min(v), max_ms=max(v)) for k, v in sorted(pre_by_span.items())},
     ),
-    rate=dict(source="pilot-footprint-07 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
+    rate=dict(source="pilot-footprint-08 unlimited arm, OLS of client_ms on charged Dependency facts over the 12 accepted rungs",
               micros_per_fact=round(micros_per_fact, 3), se_micros_per_fact=round(r_se * 1000, 3),
               points=[dict(facts=x, ms=round(y, 1)) for x, y in unl]),
     bound=dict(
-        model="latency = a + r*F + N(0, sigma^2); C <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max]",
+        model="latency = a + r*F + N(0, sigma^2); I <= 1/2 log2(1 + (r F_max)^2 / (12 sigma^2)) for F uniform on [0, F_max] (mutual information under that prior, not channel capacity)",
         sigma_ms=round(sigma, 2), resolution_facts=round(resolution_facts),
         facts_per_row=facts_per_row, max_rows_guard=max_rows_guard,
         corpus=dict(F_max=F_corpus, bits=round(bits(F_corpus, sigma), 3)),
         row_guard=dict(F_max=F_guard, bits=round(bits(F_guard, sigma), 3)),
+        row_guard_refusal_slope=dict(
+            rows=max_rows_guard, observed_rows=[min(groups), max(groups)],
+            slope_over_se=round(b_rows / se_rows, 1), span_ms=round(refusal_slope_span_ms, 1),
+            bits=round(refusal_slope_bits, 1),
+            note="OLS slope of the refusals (ms per row, samples treated as independent, statement shape not separated from footprint) extrapolated to the row guard; an extrapolation, not a measurement"),
         ladder_scale=dict(F_max=F_ladder, bits=round(bits(F_ladder, sigma), 2),
                           note="never reaches the post-execution site under the bounded profile: refused pre-execution"),
     ),
