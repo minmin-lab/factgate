@@ -57,6 +57,13 @@ for _tex in ("paper/tkde/main.tex", "paper/tkde/supplement.tex"):
     for _run in sorted(SUPERSEDED):
         if re.search(re.escape(_run) + r"(?!\d)", _text):
             raise SystemExit(f"{_tex} cites superseded pilot run {_run}; cite its replacement")
+# The same for the analysis scripts, where a superseded id is a read path
+# (or the default of one) and not just a label.
+for _script in sorted(list((ROOT / "evaluation").glob("*/analyze.py")) + list((ROOT / "evaluation").glob("*/replay.py"))):
+    _text = _script.read_text()
+    for _run in sorted(SUPERSEDED):
+        if re.search(re.escape(_run) + r"(?!\d)", _text):
+            raise SystemExit(f"{_script.relative_to(ROOT)} names superseded pilot run {_run}; point it at the replacement and rerun it")
 
 # --- B1: held-out agent-written workload -------------------------------
 hd = ROOT / "evaluation/agentworkload-heldout"

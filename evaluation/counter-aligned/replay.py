@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """P10.B4: counter comparators under one aligned failure policy (admission arithmetic).
 
-The executed comparator arms (pilot-counter-rigor-02) compare default products:
+The executed comparator arms (pilot-counter-rigor-03) compare default products:
 a row- or query-budget crossing truncates the crossing query, settles it and
 archives the task, whereas an exposure-budget crossing refuses the whole query
 uncharged and keeps the task alive. This script replays the same four arms,

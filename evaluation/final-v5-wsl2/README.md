@@ -1,6 +1,6 @@
 # TaskGate final V5 WSL2 experiment framework
 
-This is the preregistered, fail-closed home for the TKDE V5 + Parquet + Receipt V8 campaign. The v1.11 publication campaign `formal-v111-publication-03` (sealed 2026-08-29, 172 cells x 3 rounds) is bound by `publication-evidence-v1.json`; its raw samples and retained deployment bytes live outside git under `raw/` on the WSL2 host. Historical V4, V5 Outcome, RQ5, and ProvSQL evidence is read-only and is never copied or relabeled here.
+This is the preregistered, fail-closed home for the TKDE V5 + Parquet + Receipt V8 campaign. The publication campaign the paper cites is `formal-v113-publication-05` (contract release v1.13, sealed 2026-09-22, 172 cells x 3 rounds), bound by `publication-evidence-v1.json`; its raw samples and retained deployment bytes live outside git under `raw/` on the WSL2 host, and the files needed to recompute the paper are deposited (`raw-evidence-deposit.json`, `raw-evidence-manifest.sha256`). Earlier campaigns (`formal-v111-publication-03`, `formal-v113-publication-03`) were superseded and their raw directories no longer exist. Historical V4, V5 Outcome, RQ5, and ProvSQL evidence is read-only and is never copied or relabeled here.
 
 ## Safety boundary
 

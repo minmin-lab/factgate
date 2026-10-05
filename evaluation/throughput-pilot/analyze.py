@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """P10.B6: aggregate the throughput pilot rounds (throughput.jsonl per deployment).
 
-Usage: analyze.py [--campaign p10-b6-throughput-01] [--raw <raw root>] [--out results.json]
+Usage: analyze.py [--campaign p10-b6-throughput-02] [--raw <raw root>] [--out results.json]
 Per cell (roots x width x overlap), over all deployments and rounds: rounds,
 rounds with an error, settled / novel / zero-novelty / refused / error
 requests (totals), settled and novel requests per second (median over rounds,
@@ -21,7 +21,7 @@ def med(v, nd=1):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--campaign", default="p10-b6-throughput-01")
+    ap.add_argument("--campaign", default="p10-b6-throughput-02")
     ap.add_argument("--raw", default=str(ROOT / "evaluation/final-v5-wsl2/raw"))
     ap.add_argument("--out", default=str(HERE / "results.json"))
     a = ap.parse_args()

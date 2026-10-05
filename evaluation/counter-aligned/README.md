@@ -1,7 +1,7 @@
 # Counter comparators under one aligned failure policy (P10.B4)
 
 Admission arithmetic only: no new run. `replay.py` replays the four
-comparator arms of the executed pilot (`pilot-counter-rigor-02`: exact set
+comparator arms of the executed pilot (`pilot-counter-rigor-03`: exact set
 floors, release-set only, cumulative row counter, query counter) with their
 a-priori budgets (`config/profiles/counter-*.catalog.yaml`) and their three
 frozen orders (`evaluation/finalv5counter/corpus-v1.json`) over the sealed

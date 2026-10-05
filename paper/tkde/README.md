@@ -200,11 +200,14 @@ separate arXiv identifier is created.
 
 ## Submission-length check
 
-The containerized IEEE-template build at commit 4a24c2f (2026-08-29, after the
-formal-v111-publication-03 campaign paragraph, table row, and reproducibility
-boundary rewrite were added) is 13 main-paper pages plus a 13-page supplement;
-the P7.5 target is 12 main-paper pages including references and biographies.
-The main-paper abstract is 179 words when counted from `main.tex` with macros
+The current containerized IEEE-template build is 12 main-paper pages including
+references, plus a supplement; the page counts, PDF digests and source commit
+of the latest build are recorded in `paper/tkde/review/README.md`, which is
+refreshed with every manuscript change (an earlier build at commit 4a24c2f,
+2026-08-29, was 13 pages and is superseded). The target is 12 main-paper pages
+including references and biographies. The abstract word count below was taken
+on that earlier build and has not been recounted.
+The main-paper abstract was 179 words when counted from `main.tex` with macros
 and commands stripped (182 when counted from an earlier rendered PDF after
 joining line-break hyphenation).
 Before upload, the corresponding author must confirm the current TKDE category,
