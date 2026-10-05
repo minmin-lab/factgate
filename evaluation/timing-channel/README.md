@@ -53,9 +53,14 @@ Both refusal sites return `EXPOSURE_BUDGET_EXHAUSTED`, and the retained
 records carry nothing else about the site. The refusals pooled here are
 assigned to the post-execution site by reading the code, not by an
 observation: the pre-execution guard (`physicalquery.DeriveLimits`) refuses on
-an exhausted row budget or on a limit below one, and neither occurs under the
-budget profiles of these runs (row budget 500 with at most 228 rows released;
-exposure limits of 7 or more). The pre-execution guard takes the remaining row
+an exhausted row budget or on a limit below one. A refused attempt is charged
+the rows its statement returned (`querySettlement` in
+`internal/gateway/query.go`, settled as failed), so released rows alone do not
+show the row budget was safe; the rows of every step do. The whole
+100-statement trace returns 250 rows and no adversary trace more than 27,
+against a row budget of 500, and no exposure limit is below 7. `analyze.py`
+computes these from the oracle and the profiles and asserts them
+(`site_attribution` in `results.json`). The pre-execution guard takes the remaining row
 budget and the exposure limits as inputs, so pre-execution latency is not
 shown to be independent of ledger state either.
 

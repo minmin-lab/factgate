@@ -50,7 +50,7 @@ The per-fact execution rate of ACCEPTED scans comes from the same campaign's
 unlimited arm, where every rung runs on a fresh root, so the charge equals the
 full footprint.
 """
-import glob, hashlib, json, math, pathlib, statistics as st
+import glob, hashlib, json, math, pathlib, re, statistics as st
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 RAW = ROOT / "evaluation/final-v5-wsl2/raw"
@@ -135,6 +135,29 @@ for tr in adversary["traces"]:
             history |= D
         checked += 1
 adversary_steps_checked = checked
+
+# ------------------------------------------------------- site attribution
+# Both refusal sites return EXPOSURE_BUDGET_EXHAUSTED and the records carry
+# nothing else about the site. The pre-execution guard (physicalquery.DeriveLimits)
+# refuses on an exhausted row budget or on a limit below one. A refused attempt
+# is charged the rows its statement returned (gateway querySettlement ->
+# control settle with status failed), so the row budget is safe only if the
+# rows of EVERY step of a trace, refused ones included, stay below it.
+def profile_budget(name):
+    text = (ROOT / f"config/profiles/{name}.catalog.yaml").read_text()
+    block = re.search(rf"- name: final-v5-{name}-v1\n((?:      .*\n)+)", text).group(1)
+    return {k: int(re.search(rf"{k}: (\d+)", block).group(1))
+            for k in ("max_queries", "max_rows", "max_release_facts", "max_influence_facts", "max_outcome_facts")}
+
+
+profiles = {name: profile_budget(name) for name in ("counter-exact", "counter-release", "adversary-owner", "adversary-tightened")}
+row_budget = min(b["max_rows"] for b in profiles.values())
+min_exposure_limit = min(b[k] for b in profiles.values() for k in ("max_release_facts", "max_influence_facts", "max_outcome_facts"))
+counter_trace_rows = sum(o["rows"] for o in oracle.values())
+adversary_trace_rows = max(sum(adversary_statement(tr["strategy"], s["threshold"])[0] for s in tr["steps"])
+                           for tr in adversary["traces"] if tr["tier"] in ("owner", "tightened"))
+assert counter_trace_rows < row_budget and adversary_trace_rows < row_budget and min_exposure_limit >= 1, \
+    "the pre-execution guard could have refused in these runs; the post-execution attribution no longer holds"
 
 # ------------------------------------------------- post-execution refusals
 post = []
@@ -245,6 +268,10 @@ out = dict(
         oracle_trace_sample=str(SEALED_RLS.relative_to(ROOT)), oracle_trace_sample_sha256=sha(SEALED_RLS),
         campaigns=["pilot-counter-rigor-03", "pilot-adversary-05", "pilot-footprint-08"],
     ),
+    site_attribution=dict(
+        basis="code reading, not observation: both sites return one error code; the pre-execution guard refuses on an exhausted row budget or a limit below one, and a refused attempt is charged the rows its statement returned",
+        row_budget=row_budget, counter_trace_total_result_rows=counter_trace_rows,
+        adversary_trace_max_total_result_rows=adversary_trace_rows, min_exposure_limit=min_exposure_limit),
     reconstruction=dict(
         counter_accepted_steps_reproduced=counter_steps_checked, adversary_steps_reproduced=adversary_steps_checked,
         note="oracle Dependency sets reproduce every accepted step's novelty and row count in the exact and release counter arms, and every step's novelty in the adversary corpus"),

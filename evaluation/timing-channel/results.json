@@ -12,6 +12,13 @@
    "pilot-footprint-08"
   ]
  },
+ "site_attribution": {
+  "basis": "code reading, not observation: both sites return one error code; the pre-execution guard refuses on an exhausted row budget or a limit below one, and a refused attempt is charged the rows its statement returned",
+  "row_budget": 500,
+  "counter_trace_total_result_rows": 250,
+  "adversary_trace_max_total_result_rows": 27,
+  "min_exposure_limit": 7
+ },
  "reconstruction": {
   "counter_accepted_steps_reproduced": 348,
   "adversary_steps_reproduced": 32,

@@ -2112,8 +2112,12 @@ remaining row budget and its exposure limits as inputs. The two sites return
 the same error code and the retained records carry nothing else about the
 site, so the refusals analysed below are assigned to the post-execution site
 by reading the code, not by an observation: the pre-execution guard refuses
-on an exhausted row budget or on a limit below one, and neither occurs under
-the budget profiles of these runs.
+on an exhausted row budget or on a limit below one, and neither can occur in
+these runs. A refused attempt is charged the rows its statement returned, so
+what matters is the rows of every step, refused ones included: the whole
+100-statement trace returns \TimingTraceTotalRows{} rows and no adversary
+trace more than \TimingAdversaryMaxRows{}, against a row budget of
+\TimingRowBudget{}, and no exposure limit is below \TimingMinExposureLimit{}.
 
 \paragraph{Three quantities.}
 A refused statement $q$ is described by three numbers that must be kept
@@ -2199,10 +2203,12 @@ grouped by campaign, arm, step identifier and novel part they form
 \TimingStatementPoints{} groups, and with one point per group no slope is
 further than \TimingStatementOverSEMax{} standard errors from zero. The
 grouped fit is a sensitivity analysis, not a test corrected for dependence
-between observations; it shows that the pooled figures count repetitions as
-evidence and overstate it: the previous revision reported such a pooled slope as a detected
-dependence, and the revision before it reported flat latency; neither
-reading is supported. What the records support is narrower. Over full
+between observations. The difference between the two descriptive fits shows
+that the result is sensitive to how repeated observations are aggregated;
+with the dependence between observations untreated, the pooled fit cannot
+be read as confirming a dependence of latency on what was refused. The
+previous revision reported such a pooled slope as a detected dependence, and
+the revision before it reported flat latency; neither reading is supported. What the records support is narrower. Over full
 footprints of \TimingFullMin{} to \TimingFullMax{} Facts on a ten-row
 fixture, the differences between groups are smaller than the pooled standard
 deviation of \TimingPooledSDMS{}~ms; the same statement refused repeatedly
