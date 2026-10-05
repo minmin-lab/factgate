@@ -1,0 +1,7 @@
+Below is the description of the data products you may query, followed by one question.
+Write one PostgreSQL SELECT statement that answers the question.
+Output only the SQL statement: no explanation, no comments, no code fences.
+
+{products}
+
+Question: {question}
