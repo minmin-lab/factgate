@@ -1,0 +1,1 @@
+SELECT date_trunc('week', expense_date) AS week_start, sum(amount) AS total_amount FROM expense_detail WHERE to_char(expense_date, 'YYYY') = '2026' GROUP BY date_trunc('week', expense_date) ORDER BY week_start

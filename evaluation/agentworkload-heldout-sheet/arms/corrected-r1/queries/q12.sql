@@ -1,0 +1,1 @@
+SELECT employee_no, employee_name, COUNT(*) AS receipt_count FROM expense_detail WHERE expense_date >= DATE '2026-01-01' AND expense_date <= DATE '2026-12-31' GROUP BY employee_no, employee_name HAVING COUNT(*) >= 15 ORDER BY receipt_count DESC, employee_no

@@ -1,0 +1,1 @@
+SELECT row_id, description FROM final_v5_result_heavy WHERE right(description, 5) = 'final' ORDER BY row_id

@@ -1,0 +1,1 @@
+SELECT expense_type, count(*) AS receipt_count, sum(amount) AS total_amount FROM expense_detail WHERE department = 'Engineering' AND expense_date >= DATE '2026-01-01' AND expense_date <= DATE '2026-12-31' GROUP BY expense_type ORDER BY expense_type

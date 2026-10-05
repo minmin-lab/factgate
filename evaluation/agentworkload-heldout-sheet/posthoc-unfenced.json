@@ -1,0 +1,431 @@
+{
+ "version": 1,
+ "label": "POST HOC sensitivity view; not part of the frozen design; summary.json holds the frozen figures",
+ "summary_sha256": "f23dca48ec747db0336462794a49f3c4181a2191782a5757c592f56211c89da3",
+ "expense_questions": [
+  "q01",
+  "q02",
+  "q03",
+  "q04",
+  "q05",
+  "q06",
+  "q07",
+  "q08",
+  "q09",
+  "q10",
+  "q11",
+  "q12",
+  "q13",
+  "q14",
+  "q15",
+  "q16",
+  "q17",
+  "q18",
+  "q19",
+  "q20",
+  "q36",
+  "q37",
+  "q38",
+  "q39",
+  "q40"
+ ],
+ "runs": [
+  {
+   "arm": "original",
+   "repetition": 1,
+   "fenced_statements": [
+    "q09",
+    "q32",
+    "q33",
+    "q34",
+    "q39",
+    "q40"
+   ],
+   "frozen_admitted": 22,
+   "frozen_syntax_errors": 6,
+   "unfenced_admitted": 23,
+   "unfenced_admitted_expense_questions": 12,
+   "unfenced_admitted_other_questions": 11,
+   "unfenced_syntax_errors": 0,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q02",
+    "q06",
+    "q09",
+    "q12",
+    "q14",
+    "q36",
+    "q38",
+    "q40"
+   ],
+   "unfenced_by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 3,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  },
+  {
+   "arm": "original",
+   "repetition": 2,
+   "fenced_statements": [
+    "q01",
+    "q03",
+    "q10",
+    "q20",
+    "q40"
+   ],
+   "frozen_admitted": 18,
+   "frozen_syntax_errors": 5,
+   "unfenced_admitted": 20,
+   "unfenced_admitted_expense_questions": 11,
+   "unfenced_admitted_other_questions": 9,
+   "unfenced_syntax_errors": 0,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q02",
+    "q06",
+    "q09",
+    "q12",
+    "q14",
+    "q36",
+    "q38",
+    "q40"
+   ],
+   "unfenced_by_reason": {
+    "JOIN_TYPE_UNSUPPORTED/LEFT_JOIN_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 3,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  },
+  {
+   "arm": "original",
+   "repetition": 3,
+   "fenced_statements": [
+    "q01",
+    "q06",
+    "q09",
+    "q30",
+    "q39",
+    "q40"
+   ],
+   "frozen_admitted": 18,
+   "frozen_syntax_errors": 6,
+   "unfenced_admitted": 19,
+   "unfenced_admitted_expense_questions": 10,
+   "unfenced_admitted_other_questions": 9,
+   "unfenced_syntax_errors": 0,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q06",
+    "q12",
+    "q14",
+    "q36",
+    "q38",
+    "q40"
+   ],
+   "unfenced_by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_MODIFIER_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PAGINATION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  },
+  {
+   "arm": "corrected",
+   "repetition": 1,
+   "fenced_statements": [
+    "q01",
+    "q06",
+    "q09",
+    "q10",
+    "q39",
+    "q40"
+   ],
+   "frozen_admitted": 23,
+   "frozen_syntax_errors": 6,
+   "unfenced_admitted": 24,
+   "unfenced_admitted_expense_questions": 12,
+   "unfenced_admitted_other_questions": 12,
+   "unfenced_syntax_errors": 0,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q38"
+   ],
+   "unfenced_by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 6,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 3,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  },
+  {
+   "arm": "corrected",
+   "repetition": 2,
+   "fenced_statements": [
+    "q01",
+    "q06",
+    "q20",
+    "q29",
+    "q40"
+   ],
+   "frozen_admitted": 23,
+   "frozen_syntax_errors": 5,
+   "unfenced_admitted": 23,
+   "unfenced_admitted_expense_questions": 12,
+   "unfenced_admitted_other_questions": 11,
+   "unfenced_syntax_errors": 0,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q06",
+    "q38"
+   ],
+   "unfenced_by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_MODIFIER_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 6,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  },
+  {
+   "arm": "corrected",
+   "repetition": 3,
+   "fenced_statements": [
+    "q01",
+    "q03",
+    "q14",
+    "q24",
+    "q38",
+    "q39",
+    "q40"
+   ],
+   "frozen_admitted": 21,
+   "frozen_syntax_errors": 8,
+   "unfenced_admitted": 22,
+   "unfenced_admitted_expense_questions": 11,
+   "unfenced_admitted_other_questions": 11,
+   "unfenced_syntax_errors": 1,
+   "unfenced_first_rejection_at_removed_construct": [
+    "q06",
+    "q09",
+    "q38"
+   ],
+   "unfenced_by_reason": {
+    "JOIN_TYPE_UNSUPPORTED/LEFT_JOIN_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 5,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 4,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 1,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   }
+  }
+ ],
+ "arms": {
+  "original": {
+   "frozen_admitted": [
+    22,
+    18,
+    18
+   ],
+   "fenced": [
+    6,
+    5,
+    6
+   ],
+   "unfenced_admitted": [
+    23,
+    20,
+    19
+   ],
+   "unfenced_admitted_expense_questions": [
+    12,
+    11,
+    10
+   ],
+   "unfenced_admitted_other_questions": [
+    11,
+    9,
+    9
+   ],
+   "unfenced_at_removed_construct": [
+    8,
+    8,
+    6
+   ],
+   "questions_admitted_in_every_repetition": [
+    "q03",
+    "q04",
+    "q05",
+    "q07",
+    "q08",
+    "q11",
+    "q13",
+    "q16",
+    "q18",
+    "q21",
+    "q25",
+    "q28",
+    "q30",
+    "q31",
+    "q32",
+    "q35",
+    "q37"
+   ],
+   "questions_admitted_in_no_repetition": [
+    "q01",
+    "q02",
+    "q06",
+    "q09",
+    "q12",
+    "q14",
+    "q15",
+    "q19",
+    "q20",
+    "q29",
+    "q33",
+    "q34",
+    "q36",
+    "q38",
+    "q39",
+    "q40"
+   ]
+  },
+  "corrected": {
+   "frozen_admitted": [
+    23,
+    23,
+    21
+   ],
+   "fenced": [
+    6,
+    5,
+    7
+   ],
+   "unfenced_admitted": [
+    24,
+    23,
+    22
+   ],
+   "unfenced_admitted_expense_questions": [
+    12,
+    12,
+    11
+   ],
+   "unfenced_admitted_other_questions": [
+    12,
+    11,
+    11
+   ],
+   "unfenced_at_removed_construct": [
+    1,
+    2,
+    3
+   ],
+   "questions_admitted_in_every_repetition": [
+    "q03",
+    "q04",
+    "q05",
+    "q07",
+    "q08",
+    "q11",
+    "q13",
+    "q15",
+    "q16",
+    "q18",
+    "q21",
+    "q22",
+    "q23",
+    "q25",
+    "q26",
+    "q27",
+    "q28",
+    "q30",
+    "q31",
+    "q32",
+    "q35",
+    "q37"
+   ],
+   "questions_admitted_in_no_repetition": [
+    "q01",
+    "q02",
+    "q09",
+    "q10",
+    "q12",
+    "q14",
+    "q19",
+    "q20",
+    "q29",
+    "q33",
+    "q34",
+    "q36",
+    "q38",
+    "q39",
+    "q40"
+   ]
+  }
+ },
+ "heldout_sheet_attributed_questions": {
+  "q06": {
+   "original": 0,
+   "corrected": 1
+  },
+  "q09": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q12": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q14": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q36": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q38": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q40": {
+   "original": 0,
+   "corrected": 0
+  }
+ },
+ "questions_gained_in_every_repetition": [
+  "q15"
+ ],
+ "questions_lost_in_every_repetition": [],
+ "heldout_original": {
+  "admitted": 22,
+  "queries": 40
+ }
+}

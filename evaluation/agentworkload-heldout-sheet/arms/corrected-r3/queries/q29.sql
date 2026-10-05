@@ -1,0 +1,11 @@
+```sql
+SELECT row_id, amount, region, revision
+FROM final_v5_result_heavy
+WHERE category = 'B'
+  AND DATE '2026-02-01' <= event_date
+ORDER BY row_id
+```
+
+Wait — output only the SQL:
+
+SELECT row_id, amount, region, revision FROM final_v5_result_heavy WHERE category = 'B' AND DATE '2026-02-01' <= event_date ORDER BY row_id

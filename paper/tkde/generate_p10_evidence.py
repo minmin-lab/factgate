@@ -492,5 +492,76 @@ if ns_path.exists():
         rf"\newcommand{{\NaiveScaleBytesPerFact}}{{{by[(big, 0)]['bytes'] / by[(big, 0)]['rows']:.0f}}}",
     ]
 
+# --- P10-R2: held-out questions under a sheet that matches the lowerer ------
+sh_dir = ROOT / "evaluation/agentworkload-heldout-sheet"
+if (sh_dir / "summary.json").exists():
+    sm = json.loads((sh_dir / "summary.json").read_text())
+    ph = json.loads((sh_dir / "posthoc-unfenced.json").read_text())
+    if sm.get("campaign_class") != "pilot" or sm.get("publication_eligible") is not False:
+        raise SystemExit("held-out sheet study is not pilot class")
+    if sm["questions_sha256"] != hashlib.sha256((hd / "questions.md").read_bytes()).hexdigest():
+        raise SystemExit("held-out sheet study did not use the frozen held-out questions")
+    if sm["sheets"]["original"] != hashlib.sha256((hd / "products.md").read_bytes()).hexdigest():
+        raise SystemExit("held-out sheet study: the original arm's sheet is not the held-out study's sheet")
+    if ph["summary_sha256"] != hashlib.sha256((sh_dir / "summary.json").read_bytes()).hexdigest():
+        raise SystemExit("posthoc-unfenced.json was not computed from the current summary.json")
+    for run in sm["runs"]:
+        _f = sh_dir / "results" / f"{run['arm']}-r{run['repetition']}.json"
+        if hashlib.sha256(_f.read_bytes()).hexdigest() != run["results_sha256"]:
+            raise SystemExit(f"held-out sheet study: {_f.name} changed since the summary")
+    glog = (sh_dir / "generation.log").read_text().splitlines()
+    if hashlib.sha256((sh_dir / "generation.log").read_bytes()).hexdigest() != sm["generation_log_sha256"]:
+        raise SystemExit("held-out sheet study: generation.log changed since the summary")
+    gen_models = {part.split("=", 1)[1] for line in glog for part in line.split() if part.startswith("model=")}
+    if len(gen_models) != 1:
+        raise SystemExit(f"held-out sheet study: more than one model recorded: {sorted(gen_models)}")
+    so, sc = sm["arms"]["original"], sm["arms"]["corrected"]
+    po, pc = ph["arms"]["original"], ph["arms"]["corrected"]
+    def lst(v):
+        return ", ".join(str(x) for x in v)
+    def rng(v):
+        return f"{min(v)}" if min(v) == max(v) else f"{min(v)}--{max(v)}"
+    seven = sorted(ph["heldout_sheet_attributed_questions"])
+    if set(seven) != SHEET:
+        raise SystemExit("held-out sheet study: sheet-attributed question set differs from the held-out classification")
+    seven_frozen = sum(sm["per_question_admitted_count"][q]["original"] + sm["per_question_admitted_count"][q]["corrected"] for q in seven)
+    seven_unfenced = sum(v["original"] + v["corrected"] for v in ph["heldout_sheet_attributed_questions"].values())
+    reps = len(so["admitted"])
+    fenced_all = po["fenced"] + pc["fenced"]
+    gained = sm["questions_gained_in_every_repetition"]
+    lines += [
+        rf"\newcommand{{\SheetResultsDigest}}{{\texttt{{{sha12(sh_dir / 'summary.json')}}}}}",
+        rf"\newcommand{{\SheetPosthocDigest}}{{\texttt{{{sha12(sh_dir / 'posthoc-unfenced.json')}}}}}",
+        rf"\newcommand{{\SheetModel}}{{\texttt{{{tex(sorted(gen_models)[0])}}}}}",
+        rf"\newcommand{{\SheetReps}}{{{reps}}}",
+        rf"\newcommand{{\SheetStatements}}{{{sum(r['queries'] for r in sm['runs'])}}}",
+        rf"\newcommand{{\SheetHarnessRetries}}{{{sum(1 for line in glog if 'harness-failure' in line)}}}",
+        rf"\newcommand{{\SheetOriginalAdmitted}}{{{lst(so['admitted'])}}}",
+        rf"\newcommand{{\SheetCorrectedAdmitted}}{{{lst(sc['admitted'])}}}",
+        rf"\newcommand{{\SheetOriginalRange}}{{{rng(so['admitted'])}}}",
+        rf"\newcommand{{\SheetCorrectedRange}}{{{rng(sc['admitted'])}}}",
+        rf"\newcommand{{\SheetOriginalMedian}}{{{so['admitted_median']:g}}}",
+        rf"\newcommand{{\SheetCorrectedMedian}}{{{sc['admitted_median']:g}}}",
+        rf"\newcommand{{\SheetMedianDiff}}{{{sc['admitted_median'] - so['admitted_median']:g}}}",
+        rf"\newcommand{{\SheetOriginalAtRemoved}}{{{rng(so['rejections_at_originally_advertised_construct'])}}}",
+        rf"\newcommand{{\SheetCorrectedAtRemoved}}{{{rng(sc['rejections_at_originally_advertised_construct'])}}}",
+        rf"\newcommand{{\SheetOriginalUnstable}}{{{len(so['questions_unstable'])}}}",
+        rf"\newcommand{{\SheetCorrectedUnstable}}{{{len(sc['questions_unstable'])}}}",
+        rf"\newcommand{{\SheetSevenStatements}}{{{len(seven) * reps * 2}}}",
+        rf"\newcommand{{\SheetSevenAdmitted}}{{{seven_frozen}}}",
+        rf"\newcommand{{\SheetSevenAdmittedUnfenced}}{{{seven_unfenced}}}",
+        rf"\newcommand{{\SheetFencedRange}}{{{rng(fenced_all)}}}",
+        rf"\newcommand{{\SheetOriginalUnfenced}}{{{lst(po['unfenced_admitted'])}}}",
+        rf"\newcommand{{\SheetCorrectedUnfenced}}{{{lst(pc['unfenced_admitted'])}}}",
+        rf"\newcommand{{\SheetExpenseQuestions}}{{{len(ph['expense_questions'])}}}",
+        rf"\newcommand{{\SheetOriginalUnfencedExpense}}{{{lst(po['unfenced_admitted_expense_questions'])}}}",
+        rf"\newcommand{{\SheetCorrectedUnfencedExpense}}{{{lst(pc['unfenced_admitted_expense_questions'])}}}",
+        rf"\newcommand{{\SheetOriginalUnfencedOther}}{{{lst(po['unfenced_admitted_other_questions'])}}}",
+        rf"\newcommand{{\SheetCorrectedUnfencedOther}}{{{lst(pc['unfenced_admitted_other_questions'])}}}",
+        rf"\newcommand{{\SheetGainedEveryRep}}{{{len(gained)}}}",
+        rf"\newcommand{{\SheetGainedEveryRepNames}}{{{', '.join('h' + q[1:] for q in gained) or 'none'}}}",
+        rf"\newcommand{{\SheetLostEveryRep}}{{{len(sm['questions_lost_in_every_repetition'])}}}",
+    ]
+
 OUT.write_text("\n".join(lines) + "\n")
 print("ok -", OUT.relative_to(ROOT), f"held-out {k}/{n}", counts)

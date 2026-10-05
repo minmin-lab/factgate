@@ -1,0 +1,1 @@
+SELECT row_id, category, amount, event_date, sequence_no, approved, event_timestamp, description, quantity, unit_price, tax_amount, settled_date, processed_at, region, revision, active FROM final_v5_result_heavy WHERE 100 <= row_id AND row_id <= 110 ORDER BY row_id

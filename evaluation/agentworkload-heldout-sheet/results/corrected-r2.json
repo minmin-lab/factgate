@@ -1,0 +1,333 @@
+{
+  "version": "taskgate-agent-workload-lowerability-v1",
+  "lowering_profile": "taskgate-reporting-sql-v1",
+  "passes": [
+    {
+      "variant": "as-written",
+      "directory": "evaluation/agentworkload-heldout-sheet/arms/corrected-r2/queries",
+      "queries": 40,
+      "lowerable": 23,
+      "by_reason": {
+        "SQL_NOT_LOWERABLE/AGGREGATE_MODIFIER_UNSUPPORTED": 1,
+        "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+        "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 4,
+        "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+        "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 1,
+        "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 1,
+        "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 1,
+        "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 5,
+        "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+      },
+      "results": [
+        {
+          "query": "q01",
+          "sql_sha256": "45afa198667cdfc68f36cec057f2ca2ee431b31c9ae0ff41f7f7193e63268048",
+          "lowerable": false,
+          "code": "SQL_SYNTAX_ERROR",
+          "reason": "SQL_SYNTAX_ERROR",
+          "clause": "SQL",
+          "message": "PostgreSQL could not parse the SQL statement.",
+          "from_sources": 1
+        },
+        {
+          "query": "q02",
+          "sql_sha256": "dffa05ac552bba2ec112baf0548287e72043cfe216cd085262645dc45fa2f3d1",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_LITERAL_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "a string, boolean, or numeric literal is required",
+          "from_sources": 0
+        },
+        {
+          "query": "q03",
+          "sql_sha256": "623872fcccd3a1bdfb22573e35642c704dc22304276a42c8cffe47077428f14a",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q04",
+          "sql_sha256": "8068373ca4b5ba9513398a614289ce7f88dccd651294835c6e9c89e4fb481f69",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q05",
+          "sql_sha256": "ec6ae4376c76aba31f4dad0ec2cc657f4e2ee9334a9447f6271517de36f723c1",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q06",
+          "sql_sha256": "95d7ea30291938ae023e712fec77d1f28b954a1a3bfb5dcd5e7afe698ecbbf98",
+          "lowerable": false,
+          "code": "SQL_SYNTAX_ERROR",
+          "reason": "SQL_SYNTAX_ERROR",
+          "clause": "SQL",
+          "message": "PostgreSQL could not parse the SQL statement.",
+          "from_sources": 1
+        },
+        {
+          "query": "q07",
+          "sql_sha256": "f3f17f413ed40836b5e63fa69d0e49d6c7ca2e221db922939fe02b4a0fe5879c",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q08",
+          "sql_sha256": "fba23a2fd094dbddfedfad8593d48ce9e507f2443369750fbeffc3f48dd2e861",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q09",
+          "sql_sha256": "013bd1a7952cbb9e4b3be96bc192f4a2962d7fabd97e4f1e620d7a5886b3634b",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "AGGREGATE_MODIFIER_UNSUPPORTED",
+          "clause": "SELECT",
+          "message": "FILTER, ORDER BY, window, and variadic aggregate modifiers are outside this profile.",
+          "from_sources": 1
+        },
+        {
+          "query": "q10",
+          "sql_sha256": "b7bdc9d04393b3b1ccfc4a00c177cee51bde2016afc14430d69ed7a945a7fd15",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_PREDICATE_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "LIKE requires an approved column on the left.",
+          "from_sources": 0
+        },
+        {
+          "query": "q11",
+          "sql_sha256": "dc760d3fd0472a477ae59f8782286c6d65e0077cb65d36de5b7d892cb7ba17e1",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q12",
+          "sql_sha256": "c82ce597f8ddcfe63b23cbd9e5d6dc4938b8adeccbce86d8f386396b0cfb1712",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_LITERAL_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "a string, boolean, or numeric literal is required",
+          "from_sources": 1
+        },
+        {
+          "query": "q13",
+          "sql_sha256": "cceeee8585ca548c029a0f01a024b2790de62931dc3faae73da1ebdf6a3cae49",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q14",
+          "sql_sha256": "64d4d4ec5991418ed9368baaae032a07d0768e2643a3bdc200ef541985a98f65",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "PROJECTION_CAST_UNSUPPORTED",
+          "clause": "SELECT",
+          "message": "Projection cast type is outside the closed reporting profile.",
+          "from_sources": 0
+        },
+        {
+          "query": "q15",
+          "sql_sha256": "547f8665b7115e65383848438cb0eda5bbf99561550a4fc7333592412209708f",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q16",
+          "sql_sha256": "17bdad1164debe40ec18beb289bc143cf14b6144d0dce140598349ff42f4dd56",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q17",
+          "sql_sha256": "afb8ef1e0b873f68ee37ffc03dc4324ee3a6d276ad911bc5bb91fa7382606067",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q18",
+          "sql_sha256": "eca8833fb7c13d76e785d239c1a2621b001b7cdfea910dd646141e039d34a96c",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q19",
+          "sql_sha256": "39fd3920f0a503657c60dc3307d2a23036fdf7d89d5fa276d952b80e1ac97e93",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_LITERAL_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "a string, boolean, or numeric literal is required",
+          "from_sources": 0
+        },
+        {
+          "query": "q20",
+          "sql_sha256": "db25f6cf2eeff99a91a7438d1426fab48a9470fe9097ba4bf9a80379b19c3a98",
+          "lowerable": false,
+          "code": "SQL_SYNTAX_ERROR",
+          "reason": "SQL_SYNTAX_ERROR",
+          "clause": "SQL",
+          "message": "PostgreSQL could not parse the SQL statement.",
+          "from_sources": 1
+        },
+        {
+          "query": "q21",
+          "sql_sha256": "763841eef5c9067a163b57287a9bafb2867008e2e2cfc086f4f6cd8dff00fc43",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q22",
+          "sql_sha256": "c4cc32d1e7724a79f661e0cb715d962f577b0b9e6b3439019dc8c15385b7e368",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q23",
+          "sql_sha256": "f78d8483a4b1b067d807d461194ac0b9496269bfafbb5c1d6da943c6068e2d70",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q24",
+          "sql_sha256": "aafdfb6f6bbb1396da0cbe99965d95f6ad57e8f414269f60dd13393c24a616a1",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FROM_SHAPE_UNSUPPORTED",
+          "clause": "FROM",
+          "message": "The reporting SQL profile requires exactly one table or connected explicit JOIN tree.",
+          "from_sources": 0
+        },
+        {
+          "query": "q25",
+          "sql_sha256": "ede6e51453b9cdb24ac3572aabd11a6c4495d8f6896c443ff1e7fbee493f3542",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q26",
+          "sql_sha256": "a5bc883debf0e65b6158c63a63124a7f2cb5ab231afd267ecd5a59d225b02d1b",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q27",
+          "sql_sha256": "d3ca0ace511da2c186d3973b6309b387253d811f8bb21ddc3dc25cc9814776f4",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q28",
+          "sql_sha256": "f36853ca577fc4442d713e98ead6d5453fcd7d4594ca801520258781ff7b4f8a",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q29",
+          "sql_sha256": "715069d483811d3c2ce4c42bbc5e9a25cc70c0fc375d16c79a40a18ffe53730d",
+          "lowerable": false,
+          "code": "SQL_SYNTAX_ERROR",
+          "reason": "SQL_SYNTAX_ERROR",
+          "clause": "SQL",
+          "message": "PostgreSQL could not parse the SQL statement.",
+          "from_sources": 1
+        },
+        {
+          "query": "q30",
+          "sql_sha256": "433d841080506d14b7a7f74224bb36ed95449ab60703c9eef95a76906cb19b15",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q31",
+          "sql_sha256": "5aad4de1c195f9c31a390ae917da1f78c063eefbba2aea9f9e4aec615d34ac51",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q32",
+          "sql_sha256": "f726681d780d9624542c4475feefe19ad0979b1bc1187ebc6bdc5172b83f35fc",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q33",
+          "sql_sha256": "e14bdad0e0b10e7df1a46b07c2bac6358d979b71b403f4b561b2cf6449092b5d",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "BOOLEAN_OPERATOR_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "WHERE supports AND conjunctions only.",
+          "from_sources": 0
+        },
+        {
+          "query": "q34",
+          "sql_sha256": "09f62d7bc6de4be8ba7f3cc7db21a7b81cc5a01da76cae6749a3c3c7d1dd12e2",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_PREDICATE_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "WHERE comparisons require one approved column and one scalar literal.",
+          "from_sources": 0
+        },
+        {
+          "query": "q35",
+          "sql_sha256": "0b96a79c260639a7a0fecd9ffb631d47e6fbffe25134f1a7a9f317a15894bf58",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q36",
+          "sql_sha256": "5ba24e36ed6472da4be45260db072f8db64484e849093cf36bf8ee53844b53ed",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "FILTER_LITERAL_UNSUPPORTED",
+          "clause": "WHERE",
+          "message": "a string, boolean, or numeric literal is required",
+          "from_sources": 0
+        },
+        {
+          "query": "q37",
+          "sql_sha256": "bd0b1d648b6cc35b3ad27ee31c8bb2798a7ac7686e5d657eb222f421acae4b61",
+          "lowerable": true,
+          "from_sources": 0
+        },
+        {
+          "query": "q38",
+          "sql_sha256": "81c7ef155eca1e0214da9cb026e6069fa49f5c4886b2aa464aec8543499994cf",
+          "lowerable": false,
+          "code": "SQL_NOT_LOWERABLE",
+          "reason": "PROJECTION_EXPRESSION_UNSUPPORTED",
+          "clause": "SELECT",
+          "message": "Only binary +, -, and * are admitted in a derived projection.",
+          "from_sources": 0
+        },
+        {
+          "query": "q39",
+          "sql_sha256": "69a10038601984a43fa900182eaeb12a7459ead9eff690a99083302eb6814630",
+          "lowerable": false,
+          "code": "SUBQUERY_UNSUPPORTED",
+          "reason": "SUBQUERY_UNSUPPORTED",
+          "clause": "FROM",
+          "message": "Subqueries are outside the reporting SQL profile.",
+          "from_sources": 1
+        },
+        {
+          "query": "q40",
+          "sql_sha256": "00fdccee9f93336b27a0ef49ad6b7b88c850ea20e51119e5addf6528089671db",
+          "lowerable": false,
+          "code": "SQL_SYNTAX_ERROR",
+          "reason": "SQL_SYNTAX_ERROR",
+          "clause": "SQL",
+          "message": "PostgreSQL could not parse the SQL statement.",
+          "from_sources": 1
+        }
+      ]
+    }
+  ]
+}

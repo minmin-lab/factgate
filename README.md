@@ -271,7 +271,10 @@ selected, positional group/order, explicit `NULLS FIRST/LAST`, and
 after the profile froze, an unaided LLM's first statement is admitted for 22
 (`evaluation/agentworkload-heldout/`; admission only, the answers were not
 graded, and the product sheet given to the agent lists `to_char`,
-`date_trunc` and `/` as allowed although the profile rejects them). Ungrouped multi-product queries, partial/duplicate/unprojected
+`date_trunc` and `/` as allowed although the profile rejects them; a rerun
+under a sheet without those three, `evaluation/agentworkload-heldout-sheet/`,
+admits 21 to 23 of 40 and none of the statements for the seven affected
+questions). Ungrouped multi-product queries, partial/duplicate/unprojected
 group keys, aggregate/expression ordering, all pagination on ungrouped or Union
 result encodings, and other projection casts are also rejected fail-closed; the
 enforcement layer never silently rewrites `LEFT JOIN` to `INNER JOIN`.

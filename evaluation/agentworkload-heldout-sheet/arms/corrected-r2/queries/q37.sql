@@ -1,0 +1,1 @@
+SELECT receipt_no, employee_no, employee_name, department, expense_date, expense_type, amount, city, purpose, status FROM expense_detail WHERE department = 'Engineering' AND city = 'Shenzhen' AND status = 'pending'

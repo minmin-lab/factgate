@@ -852,7 +852,7 @@ SSB lowerability (Section~\ref{sec:ssb-lowerability-supp}) & tracked at \Evidenc
 Agent-written workload (Section~\ref{sec:agent-workload-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/agentworkload/results.json} (digest \AgentWorkloadResultsDigest{}) & \code{make eval-agent-workload-lowerability} \\
 TLC (Table VI) & tracked at \EvidenceChainCommit{} & \filepath{formal/results/*.json}, \filepath{*.log} & \code{make formal} \\
 \midrule
-Held-out workload (Section~\ref{sec:heldout-supp}) & questions frozen at \HeldoutFreezeCommit{} & \filepath{evaluation/agentworkload-heldout/results.json} (digest \HeldoutResultsDigest{}) & static lowering, not executed; \code{agent-workload-lowerability} \\
+Held-out workload and its corrected-sheet rerun (Section~\ref{sec:heldout-supp}) & questions frozen at \HeldoutFreezeCommit{} & \filepath{evaluation/agentworkload-heldout/results.json} (digest \HeldoutResultsDigest{}); \filepath{evaluation/agentworkload-heldout-sheet/summary.json} (digest \SheetResultsDigest{}) & static lowering, not executed; rerun: pilot, \filepath{run.sh} there \\
 LLM-agent pilot (Section~\ref{sec:agent-pilot-supp}) & per run, in the registry & \filepath{evaluation/agent-pilot/results.json} (digest \AgentResultsDigest{}, run \AgentCampaign{}); \filepath{p10-pilot-evidence-v1.json} $\to$ raw & pilot; \filepath{evaluation/agent-pilot/analyze.py} \\
 Throughput and client-retry pilots (Section~\ref{sec:throughput-supp}) & per run, in the registry & \filepath{evaluation/throughput-pilot/results.json} (digest \ThroughputResultsDigest{}, run \ThroughputCampaign{}), \filepath{throughput-retry/results.json} (digest \RetryResultsDigest{}, run \RetryCampaign{}) & pilot \\
 Cost ablation and naive ledger (Section~\ref{sec:ablation-supp}) & per run, in the results file & \filepath{evaluation/b5-ablation/results.json} (digest \BFiveResultsDigest{}), \filepath{naive-scale-replay.json} (digest \NaiveScaleResultsDigest{}) & pilot; arms i, iv executed, ii composed; naive ledger on the benign trace and, same-input, on the sealed Scale sets \\
@@ -3136,14 +3136,79 @@ statement at its first attempt, is what the \HeldoutLowerablePct\% measures,
 and the instrument confounds it: \HeldoutSheetAdvertised{} of the
 \HeldoutRejected{} first rejections fall on a construct the product sheet
 lists as allowed (\code{to_char}, \code{date_trunc}, \code{/}), so they
-reflect the sheet/lowerer mismatch as much as the language boundary, and no
-rerun under a sheet that matches the lowerer was made. \emph{Correctness},
+fall on a wrong instruction as well as on the language boundary; the rerun
+below separates the two. \emph{Correctness},
 whether an admitted statement answers its question, is not measured either:
 the \HeldoutLowerable{} admitted statements were lowered, not executed, and
 none was graded against a reference answer. The figure is an admission rate
 of first-attempt statements, not a task-completion rate; the only graded
 end-to-end evidence in this paper is the two-objective agent pilot of
 Section~\ref{sec:agent-pilot-supp}.
+
+\paragraph{The sheet's share (pilot).}
+To separate the sheet from the language, the same \HeldoutQueries{} questions
+were generated again in two arms that differ only in the sheet: the original
+one, and one with its two false lines corrected (the expense Products lose
+\code{date_trunc}, \code{to_char} and \code{/}; nothing is added, so the
+agent still gets no hint of the fragment). Both arms use the model of the
+held-out run (\SheetModel{}), one fixed prompt, \SheetReps{} repetitions,
+unedited output and the frozen lowerer: \SheetStatements{} statements, no
+harness retry; design, priors and stop rule were committed before generation
+(\filepath{evaluation/agentworkload-heldout-sheet/README.md}, results digest
+\SheetResultsDigest{}). The generation script of the held-out run was not
+retained, so the original arm repeats its condition under a new prompt and
+client version rather than replaying it; it admits \SheetOriginalAdmitted{}
+of \HeldoutQueries{} in its three repetitions (the held-out run:
+\HeldoutLowerable{}), which is also the first measurement of generation
+noise: \SheetOriginalUnstable{} questions are admitted in some repetitions
+and not in others.
+
+With the corrected sheet the agent stops writing the removed constructs
+(first rejections on them fall from \SheetOriginalAtRemoved{} to
+\SheetCorrectedAtRemoved{} per repetition), but the questions behind them do
+not become admissible: of the \SheetSevenStatements{} statements written in
+the two arms for the \HeldoutSheetAdvertised{} questions that the held-out
+run rejected at an advertised construct, \SheetSevenAdmitted{} are admitted.
+The agent fails instead on a typed date literal, a cast or an arithmetic
+projection, or its output does not parse (removing an enclosing code fence,
+the post hoc view below, admits \SheetSevenAdmittedUnfenced{} of them): the
+fragment has no way to bucket a date or to divide. The
+sheet decided where those statements were first rejected, not whether they
+were admitted.
+
+The corrected arm admits \SheetCorrectedAdmitted{} of \HeldoutQueries{}, a
+median of \SheetCorrectedMedian{} against \SheetOriginalMedian{}. That
+difference is not evidence of a sheet effect of that size. In both arms
+\SheetFencedRange{} statements per repetition fail to parse only because the
+agent wrapped its SQL in a Markdown code fence despite the prompt; with an
+enclosing fence removed and nothing else changed (a post hoc view that is
+not part of the frozen design, digest \SheetPosthocDigest{}) the arms admit
+\SheetOriginalUnfenced{} and \SheetCorrectedUnfenced{}, and on the
+\SheetExpenseQuestions{} questions over the expense Products, the only ones
+whose sheet text changed, \SheetOriginalUnfencedExpense{} against
+\SheetCorrectedUnfencedExpense{}; the rest of the gap lies in questions
+whose sheet text is identical in both arms
+(\SheetOriginalUnfencedOther{} against \SheetCorrectedUnfencedOther{}).
+\SheetGainedEveryRep{} question is gained in every repetition
+(\SheetGainedEveryRepNames{}, a \code{HAVING} aggregate the agent now also
+selects), which the removed constructs do not explain; none is lost in every
+repetition.
+
+Reading: the held-out rate is a property of the language boundary and of the
+agent's output discipline, not an artifact of the sheet; correcting the
+sheet moves it by a few statements at most, within what three repetitions
+can resolve. Of the priors, the corrected arm's rejections on the removed
+constructs (expected 0--3 per repetition) held; the original arm was
+expected at 19--25 and two repetitions gave 18; the median difference was
+expected between 0 and $+4$ and is $+\SheetMedianDiff{}$, below the $+6$ set
+beforehand as the sign that the sheet was the dominant limiter. One prior
+was wrong in its mechanism: the two year-filter questions were expected to
+become admissible as date ranges, and the agent wrote typed \code{DATE}
+literals, which the fragment rejects. The fence defect was not anticipated:
+unparsable output, nearly all of it fenced, is the largest single rejection
+class of every repetition here and appeared once in the held-out run. As
+before,
+this is admission only; no statement was executed and no answer graded.
 
 \begin{table}[t]
 \centering

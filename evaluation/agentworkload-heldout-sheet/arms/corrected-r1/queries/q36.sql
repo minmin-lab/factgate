@@ -1,0 +1,1 @@
+SELECT city, expense_type, SUM(amount) AS total_amount FROM expense_detail WHERE expense_date >= DATE '2026-01-01' AND expense_date <= DATE '2026-12-31' GROUP BY city, expense_type ORDER BY city ASC, total_amount DESC

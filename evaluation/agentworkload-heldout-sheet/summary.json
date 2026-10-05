@@ -1,0 +1,535 @@
+{
+ "version": 1,
+ "campaign_class": "pilot",
+ "publication_eligible": false,
+ "design": "evaluation/agentworkload-heldout-sheet/README.md (frozen before generation)",
+ "questions_sha256": "8d3f6f9e764818cccde1b103e6568fad77bdbb238f679995bdd4c46b30dfe903",
+ "sheets": {
+  "original": "5534749ecbcc8c068049965037c8c0d2e3ce9e1b64830e75c57bd67f539a4e44",
+  "corrected": "697f95bc749b7ebf68cbf53babcafd22c2bf32a5f925d802e6e96820ff331d1b"
+ },
+ "prompt_sha256": "64e14bc182b7a265bb4d8f00a257ffdcf86f90428cb603e8b1fc172e3393673e",
+ "generation_log_sha256": "fe615ade51761ede3d73a939fa1bcca80072b722d3594f88f97e9e49018d522c",
+ "original_study": {
+  "admitted": 22,
+  "queries": 40
+ },
+ "runs": [
+  {
+   "arm": "original",
+   "repetition": 1,
+   "queries": 40,
+   "admitted": 22,
+   "by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 6
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q02",
+    "q06",
+    "q12",
+    "q14",
+    "q36",
+    "q38"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q02",
+    "q06",
+    "q12",
+    "q14",
+    "q36",
+    "q40"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38",
+    "q39"
+   ],
+   "results_sha256": "95d0b0d766a9ae8da2c89e9521e9409356661934e3379c33b6dda48f96e5718a"
+  },
+  {
+   "arm": "original",
+   "repetition": 2,
+   "queries": 40,
+   "admitted": 18,
+   "by_reason": {
+    "JOIN_TYPE_UNSUPPORTED/LEFT_JOIN_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 5,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q02",
+    "q06",
+    "q09",
+    "q12",
+    "q14",
+    "q36",
+    "q38"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q02",
+    "q06",
+    "q12",
+    "q14",
+    "q36",
+    "q40"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38",
+    "q39"
+   ],
+   "results_sha256": "b70bc581ed835a3e378c8bf05d9291fdc4d626ce23687d10e3fab32d94585d0b"
+  },
+  {
+   "arm": "original",
+   "repetition": 3,
+   "queries": 40,
+   "admitted": 18,
+   "by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 3,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/HAVING_AGGREGATE_NOT_SELECTED": 1,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PAGINATION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 6
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q12",
+    "q14",
+    "q36",
+    "q38"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q06",
+    "q12",
+    "q14",
+    "q36",
+    "q40"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38",
+    "q39"
+   ],
+   "results_sha256": "4820928e1d4c99ab8107605c54c96df6780cac8bcea90fbb4d5f185d3e75a281"
+  },
+  {
+   "arm": "corrected",
+   "repetition": 1,
+   "queries": 40,
+   "admitted": 23,
+   "by_reason": {
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 5,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 6
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q38"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q14"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38",
+    "q39"
+   ],
+   "results_sha256": "f7fd0cbfa5e3bf46535a8f891d8f86ef10a10f4077696e0493cb551967072a0a"
+  },
+  {
+   "arm": "corrected",
+   "repetition": 2,
+   "queries": 40,
+   "admitted": 23,
+   "by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_MODIFIER_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_CAST_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 5,
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": 1
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q38"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q06",
+    "q14"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38"
+   ],
+   "results_sha256": "23bd01aea0a6d447f80a404ac836ea3fcb54f205441bd1b13c7a1c83b0a4b67f"
+  },
+  {
+   "arm": "corrected",
+   "repetition": 3,
+   "queries": 40,
+   "admitted": 21,
+   "by_reason": {
+    "SQL_NOT_LOWERABLE/AGGREGATE_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": 4,
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": 2,
+    "SQL_NOT_LOWERABLE/ORDER_EXPRESSION_UNSUPPORTED": 1,
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": 2,
+    "SQL_SYNTAX_ERROR/SQL_SYNTAX_ERROR": 8
+   },
+   "first_rejection_at_originally_advertised_construct": [
+    "q06",
+    "q09"
+   ],
+   "statements_using_to_char_or_date_trunc": [
+    "q06",
+    "q14"
+   ],
+   "statements_using_division": [
+    "q09",
+    "q38"
+   ],
+   "results_sha256": "db3d6d2f42485b07abd7bd60393f8391a0506e0024787b99df176f14ddd402f1"
+  }
+ ],
+ "arms": {
+  "original": {
+   "admitted": [
+    22,
+    18,
+    18
+   ],
+   "admitted_median": 18,
+   "admitted_min": 18,
+   "admitted_max": 22,
+   "admitted_total": 58,
+   "statements_total": 120,
+   "rejections_at_originally_advertised_construct": [
+    6,
+    7,
+    4
+   ],
+   "statements_using_functions": [
+    6,
+    6,
+    5
+   ],
+   "questions_admitted_in_every_repetition": [
+    "q04",
+    "q05",
+    "q07",
+    "q08",
+    "q11",
+    "q13",
+    "q16",
+    "q18",
+    "q21",
+    "q25",
+    "q28",
+    "q31",
+    "q35",
+    "q37"
+   ],
+   "questions_admitted_in_no_repetition": [
+    "q01",
+    "q02",
+    "q06",
+    "q09",
+    "q12",
+    "q14",
+    "q15",
+    "q19",
+    "q20",
+    "q29",
+    "q33",
+    "q34",
+    "q36",
+    "q38",
+    "q39",
+    "q40"
+   ],
+   "questions_unstable": [
+    "q03",
+    "q10",
+    "q17",
+    "q22",
+    "q23",
+    "q24",
+    "q26",
+    "q27",
+    "q30",
+    "q32"
+   ]
+  },
+  "corrected": {
+   "admitted": [
+    23,
+    23,
+    21
+   ],
+   "admitted_median": 23,
+   "admitted_min": 21,
+   "admitted_max": 23,
+   "admitted_total": 67,
+   "statements_total": 120,
+   "rejections_at_originally_advertised_construct": [
+    1,
+    1,
+    2
+   ],
+   "statements_using_functions": [
+    1,
+    2,
+    2
+   ],
+   "questions_admitted_in_every_repetition": [
+    "q04",
+    "q05",
+    "q07",
+    "q08",
+    "q11",
+    "q13",
+    "q15",
+    "q16",
+    "q18",
+    "q21",
+    "q22",
+    "q23",
+    "q25",
+    "q26",
+    "q27",
+    "q28",
+    "q30",
+    "q31",
+    "q32",
+    "q35",
+    "q37"
+   ],
+   "questions_admitted_in_no_repetition": [
+    "q01",
+    "q02",
+    "q06",
+    "q09",
+    "q10",
+    "q12",
+    "q14",
+    "q19",
+    "q20",
+    "q29",
+    "q33",
+    "q34",
+    "q36",
+    "q38",
+    "q39",
+    "q40"
+   ],
+   "questions_unstable": [
+    "q03",
+    "q17",
+    "q24"
+   ]
+  }
+ },
+ "per_question_admitted_count": {
+  "q01": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q02": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q03": {
+   "original": 2,
+   "corrected": 2
+  },
+  "q04": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q05": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q06": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q07": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q08": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q09": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q10": {
+   "original": 1,
+   "corrected": 0
+  },
+  "q11": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q12": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q13": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q14": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q15": {
+   "original": 0,
+   "corrected": 3
+  },
+  "q16": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q17": {
+   "original": 1,
+   "corrected": 1
+  },
+  "q18": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q19": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q20": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q21": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q22": {
+   "original": 2,
+   "corrected": 3
+  },
+  "q23": {
+   "original": 2,
+   "corrected": 3
+  },
+  "q24": {
+   "original": 1,
+   "corrected": 1
+  },
+  "q25": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q26": {
+   "original": 1,
+   "corrected": 3
+  },
+  "q27": {
+   "original": 2,
+   "corrected": 3
+  },
+  "q28": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q29": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q30": {
+   "original": 2,
+   "corrected": 3
+  },
+  "q31": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q32": {
+   "original": 2,
+   "corrected": 3
+  },
+  "q33": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q34": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q35": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q36": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q37": {
+   "original": 3,
+   "corrected": 3
+  },
+  "q38": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q39": {
+   "original": 0,
+   "corrected": 0
+  },
+  "q40": {
+   "original": 0,
+   "corrected": 0
+  }
+ },
+ "questions_gained": [
+  "q15",
+  "q22",
+  "q23",
+  "q26",
+  "q27",
+  "q30",
+  "q32"
+ ],
+ "questions_lost": [
+  "q10"
+ ],
+ "questions_gained_in_every_repetition": [
+  "q15"
+ ],
+ "questions_lost_in_every_repetition": []
+}
