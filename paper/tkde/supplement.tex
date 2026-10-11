@@ -15,6 +15,7 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newtheorem{proposition}{Proposition}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\setlength{\emergencystretch}{2em}
 \DeclareUrlCommand\filepath{\urlstyle{tt}}
 \newcommand{\lbag}{\{\!\{}
 \newcommand{\rbag}{\}\!\}}
@@ -263,8 +264,8 @@ functions, and multi-Product terms are undefined.
 &\;(T\text{-Derive})\\[1mm]
 [E\text{-Derive}]\quad
 &\frac{\Pi;D\vdash e\Downarrow R}
- {\Pi;D\vdash\pi_{A;x}(e)\Downarrow
-  R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}]},\\[-1mm]
+ {\Pi;D\vdash\pi_{A;x}(e)\Downarrow R'},\\[-1mm]
+&\hspace{5mm}R'=R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}],\\[-1mm]
 &\hspace{5mm}d_x(t)=\langle\llbracket x\rrbracket_{\Pi,t},\tau,
   \textstyle\bigoplus_{a\in\operatorname{cols}(x)}\alpha_a(t),N_{\mathrm{arith}}(x),\operatorname{mat}(R,t,x)\rangle .
 \end{align*}
@@ -743,7 +744,7 @@ Randomized root-family sequences & \VFiveFamilyPropertySeeds{} seeds, \VFiveFami
 \end{table}
 
 \textbf{Randomized root-family sequences.} The same raw log carries
-\code{TestOrdinalRootFamilyRandomSequencesConserveExactNovelty}
+\code{TestOrdinalRootFamilyRandomSequences}\allowbreak\code{ConserveExactNovelty}
 (\filepath{internal/control/ordinal_family_property_test.go}). For each of
 \VFiveFamilyPropertySeeds{} seeds it approves a root with random limits
 (6--41 Result, 8--63 Dependency, 3--8 Outcome facts), grows a random
@@ -840,7 +841,7 @@ Numbers & Commit & Retained file(s) & Regeneration \\
 RQ1--RQ3 (Table~\ref{tab:soundness-evidence-supp}) & tracked at \EvidenceChainCommit{} & \filepath{evaluation/exposure/results.json}, \filepath{corpus.json} (digest \ExposureCorpusHash{}) & \code{make eval-exposure} \\
 RQ4 archived ordinal/bitmap & recorded in \filepath{evidence/} \filepath{legacy-rq4-source.json} under the results directory & \filepath{evaluation/exposure-performance/results.json}, \filepath{path_analysis.json} & \code{make eval-exposure-} \code{performance}, \code{-scale}, \code{-storage} \\
 RQ5 publication and routing & tracked at \EvidenceChainCommit{} & \filepath{evaluation/daily-publication/evidence/}, \filepath{daily-publication-online/evidence/} & \code{make eval-daily-publication}, \code{-online} \\
-V5 outcome-set regressions and randomized root-family sequences & \VFiveImplementationCommit{} & \filepath{evaluation/v5-outcome/evidence.json}, \filepath{raw/go-test.jsonl}, \filepath{compose-receipt.json} & \code{scripts/} \code{record-compose-e2e.sh} \\
+V5 outcome-set regressions and randomized root-family sequences & \VFiveImplementationCommitShort{} & \filepath{evaluation/v5-outcome/evidence.json}, \filepath{raw/go-test.jsonl}, \filepath{compose-receipt.json} & \code{scripts/} \code{record-compose-e2e.sh} \\
 Publication campaign (main Table~1; Tables~\ref{tab:baseline-publication}, \ref{tab:phase-breakdown}, \ref{tab:concurrency-publication}, \ref{tab:scale-publication}) & \FinalVFivePublicationCommit{} & \filepath{evaluation/final-v5-wsl2/publication-evidence-v1.json} $\to$ \filepath{campaign-evidence.json}, \filepath{deployments/*/raw/*.jsonl} & \filepath{scripts/run-profile-campaign.sh}; macros: \code{make paper-evidence} \\
 Attack corpus, adaptive trace, Scale, ProvSQL pairing, RQ5 cells (Sections~\ref{sec:attack-publication-supp}--\ref{sec:scale-publication-supp}) & \FinalVFivePublicationCommit{} & the same campaign's \filepath{deployments/*/raw/*.jsonl} plus \filepath{evaluation/finalv5attack/corpus-v1.json} (digest \FinalVFivePublicationAttackCorpusDigest{}) & \code{make paper-evidence} \\
 Sub-phase pilot (Section~\ref{sec:subphase-pilot-supp}) & f8c9c53528fe, 9a0b2107d1ed & \filepath{evaluation/final-v5-wsl2/pilot-evidence-v1.json} $\to$ \filepath{raw/subphase-pilot-17}, \filepath{raw/subphase-pilot-13} & pilot; not publication evidence \\
@@ -1172,7 +1173,7 @@ extraction in TLA+ is not repaired by calling an implementation test a proof.
 \label{tab:soundness-evidence-supp}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{L{0.09\textwidth}L{0.26\textwidth}L{0.29\textwidth}L{0.27\textwidth}}
+\begin{tabular}{L{0.13\textwidth}L{0.24\textwidth}L{0.29\textwidth}L{0.25\textwidth}}
 \toprule
 Claim & Paper semantics/theorem & Bounded TLA+ or transaction & Executable evidence \\
 \midrule
@@ -3073,12 +3074,12 @@ outside it.
 \caption{First rejection reason of each TPC-H template after explicit-join
 normalization.}
 \label{tab:tpch-lowerability}
-\small
-\begin{tabular}{llrl}
+\footnotesize
+\begin{tabular}{llrp{0.2\textwidth}}
 \toprule
 Construct & Reason code & Queries & TPC-H \\
 \midrule
-\TPCHReasonTableBody
+\LowerabilityTPCHTableBody
 \bottomrule
 \end{tabular}
 \end{table}
@@ -3099,12 +3100,14 @@ As written, \SSBLowerableAsWritten{} of \SSBQueries{} lower
 so multi-source star joins are inside the fragment at the lowerer.
 Table~\ref{tab:ssb-lowerability} names the first rejection of the others:
 arithmetic inside the aggregate (\code{lo_extendedprice * lo_discount},
-\code{lo_revenue - lo_supplycost}; \SSBArithmeticQueries{} queries), an
+\code{lo_revenue - lo_supplycost}; \SSBArithmeticAll{} queries, each
+over a multi-product join, which the single-Product derived-cell rule does
+not cover), an
 \code{OR} disjunction in \code{WHERE} (\SSBDisjunctionQueries{}),
 \code{ORDER BY} on an aggregate alias (\SSBOrderByQueries{}), and
 \code{BETWEEN} over text literals. Derived measures would have to be
-published as Product columns (or admitted as typed arithmetic, which changes
-the Dependency rule) for the profit and discounted-revenue queries to lower;
+published as Product columns (or admitted as multi-Product typed arithmetic,
+which changes the Dependency rule) for the profit and discounted-revenue queries to lower;
 this is a boundary statement, not a deficiency the paper claims to close.
 
 \begin{table}[t]
@@ -3112,12 +3115,12 @@ this is a boundary statement, not a deficiency the paper claims to close.
 \caption{First rejection reason of each SSB query after explicit-join
 normalization.}
 \label{tab:ssb-lowerability}
-\small
-\begin{tabular}{llrl}
+\footnotesize
+\begin{tabular}{llrp{0.2\textwidth}}
 \toprule
 Construct & Reason code & Queries & SSB \\
 \midrule
-\SSBReasonTableBody
+\LowerabilitySSBTableBody
 \bottomrule
 \end{tabular}
 \end{table}
@@ -3446,7 +3449,7 @@ workloads: whether admitting them is an engineering gap (existing
 Dependency rule applies) or needs a new rule.}
 \label{tab:constructs-supp}
 \small
-\begin{tabular}{llp{0.55\columnwidth}}
+\begin{tabular}{p{0.27\textwidth}lp{0.42\textwidth}}
 \toprule
 Construct & Class & Dependency rule \\
 \midrule

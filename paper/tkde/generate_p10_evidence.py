@@ -616,6 +616,66 @@ if (sh_dir / "summary.json").exists():
         rf"\newcommand{{\SheetLostEveryRep}}{{{len(sm['questions_lost_in_every_repetition'])}}}",
     ]
 
+# --- lowerability tables with a construct label for every reason code -------
+# generate_evidence.py (frozen) prints the raw reason code when its label map
+# has no entry, which happened after the derived-cell rule changed two codes.
+# The labelled bodies are emitted here, fail closed on an unknown code, and are
+# pinned to the same results files the frozen generator digested.
+_ev_tex = (ROOT / "paper/tkde/generated/evidence.tex").read_text()
+def _frozen_macro(name):
+    m = re.search(r"\\newcommand\{\\" + name + r"\}\{(?:\\texttt\{)?([^}]*)\}", _ev_tex)
+    if not m:
+        raise SystemExit(f"generated/evidence.tex does not define \\{name}")
+    return m.group(1)
+_lower_labels = {
+    "SUBQUERY_UNSUPPORTED/SUBQUERY_UNSUPPORTED": "subquery (FROM, IN, EXISTS, scalar)",
+    "SQL_NOT_LOWERABLE/AGGREGATE_EXPRESSION_UNSUPPORTED": "arithmetic inside an aggregate",
+    "SQL_NOT_LOWERABLE/PAGINATION_UNSUPPORTED": "LIMIT over a multi-product join",
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": "arithmetic in the projection",
+    "SQL_NOT_LOWERABLE/HAVING_UNSUPPORTED": "HAVING",
+    "SQL_NOT_LOWERABLE/AGGREGATE_MODIFIER_UNSUPPORTED": "COUNT(DISTINCT)",
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": "IN (subquery) predicate",
+    "SQL_NOT_LOWERABLE/FILTER_LITERAL_UNSUPPORTED": "date/interval arithmetic literal",
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": "comma join (no explicit JOIN ON)",
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": "boolean operator other than AND in WHERE",
+}
+_ssb_labels = {
+    "SQL_NOT_LOWERABLE/AGGREGATE_EXPRESSION_UNSUPPORTED": "arithmetic inside an aggregate",
+    # The lowerer's message: "Derived arithmetic is admitted over one approved
+    # product only"; every SSB query carrying it joins lineorder to a dimension.
+    "SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED": "arithmetic inside an aggregate over a multi-product join",
+    "SQL_NOT_LOWERABLE/BOOLEAN_OPERATOR_UNSUPPORTED": "OR disjunction in WHERE",
+    "SQL_NOT_LOWERABLE/QUERYPLAN_VALIDATION_FAILED": "ORDER BY on an aggregate alias",
+    "SQL_NOT_LOWERABLE/FILTER_PREDICATE_UNSUPPORTED": "BETWEEN over text literals",
+    "SQL_NOT_LOWERABLE/FROM_SHAPE_UNSUPPORTED": "comma join (no explicit JOIN ON)",
+}
+def _lower_body(workload, path, digest_macro, labels, query_name):
+    if sha12(path) != _frozen_macro(digest_macro):
+        raise SystemExit(f"{path}: differs from the file generated/evidence.tex digested ({digest_macro})")
+    data = json.loads(path.read_text())
+    explicit = {item["variant"]: item for item in data["passes"]}["explicit-join"]
+    rows = []
+    for key, count in sorted(explicit["by_reason"].items(), key=lambda kv: (-kv[1], kv[0])):
+        if key not in labels:
+            raise SystemExit(f"{workload} lowerability: no construct label for reason {key}")
+        queries = ", ".join(query_name(r["query"]) for r in explicit["results"] if (r.get("code", "") + "/" + r.get("reason", "")) == key)
+        if len(queries.split(", ")) != count:
+            raise SystemExit(f"{workload} lowerability: by_reason count and result rows disagree for {key}")
+        rows.append(" & ".join([labels[key], tex(key.split("/")[-1]), str(count), queries]) + r" \\")
+    return explicit, rows
+_tpch, _tpch_rows = _lower_body("TPC-H", ROOT / "evaluation/tpchlowerability/results.json", "TPCHResultsDigest", _lower_labels, lambda q: q.upper())
+_ssb, _ssb_rows = _lower_body("SSB", ROOT / "evaluation/ssblowerability/results.json", "SSBResultsDigest", _ssb_labels, lambda q: q.upper().replace("_", "."))
+_ssb_arith = _ssb["by_reason"].get("SQL_NOT_LOWERABLE/AGGREGATE_EXPRESSION_UNSUPPORTED", 0) + _ssb["by_reason"].get("SQL_NOT_LOWERABLE/PROJECTION_EXPRESSION_UNSUPPORTED", 0)
+_v5_commit = json.loads((ROOT / "evaluation/v5-outcome/evidence.json").read_text())["implementation_base_commit"]
+if _v5_commit != _frozen_macro("VFiveImplementationCommit"):
+    raise SystemExit("v5-outcome implementation_base_commit differs from generated/evidence.tex")
+lines += [
+    r"\newcommand{\LowerabilityTPCHTableBody}{%" + "\n" + "\n".join(_tpch_rows) + "%\n}",
+    r"\newcommand{\LowerabilitySSBTableBody}{%" + "\n" + "\n".join(_ssb_rows) + "%\n}",
+    rf"\newcommand{{\SSBArithmeticAll}}{{{_ssb_arith}}}",
+    rf"\newcommand{{\VFiveImplementationCommitShort}}{{\texttt{{{_v5_commit[:12]}}}}}",
+]
+
 # --- raw evidence deposited outside the repository --------------------------
 dep = json.loads((ROOT / "evaluation/final-v5-wsl2/raw-evidence-deposit.json").read_text())
 man_path = ROOT / "evaluation/final-v5-wsl2/raw-evidence-manifest.sha256"

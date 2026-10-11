@@ -369,6 +369,24 @@ S6/100k-x16 & 701 & 3146 & 3217 & 2313 & 72 & 146 & 382 & 30/30 \\%
 \newcommand{\SheetGainedEveryRep}{1}
 \newcommand{\SheetGainedEveryRepNames}{h15}
 \newcommand{\SheetLostEveryRep}{0}
+\newcommand{\LowerabilityTPCHTableBody}{%
+subquery (FROM, IN, EXISTS, scalar) & SUBQUERY\_UNSUPPORTED & 6 & Q07, Q08, Q09, Q13, Q15, Q22 \\
+LIMIT over a multi-product join & PAGINATION\_UNSUPPORTED & 5 & Q02, Q03, Q10, Q18, Q21 \\
+arithmetic in the projection & PROJECTION\_EXPRESSION\_UNSUPPORTED & 4 & Q05, Q14, Q17, Q19 \\
+date/interval arithmetic literal & FILTER\_LITERAL\_UNSUPPORTED & 3 & Q01, Q04, Q06 \\
+arithmetic inside an aggregate & AGGREGATE\_EXPRESSION\_UNSUPPORTED & 1 & Q12 \\
+boolean operator other than AND in WHERE & BOOLEAN\_OPERATOR\_UNSUPPORTED & 1 & Q16 \\
+IN (subquery) predicate & FILTER\_PREDICATE\_UNSUPPORTED & 1 & Q20 \\
+comma join (no explicit JOIN ON) & FROM\_SHAPE\_UNSUPPORTED & 1 & Q11 \\%
+}
+\newcommand{\LowerabilitySSBTableBody}{%
+arithmetic inside an aggregate over a multi-product join & PROJECTION\_EXPRESSION\_UNSUPPORTED & 6 & Q1.1, Q1.2, Q1.3, Q4.1, Q4.2, Q4.3 \\
+OR disjunction in WHERE & BOOLEAN\_OPERATOR\_UNSUPPORTED & 2 & Q3.3, Q3.4 \\
+ORDER BY on an aggregate alias & QUERYPLAN\_VALIDATION\_FAILED & 2 & Q3.1, Q3.2 \\
+BETWEEN over text literals & FILTER\_PREDICATE\_UNSUPPORTED & 1 & Q2.2 \\%
+}
+\newcommand{\SSBArithmeticAll}{6}
+\newcommand{\VFiveImplementationCommitShort}{\texttt{4bc1652ec43f}}
 \newcommand{\RawEvidenceFiles}{216}
 \newcommand{\RawEvidenceMB}{614}
 \newcommand{\RawEvidenceSealedSamples}{48}
