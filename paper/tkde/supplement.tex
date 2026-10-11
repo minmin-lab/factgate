@@ -15,8 +15,9 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newtheorem{proposition}{Proposition}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
-\setlength{\emergencystretch}{2em}
+\setlength{\emergencystretch}{3em}
 \DeclareUrlCommand\filepath{\urlstyle{tt}}
+\DeclareUrlCommand\ident{\urlstyle{tt}}
 \newcommand{\lbag}{\{\!\{}
 \newcommand{\rbag}{\}\!\}}
 \newcommand{\llbracket}{[\![}
@@ -262,12 +263,12 @@ functions, and multi-Product terms are undefined.
       \tau\in\{\code{int2},\code{int4},\code{int8},\code{numeric}\}}
  {\Pi\vdash \pi_{A;\,x{:}\tau}(e):\Gamma|_A\uplus\{x\mapsto\tau\}}
 &\;(T\text{-Derive})\\[1mm]
-[E\text{-Derive}]\quad
-&\frac{\Pi;D\vdash e\Downarrow R}
- {\Pi;D\vdash\pi_{A;x}(e)\Downarrow R'},\\[-1mm]
-&\hspace{5mm}R'=R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}],\\[-1mm]
-&\hspace{5mm}d_x(t)=\langle\llbracket x\rrbracket_{\Pi,t},\tau,
-  \textstyle\bigoplus_{a\in\operatorname{cols}(x)}\alpha_a(t),N_{\mathrm{arith}}(x),\operatorname{mat}(R,t,x)\rangle .
+\frac{\Pi;D\vdash e\Downarrow R}
+ {\Pi;D\vdash\pi_{A;x}(e)\Downarrow R'}
+&\;(E\text{-Derive})\\[-1mm]
+R'=R[\Gamma:=\Gamma|_A\uplus\{x\},\ \operatorname{cells}(t):=\operatorname{cells}(t)|_A\uplus\{x\mapsto d_x(t)\}],&\\[-1mm]
+d_x(t)=\langle\llbracket x\rrbracket_{\Pi,t},\tau,
+  \textstyle\bigoplus_{a\in\operatorname{cols}(x)}\alpha_a(t),N_{\mathrm{arith}}(x),\operatorname{mat}(R,t,x)\rangle .&
 \end{align*}
 \endgroup
 Integer literals adopt $\tau$; the value is PostgreSQL's under exact
@@ -1173,7 +1174,7 @@ extraction in TLA+ is not repaired by calling an implementation test a proof.
 \label{tab:soundness-evidence-supp}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{L{0.13\textwidth}L{0.24\textwidth}L{0.29\textwidth}L{0.25\textwidth}}
+\begin{tabular}{L{0.16\textwidth}L{0.21\textwidth}L{0.29\textwidth}L{0.25\textwidth}}
 \toprule
 Claim & Paper semantics/theorem & Bounded TLA+ or transaction & Executable evidence \\
 \midrule
@@ -1210,15 +1211,15 @@ NoChargeWithoutSettlement, RejectedResultsStayBuffered,
 DerivedEvidenceMatchesBuffer, NovelChargesDoNotOverlap,
 TaskFamilyNonAmplification, SettledQueriesExecutedOnce &
 \ExposureFormalStates{} / \ExposureFormalDistinct{} (\ExposureFormalDepth{}) \\
-\code{ExposureBitmapRefinement} & 2 requests; 3 dimensions; 2 facts and 2
+\code{ExposureBitmap}\allowbreak\code{Refinement} & 2 requests; 3 dimensions; 2 facts and 2
 ordinals over a base and a dynamic segment; 1 fact per request; 1 replay &
 DictionaryBijection, TypeOK, DecodeOrRefinement, DecodeAndNotRefinement,
 PopcountRefinement, DerivationRefinement, LedgerRefinement, ExactNovelCharge,
 TripleBudgetSafety & \BitmapFormalStates{} / \BitmapFormalDistinct{} (\BitmapFormalDepth{}) \\
-\code{OutcomeSetAbstractRefinement} & 3 hashes; candidates $\{f_1,f_2\}$ and
+\code{OutcomeSet}\allowbreak\code{AbstractRefinement} & 3 hashes; candidates $\{f_1,f_2\}$ and
 $\{f_2,f_3\}$; Outcome limit 3 & TypeOK, ExactDifference, NoDoubleCharge,
 BudgetSafety & \OutcomeFormalStates{} / \OutcomeFormalDistinct{} (\OutcomeFormalDepth{}) \\
-\code{ArtifactPublication} & 2 requests; one expected canonical hash; 2
+\code{Artifact}\allowbreak\code{Publication} & 2 requests; one expected canonical hash; 2
 promotion retries & TypeOK, AvailableImpliesSettledCanonicalHashMatch,
 AbsentCanonicalHasZeroHash, RejectedNotAvailable, RetryRequiredStaysPending,
 RecoveryHasZeroLedgerDelta & \ArtifactFormalStates{} / \ArtifactFormalDistinct{} (\ArtifactFormalDepth{}) \\
@@ -1259,13 +1260,12 @@ Artifact and receipt & Parquet/object hashes, registration/PENDING intent, V8 re
 \end{tabular}
 \end{table}
 
-The receipt uses \code{observation_sha256} and the component
-digests \code{release_set_sha256},
-\code{influence_set_sha256} (the wire and macro name \code{influence}
-denotes the paper's Dependency dimension throughout), and
-\code{outcome_set_sha256}; it has no field named
-\code{candidate_digest}, \code{effect_digest}, or
-\code{profile_digest}.
+The receipt uses \ident{observation_sha256} together with the component
+digests \ident{release_set_sha256}, \ident{influence_set_sha256}, and
+\ident{outcome_set_sha256} (the wire and macro name \code{influence}
+denotes the paper's Dependency dimension throughout); it has no field named
+\ident{candidate_digest}, \ident{effect_digest}, or
+\ident{profile_digest}.
 Hash, binding, or audit mismatch fails closed. Residual quantities and channels
 remain outside the manifest: differential privacy, total/background knowledge,
 timing, uncharged refusal, information content of
@@ -1347,7 +1347,7 @@ Table~\ref{tab:baseline-publication} expands the main text's summary of the
 frozen publication campaign \FinalVFivePublicationCampaign{}
 (\texttt{campaign\_class} \texttt{publication},
 \texttt{publication\_eligible} \texttt{true}): \FinalVFivePublicationDeployments{}
-fresh deployments of commit \FinalVFivePublicationCommit{},
+fresh deployments of the submission commit \FinalVFivePublicationCommit{},
 \FinalVFivePublicationBaselinePerCell{} measured samples per Baseline cell
 across three independent executions, all
 \FinalVFivePublicationBaselineSamples{} samples passing with a verified
@@ -3116,7 +3116,7 @@ this is a boundary statement, not a deficiency the paper claims to close.
 normalization.}
 \label{tab:ssb-lowerability}
 \footnotesize
-\begin{tabular}{llrp{0.2\textwidth}}
+\begin{tabular}{llrp{0.17\textwidth}}
 \toprule
 Construct & Reason code & Queries & SSB \\
 \midrule
