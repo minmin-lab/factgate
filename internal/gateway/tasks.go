@@ -145,6 +145,13 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	if err != nil {
 		return nil, err
 	}
+	// Eligibility precedes approval: a request outside the envelope compiled
+	// from the human subject's attested attributes is rejected here and never
+	// becomes an OA draft. An approver can only narrow what passes this gate.
+	eligibility, err := s.compileEligibility(policy.Products, humanSubject, scope, now)
+	if err != nil {
+		return nil, err
+	}
 	evidence, err := s.datasourceEvidence(ctx, args.DataProducts)
 	if err != nil {
 		return nil, err
@@ -223,6 +230,7 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 		ApprovalMode: policy.ApprovalRoute.Mode,
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
+		Eligibility: eligibility,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,

@@ -23,6 +23,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/domain"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/ordinal"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryreceipt"
 	"taskbound.local/agent-data-gateway/internal/resultartifact"
 	"taskbound.local/agent-data-gateway/internal/sqlpolicy"
@@ -43,12 +44,16 @@ type Config struct {
 	Connector          DataConnector
 	// SnapshotRegistry contains only verified V4 hot indexes. It may be nil for
 	// legacy V1--V3 catalogs; every V4 execution fails closed when it is absent.
-	SnapshotRegistry  *ordinal.Registry
-	CallbackSecret    string
-	Logger            *slog.Logger
-	Clock             func() time.Time
-	Background        context.Context
-	SettlementTimeout time.Duration
+	SnapshotRegistry *ordinal.Registry
+	// PrincipalAttributes is the attested subject-attribute snapshot that
+	// Product eligibility predicates are evaluated against. It is required
+	// whenever the Catalog declares eligibility on any Product.
+	PrincipalAttributes *principalattr.Snapshot
+	CallbackSecret      string
+	Logger              *slog.Logger
+	Clock               func() time.Time
+	Background          context.Context
+	SettlementTimeout   time.Duration
 	// SpoolDirectory is the parent for query-private encrypted temporary
 	// directories. Empty uses the operating-system temporary directory.
 	SpoolDirectory string
@@ -81,6 +86,7 @@ type Service struct {
 	queryReceiptSigner       *queryreceipt.Signer
 	connector                DataConnector
 	snapshotRegistry         *ordinal.Registry
+	principalAttributes      *principalattr.Snapshot
 	callbackSecret           []byte
 	logger                   *slog.Logger
 	clock                    func() time.Time
@@ -134,11 +140,18 @@ type pendingContext struct {
 	// activation can persist the exact content-addressed set without exposing
 	// physical dependency names to an agent or OA receipt.
 	ViewBinding *pendingViewBinding `json:"view_binding,omitempty"`
+	// Eligibility is the private record of the envelope compilation that
+	// admitted this request before any approver saw it. It is absent on
+	// requests whose Products declare no eligibility and on legacy records.
+	Eligibility *eligibilityVerdict `json:"eligibility,omitempty"`
 }
 
 func New(config Config) (*Service, error) {
 	if config.Catalog == nil || config.Store == nil || config.Approval == nil || config.Connector == nil || config.CallbackSecret == "" {
 		return nil, errors.New("gateway catalog, store, approval, connector, and callback secret are required")
+	}
+	if catalogDeclaresEligibility(config.Catalog) && config.PrincipalAttributes == nil {
+		return nil, errors.New("catalog declares product eligibility but no principal attribute snapshot is configured")
 	}
 	if config.Logger == nil {
 		config.Logger = slog.Default()
@@ -198,8 +211,8 @@ func New(config Config) (*Service, error) {
 		catalog: config.Catalog, store: config.Store, approval: config.Approval,
 		receiptVerifier:    config.ReceiptVerifier,
 		queryReceiptSigner: config.QueryReceiptSigner, connector: config.Connector,
-		snapshotRegistry: config.SnapshotRegistry,
-		callbackSecret:   []byte(config.CallbackSecret), logger: config.Logger,
+		snapshotRegistry: config.SnapshotRegistry, principalAttributes: config.PrincipalAttributes,
+		callbackSecret: []byte(config.CallbackSecret), logger: config.Logger,
 		clock: config.Clock, background: config.Background, settlementTimeout: config.SettlementTimeout,
 		spoolDirectory:             config.SpoolDirectory,
 		spoolThreshold:             config.SpoolThresholdBytes,

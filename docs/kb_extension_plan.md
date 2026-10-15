@@ -20,8 +20,8 @@
 |---|---|---|---|
 | K1.1 | Catalog 增 `eligibility`（require 条件、scope_envelope）；严格解码与校验 | `go test ./internal/catalog/` 新增用例通过；无效声明被拒 | DONE |
 | K1.2 | 新包 `internal/principalattr`：属性快照（标准属性 + 带有效期的临时授权），规范 JSON 摘要 | 单元测试：解析、摘要稳定、授权窗口 | DONE |
-| K1.3 | 网关 `request_data_task` 在审批前编译包络：require 不满足或范围超出 → `NOT_ELIGIBLE`，不建草稿；委托按委托人属性检查 | gateway 测试：通过/拒绝/放宽/临时授权/过期/委托 六类 | TODO |
-| K1.4 | 裁决落盘：pendingContext 增 `eligibility`（快照摘要、规则 id、包络）；manifest 不改版本 | 任务记录里可复核 | TODO |
+| K1.3 | 网关 `request_data_task` 在审批前编译包络：require 不满足或范围超出 → `NOT_ELIGIBLE`，不建草稿；委托按委托人属性检查 | gateway 测试：通过/拒绝/放宽/临时授权/过期/委托 六类 | DONE |
+| K1.4 | 裁决落盘：pendingContext 增 `eligibility`（快照摘要、规则 id、包络）；manifest 不改版本 | 任务记录里可复核 | DONE |
 | K1.5 | 配置与部署：`config/principal-attributes.yaml`、compose 挂载与环境变量、demo catalog 给 expense_detail 加资格；集成测试仍过 | `scripts/integration-test.sh` 通过；demo 脚本新增"非 HR 申请薪资被直接拒绝"例 | TODO |
 | K1.6 | 文档：catalog-guide 新节、getting-started 一段、threat-model 更新 | 文档与代码一致 | TODO |
 

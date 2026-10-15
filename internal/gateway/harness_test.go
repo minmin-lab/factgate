@@ -24,6 +24,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/exposure"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/ordinal"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryplan"
 	"taskbound.local/agent-data-gateway/internal/snapshotbundle"
 	"taskbound.local/agent-data-gateway/internal/testpostgres"
@@ -194,10 +195,33 @@ func (harness *gatewayHarness) controlDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// harnessOptions lets a test start from the repository Catalog with a textual
+// rewrite applied before parsing, and supply the attribute snapshot that
+// eligibility compilation reads.
+type harnessOptions struct {
+	rewriteCatalog      func(string) string
+	principalAttributes *principalattr.Snapshot
+}
+
 func newGatewayHarness(t *testing.T) *gatewayHarness {
+	return newGatewayHarnessWithOptions(t, harnessOptions{})
+}
+
+func newGatewayHarnessWithOptions(t *testing.T, options harnessOptions) *gatewayHarness {
 	t.Helper()
 	ctx := context.Background()
-	loadedCatalog, err := catalog.Load(filepath.Join("..", "..", "config", "catalog.yaml"))
+	catalogPath := filepath.Join("..", "..", "config", "catalog.yaml")
+	var loadedCatalog *catalog.Catalog
+	var err error
+	if options.rewriteCatalog == nil {
+		loadedCatalog, err = catalog.Load(catalogPath)
+	} else {
+		var raw []byte
+		raw, err = os.ReadFile(catalogPath)
+		if err == nil {
+			loadedCatalog, err = catalog.Parse([]byte(options.rewriteCatalog(string(raw))))
+		}
+	}
 	if err != nil {
 		t.Fatalf("load catalog: %v", err)
 	}
@@ -233,7 +257,7 @@ func newGatewayHarness(t *testing.T) *gatewayHarness {
 	t.Cleanup(cancelBackground)
 	service, err := New(Config{
 		Catalog: loadedCatalog, Store: store, Approval: approvalAdapter,
-		Connector: connector, CallbackSecret: secret,
+		Connector: connector, CallbackSecret: secret, PrincipalAttributes: options.principalAttributes,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Clock: clock.Now, Background: background,
 	})
 	if err != nil {
