@@ -102,6 +102,11 @@ type Product struct {
 	// Catalog and authorization encodings. When present, all four digests are
 	// generated from one PostgreSQL registry snapshot and validated together.
 	ViewContract *ViewContract `yaml:"view_contract,omitempty" json:"view_contract,omitempty"`
+	// Eligibility compiles the requesting subject's attested attributes into
+	// the envelope a request may ask for before any approval route is
+	// consulted. A request outside the envelope is rejected and never reaches
+	// an approver; an approver can only narrow a request inside it.
+	Eligibility *Eligibility `yaml:"eligibility,omitempty" json:"eligibility,omitempty"`
 }
 
 const ViewContractV1 = "taskgate-view-contract-v1"
@@ -109,6 +114,31 @@ const ViewContractV1 = "taskgate-view-contract-v1"
 // ViewContract pins one governed semantic View to its exact source revision,
 // transitive dependency closure, expanded typed plan, and ordered output
 // interface. PostgreSQL OIDs and SQL aliases are deliberately absent.
+// Eligibility is the per-Product predicate over subject attributes that
+// bounds what may be requested (author decision 2026-10-15: requests outside
+// the envelope are rejected outright, not escalated).
+type Eligibility struct {
+	// Require lists conditions that must all hold for the requesting subject.
+	Require []AttributeCondition `yaml:"require,omitempty" json:"require,omitempty"`
+	// ScopeEnvelope restricts an enum scope of this Product to the subject's
+	// own attribute values unless a widening condition holds.
+	ScopeEnvelope map[string]ScopeEnvelopeRule `yaml:"scope_envelope,omitempty" json:"scope_envelope,omitempty"`
+}
+
+// AttributeCondition holds when the subject carries at least one of the
+// listed values for the attribute at request time.
+type AttributeCondition struct {
+	Attribute string   `yaml:"attribute" json:"attribute"`
+	AnyOf     []string `yaml:"any_of" json:"any_of"`
+}
+
+// ScopeEnvelopeRule derives the admissible values of one enum scope from a
+// subject attribute. WidenIf conditions admit every Catalog-allowed value.
+type ScopeEnvelopeRule struct {
+	FromAttribute string               `yaml:"from_attribute" json:"from_attribute"`
+	WidenIf       []AttributeCondition `yaml:"widen_if,omitempty" json:"widen_if,omitempty"`
+}
+
 type ViewContract struct {
 	ProfileVersion      string `yaml:"profile_version" json:"profile_version"`
 	DefinitionDigest    string `yaml:"definition_digest" json:"definition_digest"`

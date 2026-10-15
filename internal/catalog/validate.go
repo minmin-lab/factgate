@@ -243,6 +243,12 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 			}
 		}
 	}
+	for index, product := range c.Products {
+		if product.Eligibility == nil {
+			continue
+		}
+		problems = append(problems, validateEligibility(fmt.Sprintf("products[%d].eligibility", index), product, c.Scopes)...)
+	}
 	scopedProducts := make(map[string]string)
 	for index, route := range c.ApprovalRoutes {
 		if len(route.Products) == 0 {
@@ -600,4 +606,56 @@ func duplicateOrEmpty(values []string) bool {
 		}
 	}
 	return false
+}
+
+func validateAttributeCondition(path string, condition AttributeCondition) ValidationErrors {
+	var problems ValidationErrors
+	if !identifierPattern.MatchString(condition.Attribute) {
+		problems = append(problems, fieldError(path+".attribute", "a lowercase attribute name is required", ErrInvalidCatalog))
+	}
+	if len(condition.AnyOf) == 0 || duplicateOrEmpty(condition.AnyOf) {
+		problems = append(problems, fieldError(path+".any_of", "any_of must list distinct non-empty values", ErrInvalidCatalog))
+	}
+	for _, value := range condition.AnyOf {
+		if strings.ContainsAny(value, "\x00\r\n\t") || value != strings.TrimSpace(value) {
+			problems = append(problems, fieldError(path+".any_of", "attribute values must be canonical tokens", ErrInvalidCatalog))
+			break
+		}
+	}
+	return problems
+}
+
+func validateEligibility(path string, product Product, scopes []Scope) ValidationErrors {
+	var problems ValidationErrors
+	eligibility := product.Eligibility
+	if len(eligibility.Require) == 0 && len(eligibility.ScopeEnvelope) == 0 {
+		problems = append(problems, fieldError(path, "eligibility must declare require conditions or a scope envelope", ErrInvalidCatalog))
+	}
+	for index, condition := range eligibility.Require {
+		problems = append(problems, validateAttributeCondition(fmt.Sprintf("%s.require[%d]", path, index), condition)...)
+	}
+	productScopes := make(map[string]struct{}, len(product.Scopes))
+	for _, name := range product.Scopes {
+		productScopes[name] = struct{}{}
+	}
+	definitions := make(map[string]Scope, len(scopes))
+	for _, scope := range scopes {
+		definitions[scope.Name] = scope
+	}
+	for name, rule := range eligibility.ScopeEnvelope {
+		rulePath := path + ".scope_envelope." + name
+		if _, mandatory := productScopes[name]; !mandatory {
+			problems = append(problems, fieldError(rulePath, "scope envelope must name a mandatory scope of this product", ErrInvalidCatalog))
+		}
+		if definition, ok := definitions[name]; ok && definition.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(rulePath, "scope envelopes are defined for enum scopes only", ErrInvalidCatalog))
+		}
+		if !identifierPattern.MatchString(rule.FromAttribute) {
+			problems = append(problems, fieldError(rulePath+".from_attribute", "a lowercase attribute name is required", ErrInvalidCatalog))
+		}
+		for index, condition := range rule.WidenIf {
+			problems = append(problems, validateAttributeCondition(fmt.Sprintf("%s.widen_if[%d]", rulePath, index), condition)...)
+		}
+	}
+	return problems
 }

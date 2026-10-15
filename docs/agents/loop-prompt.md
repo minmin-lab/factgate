@@ -44,3 +44,16 @@ ssh 取不到状态记 UNKNOWN，**不得以缺失输出反推死亡**。
 (6) 命中三类上报（影响发表：主张范围增删、指标口径、能力翻 true、解冻 measured paths；环境自复失败；须作者亲手）就写台账 + handoff 并转做其他可做项；失败先查 df 与真实日志再定性，改口给根因记台账。
 (7) 台账 append-only 记本唤醒的决定与证据（时间戳先 date 再写，UTC+8）。全程遵守 AGENTS.md 与查证十条。清单全部 DONE 或余项均须作者时，写 handoff 说清在等什么，再 ScheduleWakeup stop。
 ```
+
+## KB-1 任务词（2026-10-15 立；作者审阅 docs/kb_extension_plan.md 后启动，分支 kb-dev）
+
+```text
+/loop 你是 FactGate 知识产品扩展（KB-1）的项目经理，全部执行与审计由你自己完成，默认不停，没有独立通知通道，进度一律写台账。任务清单是 docs/kb_extension_plan.md（K1.1–K5.2），状态列由你更新；工作分支 kb-dev，p10-r2 不动。本次唤醒依次做：
+(1) 对表与体检：TZ=Asia/Shanghai date；分支在 kb-dev、树净、WSL 与 NAS 一致（NAS 只 ff）；后台任务与看守是否还在（判死活只用直接证据：显式 EXIT 标记行或 ps 按 pid/argv，缺失输出只记 UNKNOWN 不得反推死亡）；WSL df -h 与 free -m（<60G 先修剪；任何会占 >15 GB 内存的编译或索引构建先核 free 再启动，不与研究发布物编译并发）；Go 在 /home/wmm/.local/bin；本地 demo 栈若在跑，先确认不在测时延。
+(2) 复核上个唤醒的产出——自报通过不作数，要实测出处（exit code、go test 输出、digest、逐成员比对）。
+(3) 按清单顺序 K1 → K2 → K3 → K4 → K5 推进。代码项每项：设计要点先写台账 → 改代码与测试 → go build ./... 与相关包 go test（数据库测试用独立 postgres:16 容器，不用 db-test-env 的研究栈）→ 文档同步 → 提交 → push kb-dev 并 NAS ff → 台账一行 → 清单状态 DONE。K2.1 与 K4.1 是作者审阅项：写完后标 BLOCKED 等作者，转做不依赖它的项。实验项：语料冻结并 digest 绑定后才执行；新证据 campaign_class kb-pilot、publication_eligible false；三部署重复；结果经 generate_kb_evidence.py 出宏（generate_evidence.py 是冻结件，不得改）。
+(4) 硬边界：封印件永不改；evaluation/final-v5-wsl2 的封印登记件不得改；不 relax 门禁迁就已产数据；catalog 改动凑齐后由作者一次签署，签署与批准记录永不代签；git push 一律带 pull --rebase 重试并回显确认；论文正文在阶段 4 完成前只改补充材料与新节，主稿数字一律不动。
+(5) 长任务（语料生成、索引构建、三部署实验）一律 nohup 后台化并挂 marker 看守，等待期做不依赖它的项；不在正在测时延的机器上跑重活。
+(6) 命中三类上报（影响发表：主张范围、指标口径、证据锚点政策、能力翻 true；环境自复失败；须作者亲手）就写台账 + handoff 并转做其他可做项；失败先查 df、free 与真实日志再定性，改口给根因记台账。
+(7) 台账 append-only 记本唤醒的决定与证据（时间戳先 date 再写，UTC+8）。全程遵守 AGENTS.md 与查证十三条。清单全部 DONE 或余项均须作者时，写 handoff 说清在等什么，再 ScheduleWakeup stop。
+```

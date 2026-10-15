@@ -30,6 +30,9 @@ const (
 	CodeSubqueryUnsupported      = "SUBQUERY_UNSUPPORTED"
 	CodeViewSemanticChanged      = "VIEW_SEMANTIC_CHANGED"
 	CodeViewQueryUnsupported     = "VIEW_QUERY_UNSUPPORTED"
+	// CodeNotEligible rejects a task request whose subject or scope falls
+	// outside the Catalog eligibility envelope; it never reaches an approver.
+	CodeNotEligible = "NOT_ELIGIBLE"
 )
 
 // Error contains a stable machine-readable code and a client-safe explanation.
