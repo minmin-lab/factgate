@@ -11,6 +11,7 @@ require (
 	github.com/parquet-go/parquet-go v0.30.1
 	github.com/pganalyze/pg_query_go/v6 v6.1.0
 	golang.org/x/crypto v0.51.0
+	golang.org/x/net v0.53.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -33,13 +34,12 @@ require (
 	github.com/twpayne/go-geom v1.6.1 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.53.0 // indirect
 	gopkg.in/ini.v1 v1.67.2 // indirect
 )
 
 require (
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
-	github.com/google/jsonschema-go v0.4.3 // indirect
+	github.com/google/jsonschema-go v0.4.3
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
@@ -52,6 +52,6 @@ require (
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.44.0
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.37.0
 	google.golang.org/protobuf v1.36.10 // indirect
 )

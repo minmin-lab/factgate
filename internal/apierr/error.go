@@ -33,6 +33,14 @@ const (
 	// CodeNotEligible rejects a task request whose subject or scope falls
 	// outside the Catalog eligibility envelope; it never reaches an approver.
 	CodeNotEligible = "NOT_ELIGIBLE"
+	// Retrieval (knowledge product) rejections. Every one is closed-form: the
+	// request is outside the admitted retrieval language and nothing executed.
+	CodeRetrievalFilterUnsupported = "RETRIEVAL_FILTER_UNSUPPORTED"
+	CodeRetrievalQueryUnsupported  = "RETRIEVAL_QUERY_UNSUPPORTED"
+	CodeRetrievalKExceeded         = "RETRIEVAL_K_EXCEEDED"
+	CodeRetrievalScopeExceeded     = "RETRIEVAL_SCOPE_EXCEEDED"
+	CodeChunkNotReturned           = "CHUNK_NOT_RETURNED"
+	CodeAggregateUnsupported       = "AGGREGATE_UNSUPPORTED"
 )
 
 // Error contains a stable machine-readable code and a client-safe explanation.

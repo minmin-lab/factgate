@@ -154,10 +154,12 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 - k：1 ≤ k ≤ k_max 的整数。
 - fetch：块 id 列表排序去重；每个 id 必须曾作为本根家族某次 `search`/`fetch` 的返回出现（Control 库查 root 家族已释放
   的 chunk 身份），否则 `CHUNK_NOT_RETURNED` 拒绝。
-- 拒绝码（新增，发射端与校验端同时登记）：`RETRIEVAL_FILTER_UNSUPPORTED`（OR/通配/正则/未知属性/未知算子）、
+- 拒绝码（新增，发射端与校验端同时登记）：`RETRIEVAL_FILTER_UNSUPPORTED`（OR/通配/正则/未知属性/未知算子/类型不符）、
   `RETRIEVAL_QUERY_UNSUPPORTED`（脚本、more-like-this、重排器、文本与向量同时给出、维度不符）、`RETRIEVAL_K_EXCEEDED`、
-  `CHUNK_NOT_RETURNED`、`AGGREGATE_UNSUPPORTED`（字段非抽取字段或聚合不在白名单）。等价输入（别名、原子顺序、空白与
-  大小写差异、`in` 与多个 `=`）必须得到同一 h_N（K3.1 验收）。
+  `RETRIEVAL_SCOPE_EXCEEDED`（调用方对受强制范围约束的属性给出的值与任务范围交集为空）、`CHUNK_NOT_RETURNED`、
+  `AGGREGATE_UNSUPPORTED`（字段非抽取字段、类型不匹配或聚合不在白名单）。等价输入（原子顺序、同一属性 `in` 值顺序与重复、
+  空白与大小写差异、单值 `in` 与 `=`）必须得到同一 h_N（K3.1 验收）。注意 `in [a,b]` 是同一属性上的析取，与两个 `=` 原子的
+  合取不等价，不得归一为同一形式（2026-10-16 更正本文早先的说法）。
 
 ## 5. 三维效果定义（降级器输出 → 现有结算）
 
@@ -219,7 +221,13 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
    （需下载权重、GPU/CPU 时间、结果不可逐字节复现）？效果实验（E-KB1/2/3）衡量的是账本行为而非检索质量，推荐前者并在
    论文写明。
 5. **生成回答 f_gen** 明确不在 KB-1 范围（论文已写"第四层为未来工作"），确认。
-6. **新拒绝码五个**与 `NOT_ELIGIBLE` 一样进入 apierr 与文档；确认命名。
+6. **新拒绝码六个**（含 `RETRIEVAL_SCOPE_EXCEEDED`）与 `NOT_ELIGIBLE` 一样进入 apierr 与文档；确认命名。
+7. **检索执行如何接入既有封印准备边界**（2026-10-16 增）：现有 query_sql/execute_plan 全部经 `physicalquery.Prepare` 产生
+   带编译器身份与输入绑定的 `PreparedOperation`，执行、预留、派生、结算、回执、重放都以它为锚（"preparePlan 是唯一边界"，
+   finalizer 以同一函数复算）。方案 A（推荐）：在 physicalquery 增加同纪律的 `PrepareRetrieval`（检索规范形 + 命中集
+   SQL + 序数程序 + 谓词足迹 → 同一 PreparedOperation 密封），K3.3 的"现有结算/重放/回执/委托原样通过"由此自动成立，
+   论文只需说"检索是第二种准备操作"；方案 B：检索走独立结算小管线直接调 control 的预留/结算，代码少但回执与重放要另造，
+   论文要描述两条管线。方案 A 代价是先读透 physicalquery 的封印（预计一个唤醒）。K3.1（规范形）两方案通用，先做。
 
 ## 10. 实施顺序（不等审阅即可做的部分）
 
