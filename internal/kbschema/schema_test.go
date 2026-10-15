@@ -162,8 +162,10 @@ func TestKnowledgeProductSchemaRejectsMalformedRows(t *testing.T) {
 		VALUES ('policy_kb', 'D-0001', 1, 'Pricing policy', 'policy', 'sales', 'internal', 'staff', '{leadership-only}', DATE '2026-01-01', NULL, '` + sha + `', 1, 'body')`)
 	mustExec(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, embedding, department, classification, job_role)
 		VALUES ('policy_kb', 'D-0001', 1, 0, 'body', '` + sha + `', '[0.1, 0.2, 0.3]', 'sales', 'internal', 'staff')`)
-	mustExec(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, department, classification)
-		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount', 'numeric', '1250.00', 'sales', 'internal')`)
+	mustExec(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_numeric, department, classification)
+		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount', 'numeric', 'n:1250', 1250.00, 'sales', 'internal')`)
+	mustReject(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_text, department, classification)
+		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount3', 'numeric', 'n:1', 'text in numeric slot', 'sales', 'internal')`, "check constraint")
 
 	mustReject(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, department, classification, job_role)
 		VALUES ('policy_kb', 'D-9999', 1, 0, 'orphan', '`+sha+`', 'sales', 'internal', 'staff')`, "foreign key")
@@ -171,8 +173,8 @@ func TestKnowledgeProductSchemaRejectsMalformedRows(t *testing.T) {
 		VALUES ('policy_kb', 'D-0002', 1, 'x', 'policy', 'sales', 'internal', 'staff', DATE '2026-01-01', DATE '2025-12-31', '`+sha+`', 1, 'b')`, "check constraint")
 	mustReject(`INSERT INTO kb.documents (collection, doc_id, version, title, document_type, department, classification, job_role, valid_from, content_sha256, chunk_count, body)
 		VALUES ('policy_kb', 'D-0003', 1, 'x', 'policy', 'sales', 'internal', 'staff', DATE '2026-01-01', 'not-a-digest', 1, 'b')`, "check constraint")
-	mustReject(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, department, classification)
-		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount2', 'float', '1', 'sales', 'internal')`, "check constraint")
+	mustReject(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_numeric, department, classification)
+		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount2', 'float', '1', 1, 'sales', 'internal')`, "check constraint")
 	mustReject(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, department, classification, job_role)
 		VALUES ('policy_kb', 'D-0001', 1, 0, 'dup', '`+sha+`', 'sales', 'internal', 'staff')`, "duplicate key")
 

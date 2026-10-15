@@ -79,11 +79,22 @@ CREATE TABLE kb.extracted_values (
     document_type text NOT NULL CHECK (document_type ~ '^[a-z][a-z0-9_]{0,62}$'),
     field text NOT NULL CHECK (field ~ '^[a-z][a-z0-9_]{0,62}$'),
     value_type text NOT NULL CHECK (value_type IN ('text', 'numeric', 'integer', 'bigint', 'date')),
+    -- canonical_value is the exposure canonical encoding (identity); exactly
+    -- one typed column carries the value itself so a values Product exposes
+    -- real typed cells for Fact identity and admitted aggregates.
     canonical_value text NOT NULL,
+    value_text text,
+    value_numeric numeric,
+    value_date date,
     department text NOT NULL CHECK (department <> ''),
     classification text NOT NULL CHECK (classification <> ''),
     PRIMARY KEY (collection, doc_id, version, field),
-    FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version)
+    FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version),
+    CHECK (
+        (value_type = 'text' AND value_text IS NOT NULL AND value_numeric IS NULL AND value_date IS NULL) OR
+        (value_type IN ('numeric', 'integer', 'bigint') AND value_numeric IS NOT NULL AND value_text IS NULL AND value_date IS NULL) OR
+        (value_type = 'date' AND value_date IS NOT NULL AND value_text IS NULL AND value_numeric IS NULL)
+    )
 );
 
 CREATE INDEX kb_chunks_filter_idx ON kb.chunks (collection, department, classification, job_role);

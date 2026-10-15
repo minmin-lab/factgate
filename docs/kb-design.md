@@ -23,7 +23,7 @@ internal/ordinal 的发布物与字典、internal/catalog 的 snapshot_publicati
 |---|---|---|---|---|---|
 | 文档 | `kb.documents` → `reporting.<kp>_documents` | (doc_id, version) | doc_id, version, title, document_type, department, classification, labels, valid_from, valid_until, content_sha256, chunk_count | f_doc = ⟨ϖ,ν,s,d,v⟩ | `NewBaseRowFactV2(ν_doc, s, C(d,v))` |
 | 分块 | `kb.chunks` → `reporting.<kp>_chunks` | (doc_id, version, chunk_index) | doc_id, version, chunk_index, text_sha256, text, department, classification, labels, valid_until, embedding（不发布） | f_chunk = ⟨ϖ,ν,s,d,v,c,C(text_c)⟩ | 行 Fact `NewBaseRowFactV2(ν_chunk, s, C(d,v,c))` + 单元格 Fact `NewBaseCellFactV2(ν_chunk, s, C(d,v,c), "text_sha256", text, sha256(text))` |
-| 内容事实 | `kb.extracted_values` → `reporting.<kp>_values` | 文档级：(doc_id, version, field)；集合级：(field, canonical_value) | doc_id, version, document_type, field, value_type, canonical_value, department, classification | f_val = ⟨ϖ,ν,s,d,v,a,τ,C_τ(x)⟩ 或集合级 ⟨ϖ,ν,s,a,τ,C_τ(x)⟩ | `NewBaseCellFactV2(ν_val, s, key, field, τ, x)`，τ 用现有 `CanonicalSQLValue` |
+| 内容事实 | `kb.extracted_values` → `reporting.<kp>_values` | 文档级：(doc_id, version, field)；集合级：(field, canonical_value) | doc_id, version, document_type, field, value_type, canonical_value（exposure 规范编码，身份用）, value_text / value_numeric / value_date（按 value_type 恰一列非空，聚合与类型化单元格用）, department, classification | f_val = ⟨ϖ,ν,s,d,v,a,τ,C_τ(x)⟩ 或集合级 ⟨ϖ,ν,s,a,τ,C_τ(x)⟩ | `NewBaseCellFactV2(ν_val, s, key, field, τ, x)`，τ 用现有 `CanonicalSQLValue` |
 | 派生 | 不落表 | — | — | f_gen = ⟨ϖ,B,H(answer),CW(W)⟩ | `NewDerivedFactV2(bundle, outputRowKey, expr, τ, value, witnessCommitment)`（aggregate 由现有聚合路径产生；生成回答 KB-1 **不实现**） |
 
 - ϖ 沿用 `taskgate-exposure-v5`，**不开新的 exposure profile 与哈希域**【设计选择】：知识 Fact 与报表 Fact 由 ν 区分，
@@ -63,8 +63,16 @@ Catalog SHA 承诺全部。重建即新发布期，不改旧发布期。
   `evaluation/kbcorpus/manifest-v1.json`（seed、计数、documents.jsonl 的 sha256），JSONL 不入库、由同一 seed 重生成并与
   NAS 镜像核对。切分函数 `section-window-v1`：先按节切，节内按 ≤ 800 字符在句边界开窗，块密级 = 节密级；抽取源
   `frontmatter` 即解析前言区（`kbcorpus.ParseFrontMatter`）。
-- `cmd/kb-publish`（K2.3）生成：同输入两次运行 `manifest_digest` 相同；篡改任一块的文本或标签会改变对应 publication 的
-  digest 进而改变 `manifest_digest`（K2.3 验收）。
+- `cmd/kb-publish`（K2.3，库 `internal/kbpublish`）：输入 publish spec（`taskgate-kb-publish-spec-v1`：知识产品、collection、
+  source_id/catalog_source、ν、epoch、Catalog source 的 schema_digest、语料路径与 sha256、切分/嵌入/抽取规则），
+  以管理员连接写 kb.* 并建三个 `reporting.kb_<kp>_<epoch>_<kind>` 物化视图（owner taskgate_snapshot_owner、gateway_reader
+  SELECT；不含 embedding/body），再以 gateway_reader 连接调用现有 `snapshotbundle.ScanPostgresSnapshot` +
+  `CompileOwnedToDirectory` 编译三个 V4 bundle 到 `<out>/bundles/<publication>/`（安装器与网关加载器的既有布局）。输出
+  `<out>/kb-publication.json`（本清单）、`<out>/inputs/{documents,chunks,values}.json`（带 expected_digests 的编译器输入，
+  直接交给 `cmd/snapshot-index` / `cmd/snapshot-sidecar-install`）、`<out>/catalog-fragment.yaml`（K2.4 的 Catalog 片段）。
+  `kb-publish -verify -out <out>` 重扫重编译并比对全部摘要。同一 collection 不可重复发布（新构建 = 新 epoch）。
+  已实测：同输入在两个库发布 `manifest_digest` 相同；篡改一块文本并刷新物化视图后 verify 失败。部署顺序：db/init →
+  kb-publish → snapshot-index（kb 三个输入）→ snapshot-sidecar-install（与其他发布物同批，安装器首装即封印集合）。
 - 嵌入向量**不进入** Fact 身份也不进入 HOT 字典（身份由内容摘要定）；嵌入模型版本进入发布期摘要，换模型即新发布期。
 - 别名（如 `kb-latest`）在审批时解析为具体 epoch，与报表别名同构【读论文】；KB-1 只实现显式 epoch。
 
