@@ -19,6 +19,12 @@ type Catalog struct {
 	Scopes               []Scope               `yaml:"scopes" json:"scopes"`
 	ApprovalRoutes       []ApprovalRoute       `yaml:"approval_routes" json:"approval_routes"`
 	BudgetProfiles       []BudgetProfile       `yaml:"budget_profiles" json:"budget_profiles"`
+	// KnowledgeProducts declare governed document collections whose frozen
+	// relations are ordinary snapshot-publication Products (docs/kb-design.md).
+	KnowledgeProducts []KnowledgeProduct `yaml:"knowledge_products,omitempty" json:"knowledge_products,omitempty"`
+	// KBPublications bind each knowledge product's index publication epoch to
+	// the digest-bound manifest cmd/kb-publish produced.
+	KBPublications []KBPublication `yaml:"kb_publications,omitempty" json:"kb_publications,omitempty"`
 }
 
 // V4Enabled reports the deployment mode selected by the validated Catalog.
@@ -239,4 +245,106 @@ func (p Product) FieldNames() []string {
 // ExpiresAt derives the immutable grant expiry from a selected profile.
 func (p BudgetProfile) ExpiresAt(approvedAt time.Time) time.Time {
 	return approvedAt.Add(p.TaskTTL.Duration)
+}
+
+// KnowledgeProduct is a governed document collection: three frozen relations
+// (documents, chunks, extracted values) published as ordinary Products, the
+// closed attribute vocabulary filter atoms may name, and the segmentation,
+// embedding and extraction declarations whose digests the index publication
+// epoch binds.
+type KnowledgeProduct struct {
+	Name             string                    `yaml:"name" json:"name"`
+	Description      string                    `yaml:"description" json:"description"`
+	Sensitivity      domain.Sensitivity        `yaml:"sensitivity" json:"sensitivity"`
+	Collection       string                    `yaml:"collection" json:"collection"`
+	SourceNamespace  string                    `yaml:"source_namespace" json:"source_namespace"`
+	Products         KnowledgeProductRelations `yaml:"products" json:"products"`
+	IndexPublication string                    `yaml:"index_publication" json:"index_publication"`
+	DocumentTypes    []string                  `yaml:"document_types" json:"document_types"`
+	Attributes       []KBAttribute             `yaml:"attributes" json:"attributes"`
+	Segmentation     KBSegmentation            `yaml:"segmentation" json:"segmentation"`
+	Embedding        KBEmbedding               `yaml:"embedding" json:"embedding"`
+	ExtractionRules  []KBExtractionRule        `yaml:"extraction_rules,omitempty" json:"extraction_rules,omitempty"`
+	Retrieval        KBRetrieval               `yaml:"retrieval" json:"retrieval"`
+	Scopes           []string                  `yaml:"scopes" json:"scopes"`
+	Eligibility      *Eligibility              `yaml:"eligibility,omitempty" json:"eligibility,omitempty"`
+}
+
+type KnowledgeProductRelations struct {
+	Documents string `yaml:"documents" json:"documents"`
+	Chunks    string `yaml:"chunks" json:"chunks"`
+	Values    string `yaml:"values" json:"values"`
+}
+
+// KBAttribute is one filterable attribute of a collection. Scope binds it to
+// a mandatory Catalog Scope so the task's mandatory scope is injected as a
+// filter atom on this attribute.
+type KBAttribute struct {
+	Name          string   `yaml:"name" json:"name"`
+	Type          string   `yaml:"type" json:"type"`
+	Scope         string   `yaml:"scope,omitempty" json:"scope,omitempty"`
+	AllowedValues []string `yaml:"allowed_values,omitempty" json:"allowed_values,omitempty"`
+}
+
+// KBSegmentation, KBEmbedding and KBExtractionRule share their JSON shape with
+// internal/kbpublish so the digests declared in kb_publications are the
+// SHA-256 of these declarations' canonical JSON.
+type KBSegmentation struct {
+	Function    string `yaml:"function" json:"function"`
+	WindowChars int    `yaml:"window_chars" json:"window_chars"`
+}
+
+type KBEmbedding struct {
+	Model     string `yaml:"model" json:"model"`
+	Dimension int    `yaml:"dimension" json:"dimension"`
+}
+
+type KBExtractionRule struct {
+	DocumentType string `yaml:"document_type" json:"document_type"`
+	Field        string `yaml:"field" json:"field"`
+	Type         string `yaml:"type" json:"type"`
+	Source       string `yaml:"source" json:"source"`
+	Scope        string `yaml:"scope" json:"scope"`
+}
+
+type KBRetrieval struct {
+	KMax               int      `yaml:"k_max" json:"k_max"`
+	Exact              bool     `yaml:"exact" json:"exact"`
+	Aggregates         []string `yaml:"aggregates,omitempty" json:"aggregates,omitempty"`
+	GenerationAdmitted bool     `yaml:"generation_admitted" json:"generation_admitted"`
+}
+
+// KBPublication binds an index publication epoch to its kb-publish manifest.
+type KBPublication struct {
+	Epoch                 string `yaml:"epoch" json:"epoch"`
+	KnowledgeProduct      string `yaml:"knowledge_product" json:"knowledge_product"`
+	ManifestDigest        string `yaml:"manifest_digest" json:"manifest_digest"`
+	SegmentationDigest    string `yaml:"segmentation_digest" json:"segmentation_digest"`
+	EmbeddingDigest       string `yaml:"embedding_digest" json:"embedding_digest"`
+	ExtractionRulesDigest string `yaml:"extraction_rules_digest" json:"extraction_rules_digest"`
+}
+
+const (
+	KBSegmentationSectionWindowV1 = "section-window-v1"
+	KBEmbeddingHashProjectionV1   = "hash-projection-v1"
+)
+
+// LookupKnowledgeProduct returns the knowledge product with the given name.
+func (c *Catalog) LookupKnowledgeProduct(name string) (KnowledgeProduct, bool) {
+	for _, product := range c.KnowledgeProducts {
+		if product.Name == name {
+			return product, true
+		}
+	}
+	return KnowledgeProduct{}, false
+}
+
+// LookupKBPublication returns the index publication epoch binding.
+func (c *Catalog) LookupKBPublication(epoch string) (KBPublication, bool) {
+	for _, publication := range c.KBPublications {
+		if publication.Epoch == epoch {
+			return publication, true
+		}
+	}
+	return KBPublication{}, false
 }

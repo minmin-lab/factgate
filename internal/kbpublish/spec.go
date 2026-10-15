@@ -38,6 +38,8 @@ var (
 type Spec struct {
 	Version          string           `json:"version"`
 	KnowledgeProduct string           `json:"knowledge_product"`
+	Description      string           `json:"description"`
+	Sensitivity      string           `json:"sensitivity"`
 	Collection       string           `json:"collection"`
 	SourceID         string           `json:"source_id"`
 	CatalogSource    string           `json:"catalog_source"`
@@ -48,6 +50,13 @@ type Spec struct {
 	Segmentation     Segmentation     `json:"segmentation"`
 	Embedding        Embedding        `json:"embedding"`
 	ExtractionRules  []ExtractionRule `json:"extraction_rules"`
+	DocumentTypes    []string         `json:"document_types"`
+	Retrieval        Retrieval        `json:"retrieval"`
+}
+
+type Retrieval struct {
+	KMax       int      `json:"k_max"`
+	Aggregates []string `json:"aggregates"`
 }
 
 type CorpusRef struct {
@@ -101,6 +110,14 @@ func (s Spec) Validate() error {
 		return fmt.Errorf("publish spec: version must be %q", SpecVersion)
 	case !namePattern.MatchString(s.KnowledgeProduct):
 		return errors.New("publish spec: knowledge_product must be a lowercase identifier")
+	case strings.TrimSpace(s.Description) == "":
+		return errors.New("publish spec: description is required")
+	case s.Sensitivity != "public" && s.Sensitivity != "low" && s.Sensitivity != "medium" && s.Sensitivity != "high" && s.Sensitivity != "restricted":
+		return errors.New("publish spec: sensitivity must be public, low, medium, high, or restricted")
+	case len(s.DocumentTypes) == 0:
+		return errors.New("publish spec: document_types are required")
+	case s.Retrieval.KMax < 1 || s.Retrieval.KMax > 1000:
+		return errors.New("publish spec: retrieval.k_max must be between 1 and 1000")
 	case !namePattern.MatchString(s.Collection):
 		return errors.New("publish spec: collection must be a lowercase identifier")
 	case strings.TrimSpace(s.SourceID) == "" || strings.TrimSpace(s.CatalogSource) == "":
@@ -124,8 +141,28 @@ func (s Spec) Validate() error {
 	case s.Embedding.Dimension < 16 || s.Embedding.Dimension > 4096:
 		return errors.New("publish spec: embedding dimension must be between 16 and 4096")
 	}
+	documentTypes := map[string]struct{}{}
+	for _, documentType := range s.DocumentTypes {
+		if !namePattern.MatchString(documentType) {
+			return errors.New("publish spec: document_types must be lowercase identifiers")
+		}
+		if _, duplicate := documentTypes[documentType]; duplicate {
+			return errors.New("publish spec: document_types must be distinct")
+		}
+		documentTypes[documentType] = struct{}{}
+	}
+	for _, aggregate := range s.Retrieval.Aggregates {
+		switch aggregate {
+		case "count", "sum", "min", "max":
+		default:
+			return fmt.Errorf("publish spec: retrieval aggregate %q is not admitted", aggregate)
+		}
+	}
 	seen := map[string]struct{}{}
 	for index, rule := range s.ExtractionRules {
+		if _, ok := documentTypes[rule.DocumentType]; !ok {
+			return fmt.Errorf("publish spec: extraction_rules[%d] names an undeclared document type", index)
+		}
 		if !namePattern.MatchString(rule.DocumentType) || !namePattern.MatchString(rule.Field) {
 			return fmt.Errorf("publish spec: extraction_rules[%d] needs lowercase document_type and field", index)
 		}

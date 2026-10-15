@@ -32,7 +32,7 @@
 | K2.1 | 设计记录 `docs/kb-design.md`：知识产品 Catalog 声明（集合、切分函数、抽取规则、属性词表）、索引发布期的绑定内容与摘要、Fact 身份编码（f_doc/f_chunk/f_val/f_gen）、封闭检索语言、三维效果定义 | 与论文补充材料一致；作者审阅 | BLOCKED |
 | K2.2 | 业务库侧：pgvector 扩展、`kb.*` 表（documents、chunks、extracted_values、labels）、只读角色 | 迁移脚本；`db/init` 新文件 | DONE |
 | K2.3 | `cmd/kb-publish`：冻结一个 collection 为发布物（块 id、内容哈希、标签、抽取值、嵌入模型版本、切分摘要），生成序数字典与清单，输出摘要写回 Catalog | 两次运行同输入同摘要；篡改一块即失败 | DONE |
-| K2.4 | Catalog `knowledge_products` 块与校验；网关启动激活知识发布物 | 激活失败即拒启动 | TODO |
+| K2.4 | Catalog `knowledge_products` 块与校验；网关启动激活知识发布物 | 激活失败即拒启动 | DONE |
 | K2.5 | 合成语料生成器 `evaluation/cmd/kb-corpus`：1 万份文档、12 部门、5 岗位、4 密级、自定义标签、领导层专属章节；文档类型含合同/审批单/制度/报告，带可抽取字段 | 语料冻结并 digest 绑定 | DONE |
 
 ### 阶段 3：检索工具与结算

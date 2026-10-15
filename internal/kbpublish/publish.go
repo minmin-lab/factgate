@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"taskbound.local/agent-data-gateway/evaluation/kbcorpus"
+	"taskbound.local/agent-data-gateway/internal/catalog"
 	"taskbound.local/agent-data-gateway/internal/snapshotbundle"
 )
 
@@ -61,9 +62,28 @@ type Manifest struct {
 	EmbeddingDigest       string                    `json:"embedding_digest"`
 	ExtractionRules       []ExtractionRule          `json:"extraction_rules"`
 	ExtractionRulesDigest string                    `json:"extraction_rules_digest"`
+	DocumentTypes         []string                  `json:"document_types"`
+	Retrieval             Retrieval                 `json:"retrieval"`
+	Collation             Collation                 `json:"collation"`
+	Vocabulary            Vocabulary                `json:"vocabulary"`
 	Counts                Counts                    `json:"counts"`
 	Publications          map[string]PublicationRef `json:"publications"`
 	ManifestDigest        string                    `json:"manifest_digest"`
+}
+
+// Collation is the database collation every published text field carries.
+type Collation struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+// Vocabulary lists the attribute values present in the published collection;
+// the Catalog fragment turns them into scope and attribute allowed values.
+type Vocabulary struct {
+	Departments     []string `json:"departments"`
+	Classifications []string `json:"classifications"`
+	JobRoles        []string `json:"job_roles"`
+	Labels          []string `json:"labels"`
 }
 
 // Digest recomputes the manifest digest over every field except the digest.
@@ -79,9 +99,12 @@ type Options struct {
 	// ReaderDSN is the non-administrative role the snapshot compiler scans
 	// with (gateway_reader), exactly as cmd/snapshot-index does.
 	ReaderDSN string
-	// OutputDir receives the compiled bundles, the compiler inputs with their
-	// expected digests, the Catalog fragment and the manifest.
+	// OutputDir receives the compiler inputs with their expected digests, the
+	// Catalog fragment and the manifest.
 	OutputDir string
+	// BundleDir is the snapshot artifact root the bundles are compiled into
+	// (<BundleDir>/<publication>/). Empty means <OutputDir>/bundles.
+	BundleDir string
 }
 
 // Result reports what Publish produced.
@@ -305,15 +328,15 @@ func relationSelect(kind, collection string) string {
 	literal := "'" + strings.ReplaceAll(collection, "'", "''") + "'"
 	switch kind {
 	case "documents":
-		return `SELECT doc_id, version, title, document_type, department, classification, job_role,
+		return `SELECT doc_id, version, title, document_type, department AS kb_department, classification, job_role,
 			array_to_string(labels, ',') AS labels, valid_from, valid_until, content_sha256, chunk_count
 			FROM kb.documents WHERE collection = ` + literal + ` ORDER BY doc_id, version`
 	case "chunks":
-		return `SELECT doc_id, version, chunk_index, text, text_sha256, department, classification, job_role,
+		return `SELECT doc_id, version, chunk_index, text, text_sha256, department AS kb_department, classification, job_role,
 			array_to_string(labels, ',') AS labels, valid_until
 			FROM kb.chunks WHERE collection = ` + literal + ` ORDER BY doc_id, version, chunk_index`
 	default:
-		return `SELECT doc_id, version, document_type, field, value_type, canonical_value, value_text, value_numeric, value_date, department, classification
+		return `SELECT doc_id, version, document_type, field, value_type, canonical_value, value_text, value_numeric, value_date, department AS kb_department, classification
 			FROM kb.extracted_values WHERE collection = ` + literal + ` ORDER BY doc_id, version, field`
 	}
 }
@@ -321,14 +344,14 @@ func relationSelect(kind, collection string) string {
 // relationFields lists each published relation's fields in view order with
 // their canonical SQL types; text fields receive the database collation.
 var relationFields = map[string][][2]string{
-	"documents": {{"doc_id", "text"}, {"version", "integer"}, {"title", "text"}, {"document_type", "text"}, {"department", "text"},
+	"documents": {{"doc_id", "text"}, {"version", "integer"}, {"title", "text"}, {"document_type", "text"}, {"kb_department", "text"},
 		{"classification", "text"}, {"job_role", "text"}, {"labels", "text"}, {"valid_from", "date"}, {"valid_until", "date"},
 		{"content_sha256", "text"}, {"chunk_count", "integer"}},
 	"chunks": {{"doc_id", "text"}, {"version", "integer"}, {"chunk_index", "integer"}, {"text", "text"}, {"text_sha256", "text"},
-		{"department", "text"}, {"classification", "text"}, {"job_role", "text"}, {"labels", "text"}, {"valid_until", "date"}},
+		{"kb_department", "text"}, {"classification", "text"}, {"job_role", "text"}, {"labels", "text"}, {"valid_until", "date"}},
 	"values": {{"doc_id", "text"}, {"version", "integer"}, {"document_type", "text"}, {"field", "text"}, {"value_type", "text"},
 		{"canonical_value", "text"}, {"value_text", "text"}, {"value_numeric", "numeric"}, {"value_date", "date"},
-		{"department", "text"}, {"classification", "text"}},
+		{"kb_department", "text"}, {"classification", "text"}},
 }
 
 var relationKeys = map[string][]string{
@@ -396,15 +419,14 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 		Segmentation: spec.Segmentation, Embedding: spec.Embedding, ExtractionRules: append([]ExtractionRule{}, spec.ExtractionRules...),
 		Publications: map[string]PublicationRef{},
 	}
-	if manifest.SegmentationDigest, err = canonicalDigest(spec.Segmentation); err != nil {
+	manifest.SegmentationDigest, manifest.EmbeddingDigest, manifest.ExtractionRulesDigest, err = DeclarationDigests(spec)
+	if err != nil {
 		return Result{}, err
 	}
-	if manifest.EmbeddingDigest, err = canonicalDigest(spec.Embedding); err != nil {
-		return Result{}, err
-	}
-	if manifest.ExtractionRulesDigest, err = canonicalDigest(manifest.ExtractionRules); err != nil {
-		return Result{}, err
-	}
+	manifest.DocumentTypes = append([]string(nil), spec.DocumentTypes...)
+	manifest.Retrieval = Retrieval{KMax: spec.Retrieval.KMax, Aggregates: append([]string{}, spec.Retrieval.Aggregates...)}
+	manifest.Collation = Collation{Name: collation, Version: collationVersion}
+	manifest.Vocabulary = vocabulary(prepared)
 	seen := map[string]struct{}{}
 	for _, doc := range prepared.Documents {
 		seen[doc.DocID] = struct{}{}
@@ -428,7 +450,11 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 		}
 		// One artifact root for the epoch: the installer and the gateway loader
 		// expect <root>/<publication_name>/<publication_name>.bundle.json.
-		written, err := snapshotbundle.CompileOwnedToDirectory(&scanned, filepath.Join(options.OutputDir, "bundles"), snapshotbundle.DefaultPublicationLimits())
+		bundleDir := options.BundleDir
+		if bundleDir == "" {
+			bundleDir = filepath.Join(options.OutputDir, "bundles")
+		}
+		written, err := snapshotbundle.CompileOwnedToDirectory(&scanned, bundleDir, snapshotbundle.DefaultPublicationLimits())
 		if err != nil {
 			return Result{}, fmt.Errorf("compile %s: %w", kind, err)
 		}
@@ -457,12 +483,12 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 	if manifest.ManifestDigest, err = manifest.Digest(); err != nil {
 		return Result{}, err
 	}
-	encoded, err := json.MarshalIndent(manifest, "", "  ")
+	encoded, err := encodeManifest(manifest)
 	if err != nil {
 		return Result{}, err
 	}
 	manifestPath := filepath.Join(options.OutputDir, "kb-publication.json")
-	if err := os.WriteFile(manifestPath, append(encoded, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(manifestPath, encoded, 0o644); err != nil {
 		return Result{}, err
 	}
 	if err := os.WriteFile(filepath.Join(options.OutputDir, "catalog-fragment.yaml"), []byte(CatalogFragment(spec, manifest)), 0o644); err != nil {
@@ -471,14 +497,79 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 	return Result{Manifest: manifest, ManifestPath: manifestPath, InputPaths: inputPaths}, nil
 }
 
-// CatalogFragment renders the Catalog declarations an operator pastes into the
-// candidate Catalog: three products, three snapshot publications, and the
-// knowledge-product block (validated by K2.4).
+func encodeManifest(manifest Manifest) ([]byte, error) {
+	encoded, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(encoded, '\n'), nil
+}
+
+// DeclarationDigests computes the segmentation, embedding and extraction-rule
+// digests with the Catalog's own canonical function over the Catalog's own
+// declaration types, so kb_publications validation and this manifest agree.
+func DeclarationDigests(spec Spec) (string, string, string, error) {
+	segmentation, err := catalog.CanonicalDeclarationDigest(catalog.KBSegmentation{Function: spec.Segmentation.Function, WindowChars: spec.Segmentation.WindowChars})
+	if err != nil {
+		return "", "", "", err
+	}
+	embedding, err := catalog.CanonicalDeclarationDigest(catalog.KBEmbedding{Model: spec.Embedding.Model, Dimension: spec.Embedding.Dimension})
+	if err != nil {
+		return "", "", "", err
+	}
+	rules := make([]catalog.KBExtractionRule, 0, len(spec.ExtractionRules))
+	for _, rule := range spec.ExtractionRules {
+		rules = append(rules, catalog.KBExtractionRule{DocumentType: rule.DocumentType, Field: rule.Field, Type: rule.Type, Source: rule.Source, Scope: rule.Scope})
+	}
+	extraction, err := catalog.CanonicalDeclarationDigest(rules)
+	if err != nil {
+		return "", "", "", err
+	}
+	return segmentation, embedding, extraction, nil
+}
+
+func vocabulary(prepared Prepared) Vocabulary {
+	departments, classifications, roles := map[string]struct{}{}, map[string]struct{}{}, map[string]struct{}{}
+	for _, doc := range prepared.Documents {
+		departments[doc.Department] = struct{}{}
+		classifications[doc.Classification] = struct{}{}
+		roles[doc.JobRole] = struct{}{}
+	}
+	for _, chunk := range prepared.Chunks {
+		classifications[chunk.Classification] = struct{}{}
+	}
+	return Vocabulary{Departments: sortedKeys(departments), Classifications: sortedKeys(classifications),
+		JobRoles: sortedKeys(roles), Labels: append([]string{}, prepared.Labels...)}
+}
+
+func sortedKeys(set map[string]struct{}) []string {
+	keys := make([]string, 0, len(set))
+	for key := range set {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func yamlList(values []string) string {
+	quoted := make([]string, len(values))
+	for index, value := range values {
+		quoted[index] = "\"" + strings.ReplaceAll(value, "\"", "\\\"") + "\""
+	}
+	return "[" + strings.Join(quoted, ", ") + "]"
+}
+
+// CatalogFragment renders the Catalog declarations an operator merges into the
+// candidate Catalog with catalog.MergeYAMLFragment: two enum scopes, three
+// snapshot publications, three products, the knowledge_products block and the
+// kb_publications binding. The result validates under internal/catalog.
 func CatalogFragment(spec Spec, manifest Manifest) string {
 	var out strings.Builder
 	kinds := append([]string(nil), RelationKinds...)
 	sort.Strings(kinds)
 	out.WriteString("# Generated by cmd/kb-publish for " + spec.KnowledgeProduct + " epoch " + spec.Epoch + "\n")
+	fmt.Fprintf(&out, "scopes:\n  - name: kb_department\n    type: enum\n    description: knowledge product department scope\n    allowed_values: %s\n", yamlList(manifest.Vocabulary.Departments))
+	fmt.Fprintf(&out, "  - name: classification\n    type: enum\n    description: knowledge product classification scope\n    allowed_values: %s\n", yamlList(manifest.Vocabulary.Classifications))
 	out.WriteString("snapshot_publications:\n")
 	for _, kind := range kinds {
 		reference := manifest.Publications[kind]
@@ -489,17 +580,37 @@ func CatalogFragment(spec Spec, manifest Manifest) string {
 	out.WriteString("products:\n")
 	for _, kind := range kinds {
 		reference := manifest.Publications[kind]
-		fmt.Fprintf(&out, "  - name: %s\n    source: %s\n    reporting_view: %s\n    description: knowledge product %s %s\n    sensitivity: high\n    snapshot: %s\n    snapshot_publication: %s\n    entity_key: [%s]\n    fact_namespace: %s\n    stable_relation_role: %s\n    scopes: [department]\n    fields:\n",
-			reference.Product, spec.CatalogSource, reference.SourceRelation, spec.KnowledgeProduct, kind, spec.Epoch,
+		fmt.Fprintf(&out, "  - name: %s\n    source: %s\n    reporting_view: %s\n    description: knowledge product %s %s\n    sensitivity: %s\n    snapshot: %s\n    snapshot_publication: %s\n    entity_key: [%s]\n    fact_namespace: %s\n    stable_relation_role: %s\n    scopes: [kb_department, classification]\n",
+			reference.Product, spec.CatalogSource, reference.SourceRelation, spec.KnowledgeProduct, kind, spec.Sensitivity, spec.Epoch,
 			reference.PublicationName, strings.Join(relationKeys[kind], ", "), reference.SourceNamespace, reference.Product)
+		if kind == "values" && len(spec.Retrieval.Aggregates) > 0 {
+			fmt.Fprintf(&out, "    allowed_aggregates: [%s]\n", strings.Join(spec.Retrieval.Aggregates, ", "))
+		}
+		out.WriteString("    fields:\n")
 		for _, field := range relationFields[kind] {
-			fmt.Fprintf(&out, "      - name: %s\n        type: %s\n        description: %s\n", field[0], field[1], field[0])
+			if field[1] == "text" {
+				fmt.Fprintf(&out, "      - {name: %s, type: text, collation: %s, collation_version: \"%s\", description: %s}\n", field[0], manifest.Collation.Name, manifest.Collation.Version, field[0])
+			} else {
+				fmt.Fprintf(&out, "      - {name: %s, type: %s, description: %s}\n", field[0], field[1], field[0])
+			}
 		}
 	}
-	fmt.Fprintf(&out, "knowledge_products:\n  - name: %s\n    collection: %s\n    source_namespace: %s\n    index_publication: %s\n    products:\n", spec.KnowledgeProduct, spec.Collection, spec.SourceNamespace, spec.Epoch)
+	fmt.Fprintf(&out, "knowledge_products:\n  - name: %s\n    description: %s\n    sensitivity: %s\n    collection: %s\n    source_namespace: %s\n    products:\n", spec.KnowledgeProduct, spec.Description, spec.Sensitivity, spec.Collection, spec.SourceNamespace)
 	for _, kind := range kinds {
 		fmt.Fprintf(&out, "      %s: %s\n", kind, manifest.Publications[kind].Product)
 	}
+	fmt.Fprintf(&out, "    index_publication: %s\n    document_types: %s\n    attributes:\n", spec.Epoch, yamlList(spec.DocumentTypes))
+	out.WriteString("      - {name: kb_department, type: enum, scope: kb_department}\n      - {name: classification, type: enum, scope: classification}\n")
+	fmt.Fprintf(&out, "      - {name: job_role, type: enum, allowed_values: %s}\n      - {name: labels, type: text_set}\n      - {name: valid_until, type: date}\n", yamlList(manifest.Vocabulary.JobRoles))
+	fmt.Fprintf(&out, "    segmentation: {function: %s, window_chars: %d}\n    embedding: {model: %s, dimension: %d}\n", spec.Segmentation.Function, spec.Segmentation.WindowChars, spec.Embedding.Model, spec.Embedding.Dimension)
+	if len(spec.ExtractionRules) > 0 {
+		out.WriteString("    extraction_rules:\n")
+		for _, rule := range spec.ExtractionRules {
+			fmt.Fprintf(&out, "      - {document_type: %s, field: %s, type: %s, source: %s, scope: %s}\n", rule.DocumentType, rule.Field, rule.Type, rule.Source, rule.Scope)
+		}
+	}
+	fmt.Fprintf(&out, "    retrieval: {k_max: %d, exact: true, aggregates: [%s], generation_admitted: false}\n    scopes: [kb_department, classification]\n", spec.Retrieval.KMax, strings.Join(spec.Retrieval.Aggregates, ", "))
+	out.WriteString("    eligibility:\n      scope_envelope:\n        kb_department:\n          from_attribute: department\n        classification:\n          from_attribute: clearance\n")
 	fmt.Fprintf(&out, "kb_publications:\n  - epoch: %s\n    knowledge_product: %s\n    manifest_digest: %s\n    segmentation_digest: %s\n    embedding_digest: %s\n    extraction_rules_digest: %s\n",
 		spec.Epoch, spec.KnowledgeProduct, manifest.ManifestDigest, manifest.SegmentationDigest, manifest.EmbeddingDigest, manifest.ExtractionRulesDigest)
 	return out.String()

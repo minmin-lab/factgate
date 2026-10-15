@@ -129,7 +129,9 @@ func TestExtractCanonicalizesDeclaredFields(t *testing.T) {
 }
 
 func validSpec() Spec {
-	return Spec{Version: SpecVersion, KnowledgeProduct: "policy_kb", Collection: "policy_v1", SourceID: "taskgate-demo-travel",
+	return Spec{Version: SpecVersion, KnowledgeProduct: "policy_kb", Description: "test knowledge product", Sensitivity: "high",
+		DocumentTypes: []string{"contract", "approval", "policy", "report"}, Retrieval: Retrieval{KMax: 20, Aggregates: []string{"count", "sum"}},
+		Collection: "policy_v1", SourceID: "taskgate-demo-travel",
 		CatalogSource: "travel_demo", SourceNamespace: "kb.policy", Epoch: "policy-kb-2026-10-v1",
 		SchemaDigest: strings.Repeat("ab", 32), Corpus: CorpusRef{Path: "x.jsonl", SHA256: strings.Repeat("cd", 32)},
 		Segmentation:    Segmentation{Function: SegmentationSectionWindowV1, WindowChars: 800},

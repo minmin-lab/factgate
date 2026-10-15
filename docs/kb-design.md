@@ -121,8 +121,12 @@ kb_publications:
     extraction_rules_digest: <sha256>
 ```
 
+实现备注（K2.4 已落地，权威见 internal/catalog/knowledge.go 与 docs/catalog-guide.md "Knowledge Products"）：视图把 kb.* 的
+`department` 列别名为 `kb_department`，以免与 demo Catalog 既有的中文 `department` Scope 冲突；`classification` 作第二个强制
+Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住。`attributes[].scope` 必须与属性同名。片段由
+`catalog.MergeYAMLFragment` 追加进既有 Catalog（只追加顶层序列，不改写既有键）。
 校验（K2.4）：三个 Product 存在、均为 V4 publication、source_namespace 前缀一致、`values` 产品字段含
-`field/value_type/canonical_value`；`attributes[].scope` 必须是本 knowledge product 的 mandatory scope 且为 enum；
+`field/value_type/canonical_value/value_text/value_numeric/value_date`；`attributes[].scope` 必须是本 knowledge product 的 mandatory scope 且为 enum；
 `extraction_rules` 的 document_type ∈ document_types、field 唯一、type ∈ 现有 CanonicalSQLTypeV2 可接受集合；
 `retrieval.aggregates ⊆ {count,sum,min,max}`；`kb_publications` 的 digest 与 kb-publish 输出一致才能激活，
 激活失败即拒启动（与 snapshot registry 同一失败关闭语义）。

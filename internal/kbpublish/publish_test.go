@@ -14,6 +14,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"taskbound.local/agent-data-gateway/evaluation/kbcorpus"
+	"taskbound.local/agent-data-gateway/internal/catalog"
 )
 
 const testReaderPassword = "kb-reader-test"
@@ -111,7 +112,9 @@ func testCorpus(t *testing.T, dir string, documents int) (string, string) {
 }
 
 func testSpec(corpusPath, corpusSHA string) Spec {
-	return Spec{Version: SpecVersion, KnowledgeProduct: "policy_kb", Collection: "policy_v1", SourceID: "taskgate-kb-test",
+	return Spec{Version: SpecVersion, KnowledgeProduct: "policy_kb", Description: "test knowledge product", Sensitivity: "high",
+		DocumentTypes: []string{"contract", "approval", "policy", "report"}, Retrieval: Retrieval{KMax: 20, Aggregates: []string{"count", "sum"}},
+		Collection: "policy_v1", SourceID: "taskgate-kb-test",
 		CatalogSource: "travel_demo", SourceNamespace: "kb.policy", Epoch: "policy-kb-test-v1",
 		SchemaDigest: strings.Repeat("ab", 32), Corpus: CorpusRef{Path: corpusPath, SHA256: corpusSHA},
 		Segmentation: Segmentation{Function: SegmentationSectionWindowV1, WindowChars: 400},
@@ -189,10 +192,49 @@ func TestPublishIsDeterministicAcrossDatabasesAndVerifies(t *testing.T) {
 	if verified.ManifestDigest != resultA.Manifest.ManifestDigest {
 		t.Fatal("verify returned a different manifest")
 	}
+	// The generated fragment merges into the repository Catalog, validates, and
+	// binds exactly this manifest: the end-to-end proof for K2.4.
 	fragment, err := os.ReadFile(filepath.Join(dir, "a", "catalog-fragment.yaml"))
-	if err != nil || !strings.Contains(string(fragment), "manifest_digest: "+resultA.Manifest.Publications["chunks"].ManifestDigest) ||
-		!strings.Contains(string(fragment), "knowledge_products:") {
-		t.Fatalf("catalog fragment incomplete (%v):\n%s", err, fragment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("..", "..", "config", "catalog.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	merged, err := catalog.MergeYAMLFragment(base, fragment)
+	if err != nil {
+		t.Fatalf("merge fragment: %v", err)
+	}
+	knowledgeCatalog, err := catalog.Parse(merged)
+	if err != nil {
+		t.Fatalf("fragment does not validate against the repository Catalog: %v\n%s", err, fragment)
+	}
+	knowledgeProduct, ok := knowledgeCatalog.LookupKnowledgeProduct(spec.KnowledgeProduct)
+	if !ok {
+		t.Fatal("knowledge product missing after merge")
+	}
+	if err := VerifyCatalogBinding(knowledgeCatalog, knowledgeProduct, resultA.Manifest); err != nil {
+		t.Fatalf("published manifest does not bind to the fragment it produced: %v", err)
+	}
+	artifactRoot := filepath.Join(dir, "artifacts")
+	third := newScratch(t, spec.SourceID)
+	resultC, err := Publish(ctx, spec, Options{AdminDSN: third.adminDSN, ReaderDSN: third.readerDSN,
+		OutputDir: filepath.Dir(ManifestPath(artifactRoot, spec.Epoch)), BundleDir: artifactRoot})
+	if err != nil {
+		t.Fatalf("publish into artifact layout: %v", err)
+	}
+	if resultC.Manifest.ManifestDigest != resultA.Manifest.ManifestDigest {
+		t.Fatal("artifact-layout publish changed the manifest digest")
+	}
+	for _, kind := range RelationKinds {
+		name := spec.Relation(kind).PublicationName
+		if _, err := os.Stat(filepath.Join(artifactRoot, name, name+".bundle.json")); err != nil {
+			t.Fatalf("bundle %s not at the loader layout: %v", name, err)
+		}
+	}
+	if manifests, err := ActivateFromDirectory(knowledgeCatalog, artifactRoot); err != nil || len(manifests) != 1 {
+		t.Fatalf("activation from artifact layout: %v %v", manifests, err)
 	}
 
 	// Republishing the same collection is refused: an epoch is immutable.

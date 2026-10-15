@@ -1,0 +1,148 @@
+# Knowledge-product fragment used by knowledge_test.go: merged into
+# config/catalog.yaml with MergeYAMLFragment. Digest placeholders are filled by
+# the test from CanonicalDeclarationDigest of the declarations below.
+scopes:
+  - name: kb_department
+    type: enum
+    description: knowledge product department scope
+    allowed_values: [sales, engineering, finance, hr]
+  - name: classification
+    type: enum
+    description: knowledge product classification scope
+    allowed_values: [public, internal, confidential, leadership]
+snapshot_publications:
+  - name: policy-kb-test-v1-documents
+    source: travel_demo
+    source_namespace: kb.policy.documents
+    snapshot: policy-kb-test-v1
+    ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_test_v1_documents
+    sidecar_digest: 1111111111111111111111111111111111111111111111111111111111111111
+    dictionary_digest: 2222222222222222222222222222222222222222222222222222222222222222
+    manifest_digest: 3333333333333333333333333333333333333333333333333333333333333333
+  - name: policy-kb-test-v1-chunks
+    source: travel_demo
+    source_namespace: kb.policy.chunks
+    snapshot: policy-kb-test-v1
+    ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_test_v1_chunks
+    sidecar_digest: 4444444444444444444444444444444444444444444444444444444444444444
+    dictionary_digest: 5555555555555555555555555555555555555555555555555555555555555555
+    manifest_digest: 6666666666666666666666666666666666666666666666666666666666666666
+  - name: policy-kb-test-v1-values
+    source: travel_demo
+    source_namespace: kb.policy.values
+    snapshot: policy-kb-test-v1
+    ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_test_v1_values
+    sidecar_digest: 7777777777777777777777777777777777777777777777777777777777777777
+    dictionary_digest: 8888888888888888888888888888888888888888888888888888888888888888
+    manifest_digest: 9999999999999999999999999999999999999999999999999999999999999999
+products:
+  - name: policy_kb_documents
+    source: travel_demo
+    reporting_view: reporting.kb_policy_kb_policy_kb_test_v1_documents
+    description: knowledge product policy_kb documents
+    sensitivity: high
+    snapshot: policy-kb-test-v1
+    snapshot_publication: policy-kb-test-v1-documents
+    entity_key: [doc_id, version]
+    fact_namespace: kb.policy.documents
+    stable_relation_role: policy_kb_documents
+    scopes: [kb_department, classification]
+    fields:
+      - {name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}
+      - {name: version, type: integer, description: version}
+      - {name: title, type: text, collation: en_US.utf8, collation_version: "2.36", description: title}
+      - {name: document_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: document_type}
+      - {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}
+      - {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}
+      - {name: job_role, type: text, collation: en_US.utf8, collation_version: "2.36", description: job_role}
+      - {name: labels, type: text, collation: en_US.utf8, collation_version: "2.36", description: labels}
+      - {name: valid_from, type: date, description: valid_from}
+      - {name: valid_until, type: date, description: valid_until}
+      - {name: content_sha256, type: text, collation: en_US.utf8, collation_version: "2.36", description: content_sha256}
+      - {name: chunk_count, type: integer, description: chunk_count}
+  - name: policy_kb_chunks
+    source: travel_demo
+    reporting_view: reporting.kb_policy_kb_policy_kb_test_v1_chunks
+    description: knowledge product policy_kb chunks
+    sensitivity: high
+    snapshot: policy-kb-test-v1
+    snapshot_publication: policy-kb-test-v1-chunks
+    entity_key: [doc_id, version, chunk_index]
+    fact_namespace: kb.policy.chunks
+    stable_relation_role: policy_kb_chunks
+    scopes: [kb_department, classification]
+    fields:
+      - {name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}
+      - {name: version, type: integer, description: version}
+      - {name: chunk_index, type: integer, description: chunk_index}
+      - {name: text, type: text, collation: en_US.utf8, collation_version: "2.36", description: text}
+      - {name: text_sha256, type: text, collation: en_US.utf8, collation_version: "2.36", description: text_sha256}
+      - {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}
+      - {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}
+      - {name: job_role, type: text, collation: en_US.utf8, collation_version: "2.36", description: job_role}
+      - {name: labels, type: text, collation: en_US.utf8, collation_version: "2.36", description: labels}
+      - {name: valid_until, type: date, description: valid_until}
+  - name: policy_kb_values
+    source: travel_demo
+    reporting_view: reporting.kb_policy_kb_policy_kb_test_v1_values
+    description: knowledge product policy_kb values
+    sensitivity: high
+    snapshot: policy-kb-test-v1
+    snapshot_publication: policy-kb-test-v1-values
+    entity_key: [doc_id, version, field]
+    fact_namespace: kb.policy.values
+    stable_relation_role: policy_kb_values
+    scopes: [kb_department, classification]
+    allowed_aggregates: [sum, count, min, max]
+    fields:
+      - {name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}
+      - {name: version, type: integer, description: version}
+      - {name: document_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: document_type}
+      - {name: field, type: text, collation: en_US.utf8, collation_version: "2.36", description: field}
+      - {name: value_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: value_type}
+      - {name: canonical_value, type: text, collation: en_US.utf8, collation_version: "2.36", description: canonical_value}
+      - {name: value_text, type: text, collation: en_US.utf8, collation_version: "2.36", description: value_text}
+      - {name: value_numeric, type: numeric, description: value_numeric}
+      - {name: value_date, type: date, description: value_date}
+      - {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}
+      - {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}
+knowledge_products:
+  - name: policy_kb
+    description: departmental policies, contracts, approvals and reports
+    sensitivity: high
+    collection: policy_v1
+    source_namespace: kb.policy
+    products:
+      documents: policy_kb_documents
+      chunks: policy_kb_chunks
+      values: policy_kb_values
+    index_publication: policy-kb-test-v1
+    document_types: [contract, approval, policy, report]
+    attributes:
+      - {name: kb_department, type: enum, scope: kb_department}
+      - {name: classification, type: enum, scope: classification}
+      - {name: job_role, type: enum, allowed_values: [staff, manager, director, executive, hr]}
+      - {name: labels, type: text_set}
+      - {name: valid_until, type: date}
+    segmentation: {function: section-window-v1, window_chars: 800}
+    embedding: {model: hash-projection-v1, dimension: 256}
+    extraction_rules:
+      - {document_type: contract, field: amount, type: numeric, source: frontmatter, scope: document}
+      - {document_type: policy, field: effective_on, type: date, source: frontmatter, scope: document}
+    retrieval: {k_max: 20, exact: true, aggregates: [count, sum], generation_admitted: false}
+    scopes: [kb_department, classification]
+    eligibility:
+      scope_envelope:
+        kb_department:
+          from_attribute: department
+          widen_if:
+            - {attribute: job_family, any_of: [finance_controller]}
+        classification:
+          from_attribute: clearance
+kb_publications:
+  - epoch: policy-kb-test-v1
+    knowledge_product: policy_kb
+    manifest_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    segmentation_digest: "{{SEGMENTATION}}"
+    embedding_digest: "{{EMBEDDING}}"
+    extraction_rules_digest: "{{RULES}}"

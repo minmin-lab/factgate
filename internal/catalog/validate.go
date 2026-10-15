@@ -247,8 +247,9 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 		if product.Eligibility == nil {
 			continue
 		}
-		problems = append(problems, validateEligibility(fmt.Sprintf("products[%d].eligibility", index), product, c.Scopes)...)
+		problems = append(problems, validateEligibility(fmt.Sprintf("products[%d].eligibility", index), product.Eligibility, product.Scopes, c.Scopes)...)
 	}
+	problems = append(problems, c.validateKnowledgeProducts()...)
 	scopedProducts := make(map[string]string)
 	for index, route := range c.ApprovalRoutes {
 		if len(route.Products) == 0 {
@@ -625,17 +626,16 @@ func validateAttributeCondition(path string, condition AttributeCondition) Valid
 	return problems
 }
 
-func validateEligibility(path string, product Product, scopes []Scope) ValidationErrors {
+func validateEligibility(path string, eligibility *Eligibility, mandatoryScopes []string, scopes []Scope) ValidationErrors {
 	var problems ValidationErrors
-	eligibility := product.Eligibility
 	if len(eligibility.Require) == 0 && len(eligibility.ScopeEnvelope) == 0 {
 		problems = append(problems, fieldError(path, "eligibility must declare require conditions or a scope envelope", ErrInvalidCatalog))
 	}
 	for index, condition := range eligibility.Require {
 		problems = append(problems, validateAttributeCondition(fmt.Sprintf("%s.require[%d]", path, index), condition)...)
 	}
-	productScopes := make(map[string]struct{}, len(product.Scopes))
-	for _, name := range product.Scopes {
+	productScopes := make(map[string]struct{}, len(mandatoryScopes))
+	for _, name := range mandatoryScopes {
 		productScopes[name] = struct{}{}
 	}
 	definitions := make(map[string]Scope, len(scopes))

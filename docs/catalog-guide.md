@@ -445,6 +445,65 @@ budget_profiles:
       max_total_atom_payload_bytes: 16384
 ```
 
+## Knowledge Products（KB-1，知识产品）
+
+知识产品把一个受治理的文档集合接到同一套契约上（设计记录 `docs/kb-design.md`）。它由 `cmd/kb-publish` 冻结为一个
+**索引发布期**：三张关系（documents / chunks / values）各发布为一个普通的 snapshot-publication Product，Catalog 顶层再用
+两个块把它们捆起来：
+
+```yaml
+knowledge_products:
+  - name: policy_kb
+    description: 部门制度、合同、审批单与报告
+    sensitivity: high
+    collection: policy_v1                 # kb.collections 中的集合名
+    source_namespace: kb.policy           # 三个产品的 fact_namespace 必须是 kb.policy.{documents,chunks,values}
+    products: {documents: policy_kb_documents, chunks: policy_kb_chunks, values: policy_kb_values}
+    index_publication: policy-kb-2026-10-v1   # 三个产品的 snapshot 必须等于它
+    document_types: [contract, approval, policy, report]
+    attributes:                           # 过滤原子可命名的封闭属性词表
+      - {name: kb_department, type: enum, scope: kb_department}   # 绑定到强制 Scope → 任务范围注入为过滤原子
+      - {name: classification, type: enum, scope: classification}
+      - {name: job_role, type: enum, allowed_values: [staff, manager, director, executive, hr]}
+      - {name: labels, type: text_set}
+      - {name: valid_until, type: date}
+    segmentation: {function: section-window-v1, window_chars: 800}
+    embedding: {model: hash-projection-v1, dimension: 256}
+    extraction_rules:
+      - {document_type: contract, field: amount, type: numeric, source: frontmatter, scope: document}
+    retrieval: {k_max: 20, exact: true, aggregates: [count, sum], generation_admitted: false}
+    scopes: [kb_department, classification]
+    eligibility: {scope_envelope: {kb_department: {from_attribute: department}, classification: {from_attribute: clearance}}}
+kb_publications:
+  - epoch: policy-kb-2026-10-v1
+    knowledge_product: policy_kb
+    manifest_digest: <kb-publication.json 的 manifest_digest>
+    segmentation_digest: <sha256 of canonical JSON of segmentation>
+    embedding_digest: <...>
+    extraction_rules_digest: <...>
+```
+
+规则：
+
+- 三个产品必须存在、带 `snapshot_publication`，`fact_namespace` = `<source_namespace>.<kind>`，`snapshot` = epoch，并各自发布
+  知识 Fact 身份所需字段（documents: `doc_id/version/content_sha256/chunk_count`；chunks: `+chunk_index/text/text_sha256`；
+  values: `+field/value_type/canonical_value/value_text/value_numeric/value_date`），且都带知识产品的全部强制 Scope。
+- `scopes` 非空，只能是 enum Catalog Scope；每个强制 Scope 必须有一个同名 enum 属性绑定它（`attributes[].scope`）。
+- `extraction_rules` 的 `document_type` 必须在 `document_types` 内，类型限 `text/numeric/integer/bigint/date`，目前只支持
+  `source: frontmatter`、`scope: document`；`retrieval.aggregates ⊆ {count,sum,min,max}`，`generation_admitted` 必须为 false。
+- `kb_publications` 的三个声明摘要必须等于对本 Catalog 中 `segmentation` / `embedding` / `extraction_rules` 声明的规范 JSON
+  做 SHA-256 的结果（Catalog 内自洽，不读文件）；`manifest_digest` 是 kb-publish 清单的摘要。
+- 启动激活：Gateway 在加载 snapshot 发布物之后读取 `$GATEWAY_SNAPSHOT_ARTIFACT_DIR/kb/<epoch>/kb-publication.json`，核对清单
+  自摘要、`kb_publications` 绑定、三个 bundle 的 product/publication/relation/sidecar 身份与 manifest/dictionary/sidecar 摘要；
+  任一不符即拒绝启动。
+- `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验。
+
+发布流程：`kb-publish -spec <spec.json> -artifact-dir <snapshot artifact root>` 写入 kb.* 行、建冻结物化视图、编译三个 bundle 到
+`<root>/<publication>/`，并在 `<root>/kb/<epoch>/` 留下清单、三个 compiler input 与 `catalog-fragment.yaml`；
+`kb-publish -merge -base config/catalog.yaml -fragment <root>/kb/<epoch>/catalog-fragment.yaml -out candidate.yaml` 把片段追加进
+候选 Catalog 并校验；随后按下节发布清单的第 3–8 步（snapshot-index 以三个 input 重编、sidecar-install 与其他发布物同批安装、
+重算 `schema_digest`、提升版本、作者签署）。
+
 ## 发布清单
 
 1. 在 PostgreSQL 创建或更新 `reporting.*` View，只选择允许发布的列；semantic root 及全部 ordinary child 必须落在上节 restricted fragment。
