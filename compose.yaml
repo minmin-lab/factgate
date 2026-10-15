@@ -24,12 +24,16 @@ services:
       - control-plane
 
   business-postgres:
-    image: postgres:16-bookworm
+    # PostgreSQL 16 with pgvector: the Knowledge Product source relations
+    # (db/init/kb-schema.psql) need the vector extension. Research overlays
+    # may pin a plain postgres image; 30-kb-schema.sh then skips the schema.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-travel_demo}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       GATEWAY_DB_PASSWORD: ${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}
+      KB_REQUIRE_PGVECTOR: "1"
     volumes:
       - business-pg-data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro

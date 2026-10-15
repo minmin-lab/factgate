@@ -174,9 +174,12 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
 
 ## 7. 部署位置与数据库
 
-- 业务库：PostgreSQL 16 + pgvector（镜像 `pgvector/pgvector:pg16`，2026-10-15 已可拉取）。`kb.*` 表只由
-  `cmd/kb-publish` 写入（发布期内不可变：publication 冻结后 `kb.*` 对应行受只读角色与 `07-freeze` 同类手段保护）；
-  `gateway_reader` 对 `reporting.<kp>_*` 视图与 `kb.chunks.embedding` 只读。
+- 业务库：PostgreSQL 16 + pgvector（compose.yaml 的 business-postgres 镜像 `pgvector/pgvector:pg16`，2026-10-15 已可拉取）。
+  表定义在 `db/init/kb-schema.psql`，由 `db/init/30-kb-schema.sh` 在 pgvector 可用时安装（`KB_REQUIRE_PGVECTOR=1` 时缺失
+  即初始化失败；研究叠加层钉 plain postgres 时跳过）；`internal/kbschema` 的测试对独立 pgvector 容器应用同一文件。
+  `kb.*` 表只由 `cmd/kb-publish`（管理员连接）写入；`gateway_reader` 对 `kb.*` 五表只读（search 在库内做精确最近邻需要读
+  `kb.chunks.embedding`，故授在表上而非仅 reporting 视图）。分块级 department/classification/job_role/labels 允许
+  "领导层专属章节"比所属文档更严格。
 - 检索执行在业务库内完成（受信任只读执行器），网关只拿到块 id、文本与属性；向量不出库。
 - 直连向量库的客户端绕过账本，与直连数据库相同【读论文】。
 

@@ -1,0 +1,99 @@
+-- Knowledge Product source relations (KB-1; docs/kb-design.md sections 1 and 7).
+--
+-- Not auto-run by the PostgreSQL entrypoint (.psql is ignored): 30-kb-schema.sh
+-- applies it when pgvector is available, and internal/kbschema's test applies
+-- the same file to a scratch database.
+--
+-- Rows are written only by cmd/kb-publish, which freezes one collection into
+-- one index publication epoch. The gateway (gateway_reader) only reads.
+BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE SCHEMA kb;
+REVOKE ALL ON SCHEMA kb FROM PUBLIC;
+
+CREATE TABLE kb.collections (
+    collection text PRIMARY KEY CHECK (collection ~ '^[a-z][a-z0-9_]{0,62}$'),
+    description text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Label vocabulary of a collection: every label a document or chunk carries
+-- must be declared here, so filter atoms over labels are closed.
+CREATE TABLE kb.labels (
+    collection text NOT NULL REFERENCES kb.collections (collection),
+    label text NOT NULL CHECK (label <> '' AND label = btrim(label)),
+    description text NOT NULL DEFAULT '',
+    PRIMARY KEY (collection, label)
+);
+
+CREATE TABLE kb.documents (
+    collection text NOT NULL REFERENCES kb.collections (collection),
+    doc_id text NOT NULL CHECK (doc_id ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'),
+    version integer NOT NULL CHECK (version >= 1),
+    title text NOT NULL CHECK (title <> ''),
+    document_type text NOT NULL CHECK (document_type ~ '^[a-z][a-z0-9_]{0,62}$'),
+    department text NOT NULL CHECK (department <> ''),
+    classification text NOT NULL CHECK (classification <> ''),
+    job_role text NOT NULL CHECK (job_role <> ''),
+    labels text[] NOT NULL DEFAULT '{}',
+    valid_from date NOT NULL,
+    valid_until date,
+    content_sha256 text NOT NULL CHECK (content_sha256 ~ '^[0-9a-f]{64}$'),
+    chunk_count integer NOT NULL CHECK (chunk_count >= 1),
+    body text NOT NULL,
+    PRIMARY KEY (collection, doc_id, version),
+    CHECK (valid_until IS NULL OR valid_until > valid_from)
+);
+
+-- A chunk is a deterministic segment of one document version. Attributes are
+-- denormalized per chunk because a chunk may be more restricted than its
+-- document (a leadership-only section inside a departmental policy).
+CREATE TABLE kb.chunks (
+    collection text NOT NULL,
+    doc_id text NOT NULL,
+    version integer NOT NULL,
+    chunk_index integer NOT NULL CHECK (chunk_index >= 0),
+    text text NOT NULL CHECK (text <> ''),
+    text_sha256 text NOT NULL CHECK (text_sha256 ~ '^[0-9a-f]{64}$'),
+    -- Dimension is fixed by the knowledge product's embedding declaration at
+    -- publication time; NULL means the collection is published without vectors.
+    embedding vector,
+    department text NOT NULL CHECK (department <> ''),
+    classification text NOT NULL CHECK (classification <> ''),
+    job_role text NOT NULL CHECK (job_role <> ''),
+    labels text[] NOT NULL DEFAULT '{}',
+    valid_until date,
+    PRIMARY KEY (collection, doc_id, version, chunk_index),
+    FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version)
+);
+
+-- Typed values extracted at publication time by the Catalog's deterministic
+-- extraction rules (governance unit 3). canonical_value is the exposure
+-- canonical encoding of value_type, so a value Fact can be rebuilt from the row.
+CREATE TABLE kb.extracted_values (
+    collection text NOT NULL,
+    doc_id text NOT NULL,
+    version integer NOT NULL,
+    document_type text NOT NULL CHECK (document_type ~ '^[a-z][a-z0-9_]{0,62}$'),
+    field text NOT NULL CHECK (field ~ '^[a-z][a-z0-9_]{0,62}$'),
+    value_type text NOT NULL CHECK (value_type IN ('text', 'numeric', 'integer', 'bigint', 'date')),
+    canonical_value text NOT NULL,
+    department text NOT NULL CHECK (department <> ''),
+    classification text NOT NULL CHECK (classification <> ''),
+    PRIMARY KEY (collection, doc_id, version, field),
+    FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version)
+);
+
+CREATE INDEX kb_chunks_filter_idx ON kb.chunks (collection, department, classification, job_role);
+CREATE INDEX kb_documents_filter_idx ON kb.documents (collection, department, classification, job_role);
+CREATE INDEX kb_extracted_values_field_idx ON kb.extracted_values (collection, field);
+
+-- The gateway reads chunks (including embeddings, for exact retrieval inside
+-- the database) and values; it never writes. Publication writes use the
+-- administrator connection of cmd/kb-publish.
+GRANT USAGE ON SCHEMA kb TO gateway_reader;
+GRANT SELECT ON kb.collections, kb.labels, kb.documents, kb.chunks, kb.extracted_values TO gateway_reader;
+
+COMMIT;
