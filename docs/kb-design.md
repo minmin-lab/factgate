@@ -58,6 +58,11 @@ Catalog SHA 承诺全部。重建即新发布期，不改旧发布期。
 }
 ```
 
+- 语料（K2.5，`evaluation/kbcorpus` + `evaluation/cmd/kb-corpus`）：文档正文 = 前言区（`---` 包围的 `field: value` 行，
+  字段按文档类型固定）+ 若干 `## 标题 [密级]` 节；节级密级可为 leadership（领导层专属章节）。冻结件是提交的
+  `evaluation/kbcorpus/manifest-v1.json`（seed、计数、documents.jsonl 的 sha256），JSONL 不入库、由同一 seed 重生成并与
+  NAS 镜像核对。切分函数 `section-window-v1`：先按节切，节内按 ≤ 800 字符在句边界开窗，块密级 = 节密级；抽取源
+  `frontmatter` 即解析前言区（`kbcorpus.ParseFrontMatter`）。
 - `cmd/kb-publish`（K2.3）生成：同输入两次运行 `manifest_digest` 相同；篡改任一块的文本或标签会改变对应 publication 的
   digest 进而改变 `manifest_digest`（K2.3 验收）。
 - 嵌入向量**不进入** Fact 身份也不进入 HOT 字典（身份由内容摘要定）；嵌入模型版本进入发布期摘要，换模型即新发布期。
