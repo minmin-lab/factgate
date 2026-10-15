@@ -93,3 +93,13 @@ WSL 内删除的空间不会自动回到 D 盘：`ext4.vhdx` 只增不减。回�
 4. **不要开 `wsl --manage <distro> --set-sparse true`**：WSL 2.7.11 已因数据损坏风险禁用稀疏 VHD（E_INVALIDARG，需 --allow-unsafe 强开），活数据无第二份时不值得。代价是每次都要手工压。
 
 实测一次：回收约 405 GiB、耗时 2 分 39 秒（521G → 117G）。压缩后复核 ext4 挂载干净、随机数据写回 sha256 一致、df 与压缩前一致、worktree git fsck 无错。
+
+## 2026-10-15：内存上限与分支分工
+
+- **宿主机 31.7 GB，WSL `.wslconfig` memory=30GB、swap=0。** 默认 `docker compose up` 会编译 10^7 行研究发布物 final-v5-scale-e7（容器 18.4 GiB，VM 用到 24.6 GB），
+  当天 17:36 整台 WSL 重启一次（原因未定，候选宿主内存耗尽）。任何预计 >15 GB 的编译/索引构建：先 `free -m`，不与该编译并发；
+  只需网关时用 `docker compose -f compose.yaml -f compose.debug.yaml up -d --no-deps snapshot-sidecar-install gateway` 走既有发布物。
+- **分支分工（LOOP-55）**：`p10-r2`（= main）只承载论文与文档，须保持 `make paper-final-check` 可过；`kb-dev` 承载知识产品扩展代码与其论文改动，
+  measured paths 在该分支变动属预期。台账仍以 p10-r2/main 为准，kb-dev 的台账行定期以 docs-only 提交同步过去。
+- **Claude Code 连网关 MCP** 经本机 shim 127.0.0.1:8083（~/logs/demo-10/mcp_shim.py，启动脚本 start-mcp-shim.sh）；原因是网关 initialize 用
+  DisallowUnknownFields 且只认协议 2025-06-18。WSL 重启后 shim 不自启。
