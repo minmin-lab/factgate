@@ -167,6 +167,20 @@ products:
     fact_namespace: travel.expense_receipt
     stable_relation_role: expense_detail
     scopes: [department]
+    # Eligibility precedes approval: only HR and finance staff may ask for
+    # employee-level detail, and only for their own department unless they are
+    # a finance controller. Requests outside this envelope are rejected before
+    # an OA draft exists (docs/catalog-guide.md, Eligibility).
+    eligibility:
+      require:
+        - attribute: job_family
+          any_of: [hr, finance, finance_controller]
+      scope_envelope:
+        department:
+          from_attribute: department
+          widen_if:
+            - attribute: job_family
+              any_of: [finance_controller]
     allowed_functions: [date_trunc, to_char]
     allowed_operators: ["=", "<>", "<", "<=", ">", ">=", "+", "-", "*", "/"]
     allowed_aggregates: [sum, count, min, max]

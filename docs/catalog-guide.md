@@ -151,6 +151,43 @@ products:
 - Exposure V2 只允许 `count`、`sum`、`min`、`max`；`avg` 即使在传统 SQL allowlist 中存在，也不能进入 V2 计划。
 - 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。
 
+## Eligibility（资格先于审批）
+
+`eligibility` 是 Product 上可选的资格谓词：Gateway 在 `request_data_task` 创建 OA 草稿**之前**，用申请人（根任务的
+Principal subject；委托任务的父 Grant 人类主体）经身份系统证明的属性把它编译成一个"可申请包络"。申请落在包络外立即以
+`NOT_ELIGIBLE` 拒绝，不进入审批队列、不建任务、不设例外路由；审批人只能在包络内收窄。资格裁决是机器裁决，人工审批
+是人的决定，两者分开记录。
+
+```yaml
+products:
+  - name: expense_detail
+    # ...
+    scopes: [department]
+    eligibility:
+      require:
+        - attribute: job_family
+          any_of: [hr, finance, finance_controller]
+      scope_envelope:
+        department:
+          from_attribute: department
+          widen_if:
+            - attribute: job_family
+              any_of: [finance_controller]
+```
+
+- `require` 列出必须全部成立的条件；一条条件成立当且仅当申请人在评估时刻对该属性至少持有 `any_of` 中的一个值。
+- `scope_envelope` 只能约束本产品的强制 enum Scope：可申请值默认是申请人 `from_attribute` 的当前值；任一 `widen_if`
+  条件成立时放宽到该 Scope 的全部 `allowed_values`。申请值必须是可申请值的子集，部分越界也算越界。
+- `require` 与 `scope_envelope` 至少声明一项；属性名是小写标识符，值是规范 token；未知字段按 Catalog 严格解码拒绝。
+- 属性来自部署挂载的快照文件（`PRINCIPAL_ATTRIBUTES_PATH`，格式 `taskgate-principal-attributes-v1`，见
+  `config/principal-attributes.yaml`）：standing attributes 加带 RFC 3339 `[valid_from, valid_until)` 窗口的临时授权
+  `grants`；窗口外的临时授权不参与评估。快照是身份/HR 系统的输入，Gateway 只校验形状并把其 SHA-256 绑定进裁决，不判断
+  属性是否正确。
+- 失败关闭：Catalog 声明了 `eligibility` 而未配置快照时 Gateway 拒绝启动；申请人不在快照中按不具资格处理。
+- 裁决记录（版本 `taskgate-eligibility-v1`：快照摘要、主体、评估时刻、逐产品的 `require` 命中值与各 Scope 的
+  `source=attribute|widened`、`admissible`、`requested`）写入任务的私有 pending context，可在任务记录中复核；签名的
+  `AuthorizationManifestV1` 不改版本、不新增字段。
+
 ## Semantic View Contract（Phase B）
 
 普通 Product 可以作为 governed terminal publication；若一个 Product 的

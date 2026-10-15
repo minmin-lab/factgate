@@ -33,6 +33,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	gatewayapp "taskbound.local/agent-data-gateway/internal/gateway"
 	"taskbound.local/agent-data-gateway/internal/mcp"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryreceipt"
 	"taskbound.local/agent-data-gateway/internal/resultartifact"
 )
@@ -50,6 +51,18 @@ func main() {
 	if err != nil {
 		logger.Error("catalog validation failed", "error", err)
 		os.Exit(1)
+	}
+	// The attribute snapshot is optional unless the Catalog declares
+	// eligibility on any Product; gatewayapp.New then refuses to start without
+	// it, so a misconfigured deployment fails here rather than at request time.
+	var principalAttributes *principalattr.Snapshot
+	if path := strings.TrimSpace(os.Getenv("PRINCIPAL_ATTRIBUTES_PATH")); path != "" {
+		principalAttributes, err = principalattr.Load(path)
+		if err != nil {
+			logger.Error("principal attribute snapshot validation failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("principal attribute snapshot loaded", "path", path, "sha256", principalAttributes.SHA256, "subjects", len(principalAttributes.Subjects))
 	}
 	key, err := control.ParseAES256Key(requiredEnv("GATEWAY_DATA_KEY"))
 	if err != nil {
@@ -273,7 +286,7 @@ func main() {
 	}
 	defer connector.Close()
 	service, err := gatewayapp.New(gatewayapp.Config{
-		Catalog: logicalCatalog, Store: store, Approval: oaClient,
+		Catalog: logicalCatalog, Store: store, Approval: oaClient, PrincipalAttributes: principalAttributes,
 		Connector: connector, CallbackSecret: requiredEnv("OA_CALLBACK_SECRET"), Logger: logger,
 		ReceiptVerifier: oaReceiptVerifier, QueryReceiptSigner: queryReceiptSigner, Background: ctx,
 		SettlementTimeout: settlementTimeout, SnapshotRegistry: snapshotRegistry,

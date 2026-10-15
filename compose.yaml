@@ -347,6 +347,10 @@ services:
       GATEWAY_ADDR: :8082
       CONTROL_POSTGRES_DSN: postgres://gateway_control:${CONTROL_DB_PASSWORD:?set CONTROL_DB_PASSWORD in .env}@control-postgres:5432/${CONTROL_POSTGRES_DB:-taskbound_gateway}?sslmode=disable
       CATALOG_PATH: /etc/taskbound/catalog.yaml
+      # Attested subject attributes for Catalog eligibility predicates. The
+      # Gateway refuses to start when the Catalog declares eligibility and this
+      # snapshot is absent; a Catalog without eligibility ignores it.
+      PRINCIPAL_ATTRIBUTES_PATH: /etc/taskbound/principal-attributes.yaml
       GATEWAY_DATA_KEY: ${GATEWAY_DATA_KEY:?set GATEWAY_DATA_KEY in .env}
       GATEWAY_DATA_KEY_ID: ${GATEWAY_DATA_KEY_ID:-local-aes256-gcm-v1}
       GATEWAY_RECEIPT_KEY_ID: ${GATEWAY_RECEIPT_KEY_ID:?set GATEWAY_RECEIPT_KEY_ID in .env}
@@ -436,6 +440,9 @@ services:
       # one generated profile Catalog so a Catalog-bound Gateway instance
       # activates that closure and nothing else.
       - ${TASKGATE_PROFILE_CATALOG:-./config/catalog.yaml}:/etc/taskbound/catalog.yaml:ro
+      # The identity authority's attribute snapshot that eligibility predicates
+      # are evaluated against (see docs/catalog-guide.md, Eligibility).
+      - ${TASKGATE_PRINCIPAL_ATTRIBUTES:-./config/principal-attributes.yaml}:/etc/taskbound/principal-attributes.yaml:ro
       # Exactly one profile's snapshot artifact directory. It defaults to the
       # shared compiler output; the profile activator points it at a directory
       # holding only the activated closure's publication bundles, because the

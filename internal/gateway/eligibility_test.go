@@ -15,31 +15,33 @@ import (
 	"taskbound.local/agent-data-gateway/internal/principalattr"
 )
 
-// eligibilityCatalog attaches an eligibility predicate to expense_detail: only
-// HR or finance controllers may ask, departments are bounded by the subject's
-// own department unless the subject is a finance controller.
-func eligibilityCatalog(text string) string {
-	start := strings.Index(text, "  - name: expense_detail\n")
-	if start < 0 {
-		panic("expense_detail product not found in config/catalog.yaml")
+// The repository Catalog (config/catalog.yaml) declares the eligibility rule
+// these tests exercise: expense_detail requires job_family in
+// {hr, finance, finance_controller} and bounds department to the subject's own
+// department unless the subject is a finance_controller. The default harness
+// loads it, so the tests run against exactly what the demo deployment activates.
+func requireDemoEligibilityRule(t *testing.T, harness *gatewayHarness) {
+	t.Helper()
+	for _, product := range harness.catalog.Products {
+		if product.Name != "expense_detail" {
+			if product.Eligibility != nil {
+				t.Fatalf("product %s unexpectedly declares eligibility; tests assume only expense_detail does", product.Name)
+			}
+			continue
+		}
+		rule := product.Eligibility
+		if rule == nil || len(rule.Require) != 1 || rule.Require[0].Attribute != "job_family" ||
+			strings.Join(rule.Require[0].AnyOf, ",") != "hr,finance,finance_controller" {
+			t.Fatalf("expense_detail require rule = %+v, want job_family in hr,finance,finance_controller", rule)
+		}
+		envelope, ok := rule.ScopeEnvelope["department"]
+		if !ok || envelope.FromAttribute != "department" || len(envelope.WidenIf) != 1 ||
+			envelope.WidenIf[0].Attribute != "job_family" || strings.Join(envelope.WidenIf[0].AnyOf, ",") != "finance_controller" {
+			t.Fatalf("expense_detail department envelope = %+v", rule.ScopeEnvelope)
+		}
+		return
 	}
-	anchor := "    scopes: [department]\n"
-	offset := strings.Index(text[start:], anchor)
-	if offset < 0 {
-		panic("expense_detail scopes line not found")
-	}
-	at := start + offset + len(anchor)
-	return text[:at] + `    eligibility:
-      require:
-        - attribute: job_family
-          any_of: [hr, finance_controller]
-      scope_envelope:
-        department:
-          from_attribute: department
-          widen_if:
-            - attribute: job_family
-              any_of: [finance_controller]
-` + text[at:]
+	t.Fatal("expense_detail not found in the repository Catalog")
 }
 
 func attributeSnapshot(t *testing.T, jobFamily string, withGrant bool) *principalattr.Snapshot {
@@ -58,7 +60,8 @@ func attributeSnapshot(t *testing.T, jobFamily string, withGrant bool) *principa
 func newEligibilityHarness(t *testing.T, jobFamily string, withGrant bool) (*gatewayHarness, *principalattr.Snapshot) {
 	t.Helper()
 	snapshot := attributeSnapshot(t, jobFamily, withGrant)
-	harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: eligibilityCatalog, principalAttributes: snapshot})
+	harness := newGatewayHarnessWithOptions(t, harnessOptions{principalAttributes: snapshot})
+	requireDemoEligibilityRule(t, harness)
 	return harness, snapshot
 }
 
@@ -241,7 +244,7 @@ func TestEligibilityFailsClosedForUnknownSubject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: eligibilityCatalog, principalAttributes: snapshot})
+	harness := newGatewayHarnessWithOptions(t, harnessOptions{principalAttributes: snapshot})
 	_, err = callGatewayTool(harness.service, harness.alice, "request_data_task", detailRequest("财务部"))
 	requireToolCode(t, err, apierr.CodeNotEligible)
 	requireNothingReachedApproval(t, harness)
@@ -257,10 +260,11 @@ func TestNewRejectsEligibilityCatalogWithoutAttributeSnapshot(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "principal attribute snapshot") {
 		t.Fatalf("New error = %v, want missing-snapshot refusal", err)
 	}
-	// The repository Catalog declares no eligibility, so it still starts without one.
+	// The default harness loads config/principal-attributes.yaml for the
+	// repository Catalog, which declares eligibility on expense_detail.
 	plain := newGatewayHarness(t)
-	if plain.service.principalAttributes != nil {
-		t.Fatal("plain harness unexpectedly configured attributes")
+	if plain.service.principalAttributes == nil || !plain.service.principalAttributes.Known("alice") {
+		t.Fatal("default harness did not load the repository attribute snapshot")
 	}
 }
 

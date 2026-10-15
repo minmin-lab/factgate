@@ -734,6 +734,18 @@ assert_contains "$detail_query" '"isError":false' "detail query after Bob approv
 assert_contains "$detail_query" '"receipt_no"' "detail query after Bob approval"
 pass "Bob approval gates and then enables a high-sensitivity detail query"
 
+# Eligibility precedes approval. Alice is a finance analyst of 销售部; the
+# Catalog bounds expense_detail to the requester's own department, so asking
+# for 研发部 is rejected outright: no task, no OA draft, nothing for Bob to
+# decide. This is the author's "non-HR asks for payroll" case on the demo data.
+ineligible_request=$(mcp_call "$TASKBOUND_ALICE_TOKEN" \
+  '{"jsonrpc":"2.0","id":160,"method":"tools/call","params":{"name":"request_data_task","arguments":{"objective":"查询研发部员工报销明细","data_products":["expense_detail"],"columns":{"expense_detail":["receipt_no","amount"]},"scopes":{"department":["研发部"]}}}}')
+assert_contains "$ineligible_request" '"isError":true' "ineligible detail request"
+assert_contains "$ineligible_request" '"code":"NOT_ELIGIBLE"' "ineligible detail request"
+assert_not_contains "$ineligible_request" '"task_id"' "ineligible detail request creates no task"
+assert_not_contains "$ineligible_request" '"oa_url"' "ineligible detail request creates no OA draft"
+pass "requests outside the Catalog eligibility envelope are rejected before approval"
+
 # Exercise the complete V5 caller-predicate path, including duplicate removal
 # and NULL preservation. A reordered/deduplicated IN list must reuse the
 # committed observation without another Business PostgreSQL execution. Keep

@@ -225,6 +225,14 @@ func newGatewayHarnessWithOptions(t *testing.T, options harnessOptions) *gateway
 	if err != nil {
 		t.Fatalf("load catalog: %v", err)
 	}
+	if options.principalAttributes == nil && catalogDeclaresEligibility(loadedCatalog) {
+		// The repository Catalog ships with the snapshot compose mounts, so the
+		// default harness activates exactly what the demo deployment activates.
+		options.principalAttributes, err = principalattr.Load(filepath.Join("..", "..", "config", "principal-attributes.yaml"))
+		if err != nil {
+			t.Fatalf("load principal attributes: %v", err)
+		}
+	}
 	cipher, err := control.NewAES256GCM(bytes.Repeat([]byte{0x5a}, 32))
 	if err != nil {
 		t.Fatalf("create result cipher: %v", err)
