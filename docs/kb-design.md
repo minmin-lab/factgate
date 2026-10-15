@@ -173,6 +173,12 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 | aggregate | {派生 Fact：见证 W = 匹配的 values 单元格} | 匹配的全部 values 单元格与其文档行 Fact（现有聚合依赖口径） | A(q) ∪ {c_q} |
 | 空结果 | ∅ | ∅ | A(q) ∪ {c_q} |
 
+- 实现备注（K3.2 已落地：internal/retrieval/effect.go，独立 oracle evaluation/kboracle）：实体键按 snapshot 编译器的构造
+  `ComposeCanonicalKeyV2("base-entity", ν.kind, 逐键字段 name/sqlType/规范值)`；分块 Result 身份 = 裸列名 `text` 的单元格
+  Fact（单源计划的 field id 是裸列名）；原子算子映射到 V5 词表（`=`/`in`/`has` → EQ 逐字面量、`<>` → NE、`<`/`<=`/`>`/`>=` →
+  LT/LE/GT/GE），与 SQL 路径把 IN 逐字面量记为 EQ 的做法一致；原子上下文摘要域 `TASKGATE-RETRIEVAL-CONTEXT-V1`
+  （Catalog sha、知识产品、epoch、chunks/documents publication manifest、注入范围摘要）。search/fetch 响应只回
+  (doc_id, version, chunk_index, text) 与名次，不回相似度分数与属性列。
 - 复合 c_q 用现有 `CompositeOutcomeFactV5`：`QueryNormalFormVersion = "taskgate-retrieval-nf-v1"`、
   `QueryNormalFormSHA256 = h_N`、`ResultObservationSHA256 = h_y`（返回块身份哈希排序后的 sha256，复用
   `ReleaseOutcomeDigest` 形态）、`VisibleRows = |y|`、谓词集合摘要用现有 `PredicateSetHashV1`。
