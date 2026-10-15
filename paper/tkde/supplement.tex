@@ -3478,6 +3478,354 @@ Construct & Reason code & Count & Statements \\
 \end{tabular}
 \end{table}
 
+\section{Passages Moved from the Main Text}
+\label{sec:supp-receipts-archetypes}
+
+This section holds passages moved from the main text for space; their
+content is unchanged.
+
+\textbf{Excluded constructs and typing judgment of the core syntax.}
+No implicit SQL construct is hidden in $e$: outer joins, difference,
+negation beyond the listed scalar predicates, windows, recursion,
+subqueries, volatile functions, and \code{UNION ALL} are not terms. The
+partial judgment $\Pi\vdash e:\Gamma$ enforces child-local fields,
+role-disjoint typed joins, identical distinctable union schemas, typed
+grouping, and a proven total page order; undefined premises reject.
+
+\textbf{Randomized root-family test.} The test settles
+\VFiveFamilyPropertyQueries{} random observation sets over
+\VFiveFamilyPropertySeeds{} random delegation trees (up to
+\VFiveFamilyPropertyMaxTasks{} tasks, \VFiveFamilyPropertyNarrowedTasks{}
+of them with ceilings drawn below their parent's) in sequential steps and
+concurrent bursts against the live Control store. After every step it
+checks that the committed head equals a separately kept plain-set union in
+all three dimensions, never exceeds the root's or the settling task's
+ceiling, and matches the ceiling rule's admit/refuse decision and
+exact-novelty charge (\VFiveFamilyPropertyRefused{} refusals in all). It
+drives the settlement engine directly, not SQL lowering.
+
+\textbf{Sub-phase pilot.} A sub-phase pilot
+(\FinalVFiveSubphaseSamplesSTwoSFTen{} pilot sample per cell; a
+supplementary pilot) splits execute-and-derive: single-threaded Go-side
+ordinal consumption and witness merging dominate
+(\FinalVFiveSubphaseGoSidePctSOneSFOne{}--\FinalVFiveSubphaseGoSidePctSSixHundredKByteSixteen\%
+of the phase,
+\FinalVFiveSubphaseMicrosPerFactSTwoSFTen{}--\FinalVFiveSubphaseMicrosPerFactSSixHundredKByteSixteen{}~$\mu$s
+per Fact).
+
+\textbf{Receipt binding and failure semantics.}
+A signed Ed25519 settlement receipt binds accounting evidence, result/object
+hashes, the \code{PENDING} intent, and registration audit without exposing
+values or FactIDs; availability separately requires the hash-chained
+\code{QUERY_RESULT_CONSUMED} inclusion, and a dedicated receipt domain
+prevents cross-identity replay. Failures before connector invocation release
+reservations, over-budget settlement creates no object or AVAILABLE row,
+ambiguous connector outcomes charge resources but no exposure, and terminal
+replay returns the first status without re-executing. The probing bound of
+the main text counts comparisons, not what a comparison reveals about
+unreleased facts, and it grows with the approved task tree because request
+budgets, unlike exposure budgets, are not pooled at the root; charging
+Outcome atoms on rejection would fold this capacity into $B_O$ at the cost
+of penalizing legitimate near-boundary queries, and is not implemented. The
+protocol is not a simulatable auditor and makes no denial-noninterference
+claim.
+
+\begin{table}[h]
+\centering
+\caption{Profile calibration boundary.}
+\label{tab:profile-calibration}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{L{0.16\columnwidth}L{0.42\columnwidth}L{0.30\columnwidth}}
+\toprule
+Budget & Governs & Does not represent \\
+\midrule
+$B_R$ & Distinct accounted Result Fact identities selected for publication & Knowledge value or privacy loss \\
+$B_D$ & Distinct profile-declared positive-output Dependency Facts & Minimal causes or all physical reads \\
+$B_O$ & Distinct canonical predicate atoms and query/result composites & Bits, entropy, or DP $\epsilon$ \\
+$B_Q$, rows, DB time & Request and resource availability & Semantic novelty or exposure deduplication \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Which dimension binds, by purpose archetype.}
+\emph{Detail review} (release named rows): $B_R$, sized as permitted rows
+times fields, binds, and $B_D$ tracks it. \emph{Single-Product aggregate
+reporting}: $B_D$ sized to the largest admitted aggregate's footprint equals
+the Product's fact count, so within that Product it degenerates and protects
+only against reading further Products or columns; $B_O$ (expected pages plus
+distinct predicates) is then the binding dimension, and the residual
+per-probe leakage is the main text's quantified channel ($B_Q$ refusal bits,
+one $|\Delta_X|$ per settled probe). \emph{Cross-Product join}: the joined
+footprint exceeds any single Product's, so $B_D$ binds again. In every
+archetype $B_Q$ is a small multiple of $B_O$; the accounting is compliance
+accounting with quantified probe capacity, not extraction resistance.
+
+\section{Knowledge Products: Carrying the Contract to Document Access}
+\label{sec:supp-knowledge-products}
+
+This section defines how the task contract, the three set-valued budgets,
+settlement, and delegation conservation apply when the governed source is a
+document repository or knowledge base rather than a reporting Product. It is
+a definition, not an evaluated system: no knowledge-product path is
+implemented, and nothing in the main paper's evidence covers it. The purpose
+is to state precisely which results of the main paper are
+representation-independent and carry over unchanged, which carry over with
+additional premises, and which do not carry over at all.
+
+\subsection{Governance units}
+
+Document access can be accounted at four granularities
+(Table~\ref{tab:supp-kp-units}). Existing permission-aware retrieval
+products operate at the first (a document is visible to a subject or not,
+decided per request). The definitions below cover the second and third; the
+fourth is future work.
+
+\begin{table}[h]
+\centering
+\caption{Governance units for document access. The main paper's evidence
+covers none of them; the definitions below cover units 2 and 3.}
+\label{tab:supp-kp-units}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{L{0.14\textwidth}L{0.30\textwidth}L{0.46\textwidth}}
+\toprule
+Unit & Fact identity (informal) & What the ledger can state \\
+\midrule
+1 Document & a document version & which documents a task received, and how many \\
+2 Chunk & a deterministic segment of a document version with its content digest & what fraction of a document left; how many chunks a summary consumed \\
+3 Content fact & a typed value extracted from a document at publication time (amount, date, party, identifier, conclusion) & which values left, deduplicated across documents that repeat them \\
+4 Derived content & an answer or summary produced from chunks, with its witness multiset & which chunks and facts an answer depends on \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Knowledge Products and index publication epochs}
+
+A \emph{Knowledge Product} is a governed document collection declared in the
+Catalog with a source namespace $\nu$, a stable document identifier scheme,
+a deterministic segmentation function, a set of content-extraction rules for
+the document types it contains, and an attribute vocabulary (department,
+role, classification level, custom labels, validity window). Attribute values
+are supplied by IAM/HR and by the owner of the collection; as in
+Section~\ref{sec:supp-enterprise-vision}, FactGate validates their binding
+and does not judge their correctness.
+
+An \emph{index publication epoch} is the document analogue of the reporting
+publication epoch of the main paper: one build of the retrieval index. It
+binds the collection, the digest of the segmentation function, the embedding
+model or analyzer version, every chunk's identifier and content digest, every
+chunk's attribute labels, the extracted content facts, and the ordinal
+dictionaries, and the signed Catalog SHA commits to all of them. Rebuilding
+the index, changing the segmentation function, or replacing the embedding
+model creates $P_{e+1}$; it does not mutate $P_e$. A deployment alias such as
+\code{kb-latest} resolves to a concrete epoch at approval time, exactly as a
+reporting alias does. All judgment that requires a model or a human
+(classification, labeling, extraction) happens before publication and is
+frozen into the epoch; the online path only looks identities up.
+
+\subsection{Fact identities}
+
+Let $\varpi$ be the exposure-profile version, $s$ the index epoch, $d$ a
+document identifier, $v$ its version, $c$ a chunk index, $C(\cdot)$ the
+canonical encoding of the main paper, and $H$ the domain-separated hash.
+\begin{align*}
+ f_{doc}   &= \langle\varpi,\nu,s,d,v\rangle,\\
+ f_{chunk} &= \langle\varpi,\nu,s,d,v,c,C(\mathrm{text}_c)\rangle,\\
+ f_{val}   &= \langle\varpi,\nu,s,d,v,a,\tau,C_\tau(x)\rangle,\\
+ f_{gen}   &= \langle\varpi,\mathcal B,H(\mathrm{answer}),CW(W)\rangle .
+\end{align*}
+$f_{doc}$ corresponds to the row Fact, $f_{chunk}$ and $f_{val}$ to cell
+Facts ($a$ is an extracted field of type $\tau$, for example a contract
+amount), and $f_{gen}$ to the derived-cell identity of the main paper with
+the same witness multiset $W$ over base Facts. The durable key is
+$\mathrm{SHA256}(d_R\,\|\,\operatorname{Canon}(f))$ under the same
+separator, so a knowledge Fact and a reporting Fact can share one ledger.
+Content facts are deduplicated by value: the same amount extracted from
+three documents in one collection is three $f_{val}$ identities (they differ
+in $d$) but, if the collection declares the field as collection-scoped, a
+single identity $\langle\varpi,\nu,s,a,\tau,C_\tau(x)\rangle$. Which rule
+applies is a Catalog declaration, not a runtime choice.
+
+Outcome Facts keep the main paper's two kinds. A predicate atom is a
+metadata filter condition
+\[
+ \langle k_a,\varpi,h_c,p,r,f,e,\tau,\kappa,op,v\rangle
+\]
+with the same components as a SQL atom ($f$ an attribute of the collection, $op$ one of
+the admitted comparison operators, $v$ the canonical literal). The composite
+is $c_q=\langle k_c,\varpi,\operatorname{profile}(N),h_N,h_y,m,h_c,h_A,|A(q)|\rangle$
+where $h_N$ commits to the normalized retrieval request (the filter atoms in
+canonical order, the query text after Unicode NFC, case folding, and
+whitespace normalization or the fixed-point quantization of a query vector,
+and the requested $k$), $h_y$ to the returned chunk set, and $m=|y|$.
+
+\subsection{The closed retrieval language and its effect}
+
+The admitted request language has three forms: \code{search} (a conjunction
+of filter atoms, one query commitment, a result bound $k\le k_{\max}$),
+\code{fetch} (one or more chunk identifiers already returned to the same
+root family), and \code{aggregate} (a conjunction of filter atoms and one
+admitted aggregate over an extracted field, such as a count or a sum over
+contract amounts). Disjunctions, script or expression queries, regular
+expression and wildcard terms, \emph{more-like-this} queries, and
+pipeline-defined re-rankers that cannot report what they read are outside
+the language and fail closed, exactly as subqueries and \code{OR} do in the
+SQL fragment. The mandatory scope of the task is injected as additional
+filter atoms; a caller's own filter can only intersect it.
+
+The effect of a successful request is
+\begin{align*}
+ \facts_R(q) &= \{f_{chunk}, f_{val} : \text{returned to the caller}\},\\
+ \facts_D(q) &= \facts_R(q)\ \cup\ \{f : f\ \text{read by an admitted aggregate or re-ranker}\},\\
+ \facts_O(q) &= A(q)\cup\{c_q\}.
+\end{align*}
+For a plain \code{search}, $\facts_D=\facts_R$ plus the document Facts of
+the returned chunks. For \code{aggregate}, $\facts_R$ is the one derived
+value with witness $W$ over the matching documents and $\facts_D$ is every
+document and field the aggregate read, so a one-number answer over a
+collection carries the collection's footprint, as a one-cell aggregate does
+in the main paper. For \code{fetch}, $\facts_R$ is the fetched chunks and
+the composite is the only new Outcome Fact. An empty result has an empty base
+effect and still adds its atoms and one composite.
+
+\subsection{Task contract and eligibility}
+
+The contract $T=(P,S,B,C)$ is unchanged. $S$ binds the index epoch. $C$
+binds the segmentation digest, the normalization rules, $k_{\max}$, the
+admitted aggregates, and whether generated answers are admitted. $B$ is the
+same triple with the same request budget $B_Q$.
+
+$P$ is refined. A request names collections, fields, attribute scopes, and a
+purpose. Before any approval route is consulted, the request is compiled
+against an \emph{eligibility envelope}: the Catalog declares, per collection,
+a predicate over the requesting subject's IAM attributes (for example, a
+salary collection requires the HR role; a departmental collection admits the
+subject's own department unless the subject holds an executive role or a
+temporary grant), and the envelope is the set of scope values the predicate
+admits for this subject. A request that exceeds its envelope is rejected at
+request time and never reaches an approver (author decision, 2026-10-15); a
+request within the envelope proceeds to the human route, where the approver
+may only narrow it. Temporary grants are expressed as the task TTL and as
+attribute validity windows that the envelope evaluates at request time.
+The signed grant therefore records two separable decisions: the machine
+eligibility verdict, which is reproducible from the Catalog and the IAM
+snapshot, and the human approval, which is attributable. An erroneous
+approval remains bounded by $B$ and by the TTL and is fully receipted; it
+cannot widen the envelope.
+
+\subsection{Which results carry over}
+
+Table~\ref{tab:supp-kp-portability} lists the main paper's results and
+states, for each, whether its proof depends on anything specific to SQL.
+Three results carry over verbatim because they are stated over abstract
+sets: atomic root-family budget safety, no unaccounted governed release
+(O5), and delegation conservation. Fact-identity well-definedness carries
+over under one additional premise: the segmentation function and the
+content canonicalization must be deterministic and injective on the typed
+payload, which the epoch binding makes checkable. Outcome separation and
+replay carry over syntactically: a request whose normalized form and result
+observation are identical has zero Outcome novelty; a paraphrase is a new
+composite, which is the intended behavior for probe counting. The
+normal-form soundness theorem does not carry over: of the six rewrite rules,
+only literal canonicalization (R2) and conjunct ordering (R3) have a
+retrieval analogue, and no claim is made about semantically equivalent
+queries with different text. Join-fanout conservation has no analogue.
+
+\begin{table}[h]
+\centering
+\caption{Portability of the main paper's results to Knowledge Products.
+``Carries'' means the statement and proof apply with the identities of this
+section substituted; nothing in this table is evaluated.}
+\label{tab:supp-kp-portability}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{L{0.30\textwidth}L{0.22\textwidth}L{0.38\textwidth}}
+\toprule
+Main-paper result & What it depends on & Knowledge Products \\
+\midrule
+Fact identity well-definedness & deterministic, injective canonical encoding & carries if segmentation and content canonicalization are deterministic and injective (epoch premise) \\
+Representation closure and dependency determinism & partial judgment over a fixed operator set & carries for \code{search}, \code{fetch}, \code{aggregate}; not for generation, which only yields a derived identity \\
+Typed normal-form soundness (R1--R6) & the six rewrite rules of the closed algebra & does not carry; only R2 and R3 have analogues, and no equivalence beyond them is claimed \\
+Base-ledger split/page/join conservation & set union over Result and Dependency & pagination and overlapping hit sets carry; join fanout has no analogue \\
+Outcome separation and replay & canonical component hashing & carries syntactically; a paraphrase is a new composite \\
+Atomic root-family budget safety & abstract settlement system over sets & carries unchanged \\
+O5: no unaccounted governed release & settlement precedes \code{AVAILABLE} & carries unchanged, with \code{AVAILABLE} read as entry into the caller's context or file delivery \\
+Delegation conservation & shared root ledger & carries unchanged \\
+Rejection and response channels ($B_Q$, $3\lceil\log_2 B_X\rceil$) & counter channels & carries; a ranking channel (relative similarity of returned chunks) is additional and unquantified \\
+Budget calibration archetypes & which dimension binds & detail reading binds $B_R$; corpus summarization binds $B_D$; probing binds $B_O$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Weighted novelty}
+
+The main paper uses unit weights so that charges are set cardinalities.
+Document collections commonly mix classification levels inside one
+collection, and an owner may want a single extracted value from a restricted
+section to cost more than an ordinary paragraph. A per-Fact weight
+$w(f)\ge 1$ declared by the Catalog from the Fact's classification label
+turns the charge into $\sum_{f\in\Delta_T^X(q)} w(f)$ while leaving the
+ledger a set: novelty, zero-charge replay, and delegation conservation are
+unaffected because $\Delta$ is unchanged, and the safety property becomes
+$\sum_{f\in K_X} w(f)\le B_X$ with the same inductive argument. Like the
+sink-trust multiplier of OCELOT (arXiv 2606.12341), $w$ is a policy weight that changes how fast
+a budget is spent, not an estimate of information content.
+
+\subsection{Deployment position}
+
+The gateway sits at the egress of the retrieval engine, in the position it
+occupies in front of PostgreSQL: the engine (a vector store, a full-text
+engine, or PostgreSQL with a vector extension) is a trusted read-only
+executor; ingestion pipelines are unchanged except that an index build must
+emit the frozen publication of the epoch; the agent or orchestration
+framework calls \code{search}, \code{fetch}, and \code{aggregate} through
+the gateway instead of the engine's client. Full-text engines are the
+easier target: their query DSL is already a tree that normalizes like SQL,
+their indices can be frozen, and their aggregations map onto the admitted
+aggregates, with the analyzer version bound into the epoch because
+tokenization fixes atom identity. Approximate nearest-neighbour engines
+can return different hit sets for identical queries, which turns an exact
+replay into a new composite; Result and Dependency novelty are unaffected
+because they are keyed by chunk identity. Any client that reaches the
+engine directly bypasses the ledger, exactly as direct database access does.
+
+\subsection{Worked example}
+
+A departmental collection holds eight documents $d_1\ldots d_8$, each
+segmented into four chunks; $d_7$ and $d_8$ carry the label
+\code{leadership-only}. A marketing analyst's task is approved with scope
+\code{department = marketing} and the eligibility envelope excludes the two
+restricted documents, so the mandatory filter already removes them. Budgets
+are $B_R/B_D/B_O = 12/40/8$. A \code{search} for ``Q3 pricing policy'' with
+$k=4$ returns four chunks from $d_1$, $d_2$: it charges $4$ Result Facts,
+$6$ Dependency Facts (four chunks and two document Facts), and $1$ composite.
+Re-issuing the identical request charges $0/0/0$. Adding the filter
+\code{year = 2026} changes the atom set and charges one atom and one
+composite and, if the hit set is a subset of the first, no base Facts. An
+\code{aggregate} counting documents that mention a competitor reads all six
+admissible documents: it charges one derived Result Fact with a six-document
+witness, six Dependency Facts of which four are new, and one composite.
+A \code{fetch} of two further chunks of $d_1$ charges $2/2/1$. The ledger
+now reads $(7, 12, 5)$. A search with one new filter atom whose four new
+chunks raise the Result count to $11$ still fits and brings the Outcome
+count to $7$; the next distinct request needs two more Outcome Facts,
+exceeds $B_O=8$, and is refused uncharged, and the ledger stays where it is.
+A worker delegated by the analyst replaying the first search charges
+$0/0/0$ against the same ledger.
+
+\subsection{Non-claims}
+
+The main paper's limitations apply, and three are sharper here. Chunks and
+extracted values are governance units, not semantic units: text that no
+extraction rule covers is accounted per chunk only, and the coverage of the
+rules is the boundary of unit-3 accounting. Equivalence is syntactic: two
+phrasings of one question are two composites. Relative similarity scores,
+embedding inversion, agent memory, and the content of a model's paraphrase
+after chunks have entered its context are outside the guarantee, as
+inference is outside the guarantee of the main paper. None of this section
+is implemented or measured.
+
 \section{Enterprise Integration and Governance Vision}
 \label{sec:supp-enterprise-vision}
 
