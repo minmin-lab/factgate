@@ -196,7 +196,10 @@ Author decision (2026-09-18, replacing the 2026-09-07 plan): this manuscript
 is submitted single-anonymous under the author's real name and is posted as
 version 2 of arXiv:2607.00751, replacing the SessionBound preprint in place
 (title changes; v1 stays publicly accessible under the same identifier). No
-separate arXiv identifier is created.
+separate arXiv identifier is created. Version 2 was announced on 2026-10-11
+(submission timestamp Sun, 11 Oct 2026 05:17:53 UTC, 573 KB, cs.DB primary
+with cs.CR, arXiv nonexclusive-distrib 1.0 license); its source commit is
+recorded in `~/logs/arxiv-v2/SOURCE-COMMIT.txt` on the execution host.
 
 ## Submission-length check
 

@@ -391,9 +391,10 @@ generated macros identical to `HEAD`, and then compiles in final mode; it does
 not refresh experiments. The same author's earlier preprint SessionBound
 (arXiv:2607.00751v1, never submitted to or accepted by any venue) is not built
 from this repository; the manuscript is submitted single-anonymous under the
-author's name and replaces that preprint in place as version 2 of
-arXiv:2607.00751 (v1 stays permanently accessible; the manuscript does not
-cite v1, and the relationship is disclosed in the cover letter).
+author's name and replaced that preprint in place as version 2 of
+arXiv:2607.00751, announced 2026-10-11 (v1 stays permanently accessible; the
+manuscript does not cite v1, and the relationship is disclosed in the cover
+letter).
 
 `make eval-exposure` covers ground-truth FactIDs, an independent oracle,
 split/merge, overlapping pagination, retry, join multiplicity, snapshot update,
