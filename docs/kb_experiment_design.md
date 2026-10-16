@@ -21,6 +21,18 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 
 ## E-KB1 自适应抽取（legal-but-exhaustive）
 
+**预登记修订（2026-10-16 23:1x，E-KB1 首次运行前写定，台账 KB1-LOOP-57）**：
+1. 预算单位改为"单元格"：实现的通用代数把每个命中块记为 4 个 Release 单元格（doc_id / version / chunk_index / text，kb-design §5 实测），
+   原 B_R = 200 的量级含义是"约 200 块 ≈ 部门可申请块的 6%"，故 B_R = 800 单元格、B_D = 2,400（保持 3 × B_R 的比例），B_O = 64、B_Q = 256
+   不变。这是单位换算，不是按结果调参。
+2. S2 的分区属性：`labels has` 在已实现的检索准备语言之外（text_set 无计划渲染，关闭式拒绝），分区改为 job_role（5 值）× valid_until
+   月份桶（按部门语料的日期范围等分 6 桶，用 `>=` / `<` 两个日期原子），共 30 个分区，种子决定扫描顺序。
+3. 合法任务用 k = 5（员工式提问），每题 ≤ 2 次 search + 1 次 aggregate，完成判据不变；问题取 E-KB4 冻结查询集中该部门的 verbatim 问题前 10 条，
+   聚合题为该部门 contract.amount 的 sum，与直连 SQL 比对。
+4. 部门随种子轮换（sales / finance / hr），主体 clearance = {public, internal}；可申请块 = 该部门 classification ∈ {public, internal} 的块数（从库中实测）。
+
+
+
 - 问题：持有合法部门授权的 agent 用多次检索搬空部门库时，逐次 ACL 与 FactGate 各把累计外泄限制在什么量级；合法任务在
   同一预算下完成率多少。
 - 臂：(A) 逐次 ACL 基线——直接对 kb.chunks 以同一 (kb_department, clearance) 过滤执行精确最近邻 top-k，无账本；
