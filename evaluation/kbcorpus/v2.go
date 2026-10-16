@@ -45,6 +45,7 @@ type GenerationItem struct {
 	ValidFrom        string            `json:"valid_from"`
 	ValidUntil       string            `json:"valid_until,omitempty"`
 	Fields           map[string]string `json:"fields"`
+	SectionCount     int               `json:"section_count"`
 	Sections         []SectionPlan     `json:"sections"`
 	RevisionOf       string            `json:"revision_of,omitempty"`
 }
@@ -73,6 +74,7 @@ func PlanItems(plans []Document) []GenerationItem {
 				item.Sections = append(item.Sections, SectionPlan{Index: index, Heading: section.Heading, Classification: section.Classification, ClassificationZH: classificationNamesZH[section.Classification]})
 			}
 		}
+		item.SectionCount = len(item.Sections)
 		items = append(items, item)
 	}
 	return items
@@ -90,7 +92,7 @@ func BatchPrompt(items []GenerationItem) (string, error) {
 严格要求：
 1. 输出且只输出一个 JSON 数组，不要 Markdown 代码块、不要解释。数组元素与输入顺序一一对应，每个元素形如
    {"doc_id": "...", "version": 1, "title": "...", "sections": [{"index": 0, "text": "..."}, ...]}。
-2. sections 的 index 必须与计划中的 index 完全一致、数量一致；不要新增或删除节；不要输出 heading 和 classification（计划已给定）。
+2. 每份文档输出的 sections 数量必须恰好等于该文档的 section_count，index 必须与计划中列出的 index 完全一致；绝不新增或删除节；不要输出 heading 和 classification（计划已给定）。
 3. 每节 text 为 150 到 400 个汉字的连贯段落，不含换行、不含 "## "。文风按文档类型：合同像合同条款，审批单像审批说明，制度像制度条文，报告像工作报告。
 4. 正文必须自然地提到计划 fields 里的值（编号、金额、对方、日期等按原样出现，金额可带"元"）。
 5. 密级为 leadership（领导层专属）的节要写成只有管理层才能看到的评估或决策内容；其他节不得泄露该节内容。

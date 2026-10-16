@@ -52,7 +52,11 @@ func main() {
 	maxAttempts := flag.Int("attempts", 3, "attempts per batch")
 	budgetUSD := flag.Float64("budget-usd", 120, "stop when cumulative cost exceeds this")
 	freeze := flag.String("freeze", "", "write manifest-v2.json here at the end (also written to -out)")
+	parallel := flag.Int("parallel", 1, "batches generated concurrently")
 	flag.Parse()
+	if *parallel < 1 {
+		*parallel = 1
+	}
 	if *claudeBin == "" {
 		fatal(fmt.Errorf("claude executable is required (-claude-bin or CLAUDE_CODE_EXECPATH)"))
 	}
@@ -108,47 +112,106 @@ func main() {
 			batches = append(batches, batch)
 		}
 	}
+	// Workers generate batches concurrently; one goroutine owns both files so
+	// appends never interleave. Revisions always sit in the same batch as their
+	// first version, so a batch never depends on another batch's output.
+	type outcome struct {
+		number  int
+		docs    []kbcorpus.Document
+		records []batchRecord
+		err     error
+	}
+	results := make(chan outcome)
+	jobs := make(chan int)
+	appliedSnapshot := make(map[string]kbcorpus.Document, len(applied))
+	for key, doc := range applied {
+		appliedSnapshot[key] = doc
+	}
+	for worker := 0; worker < *parallel; worker++ {
+		go func() {
+			for number := range jobs {
+				batch := batches[number]
+				var result outcome
+				result.number = number
+				for attempt := 1; attempt <= *maxAttempts; attempt++ {
+					record := batchRecord{Batch: number, Attempt: attempt, Model: *model, At: time.Now().UTC().Format(time.RFC3339)}
+					for _, doc := range batch {
+						record.DocIDs = append(record.DocIDs, versionKey(doc.DocID, doc.Version))
+					}
+					started := time.Now()
+					docs, cost, err := generateBatch(*claudeBin, *model, batch, appliedSnapshot)
+					record.DurationMS = time.Since(started).Milliseconds()
+					record.CostUSD = cost
+					if err != nil {
+						record.Error = err.Error()
+					}
+					result.records = append(result.records, record)
+					if err == nil {
+						result.docs, result.err = docs, nil
+						break
+					}
+					result.err = err
+				}
+				results <- result
+			}
+		}()
+	}
+	go func() {
+		for number := range batches {
+			jobs <- number
+		}
+		close(jobs)
+	}()
 	var totalCost float64
 	retries, generated := 0, 0
-	for number, batch := range batches {
-		var lastErr error
-		for attempt := 1; attempt <= *maxAttempts; attempt++ {
-			record := batchRecord{Batch: number, Attempt: attempt, Model: *model, At: time.Now().UTC().Format(time.RFC3339)}
-			for _, doc := range batch {
-				record.DocIDs = append(record.DocIDs, versionKey(doc.DocID, doc.Version))
-			}
-			started := time.Now()
-			docs, cost, err := generateBatch(*claudeBin, *model, batch, applied)
-			record.DurationMS = time.Since(started).Milliseconds()
-			record.CostUSD = cost
-			totalCost += cost
-			if err != nil {
-				record.Error = err.Error()
-				lastErr = err
+	stop := false
+	for completed := 0; completed < len(batches); completed++ {
+		result := <-results
+		for _, record := range result.records {
+			totalCost += record.CostUSD
+			if record.Error != "" {
 				retries++
 			}
 			encoded, _ := json.Marshal(record)
 			_, _ = batchesFile.Write(append(encoded, '\n'))
-			if err == nil {
-				for _, doc := range docs {
-					line, _ := json.Marshal(doc)
-					if _, err := outputFile.Write(append(line, '\n')); err != nil {
-						fatal(err)
-					}
-					applied[versionKey(doc.DocID, doc.Version)] = doc
-					generated++
+		}
+		if result.err != nil {
+			fmt.Fprintf(os.Stderr, "batch %d abandoned after %d attempts: %v\n", result.number, *maxAttempts, result.err)
+		} else {
+			for _, doc := range result.docs {
+				line, _ := json.Marshal(doc)
+				if _, err := outputFile.Write(append(line, '\n')); err != nil {
+					fatal(err)
 				}
-				lastErr = nil
-				break
+				generated++
 			}
-			fmt.Fprintf(os.Stderr, "batch %d attempt %d failed: %v\n", number, attempt, err)
 		}
-		if lastErr != nil {
-			fmt.Fprintf(os.Stderr, "batch %d abandoned after %d attempts: %v\n", number, *maxAttempts, lastErr)
-		}
-		fmt.Printf("batch %d/%d done generated=%d cost_usd=%.4f\n", number+1, len(batches), generated, totalCost)
-		if totalCost > *budgetUSD {
-			fmt.Fprintf(os.Stderr, "budget %.2f USD exceeded (%.4f); stopping\n", *budgetUSD, totalCost)
+		fmt.Printf("batch %d done (%d/%d) generated=%d cost_usd=%.4f\n", result.number, completed+1, len(batches), generated, totalCost)
+		if totalCost > *budgetUSD && !stop {
+			fmt.Fprintf(os.Stderr, "budget %.2f USD exceeded (%.4f); draining in-flight batches and stopping\n", *budgetUSD, totalCost)
+			stop = true
+			// Drain: stop handing out new jobs by consuming the remaining job
+			// numbers ourselves, then collect in-flight results.
+			remaining := 0
+			for range jobs {
+				remaining++
+			}
+			for completed+1 < len(batches)-remaining {
+				completed++
+				extra := <-results
+				for _, record := range extra.records {
+					totalCost += record.CostUSD
+					encoded, _ := json.Marshal(record)
+					_, _ = batchesFile.Write(append(encoded, '\n'))
+				}
+				if extra.err == nil {
+					for _, doc := range extra.docs {
+						line, _ := json.Marshal(doc)
+						_, _ = outputFile.Write(append(line, '\n'))
+						generated++
+					}
+				}
+			}
 			break
 		}
 	}
