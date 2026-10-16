@@ -1,0 +1,50 @@
+{
+  "version": "taskgate-kb-corpus-v1",
+  "generator": "evaluation/cmd/kb-corpus",
+  "spec": {
+    "seed": 20261015,
+    "documents": 20000
+  },
+  "spec_sha256": "5bcb3e9f04d1fdeeec6c47ed60a6def5d962b656b3f8210b86c45f6cdcc1ca33",
+  "counts": {
+    "documents": 20000,
+    "versions": 20989,
+    "sections": 96401,
+    "leadership_sections": 6999,
+    "by_type": {
+      "approval": 5193,
+      "contract": 5416,
+      "policy": 5185,
+      "report": 5195
+    },
+    "by_department": {
+      "engineering": 1676,
+      "finance": 1776,
+      "hr": 1691,
+      "it": 1747,
+      "legal": 1804,
+      "marketing": 1733,
+      "operations": 1696,
+      "procurement": 1718,
+      "product": 1796,
+      "research": 1789,
+      "sales": 1762,
+      "support": 1801
+    },
+    "by_classification": {
+      "confidential": 5224,
+      "internal": 10572,
+      "leadership": 1100,
+      "public": 4093
+    },
+    "by_role": {
+      "director": 1759,
+      "executive": 1100,
+      "hr": 1747,
+      "manager": 7041,
+      "staff": 9342
+    }
+  },
+  "documents_bytes": 109351700,
+  "documents_sha256": "785ed1fdd60988be511a19d827ae7a46de7ba271587c73f1de620a06b2742481"
+}
