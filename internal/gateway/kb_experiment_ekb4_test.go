@@ -113,6 +113,7 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 		t.Fatalf("embedding service does not match the knowledge product: %v", err)
 	}
 	vectors := map[string]string{}
+	vectorFloats := map[string][]float64{}
 	for start := 0; start < len(queries); start += 32 {
 		end := start + 32
 		if end > len(queries) {
@@ -128,6 +129,11 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 		}
 		for i, query := range queries[start:end] {
 			vectors[query.QueryID] = vectorLiteralOf(embedded[i])
+			floats := make([]float64, len(embedded[i]))
+			for j, v := range embedded[i] {
+				floats[j] = float64(v)
+			}
+			vectorFloats[query.QueryID] = floats
 		}
 	}
 	db, err := pgx.Connect(ctx, businessDSN)
@@ -138,18 +144,23 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 
 	ks := []int{5, 10, 20}
 	type observation struct {
-		QueryID     string   `json:"query_id"`
-		Kind        string   `json:"kind"`
-		Type        string   `json:"document_type"`
-		Department  string   `json:"department"`
-		K           int      `json:"k"`
-		Gateway     []string `json:"gateway_hits"`
-		Direct      []string `json:"direct_hits"`
-		Identical   bool     `json:"identical"`    // same members (the pre-registered metric)
-		SameOrder   bool     `json:"same_order"`   // same members in the same order
-		RankDoc     int      `json:"rank_doc"`     // 1-based rank of the first chunk of the target doc_id (any version), 0 = not in top k
-		RankVersion int      `json:"rank_version"` // same for the exact target version
-		Error       string   `json:"error,omitempty"`
+		QueryID    string   `json:"query_id"`
+		Kind       string   `json:"kind"`
+		Type       string   `json:"document_type"`
+		Department string   `json:"department"`
+		K          int      `json:"k"`
+		Gateway    []string `json:"gateway_hits"`
+		Direct     []string `json:"direct_hits"`
+		Identical  bool     `json:"identical"`  // text arm: same members as direct (the pre-registered metric)
+		SameOrder  bool     `json:"same_order"` // text arm: same members in the same order
+		// Vector arm: the gateway receives the very vector the direct arm ranks
+		// with, so this isolates the gateway from the embedding service.
+		GatewayVector   []string `json:"gateway_vector_hits"`
+		VectorIdentical bool     `json:"vector_identical"`
+		VectorSameOrder bool     `json:"vector_same_order"`
+		RankDoc         int      `json:"rank_doc"`     // 1-based rank of the first chunk of the target doc_id (any version), 0 = not in top k
+		RankVersion     int      `json:"rank_version"` // same for the exact target version
+		Error           string   `json:"error,omitempty"`
 	}
 	type deploymentReport struct {
 		Deployment   int           `json:"deployment"`
@@ -219,6 +230,19 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 				}
 				obs.SameOrder = strings.Join(obs.Gateway, ",") == strings.Join(obs.Direct, ",")
 				obs.Identical = sameMembers(obs.Gateway, obs.Direct)
+				vectorResult, err := callGatewayTool(harness.service, harness.alice, "search", map[string]any{
+					"task_id": taskID, "request_id": fmt.Sprintf("%s-k%d-vec", query.QueryID, k), "knowledge_product": product.Name,
+					"query": map[string]any{"vector": vectorFloats[query.QueryID]}, "k": k})
+				if err != nil {
+					obs.Error = "vector arm: " + err.Error()
+					report.Observations = append(report.Observations, obs)
+					continue
+				}
+				for _, hit := range searchHits(t, vectorResult) {
+					obs.GatewayVector = append(obs.GatewayVector, hitID(hit))
+				}
+				obs.VectorSameOrder = strings.Join(obs.GatewayVector, ",") == strings.Join(obs.Direct, ",")
+				obs.VectorIdentical = sameMembers(obs.GatewayVector, obs.Direct)
 				for rank, id := range obs.Gateway {
 					parts := strings.Split(id, "#")
 					if parts[0] == query.DocID && obs.RankDoc == 0 {
@@ -245,6 +269,8 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	summary := map[string]any{}
 	identical := map[int]*bucket{}
 	ordered := map[int]*bucket{}
+	vectorIdentical := map[int]*bucket{}
+	vectorOrdered := map[int]*bucket{}
 	recallKind := map[string]*bucket{}
 	recallType := map[string]*bucket{}
 	recallVersion := map[int]*bucket{}
@@ -270,6 +296,17 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 			ordered[obs.K].total++
 			if obs.SameOrder {
 				ordered[obs.K].hits++
+			}
+			if vectorIdentical[obs.K] == nil {
+				vectorIdentical[obs.K], vectorOrdered[obs.K] = &bucket{}, &bucket{}
+			}
+			vectorIdentical[obs.K].total++
+			vectorOrdered[obs.K].total++
+			if obs.VectorIdentical {
+				vectorIdentical[obs.K].hits++
+			}
+			if obs.VectorSameOrder {
+				vectorOrdered[obs.K].hits++
 			}
 			keyKind := fmt.Sprintf("%s@%d", obs.Kind, obs.K)
 			if recallKind[keyKind] == nil {
@@ -316,6 +353,11 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	for k, b := range ordered {
 		orderByK[strconv.Itoa(k)] = rate(b)
 	}
+	vectorIdentityByK, vectorOrderByK := map[string]float64{}, map[string]float64{}
+	for k, b := range vectorIdentical {
+		vectorIdentityByK[strconv.Itoa(k)] = rate(b)
+		vectorOrderByK[strconv.Itoa(k)] = rate(vectorOrdered[k])
+	}
 	recallByKind := map[string]float64{}
 	for key, b := range recallKind {
 		recallByKind[key] = rate(b)
@@ -353,6 +395,8 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	summary["errors"] = errors
 	summary["gateway_vs_direct_identity_by_k"] = identityByK
 	summary["gateway_vs_direct_same_order_by_k"] = orderByK
+	summary["vector_arm_identity_by_k"] = vectorIdentityByK
+	summary["vector_arm_same_order_by_k"] = vectorOrderByK
 	summary["recall_at_k_by_kind"] = recallByKind
 	summary["recall_at_k_by_document_type"] = recallByType
 	summary["recall_at_k_exact_version"] = recallExactVersion
@@ -384,13 +428,16 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	}
 	sum := sha256.Sum256(encoded)
 	t.Logf("E-KB4 report %s sha256 %s", reportPath, hex.EncodeToString(sum[:])[:16])
-	t.Logf("set identity by k %v; same order by k %v; recall by kind %v; mrr@20 %v; cross-deployment %d/%d; errors %d", identityByK, orderByK, recallByKind, mrrByKind, crossIdentical, crossTotal, errors)
+	t.Logf("text arm: set identity %v same order %v; vector arm: set identity %v same order %v; recall by kind %v; mrr@20 %v; cross-deployment %d/%d; errors %d", identityByK, orderByK, vectorIdentityByK, vectorOrderByK, recallByKind, mrrByKind, crossIdentical, crossTotal, errors)
 	if errors > 0 {
 		t.Fatalf("%d searches failed; see the report", errors)
 	}
-	for k, v := range identityByK {
+	// The pre-registered 100% is asserted on the vector arm, which is what the
+	// gateway controls; the text arm's identity is reported (it folds in the
+	// embedding service's single-versus-batch non-determinism).
+	for k, v := range vectorIdentityByK {
 		if v != 1 {
-			t.Fatalf("gateway and direct exact retrieval differ at k=%s: identity %.4f (pre-registered expectation: 100%%)", k, v)
+			t.Fatalf("gateway and direct exact retrieval differ at k=%s with the same vector: identity %.4f (pre-registered expectation: 100%%)", k, v)
 		}
 	}
 	if crossTotal > 0 && crossIdentical != crossTotal {

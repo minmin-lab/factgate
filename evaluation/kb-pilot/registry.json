@@ -68,6 +68,16 @@
       "publication": "policy-kb-2026-10-bge-v2 (48,183 chunks); vector queries on both arms",
       "ledger": "KB1-LOOP-63",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-48k.json"
+    },
+    {
+      "id": "ekb4-retrieval-quality-v2-run2",
+      "path": "ekb4/report-v2-run2.json",
+      "sha256": "85b21bb8984a5c2e27cf3adaf1c5221e75a945f913064815579d6051da9f01a8",
+      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); embedding service on CPU; runner of commit d2e75a3 (member identity + order identity, text arm only)",
+      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+      "note": "member identity 100/99.83/99.83% (k 5/10/20); the 6 differing observations (2 queries) are k-boundary ties between chunk 0 of two versions of one document (distance gaps 4e-9 and 2.6e-8) decided by single-vs-batch embedding noise (~1e-7 on CPU). A run with a vector arm (same vector to the gateway) is queued as run 3.",
+      "ledger": "KB1-LOOP-64",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run2.json"
     }
   ]
 }
