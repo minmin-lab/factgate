@@ -1,11 +1,25 @@
+{"query_id":"D-000037-v1-paraphrase","doc_id":"D-000037","version":1,"department":"finance","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"财务这边批下来的培训费一共能花多少？"}
+{"query_id":"D-000037-v1-verbatim","doc_id":"D-000037","version":1,"department":"finance","classification":"confidential","document_type":"approval","kind":"verbatim","text":"财务部专项培训经费的批准金额是多少？"}
+{"query_id":"D-000042-v1-paraphrase","doc_id":"D-000042","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"paraphrase","text":"市场部做推广的钱，批复单是哪天生效的"}
+{"query_id":"D-000042-v1-verbatim","doc_id":"D-000042","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"verbatim","text":"市场部品牌推广专项预算的审批结论是什么时候形成的"}
 {"query_id":"D-000045-v1-paraphrase","doc_id":"D-000045","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"paraphrase","text":"研究院那个新算法底座项目获批的经费金额是多少"}
 {"query_id":"D-000045-v1-verbatim","doc_id":"D-000045","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"verbatim","text":"研究院新一代算法平台立项批了多少研发资金"}
 {"query_id":"D-000103-v1-paraphrase","doc_id":"D-000103","version":1,"department":"it","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年二季度招人一共花了多少钱，总数是几"}
 {"query_id":"D-000103-v1-verbatim","doc_id":"D-000103","version":1,"department":"it","classification":"confidential","document_type":"report","kind":"verbatim","text":"本季度招聘相关支出的核心指标数值是多少元"}
 {"query_id":"D-000126-v1-paraphrase","doc_id":"D-000126","version":1,"department":"engineering","classification":"internal","document_type":"policy","kind":"paraphrase","text":"给人开的系统权限最多能用多少天，到期要重新批吗？"}
 {"query_id":"D-000126-v1-verbatim","doc_id":"D-000126","version":1,"department":"engineering","classification":"internal","document_type":"policy","kind":"verbatim","text":"系统访问权限有效期最长是多久？"}
+{"query_id":"D-000141-v1-paraphrase","doc_id":"D-000141","version":1,"department":"research","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟那家数据公司合作，一共花多少钱，分批怎么付"}
+{"query_id":"D-000141-v1-verbatim","doc_id":"D-000141","version":1,"department":"research","classification":"internal","document_type":"contract","kind":"verbatim","text":"数据分析合作合同总金额多少，是不是分三期支付"}
 {"query_id":"D-000154-v1-paraphrase","doc_id":"D-000154","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"paraphrase","text":"运营部买供应商东西，批下来的最高花费额度是多少钱？"}
 {"query_id":"D-000154-v1-verbatim","doc_id":"D-000154","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"verbatim","text":"运营部供应商采购审批单的获批金额是多少？"}
+{"query_id":"D-000163-v1-paraphrase","doc_id":"D-000163","version":1,"department":"procurement","classification":"internal","document_type":"approval","kind":"paraphrase","text":"那笔被审计盯上的采买，最后批了多少钱，比价资料要存哪"}
+{"query_id":"D-000163-v1-verbatim","doc_id":"D-000163","version":1,"department":"procurement","classification":"internal","document_type":"approval","kind":"verbatim","text":"采购部审计复核的专项采购批准金额是多少"}
+{"query_id":"D-000261-v1-paraphrase","doc_id":"D-000261","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Granite Works签的那个财务系统项目，总价多少钱？"}
+{"query_id":"D-000261-v1-verbatim","doc_id":"D-000261","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"verbatim","text":"财务部与Granite Works的财务系统咨询合同金额是多少？"}
+{"query_id":"D-000277-v1-paraphrase","doc_id":"D-000277","version":1,"department":"it","classification":"public","document_type":"report","kind":"paraphrase","text":"前年二季度技术部门的支出规模大概多少钱？"}
+{"query_id":"D-000277-v1-verbatim","doc_id":"D-000277","version":1,"department":"it","classification":"public","document_type":"report","kind":"verbatim","text":"2024年第二季度信息技术部运行报告的核心指标是多少？"}
+{"query_id":"D-000335-v1-paraphrase","doc_id":"D-000335","version":1,"department":"sales","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Borealis公司签的那份买卖协议一共值多少钱"}
+{"query_id":"D-000335-v1-verbatim","doc_id":"D-000335","version":1,"department":"sales","classification":"internal","document_type":"contract","kind":"verbatim","text":"销售部与Borealis Systems合同总金额是多少"}
 {"query_id":"D-000369-v1-paraphrase","doc_id":"D-000369","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"paraphrase","text":"产品部新人办理入职和出了事故后的处理规定是怎样的"}
 {"query_id":"D-000369-v1-verbatim","doc_id":"D-000369","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"verbatim","text":"产品部员工入职和审计事件管理办法有哪些要求"}
 {"query_id":"D-000433-v1-paraphrase","doc_id":"D-000433","version":1,"department":"research","classification":"internal","document_type":"policy","kind":"paraphrase","text":"实验室出了突发状况，多长时间内必须先向上级汇报"}
@@ -14,6 +28,8 @@
 {"query_id":"D-000437-v1-verbatim","doc_id":"D-000437","version":1,"department":"legal","classification":"internal","document_type":"contract","kind":"verbatim","text":"质保金在质保期满后多长时间内结清"}
 {"query_id":"D-000482-v1-paraphrase","doc_id":"D-000482","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"paraphrase","text":"公司员工进修、考证的费用，超过五千块得找哪些部门签字？"}
 {"query_id":"D-000482-v1-verbatim","doc_id":"D-000482","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"员工培训经费管理制度里单项申请超过五千元怎么审批？"}
+{"query_id":"D-000520-v1-paraphrase","doc_id":"D-000520","version":1,"department":"sales","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"跟Granite Works签的那份采购报价协议，一共多少钱？"}
+{"query_id":"D-000520-v1-verbatim","doc_id":"D-000520","version":1,"department":"sales","classification":"confidential","document_type":"contract","kind":"verbatim","text":"销售部和Granite Works的定价框架合同总金额是多少？"}
 {"query_id":"D-000554-v1-paraphrase","doc_id":"D-000554","version":1,"department":"legal","classification":"internal","document_type":"contract","kind":"paraphrase","text":"和Juniper Health合作的那份咨询合同钱怎么付"}
 {"query_id":"D-000554-v1-verbatim","doc_id":"D-000554","version":1,"department":"legal","classification":"internal","document_type":"contract","kind":"verbatim","text":"Juniper Health服务合同的总价和付款条件是什么"}
 {"query_id":"D-000572-v2-paraphrase","doc_id":"D-000572","version":2,"department":"engineering","classification":"internal","document_type":"approval","kind":"paraphrase","text":"技术部今年批下来的专项经费一共多少钱？"}
@@ -22,6 +38,10 @@
 {"query_id":"D-000592-v1-verbatim","doc_id":"D-000592","version":1,"department":"it","classification":"internal","document_type":"contract","kind":"verbatim","text":"Borealis Systems运维外包合同的总金额是多少"}
 {"query_id":"D-000631-v1-paraphrase","doc_id":"D-000631","version":1,"department":"product","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"找一下跟投资机构合作做融资方案的那份协议，花费多少钱？"}
 {"query_id":"D-000631-v1-verbatim","doc_id":"D-000631","version":1,"department":"product","classification":"confidential","document_type":"contract","kind":"verbatim","text":"Fulcrum Capital融资服务合同的服务金额是多少？"}
+{"query_id":"D-000640-v1-paraphrase","doc_id":"D-000640","version":1,"department":"operations","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Acme那边的车运合同，多久对一次账、几号前交对账单"}
+{"query_id":"D-000640-v1-verbatim","doc_id":"D-000640","version":1,"department":"operations","classification":"internal","document_type":"contract","kind":"verbatim","text":"运营部与Acme Logistics的运输合同结算周期和付款规定"}
+{"query_id":"D-000641-v1-paraphrase","doc_id":"D-000641","version":1,"department":"it","classification":"public","document_type":"contract","kind":"paraphrase","text":"官网视频那套外包系统，每个月能保证多少在线时长？"}
+{"query_id":"D-000641-v1-verbatim","doc_id":"D-000641","version":1,"department":"it","classification":"public","document_type":"contract","kind":"verbatim","text":"数字媒体平台服务合同的服务可用性承诺是多少？"}
 {"query_id":"D-000670-v1-paraphrase","doc_id":"D-000670","version":1,"department":"it","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"上次系统被攻击后，应急处理那笔款项批了多少，能用在哪些地方？"}
 {"query_id":"D-000670-v1-verbatim","doc_id":"D-000670","version":1,"department":"it","classification":"confidential","document_type":"approval","kind":"verbatim","text":"信息技术部应对系统安全事件的专项经费批准金额是多少？"}
 {"query_id":"D-000707-v1-paraphrase","doc_id":"D-000707","version":1,"department":"procurement","classification":"public","document_type":"approval","kind":"paraphrase","text":"采购那边这笔付款批了多少钱，能花到多少上限？"}
@@ -32,6 +52,8 @@
 {"query_id":"D-000821-v1-verbatim","doc_id":"D-000821","version":1,"department":"operations","classification":"confidential","document_type":"policy","kind":"verbatim","text":"运营部员工培训中机密资料有什么保密要求？"}
 {"query_id":"D-000841-v1-paraphrase","doc_id":"D-000841","version":1,"department":"support","classification":"internal","document_type":"approval","kind":"paraphrase","text":"热线和在线客服扩招这笔钱批了多少，花钱有什么限制？"}
 {"query_id":"D-000841-v1-verbatim","doc_id":"D-000841","version":1,"department":"support","classification":"internal","document_type":"approval","kind":"verbatim","text":"客户支持部服务扩容的核准金额和报销要求是什么？"}
+{"query_id":"D-000844-v1-paraphrase","doc_id":"D-000844","version":1,"department":"procurement","classification":"internal","document_type":"policy","kind":"paraphrase","text":"一次采购花了五万多，供货方是否也得先过审核"}
+{"query_id":"D-000844-v1-verbatim","doc_id":"D-000844","version":1,"department":"procurement","classification":"internal","document_type":"policy","kind":"verbatim","text":"单笔金额超过五万元的采购项目是否要执行供应商准入"}
 {"query_id":"D-000848-v1-paraphrase","doc_id":"D-000848","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"paraphrase","text":"公司官网和公众号上的宣传材料，发出去前要走什么审批？"}
 {"query_id":"D-000848-v1-verbatim","doc_id":"D-000848","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"verbatim","text":"市场部对外品牌内容的发布审核流程有哪些要求？"}
 {"query_id":"D-000928-v1-paraphrase","doc_id":"D-000928","version":1,"department":"procurement","classification":"internal","document_type":"policy","kind":"paraphrase","text":"选供应商时要货比几家？不合格的供应商怎么处理？"}
@@ -40,6 +62,8 @@
 {"query_id":"D-000941-v1-verbatim","doc_id":"D-000941","version":1,"department":"engineering","classification":"internal","document_type":"approval","kind":"verbatim","text":"工程部研发团队扩编审批获批金额是多少"}
 {"query_id":"D-001033-v1-paraphrase","doc_id":"D-001033","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"paraphrase","text":"想往合作伙伴名单里加新厂家，得先备齐什么证件？"}
 {"query_id":"D-001033-v1-verbatim","doc_id":"D-001033","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"verbatim","text":"运营部供应商准入须提交哪些材料？"}
+{"query_id":"D-001049-v1-paraphrase","doc_id":"D-001049","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"paraphrase","text":"这个季度签的合同价格条款，法务给的风险等级一般怎么分？"}
+{"query_id":"D-001049-v1-verbatim","doc_id":"D-001049","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"verbatim","text":"二季度合同定价审查的结论分级是怎么划分的？"}
 {"query_id":"D-001144-v1-paraphrase","doc_id":"D-001144","version":1,"department":"finance","classification":"public","document_type":"approval","kind":"paraphrase","text":"这笔专项款项批准能付多少，什么时候开始能付？"}
 {"query_id":"D-001144-v1-verbatim","doc_id":"D-001144","version":1,"department":"finance","classification":"public","document_type":"approval","kind":"verbatim","text":"申请编号E2886的专项费用支付批准金额是多少？"}
 {"query_id":"D-001230-v1-paraphrase","doc_id":"D-001230","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Helios签的能耗供应协议，到哪天截止？"}
@@ -66,6 +90,8 @@
 {"query_id":"D-001548-v1-verbatim","doc_id":"D-001548","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"verbatim","text":"运营部仓储中心改造项目批准的预算是多少？"}
 {"query_id":"D-001570-v1-paraphrase","doc_id":"D-001570","version":1,"department":"hr","classification":"public","document_type":"approval","kind":"paraphrase","text":"公司给员工安排法律、信息安全这类学习的钱批了多少？"}
 {"query_id":"D-001570-v1-verbatim","doc_id":"D-001570","version":1,"department":"hr","classification":"public","document_type":"approval","kind":"verbatim","text":"员工合规培训经费审批说明的批准金额是多少？"}
+{"query_id":"D-001614-v2-paraphrase","doc_id":"D-001614","version":2,"department":"support","classification":"leadership","document_type":"report","kind":"paraphrase","text":"外包供应商收费和追责力度怎么样，管理层是不是先别扩大外包？"}
+{"query_id":"D-001614-v2-verbatim","doc_id":"D-001614","version":2,"department":"support","classification":"leadership","document_type":"report","kind":"verbatim","text":"客户支持部一季度评估里外包合同的违约责任条款有什么问题？"}
 {"query_id":"D-001639-v1-paraphrase","doc_id":"D-001639","version":1,"department":"product","classification":"public","document_type":"report","kind":"paraphrase","text":"去年年底这季度产品线经营情况，关键数据写的是多少？"}
 {"query_id":"D-001639-v1-verbatim","doc_id":"D-001639","version":1,"department":"product","classification":"public","document_type":"report","kind":"verbatim","text":"2025-Q4产品部经营报告的核心指标取值是多少？"}
 {"query_id":"D-001659-v1-paraphrase","doc_id":"D-001659","version":1,"department":"research","classification":"internal","document_type":"contract","kind":"paraphrase","text":"实验室仪器那份采购合作，价格是多少，保修期怎么算？"}
@@ -74,40 +100,62 @@
 {"query_id":"D-001665-v1-verbatim","doc_id":"D-001665","version":1,"department":"operations","classification":"internal","document_type":"report","kind":"verbatim","text":"运营部2024年第一季度经营报告的核心指标是多少？"}
 {"query_id":"D-001715-v1-paraphrase","doc_id":"D-001715","version":1,"department":"operations","classification":"internal","document_type":"report","kind":"paraphrase","text":"前年二季度运营预算和调价总结里，核心数字是多少？"}
 {"query_id":"D-001715-v1-verbatim","doc_id":"D-001715","version":1,"department":"operations","classification":"internal","document_type":"report","kind":"verbatim","text":"2024-Q2预算执行与定价调整复盘的核心指标数值是多少？"}
+{"query_id":"D-001730-v1-paraphrase","doc_id":"D-001730","version":1,"department":"support","classification":"leadership","document_type":"policy","kind":"paraphrase","text":"客服部门的工资包和绩效奖金，完成率不达标会怎样"}
+{"query_id":"D-001730-v1-verbatim","doc_id":"D-001730","version":1,"department":"support","classification":"leadership","document_type":"policy","kind":"verbatim","text":"客户支持部薪酬预算管理制度的奖金池怎么拨付"}
 {"query_id":"D-001751-v1-paraphrase","doc_id":"D-001751","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"paraphrase","text":"法务同事出差和培训的专项经费批下来后多长时间内有效？"}
 {"query_id":"D-001751-v1-verbatim","doc_id":"D-001751","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"verbatim","text":"法务部年度差旅费用审批单的额度有效期是多久"}
+{"query_id":"D-001870-v1-paraphrase","doc_id":"D-001870","version":1,"department":"product","classification":"internal","document_type":"approval","kind":"paraphrase","text":"那笔项目拨款最后批了多少额度，我想核对一下。"}
+{"query_id":"D-001870-v1-verbatim","doc_id":"D-001870","version":1,"department":"product","classification":"internal","document_type":"approval","kind":"verbatim","text":"产品部采购预算审批单批准的拨付金额是多少？"}
 {"query_id":"D-001872-v1-paraphrase","doc_id":"D-001872","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年二季度市场那块带来的收入，是按哪种算法统计的？"}
 {"query_id":"D-001872-v1-verbatim","doc_id":"D-001872","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"verbatim","text":"市场部营收贡献的统计口径是什么"}
 {"query_id":"D-001873-v1-paraphrase","doc_id":"D-001873","version":1,"department":"engineering","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年年底那个季度，技术部门的系统故障处理和稳定性情况如何"}
 {"query_id":"D-001873-v1-verbatim","doc_id":"D-001873","version":1,"department":"engineering","classification":"internal","document_type":"report","kind":"verbatim","text":"工程部第四季度运维与质量报告里的资金投入多少"}
 {"query_id":"D-001948-v1-paraphrase","doc_id":"D-001948","version":1,"department":"it","classification":"public","document_type":"approval","kind":"paraphrase","text":"IT那边出了安全问题后紧急买设备的单子批了多少钱"}
 {"query_id":"D-001948-v1-verbatim","doc_id":"D-001948","version":1,"department":"it","classification":"public","document_type":"approval","kind":"verbatim","text":"信息技术部系统安全事件应急采购审批单金额是多少"}
+{"query_id":"D-001955-v1-paraphrase","doc_id":"D-001955","version":1,"department":"support","classification":"internal","document_type":"report","kind":"paraphrase","text":"客服团队前年二季度的汇报里，综合分数是多少"}
+{"query_id":"D-001955-v1-verbatim","doc_id":"D-001955","version":1,"department":"support","classification":"internal","document_type":"report","kind":"verbatim","text":"客户支持部2024年第二季度工作总结核心指标是多少"}
 {"query_id":"D-001969-v1-paraphrase","doc_id":"D-001969","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"paraphrase","text":"工资发错或者发放晚了，系统出故障应该算几级？"}
 {"query_id":"D-001969-v1-verbatim","doc_id":"D-001969","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"verbatim","text":"线上事件处置管理制度里薪资相关事件怎么定级？"}
 {"query_id":"D-001976-v1-paraphrase","doc_id":"D-001976","version":1,"department":"research","classification":"internal","document_type":"report","kind":"paraphrase","text":"今年头三个月各课题组花了多少人力和设备费用"}
 {"query_id":"D-001976-v1-verbatim","doc_id":"D-001976","version":1,"department":"research","classification":"internal","document_type":"report","kind":"verbatim","text":"研究院2026年一季度课题进展报告里的资源使用情况"}
+{"query_id":"D-002038-v1-paraphrase","doc_id":"D-002038","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"paraphrase","text":"二季度市场花的钱怎么统计，拿多少线索算成本"}
+{"query_id":"D-002038-v1-verbatim","doc_id":"D-002038","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第二季度市场部有效营销投入的核算口径是什么"}
 {"query_id":"D-002054-v1-paraphrase","doc_id":"D-002054","version":1,"department":"finance","classification":"public","document_type":"contract","kind":"paraphrase","text":"咱们办公楼用的电和燃气，那份供货协议总价多少，怎么付钱？"}
 {"query_id":"D-002054-v1-verbatim","doc_id":"D-002054","version":1,"department":"finance","classification":"public","document_type":"contract","kind":"verbatim","text":"能源供应服务采购合同的合同总金额是多少？"}
 {"query_id":"D-002116-v1-paraphrase","doc_id":"D-002116","version":1,"department":"engineering","classification":"internal","document_type":"report","kind":"paraphrase","text":"今年头三个月部门的综合得分大概是多少？"}
 {"query_id":"D-002116-v1-verbatim","doc_id":"D-002116","version":1,"department":"engineering","classification":"internal","document_type":"report","kind":"verbatim","text":"工程部二〇二六年一季度核心指标累计值是多少？"}
+{"query_id":"D-002123-v1-paraphrase","doc_id":"D-002123","version":1,"department":"engineering","classification":"internal","document_type":"approval","kind":"paraphrase","text":"工程部想找外面的团队做开发，这笔钱最后被批了多少额度？"}
+{"query_id":"D-002123-v1-verbatim","doc_id":"D-002123","version":1,"department":"engineering","classification":"internal","document_type":"approval","kind":"verbatim","text":"外包研发服务采购审批预算金额是多少"}
 {"query_id":"D-002171-v1-paraphrase","doc_id":"D-002171","version":1,"department":"sales","classification":"internal","document_type":"policy","kind":"paraphrase","text":"给客户的优惠要是比定价低得多，报价该怎么走审核"}
 {"query_id":"D-002171-v1-verbatim","doc_id":"D-002171","version":1,"department":"sales","classification":"internal","document_type":"policy","kind":"verbatim","text":"销售部让利超过标准价百分之五怎么审批"}
+{"query_id":"D-002205-v1-paraphrase","doc_id":"D-002205","version":1,"department":"sales","classification":"public","document_type":"policy","kind":"paraphrase","text":"给客户报价时打折能打多少，哪一级的人能批？"}
+{"query_id":"D-002205-v1-verbatim","doc_id":"D-002205","version":1,"department":"sales","classification":"public","document_type":"policy","kind":"verbatim","text":"销售部客户报价的折扣审批权限是怎么划分的？"}
+{"query_id":"D-002351-v1-paraphrase","doc_id":"D-002351","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年头三个月人事部门的用人总支出是多少钱？"}
+{"query_id":"D-002351-v1-verbatim","doc_id":"D-002351","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第一季度人力资源部报告里的人力成本是多少？"}
 {"query_id":"D-002352-v1-paraphrase","doc_id":"D-002352","version":1,"department":"it","classification":"internal","document_type":"approval","kind":"paraphrase","text":"IT部门加服务器这次采购最多能花多少钱？"}
 {"query_id":"D-002352-v1-verbatim","doc_id":"D-002352","version":1,"department":"it","classification":"internal","document_type":"approval","kind":"verbatim","text":"信息技术部服务器扩容采购的批准额度是多少？"}
+{"query_id":"D-002365-v1-paraphrase","doc_id":"D-002365","version":1,"department":"support","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"支持部想多招些人、顺便涨点套餐价格，得满足哪些条件才能批？"}
+{"query_id":"D-002365-v1-verbatim","doc_id":"D-002365","version":1,"department":"support","classification":"confidential","document_type":"approval","kind":"verbatim","text":"客户支持部新增招聘与服务套餐调价的批准条件是什么？"}
 {"query_id":"D-002372-v2-paraphrase","doc_id":"D-002372","version":2,"department":"finance","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年第四季度财务那边的花销和钱款周转情况如何？"}
 {"query_id":"D-002372-v2-verbatim","doc_id":"D-002372","version":2,"department":"finance","classification":"internal","document_type":"report","kind":"verbatim","text":"财务部2025-Q4的运营成果与资金使用情况怎样？"}
 {"query_id":"D-002373-v1-paraphrase","doc_id":"D-002373","version":1,"department":"engineering","classification":"public","document_type":"report","kind":"paraphrase","text":"去年一季度工程部的单据合规比例是怎么统计的"}
 {"query_id":"D-002373-v1-verbatim","doc_id":"D-002373","version":1,"department":"engineering","classification":"public","document_type":"report","kind":"verbatim","text":"2025年第一季度工程部合规执行率和差旅标准是怎样的"}
 {"query_id":"D-002396-v1-paraphrase","doc_id":"D-002396","version":1,"department":"support","classification":"internal","document_type":"contract","kind":"paraphrase","text":"客服部外包给Fulcrum那家公司的咨询业务，一共多少钱"}
 {"query_id":"D-002396-v1-verbatim","doc_id":"D-002396","version":1,"department":"support","classification":"internal","document_type":"contract","kind":"verbatim","text":"客户支持部与Fulcrum Capital的外包咨询服务合同金额是多少"}
+{"query_id":"D-002433-v1-paraphrase","doc_id":"D-002433","version":1,"department":"support","classification":"internal","document_type":"contract","kind":"paraphrase","text":"找Cedar那家公司做工单分析的外包，付款是怎么安排的"}
+{"query_id":"D-002433-v1-verbatim","doc_id":"D-002433","version":1,"department":"support","classification":"internal","document_type":"contract","kind":"verbatim","text":"客户支持部与Cedar Analytics数据分析合同金额"}
 {"query_id":"D-002439-v1-paraphrase","doc_id":"D-002439","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"paraphrase","text":"应收的钱实际收回来的比例，按什么算"}
 {"query_id":"D-002439-v1-verbatim","doc_id":"D-002439","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"verbatim","text":"报告中所称回款率是怎么定义的"}
 {"query_id":"D-002485-v1-paraphrase","doc_id":"D-002485","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟物流公司签的货运合同一共多少钱"}
 {"query_id":"D-002485-v1-verbatim","doc_id":"D-002485","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"verbatim","text":"财务部与Delta Freight签的运输服务合同总金额"}
 {"query_id":"D-002526-v1-paraphrase","doc_id":"D-002526","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"paraphrase","text":"合同里说的价格怎么算、什么情况下要改，这叫什么条款"}
 {"query_id":"D-002526-v1-verbatim","doc_id":"D-002526","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"verbatim","text":"什么是定价条款，单价计算方式和调整触发条件怎么定义"}
+{"query_id":"D-002617-v1-paraphrase","doc_id":"D-002617","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"paraphrase","text":"前年二季度销售那边出过什么合规问题，怎么处理的"}
+{"query_id":"D-002617-v1-verbatim","doc_id":"D-002617","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第二季度销售部合规事件有哪些"}
 {"query_id":"D-002619-v1-paraphrase","doc_id":"D-002619","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Helios那家公司签的能源供应合同，一共花了多少钱？"}
 {"query_id":"D-002619-v1-verbatim","doc_id":"D-002619","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"verbatim","text":"Helios Energy能源服务合同的总金额是多少？"}
+{"query_id":"D-002675-v1-paraphrase","doc_id":"D-002675","version":1,"department":"engineering","classification":"public","document_type":"report","kind":"paraphrase","text":"季度工作成果折算成钱，到底按什么标准算？"}
+{"query_id":"D-002675-v1-verbatim","doc_id":"D-002675","version":1,"department":"engineering","classification":"public","document_type":"report","kind":"verbatim","text":"工程部第一季度交付价值是按什么口径统计的"}
 {"query_id":"D-002707-v1-paraphrase","doc_id":"D-002707","version":1,"department":"procurement","classification":"public","document_type":"contract","kind":"paraphrase","text":"跟Delta Freight合作的那份货运协议，哪天到期？"}
 {"query_id":"D-002707-v1-verbatim","doc_id":"D-002707","version":1,"department":"procurement","classification":"public","document_type":"contract","kind":"verbatim","text":"采购部与Delta Freight签的运输合同有效期到什么时候？"}
 {"query_id":"D-002778-v1-paraphrase","doc_id":"D-002778","version":1,"department":"sales","classification":"public","document_type":"contract","kind":"paraphrase","text":"销售部找Cedar那家公司买的数据分析服务，一共签了多少钱"}
@@ -124,6 +172,10 @@
 {"query_id":"D-002907-v1-verbatim","doc_id":"D-002907","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"verbatim","text":"研究院专项培训课程采购审批的核准金额是多少？"}
 {"query_id":"D-002911-v1-paraphrase","doc_id":"D-002911","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"paraphrase","text":"公司考核打分一般分成几个等级，待改进算哪一档"}
 {"query_id":"D-002911-v1-verbatim","doc_id":"D-002911","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"人力资源部员工管理制度里的绩效等级分哪几档"}
+{"query_id":"D-002912-v1-paraphrase","doc_id":"D-002912","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年七到九月出差、收购后整合那部分一共花了多少钱？"}
+{"query_id":"D-002912-v1-verbatim","doc_id":"D-002912","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第三季度差旅和并购整合相关费用合计是多少？"}
+{"query_id":"D-002925-v1-paraphrase","doc_id":"D-002925","version":1,"department":"procurement","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"找Cedar做数据服务的那份协议，钱多少，什么时候到期"}
+{"query_id":"D-002925-v1-verbatim","doc_id":"D-002925","version":1,"department":"procurement","classification":"confidential","document_type":"contract","kind":"verbatim","text":"采购部与Cedar Analytics数据分析服务合同的总金额和服务期限"}
 {"query_id":"D-002963-v2-paraphrase","doc_id":"D-002963","version":2,"department":"support","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年三季度支持部交上来的总体数据是多少？"}
 {"query_id":"D-002963-v2-verbatim","doc_id":"D-002963","version":2,"department":"support","classification":"confidential","document_type":"report","kind":"verbatim","text":"2025年第三季度客户支持部的核心指标数值是多少？"}
 {"query_id":"D-002993-v1-paraphrase","doc_id":"D-002993","version":1,"department":"engineering","classification":"internal","document_type":"contract","kind":"paraphrase","text":"运费怎么对账付款，发票收到后多久给钱"}
@@ -134,22 +186,34 @@
 {"query_id":"D-003220-v1-verbatim","doc_id":"D-003220","version":1,"department":"it","classification":"confidential","document_type":"contract","kind":"verbatim","text":"信息技术部与Ionic Labs签订的C-141484合同总金额是多少"}
 {"query_id":"D-003276-v1-paraphrase","doc_id":"D-003276","version":1,"department":"it","classification":"confidential","document_type":"report","kind":"paraphrase","text":"24年Q4运维里，改动一次成功的占比怎么算？"}
 {"query_id":"D-003276-v1-verbatim","doc_id":"D-003276","version":1,"department":"it","classification":"confidential","document_type":"report","kind":"verbatim","text":"2024年第四季度运维报告中的变更成功率怎么算？"}
+{"query_id":"D-003288-v1-paraphrase","doc_id":"D-003288","version":1,"department":"legal","classification":"internal","document_type":"contract","kind":"paraphrase","text":"送货物流那份合同月结的钱一般哪天前转过去？"}
+{"query_id":"D-003288-v1-verbatim","doc_id":"D-003288","version":1,"department":"legal","classification":"internal","document_type":"contract","kind":"verbatim","text":"货运服务合同的结算与付款安排是怎样的？"}
+{"query_id":"D-003367-v1-paraphrase","doc_id":"D-003367","version":1,"department":"operations","classification":"public","document_type":"approval","kind":"paraphrase","text":"拉新那笔运营的钱，单子什么时候生效、能用到哪年？"}
+{"query_id":"D-003367-v1-verbatim","doc_id":"D-003367","version":1,"department":"operations","classification":"public","document_type":"approval","kind":"verbatim","text":"运营部用户增长项目经费批复单什么时候开始执行"}
 {"query_id":"D-003384-v1-paraphrase","doc_id":"D-003384","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"那份外包运维合同的钱是分几次、怎么结算的？"}
 {"query_id":"D-003384-v1-verbatim","doc_id":"D-003384","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"verbatim","text":"Borealis Systems合同的付款方式和停机扣费怎么规定"}
 {"query_id":"D-003406-v1-paraphrase","doc_id":"D-003406","version":1,"department":"marketing","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"市场部品牌推广那笔专项预算最后批了多少"}
 {"query_id":"D-003406-v1-verbatim","doc_id":"D-003406","version":1,"department":"marketing","classification":"confidential","document_type":"approval","kind":"verbatim","text":"市场部年度推广预算的核定金额是多少钱"}
+{"query_id":"D-003422-v1-paraphrase","doc_id":"D-003422","version":1,"department":"engineering","classification":"internal","document_type":"contract","kind":"paraphrase","text":"工程部跟那家叫Ionic的公司签的开发协议，钱数是多少？"}
+{"query_id":"D-003422-v1-verbatim","doc_id":"D-003422","version":1,"department":"engineering","classification":"internal","document_type":"contract","kind":"verbatim","text":"与Ionic Labs签订的外包开发合同金额是多少"}
 {"query_id":"D-003440-v1-paraphrase","doc_id":"D-003440","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"paraphrase","text":"前年年底那个季度，采购总共花了多少钱？"}
 {"query_id":"D-003440-v1-verbatim","doc_id":"D-003440","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第四季度采购总额是多少？"}
 {"query_id":"D-003458-v1-paraphrase","doc_id":"D-003458","version":1,"department":"it","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"专门查账和每个月例行抽查到底差在哪儿"}
 {"query_id":"D-003458-v1-verbatim","doc_id":"D-003458","version":1,"department":"it","classification":"confidential","document_type":"policy","kind":"verbatim","text":"什么是专项审计，它与常规的月度抽查有什么区别"}
+{"query_id":"D-003461-v1-paraphrase","doc_id":"D-003461","version":1,"department":"research","classification":"public","document_type":"report","kind":"paraphrase","text":"研究院去年年底那阵子，科研整体产出数字是几"}
+{"query_id":"D-003461-v1-verbatim","doc_id":"D-003461","version":1,"department":"research","classification":"public","document_type":"report","kind":"verbatim","text":"研究院2025年第四季度研究进展的核心指标是多少"}
 {"query_id":"D-003478-v1-paraphrase","doc_id":"D-003478","version":1,"department":"sales","classification":"public","document_type":"contract","kind":"paraphrase","text":"跟Granite Works合作的销售总协议什么时候到期"}
 {"query_id":"D-003478-v1-verbatim","doc_id":"D-003478","version":1,"department":"sales","classification":"public","document_type":"contract","kind":"verbatim","text":"销售部与Granite Works的框架合同有效期到什么时候"}
 {"query_id":"D-003482-v1-paraphrase","doc_id":"D-003482","version":1,"department":"support","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"帮外面坐席团队干活的钱，是按接了多少电话算吗"}
 {"query_id":"D-003482-v1-verbatim","doc_id":"D-003482","version":1,"department":"support","classification":"confidential","document_type":"approval","kind":"verbatim","text":"外包坐席支持服务如何结算拨付"}
 {"query_id":"D-003492-v1-paraphrase","doc_id":"D-003492","version":1,"department":"procurement","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"采购那边查供应商的规章，这套规定要用到哪一年？"}
 {"query_id":"D-003492-v1-verbatim","doc_id":"D-003492","version":1,"department":"procurement","classification":"confidential","document_type":"policy","kind":"verbatim","text":"采购部供应商审计与采购管理制度的有效期到什么时候？"}
+{"query_id":"D-003544-v1-paraphrase","doc_id":"D-003544","version":1,"department":"operations","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年头三个月运营那块的总结材料，主要数字是多少？"}
+{"query_id":"D-003544-v1-verbatim","doc_id":"D-003544","version":1,"department":"operations","classification":"confidential","document_type":"report","kind":"verbatim","text":"运营部一季度经营报告的核心指标数值是多少？"}
 {"query_id":"D-003582-v1-paraphrase","doc_id":"D-003582","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年第四季度员工流失比例是拿离职人数除以什么算出来的"}
 {"query_id":"D-003582-v1-verbatim","doc_id":"D-003582","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"verbatim","text":"人力资源部效能报告里的离职率怎么算"}
+{"query_id":"D-003628-v1-paraphrase","doc_id":"D-003628","version":1,"department":"operations","classification":"public","document_type":"contract","kind":"paraphrase","text":"跟Acme那家做仓库和干线配送的合作，一共要付多少钱？"}
+{"query_id":"D-003628-v1-verbatim","doc_id":"D-003628","version":1,"department":"operations","classification":"public","document_type":"contract","kind":"verbatim","text":"运营部和Acme Logistics签的仓储运输合同金额是多少？"}
 {"query_id":"D-003642-v1-paraphrase","doc_id":"D-003642","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"paraphrase","text":"上个季度财务合规那块的账期超了还没结清的占比，咋统计的？"}
 {"query_id":"D-003642-v1-verbatim","doc_id":"D-003642","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"verbatim","text":"二季度合规工作报告里的逾期率是怎么算出来的？"}
 {"query_id":"D-003651-v1-paraphrase","doc_id":"D-003651","version":1,"department":"hr","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟德尔塔货运公司签的运输协议一共值多少钱？"}
@@ -158,12 +222,22 @@
 {"query_id":"D-003715-v2-verbatim","doc_id":"D-003715","version":2,"department":"research","classification":"confidential","document_type":"approval","kind":"verbatim","text":"研究院薪酬专项调整修订后的核定总额是多少"}
 {"query_id":"D-003797-v1-paraphrase","doc_id":"D-003797","version":1,"department":"it","classification":"internal","document_type":"report","kind":"paraphrase","text":"IT部门今年二季度的综合运行数字是多少？"}
 {"query_id":"D-003797-v1-verbatim","doc_id":"D-003797","version":1,"department":"it","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第二季度信息技术部核心运营指标取值是多少？"}
+{"query_id":"D-003829-v1-paraphrase","doc_id":"D-003829","version":1,"department":"research","classification":"leadership","document_type":"policy","kind":"paraphrase","text":"院里做并购决定时，大额的钱怎么批下来、要不要找外部机构估值？"}
+{"query_id":"D-003829-v1-verbatim","doc_id":"D-003829","version":1,"department":"research","classification":"leadership","document_type":"policy","kind":"verbatim","text":"研究院预算调整超过年度总额百分之五要经过什么审议？"}
 {"query_id":"D-003844-v1-paraphrase","doc_id":"D-003844","version":1,"department":"marketing","classification":"public","document_type":"contract","kind":"paraphrase","text":"第一笔钱是签完合同后过多少天才打过去"}
 {"query_id":"D-003844-v1-verbatim","doc_id":"D-003844","version":1,"department":"marketing","classification":"public","document_type":"contract","kind":"verbatim","text":"首期款项在合同签署后多少个工作日内支付"}
 {"query_id":"D-003903-v1-paraphrase","doc_id":"D-003903","version":1,"department":"engineering","classification":"internal","document_type":"approval","kind":"paraphrase","text":"工程部买的服务器和网络硬件这次批了多少钱？"}
 {"query_id":"D-003903-v1-verbatim","doc_id":"D-003903","version":1,"department":"engineering","classification":"internal","document_type":"approval","kind":"verbatim","text":"工程部设备采购审批事项的服务器与网络设备更新内容有哪些？"}
+{"query_id":"D-003916-v1-paraphrase","doc_id":"D-003916","version":1,"department":"sales","classification":"internal","document_type":"policy","kind":"paraphrase","text":"公司收购整合之后，客户资料要多久核查一次，出了异常几天内要报告"}
+{"query_id":"D-003916-v1-verbatim","doc_id":"D-003916","version":1,"department":"sales","classification":"internal","document_type":"policy","kind":"verbatim","text":"并购后客户数据审计制度的审计周期和上报时限"}
+{"query_id":"D-004005-v1-paraphrase","doc_id":"D-004005","version":1,"department":"product","classification":"public","document_type":"policy","kind":"paraphrase","text":"体验评审的那套规定什么时候失效，要不要续期"}
+{"query_id":"D-004005-v1-verbatim","doc_id":"D-004005","version":1,"department":"product","classification":"public","document_type":"policy","kind":"verbatim","text":"用户体验评审办法的有效期截止到哪一天"}
 {"query_id":"D-004023-v1-paraphrase","doc_id":"D-004023","version":1,"department":"sales","classification":"internal","document_type":"approval","kind":"paraphrase","text":"华东华南几十家重点客户的账号整合要花多少预算？"}
 {"query_id":"D-004023-v1-verbatim","doc_id":"D-004023","version":1,"department":"sales","classification":"internal","document_type":"approval","kind":"verbatim","text":"销售部客户账户合并项目的预算金额是多少？"}
+{"query_id":"D-004025-v1-paraphrase","doc_id":"D-004025","version":1,"department":"product","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"新做的用户画像和移动端体验改版，经费预算是多少钱"}
+{"query_id":"D-004025-v1-verbatim","doc_id":"D-004025","version":1,"department":"product","classification":"confidential","document_type":"approval","kind":"verbatim","text":"用户画像模块、移动端交互优化及数据看板的研发预算批了多少"}
+{"query_id":"D-004051-v1-paraphrase","doc_id":"D-004051","version":1,"department":"product","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"和Juniper那边签的数据接口服务协议，总价是多少钱？"}
+{"query_id":"D-004051-v1-verbatim","doc_id":"D-004051","version":1,"department":"product","classification":"confidential","document_type":"contract","kind":"verbatim","text":"Juniper Health的对外服务采购合同金额是多少？"}
 {"query_id":"D-004088-v1-paraphrase","doc_id":"D-004088","version":1,"department":"engineering","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"找Acme做的仓储调度软件开发，合同金额一共多少钱？"}
 {"query_id":"D-004088-v1-verbatim","doc_id":"D-004088","version":1,"department":"engineering","classification":"confidential","document_type":"contract","kind":"verbatim","text":"工程部与Acme Logistics的物流系统合同总金额是多少？"}
 {"query_id":"D-004101-v1-paraphrase","doc_id":"D-004101","version":1,"department":"finance","classification":"internal","document_type":"approval","kind":"paraphrase","text":"财务部去年并购那块搞定价培训的钱批了多少，能花到什么地方？"}
@@ -176,6 +250,10 @@
 {"query_id":"D-004283-v1-verbatim","doc_id":"D-004283","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"verbatim","text":"品牌推广物料未经审批可以对外使用吗"}
 {"query_id":"D-004392-v1-paraphrase","doc_id":"D-004392","version":1,"department":"support","classification":"internal","document_type":"approval","kind":"paraphrase","text":"客服部门请外包团队结款，这次批了多少钱？"}
 {"query_id":"D-004392-v1-verbatim","doc_id":"D-004392","version":1,"department":"support","classification":"internal","document_type":"approval","kind":"verbatim","text":"客户支持部外包服务付款审批的金额是多少？"}
+{"query_id":"D-004422-v1-paraphrase","doc_id":"D-004422","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"paraphrase","text":"咱们和那家货运公司的物流协议，哪天开始算数、哪天到期？"}
+{"query_id":"D-004422-v1-verbatim","doc_id":"D-004422","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"verbatim","text":"采购部与Delta Freight签的运输服务合同何时生效？"}
+{"query_id":"D-004459-v1-paraphrase","doc_id":"D-004459","version":1,"department":"research","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年四季度查合规的时候，什么情况才算问题真正改好了？"}
+{"query_id":"D-004459-v1-verbatim","doc_id":"D-004459","version":1,"department":"research","classification":"internal","document_type":"report","kind":"verbatim","text":"研究院2025年第四季度合规自查的整改完成是怎么定义的？"}
 {"query_id":"D-004461-v1-paraphrase","doc_id":"D-004461","version":1,"department":"engineering","classification":"public","document_type":"contract","kind":"paraphrase","text":"给样机和设备运输的那家承运商，合同价多少钱？"}
 {"query_id":"D-004461-v1-verbatim","doc_id":"D-004461","version":1,"department":"engineering","classification":"public","document_type":"contract","kind":"verbatim","text":"工程部与Delta Freight的货运物流合同金额是多少？"}
 {"query_id":"D-004512-v1-paraphrase","doc_id":"D-004512","version":1,"department":"operations","classification":"internal","document_type":"report","kind":"paraphrase","text":"今年一季度我们部门的关键数字是按什么口径得出的？"}
@@ -184,6 +262,8 @@
 {"query_id":"D-004568-v2-verbatim","doc_id":"D-004568","version":2,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"人力资源部员工规章与供应商管理制度P-502777何时施行？"}
 {"query_id":"D-004575-v1-paraphrase","doc_id":"D-004575","version":1,"department":"hr","classification":"public","document_type":"approval","kind":"paraphrase","text":"HR这次招人发工资批下来的额度是多少，哪天批的？"}
 {"query_id":"D-004575-v1-verbatim","doc_id":"D-004575","version":1,"department":"hr","classification":"public","document_type":"approval","kind":"verbatim","text":"申请编号E2602的招聘与薪酬支出核准金额是多少？"}
+{"query_id":"D-004661-v1-paraphrase","doc_id":"D-004661","version":1,"department":"legal","classification":"internal","document_type":"policy","kind":"paraphrase","text":"供应商合作前要交什么证件，审核通过才能签约呢？"}
+{"query_id":"D-004661-v1-verbatim","doc_id":"D-004661","version":1,"department":"legal","classification":"internal","document_type":"policy","kind":"verbatim","text":"外部供应商准入需要提交哪些材料？"}
 {"query_id":"D-004675-v1-paraphrase","doc_id":"D-004675","version":1,"department":"finance","classification":"internal","document_type":"approval","kind":"paraphrase","text":"财务部出差专用的那笔钱批下来多少，到什么时候用完？"}
 {"query_id":"D-004675-v1-verbatim","doc_id":"D-004675","version":1,"department":"finance","classification":"internal","document_type":"approval","kind":"verbatim","text":"财务部差旅专项预算的批准金额和有效期截至何时"}
 {"query_id":"D-004678-v1-paraphrase","doc_id":"D-004678","version":1,"department":"engineering","classification":"public","document_type":"report","kind":"paraphrase","text":"二季度工程部那些供应商按时交货的比例，是按什么标准算的？"}
@@ -194,16 +274,24 @@
 {"query_id":"D-004875-v1-verbatim","doc_id":"D-004875","version":1,"department":"hr","classification":"internal","document_type":"approval","kind":"verbatim","text":"人力资源部供应商服务费用的付款审批金额是多少？"}
 {"query_id":"D-004880-v1-paraphrase","doc_id":"D-004880","version":1,"department":"operations","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"运营部招人时，候选人入职前的背景调查怎么做的？"}
 {"query_id":"D-004880-v1-verbatim","doc_id":"D-004880","version":1,"department":"operations","classification":"confidential","document_type":"policy","kind":"verbatim","text":"运营部招聘中的背景核查怎么做？"}
+{"query_id":"D-004938-v1-paraphrase","doc_id":"D-004938","version":1,"department":"it","classification":"public","document_type":"approval","kind":"paraphrase","text":"技术部门想买协同办公系统，最终核准的花费上限多少？"}
+{"query_id":"D-004938-v1-verbatim","doc_id":"D-004938","version":1,"department":"it","classification":"public","document_type":"approval","kind":"verbatim","text":"信息技术部数字化协同平台采购批准金额是多少？"}
+{"query_id":"D-004953-v1-paraphrase","doc_id":"D-004953","version":1,"department":"product","classification":"public","document_type":"contract","kind":"paraphrase","text":"年度服务采购协议里，外包的那家服务商报价多少钱"}
+{"query_id":"D-004953-v1-verbatim","doc_id":"D-004953","version":1,"department":"product","classification":"public","document_type":"contract","kind":"verbatim","text":"对方Juniper Health提供的服务合同金额是多少"}
 {"query_id":"D-005016-v1-paraphrase","doc_id":"D-005016","version":1,"department":"support","classification":"internal","document_type":"policy","kind":"paraphrase","text":"客服一线同事回复客户的最长等待时间有没有硬性要求"}
 {"query_id":"D-005016-v1-verbatim","doc_id":"D-005016","version":1,"department":"support","classification":"internal","document_type":"policy","kind":"verbatim","text":"工单的首次响应时限和解决时限是怎么规定的"}
 {"query_id":"D-005053-v1-paraphrase","doc_id":"D-005053","version":1,"department":"sales","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"我们这些卖东西的，每年得花多少课时学合规知识"}
 {"query_id":"D-005053-v1-verbatim","doc_id":"D-005053","version":1,"department":"sales","classification":"confidential","document_type":"policy","kind":"verbatim","text":"销售部合规培训每年要求完成多少学时"}
 {"query_id":"D-005077-v1-paraphrase","doc_id":"D-005077","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"paraphrase","text":"公司上网和账户安全的规定哪天生效？"}
 {"query_id":"D-005077-v1-verbatim","doc_id":"D-005077","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"verbatim","text":"网络与账号安全管理制度P-790976从什么时候起施行？"}
+{"query_id":"D-005201-v1-paraphrase","doc_id":"D-005201","version":1,"department":"legal","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"公司对外签的合同，签字之前得留出多少天给法务看？"}
+{"query_id":"D-005201-v1-verbatim","doc_id":"D-005201","version":1,"department":"legal","classification":"confidential","document_type":"policy","kind":"verbatim","text":"合同审查与印章管理制度要求对外合同提前多久交法务部审查？"}
 {"query_id":"D-005216-v1-paraphrase","doc_id":"D-005216","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"paraphrase","text":"前年四季度财务分析里超支或节约的金额是怎么算的"}
 {"query_id":"D-005216-v1-verbatim","doc_id":"D-005216","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第四季度经营分析里的费用偏差怎么计算"}
 {"query_id":"D-005324-v1-paraphrase","doc_id":"D-005324","version":1,"department":"product","classification":"confidential","document_type":"report","kind":"paraphrase","text":"去年Q2调价之后营收变化情况，报告里的净收入数字怎么看"}
 {"query_id":"D-005324-v1-verbatim","doc_id":"D-005324","version":1,"department":"product","classification":"confidential","document_type":"report","kind":"verbatim","text":"2025年第二季度定价策略执行效果和核心指标是多少"}
+{"query_id":"D-005361-v1-paraphrase","doc_id":"D-005361","version":1,"department":"finance","classification":"leadership","document_type":"report","kind":"paraphrase","text":"被审计的合作方里，还没结算又有争议的欠款有多少？"}
+{"query_id":"D-005361-v1-verbatim","doc_id":"D-005361","version":1,"department":"finance","classification":"leadership","document_type":"report","kind":"verbatim","text":"供应商审计的敞口和观察名单怎么定义"}
 {"query_id":"D-005447-v1-paraphrase","doc_id":"D-005447","version":1,"department":"research","classification":"confidential","document_type":"report","kind":"paraphrase","text":"2024年二季度院里研究项目一共花了多少钱？"}
 {"query_id":"D-005447-v1-verbatim","doc_id":"D-005447","version":1,"department":"research","classification":"confidential","document_type":"report","kind":"verbatim","text":"2024-Q2研究经费的核心统计数字是多少？"}
 {"query_id":"D-005474-v1-paraphrase","doc_id":"D-005474","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"paraphrase","text":"24年头三个月招人一共花了多少钱？"}
@@ -224,22 +312,38 @@
 {"query_id":"D-005731-v1-verbatim","doc_id":"D-005731","version":1,"department":"finance","classification":"confidential","document_type":"policy","kind":"verbatim","text":"临时专项项目金额超过部门年度预算百分之五要怎么办"}
 {"query_id":"D-005787-v1-paraphrase","doc_id":"D-005787","version":1,"department":"hr","classification":"leadership","document_type":"report","kind":"paraphrase","text":"管理层看的人力成本报告，今年头一季发的工资总额加起来多少？"}
 {"query_id":"D-005787-v1-verbatim","doc_id":"D-005787","version":1,"department":"hr","classification":"leadership","document_type":"report","kind":"verbatim","text":"一季度薪酬成本评估的薪酬支出合计是多少？"}
+{"query_id":"D-005820-v1-paraphrase","doc_id":"D-005820","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"paraphrase","text":"市场部这次招人加出差的申请，最后批了多少钱？"}
+{"query_id":"D-005820-v1-verbatim","doc_id":"D-005820","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"verbatim","text":"市场部招聘费用和差旅报销的批准金额是多少？"}
+{"query_id":"D-005839-v1-paraphrase","doc_id":"D-005839","version":1,"department":"finance","classification":"internal","document_type":"policy","kind":"paraphrase","text":"借了公司的周转钱超过一个月没报销，工资里会被扣吗？"}
+{"query_id":"D-005839-v1-verbatim","doc_id":"D-005839","version":1,"department":"finance","classification":"internal","document_type":"policy","kind":"verbatim","text":"备用金借支逾期未核销会怎么处理？"}
 {"query_id":"D-005851-v1-paraphrase","doc_id":"D-005851","version":1,"department":"it","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"跟花岗岩工坊签的系统维护协议值多少钱，何时签的？"}
 {"query_id":"D-005851-v1-verbatim","doc_id":"D-005851","version":1,"department":"it","classification":"confidential","document_type":"contract","kind":"verbatim","text":"Granite Works运维服务合同C-719729总金额多少？"}
 {"query_id":"D-005886-v1-paraphrase","doc_id":"D-005886","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"paraphrase","text":"实际花费占全年预算的比例怎么算，季度的数字算全年的吗"}
 {"query_id":"D-005886-v1-verbatim","doc_id":"D-005886","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"verbatim","text":"预算执行率指的是什么，本季度数据能代表全年结果吗"}
+{"query_id":"D-005928-v1-paraphrase","doc_id":"D-005928","version":1,"department":"hr","classification":"leadership","document_type":"approval","kind":"paraphrase","text":"人事部门要增加编制，管理层这次批准的钱大概多少？"}
+{"query_id":"D-005928-v1-verbatim","doc_id":"D-005928","version":1,"department":"hr","classification":"leadership","document_type":"approval","kind":"verbatim","text":"人力资源部编制调整的专项审批，拟获批金额是多少？"}
 {"query_id":"D-005961-v1-paraphrase","doc_id":"D-005961","version":1,"department":"it","classification":"public","document_type":"approval","kind":"paraphrase","text":"IT部门这次招聘与差旅的审批额度定了多少钱"}
 {"query_id":"D-005961-v1-verbatim","doc_id":"D-005961","version":1,"department":"it","classification":"public","document_type":"approval","kind":"verbatim","text":"信息技术部招聘和出差审批的批准金额是多少"}
 {"query_id":"D-005999-v1-paraphrase","doc_id":"D-005999","version":1,"department":"operations","classification":"public","document_type":"approval","kind":"paraphrase","text":"运营部出差这笔钱批了多少？超了谁掏？"}
 {"query_id":"D-005999-v1-verbatim","doc_id":"D-005999","version":1,"department":"operations","classification":"public","document_type":"approval","kind":"verbatim","text":"运营部差旅费用审批单的批准总额是多少元"}
+{"query_id":"D-006043-v1-paraphrase","doc_id":"D-006043","version":1,"department":"marketing","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年第二季度市场那边的线索变商机比例是按什么口径算的？"}
+{"query_id":"D-006043-v1-verbatim","doc_id":"D-006043","version":1,"department":"marketing","classification":"confidential","document_type":"report","kind":"verbatim","text":"市场部二季度经营报告里线索转化率是怎么算的？"}
 {"query_id":"D-006059-v1-paraphrase","doc_id":"D-006059","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"paraphrase","text":"工资到手的金额是怎么扣出来的？"}
 {"query_id":"D-006059-v1-verbatim","doc_id":"D-006059","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"应发工资和实发工资分别怎么计算的？"}
 {"query_id":"D-006083-v1-paraphrase","doc_id":"D-006083","version":1,"department":"operations","classification":"internal","document_type":"contract","kind":"paraphrase","text":"部门请外面机构来做员工培训，签的协议总价多少钱？"}
 {"query_id":"D-006083-v1-verbatim","doc_id":"D-006083","version":1,"department":"operations","classification":"internal","document_type":"contract","kind":"verbatim","text":"运营部外包培训服务的合同金额是多少？"}
+{"query_id":"D-006152-v1-paraphrase","doc_id":"D-006152","version":1,"department":"research","classification":"internal","document_type":"policy","kind":"paraphrase","text":"系统出故障后，负责人几个钟头内得向上级汇报"}
+{"query_id":"D-006152-v1-verbatim","doc_id":"D-006152","version":1,"department":"research","classification":"internal","document_type":"policy","kind":"verbatim","text":"突发事件发生后多久内要向应急小组报告"}
 {"query_id":"D-006158-v1-paraphrase","doc_id":"D-006158","version":1,"department":"engineering","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"工程组这次调预算和出差的开支，批下来一共多少钱？"}
 {"query_id":"D-006158-v1-verbatim","doc_id":"D-006158","version":1,"department":"engineering","classification":"confidential","document_type":"approval","kind":"verbatim","text":"工程部预算调整与差旅审批的核定金额是多少？"}
+{"query_id":"D-006212-v1-paraphrase","doc_id":"D-006212","version":1,"department":"sales","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"销售这边申请的那笔专项费用，先拨多少钱、尾款什么时候结？"}
+{"query_id":"D-006212-v1-verbatim","doc_id":"D-006212","version":1,"department":"sales","classification":"confidential","document_type":"approval","kind":"verbatim","text":"销售部大额支出审批的首期付款是核定总额的百分之几？"}
+{"query_id":"D-006260-v1-paraphrase","doc_id":"D-006260","version":1,"department":"support","classification":"public","document_type":"approval","kind":"paraphrase","text":"整合期间客服团队临时加人、买设备的预算批了多少，能花在哪"}
+{"query_id":"D-006260-v1-verbatim","doc_id":"D-006260","version":1,"department":"support","classification":"public","document_type":"approval","kind":"verbatim","text":"并购过渡期客户支持部服务资源审批金额和用途"}
 {"query_id":"D-006307-v1-paraphrase","doc_id":"D-006307","version":1,"department":"hr","classification":"internal","document_type":"contract","kind":"paraphrase","text":"请外部机构给员工上课，这笔钱一共多少，怎么分期付？"}
 {"query_id":"D-006307-v1-verbatim","doc_id":"D-006307","version":1,"department":"hr","classification":"internal","document_type":"contract","kind":"verbatim","text":"人力资源部与Granite Works的年度员工培训合同金额是多少？"}
+{"query_id":"D-006334-v1-paraphrase","doc_id":"D-006334","version":1,"department":"product","classification":"leadership","document_type":"policy","kind":"paraphrase","text":"咱们部门那套薪酬、差旅和供应商的规矩，领导们打算怎么改？"}
+{"query_id":"D-006334-v1-verbatim","doc_id":"D-006334","version":1,"department":"product","classification":"leadership","document_type":"policy","kind":"verbatim","text":"产品部制度的执行效果，管理层评估后会怎么调整？"}
 {"query_id":"D-006386-v1-paraphrase","doc_id":"D-006386","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Acme那家物流公司的长期运输协议，钱怎么结算、总共多少？"}
 {"query_id":"D-006386-v1-verbatim","doc_id":"D-006386","version":1,"department":"procurement","classification":"internal","document_type":"contract","kind":"verbatim","text":"Acme Logistics物流服务合同的总金额和付款方式？"}
 {"query_id":"D-006415-v1-paraphrase","doc_id":"D-006415","version":1,"department":"it","classification":"public","document_type":"report","kind":"paraphrase","text":"公司里哪种系统故障才会被认定为重大事故？"}
@@ -252,6 +356,10 @@
 {"query_id":"D-006533-v1-verbatim","doc_id":"D-006533","version":1,"department":"operations","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年一季度运营部的差旅费用包括哪几项？"}
 {"query_id":"D-006547-v1-paraphrase","doc_id":"D-006547","version":1,"department":"product","classification":"leadership","document_type":"approval","kind":"paraphrase","text":"管理层批的那笔收购准备经费大概批了多少钱？"}
 {"query_id":"D-006547-v1-verbatim","doc_id":"D-006547","version":1,"department":"product","classification":"leadership","document_type":"approval","kind":"verbatim","text":"并购前期技术尽调的资源投入额度是多少？"}
+{"query_id":"D-006588-v1-paraphrase","doc_id":"D-006588","version":1,"department":"product","classification":"public","document_type":"report","kind":"paraphrase","text":"去年三季度拉来的新用户一共带来多少进账？"}
+{"query_id":"D-006588-v1-verbatim","doc_id":"D-006588","version":1,"department":"product","classification":"public","document_type":"report","kind":"verbatim","text":"2025年第三季度用户增长报告中的新增有效收入是多少？"}
+{"query_id":"D-006591-v1-paraphrase","doc_id":"D-006591","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年三季度公司账上真正由生意带来的现金净增加是多少？"}
+{"query_id":"D-006591-v1-verbatim","doc_id":"D-006591","version":1,"department":"finance","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第三季度经营性现金流和应收账款回收情况怎么样？"}
 {"query_id":"D-006607-v1-paraphrase","doc_id":"D-006607","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年一季度HR搞合规花了多少钱，统计的是哪段时间？"}
 {"query_id":"D-006607-v1-verbatim","doc_id":"D-006607","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第一季度人力资源部合规相关核心投入数据是多少？"}
 {"query_id":"D-006634-v2-paraphrase","doc_id":"D-006634","version":2,"department":"procurement","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"买机器设备这次批下来的最高能花多少钱？"}
@@ -270,24 +378,50 @@
 {"query_id":"D-006794-v1-verbatim","doc_id":"D-006794","version":1,"department":"hr","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第三季度招聘完成率是怎么定义的？"}
 {"query_id":"D-006834-v1-paraphrase","doc_id":"D-006834","version":1,"department":"legal","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"盖章登记本上都得写清哪些信息，谁经手谁批的"}
 {"query_id":"D-006834-v1-verbatim","doc_id":"D-006834","version":1,"department":"legal","classification":"confidential","document_type":"policy","kind":"verbatim","text":"印章台账需要记录用印时间、文件名称和经办人吗"}
+{"query_id":"D-006840-v1-paraphrase","doc_id":"D-006840","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"paraphrase","text":"市场活动花费超了二十万，得按哪套流程批？"}
+{"query_id":"D-006840-v1-verbatim","doc_id":"D-006840","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"verbatim","text":"市场部单项推广预算超过二十万元要走什么审批？"}
 {"query_id":"D-006869-v1-paraphrase","doc_id":"D-006869","version":1,"department":"legal","classification":"public","document_type":"report","kind":"paraphrase","text":"法务部去年二季度处理合规事项，涉及金额合计多少？"}
 {"query_id":"D-006869-v1-verbatim","doc_id":"D-006869","version":1,"department":"legal","classification":"public","document_type":"report","kind":"verbatim","text":"2024年第二季度法务部合规工作报告的关键指标是多少"}
+{"query_id":"D-006909-v1-paraphrase","doc_id":"D-006909","version":1,"department":"support","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"最紧急的那种客户问题，支持人员最晚多久得先回个实质性的答复？"}
+{"query_id":"D-006909-v1-verbatim","doc_id":"D-006909","version":1,"department":"support","classification":"confidential","document_type":"policy","kind":"verbatim","text":"客户支持部一级工单多久内要完成首次响应？"}
+{"query_id":"D-006927-v1-paraphrase","doc_id":"D-006927","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"paraphrase","text":"今年头一个季度法务那边统计的数字是多少块？"}
+{"query_id":"D-006927-v1-verbatim","doc_id":"D-006927","version":1,"department":"legal","classification":"internal","document_type":"report","kind":"verbatim","text":"法务部报告里的风险敞口是怎么定义的？"}
+{"query_id":"D-007039-v1-paraphrase","doc_id":"D-007039","version":1,"department":"finance","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"报销时票据用复印件行不行？审批要走几级？"}
+{"query_id":"D-007039-v1-verbatim","doc_id":"D-007039","version":1,"department":"finance","classification":"confidential","document_type":"policy","kind":"verbatim","text":"费用报销的审批层级和原始凭证要求是什么"}
 {"query_id":"D-007068-v1-paraphrase","doc_id":"D-007068","version":1,"department":"procurement","classification":"internal","document_type":"approval","kind":"paraphrase","text":"采购同事出差报销的额度批下来了多少钱？审批单号多少？"}
 {"query_id":"D-007068-v1-verbatim","doc_id":"D-007068","version":1,"department":"procurement","classification":"internal","document_type":"approval","kind":"verbatim","text":"采购部年度差旅费用审批批准金额是多少，审批编号是什么？"}
+{"query_id":"D-007107-v1-paraphrase","doc_id":"D-007107","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"paraphrase","text":"二四年收尾那三个月，采购花费的执行进度到了什么程度？"}
+{"query_id":"D-007107-v1-verbatim","doc_id":"D-007107","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第四季度采购部预算执行情况怎么样？"}
 {"query_id":"D-007109-v1-paraphrase","doc_id":"D-007109","version":1,"department":"engineering","classification":"internal","document_type":"policy","kind":"paraphrase","text":"上线前要过哪些自动检测，才能允许代码发出去"}
 {"query_id":"D-007109-v1-verbatim","doc_id":"D-007109","version":1,"department":"engineering","classification":"internal","document_type":"policy","kind":"verbatim","text":"代码评审与发布流程里的发布门禁有哪些要求"}
+{"query_id":"D-007121-v2-paraphrase","doc_id":"D-007121","version":2,"department":"engineering","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年一季度技术部门故障处理花了多少钱，预算用得如何？"}
+{"query_id":"D-007121-v2-verbatim","doc_id":"D-007121","version":2,"department":"engineering","classification":"confidential","document_type":"report","kind":"verbatim","text":"2026年第一季度工程部线上事件与预算执行情况怎样？"}
+{"query_id":"D-007147-v1-paraphrase","doc_id":"D-007147","version":1,"department":"hr","classification":"leadership","document_type":"contract","kind":"paraphrase","text":"HR跟Borealis那边的外包服务协议一共多少钱？"}
+{"query_id":"D-007147-v1-verbatim","doc_id":"D-007147","version":1,"department":"hr","classification":"leadership","document_type":"contract","kind":"verbatim","text":"人力资源部与Borealis Systems签的服务合同总金额是多少？"}
 {"query_id":"D-007173-v1-paraphrase","doc_id":"D-007173","version":1,"department":"procurement","classification":"internal","document_type":"policy","kind":"paraphrase","text":"想进采购部的合格供货商名录，得先过哪几道关？"}
 {"query_id":"D-007173-v1-verbatim","doc_id":"D-007173","version":1,"department":"procurement","classification":"internal","document_type":"policy","kind":"verbatim","text":"采购部供应商准入需要经过哪些审查环节？"}
+{"query_id":"D-007238-v1-paraphrase","doc_id":"D-007238","version":1,"department":"engineering","classification":"public","document_type":"approval","kind":"paraphrase","text":"机房加机器那个工程批了多少钱，机器送来之后要做哪些测试"}
+{"query_id":"D-007238-v1-verbatim","doc_id":"D-007238","version":1,"department":"engineering","classification":"public","document_type":"approval","kind":"verbatim","text":"工程部服务器扩容项目审批的资金使用和验收标准"}
 {"query_id":"D-007253-v1-paraphrase","doc_id":"D-007253","version":1,"department":"research","classification":"confidential","document_type":"report","kind":"paraphrase","text":"2024年第三季度院里科研投入实际用掉了多少钱"}
 {"query_id":"D-007253-v1-verbatim","doc_id":"D-007253","version":1,"department":"research","classification":"confidential","document_type":"report","kind":"verbatim","text":"研究院2024-Q3季度研发经费的综合执行值是多少"}
 {"query_id":"D-007277-v1-paraphrase","doc_id":"D-007277","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"paraphrase","text":"请外面律师所的费用这次批了多少，哪天批的？"}
 {"query_id":"D-007277-v1-verbatim","doc_id":"D-007277","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"verbatim","text":"法务部外聘律师费用审批单A-840759批准了多少钱？"}
+{"query_id":"D-007282-v1-paraphrase","doc_id":"D-007282","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"paraphrase","text":"2024年法务请咨询机构做合规梳理，给的预算额度是多少？"}
+{"query_id":"D-007282-v1-verbatim","doc_id":"D-007282","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"verbatim","text":"法务部2024年度合规咨询项目的批准金额是多少？"}
+{"query_id":"D-007306-v1-paraphrase","doc_id":"D-007306","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"paraphrase","text":"运营那边给员工补工资奖金的那笔钱，批了多少？"}
+{"query_id":"D-007306-v1-verbatim","doc_id":"D-007306","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"verbatim","text":"运营部绩效补发和薪资核算的批准金额是多少？"}
 {"query_id":"D-007377-v1-paraphrase","doc_id":"D-007377","version":1,"department":"operations","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"门店那个健康咨询系统外包合同，签了多少钱，哪天开始生效？"}
 {"query_id":"D-007377-v1-verbatim","doc_id":"D-007377","version":1,"department":"operations","classification":"confidential","document_type":"contract","kind":"verbatim","text":"Juniper Health预约管理服务合同的金额和生效日期？"}
+{"query_id":"D-007494-v1-paraphrase","doc_id":"D-007494","version":1,"department":"operations","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"客服派单后多久要第一次回复客户，周末值班怎么算"}
+{"query_id":"D-007494-v1-verbatim","doc_id":"D-007494","version":1,"department":"operations","classification":"confidential","document_type":"policy","kind":"verbatim","text":"运营部工单响应时限一般是多长时间，节假日怎么处理"}
 {"query_id":"D-007528-v1-paraphrase","doc_id":"D-007528","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年下半年第三季度的销售业绩数字出来了吗"}
 {"query_id":"D-007528-v1-verbatim","doc_id":"D-007528","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"verbatim","text":"销售部2025年三季度累计成交额是多少"}
+{"query_id":"D-007544-v1-paraphrase","doc_id":"D-007544","version":1,"department":"operations","classification":"confidential","document_type":"report","kind":"paraphrase","text":"去年七到九月系统出问题，给公司造成的损失共计多少"}
+{"query_id":"D-007544-v1-verbatim","doc_id":"D-007544","version":1,"department":"operations","classification":"confidential","document_type":"report","kind":"verbatim","text":"2025年三季度运营事件的损失估算合计金额是多少"}
 {"query_id":"D-007597-v1-paraphrase","doc_id":"D-007597","version":1,"department":"sales","classification":"leadership","document_type":"contract","kind":"paraphrase","text":"物流那家大客户回款慢的话，得动用多少信贷额度"}
 {"query_id":"D-007597-v1-verbatim","doc_id":"D-007597","version":1,"department":"sales","classification":"leadership","document_type":"contract","kind":"verbatim","text":"Acme Logistics合同的付款节点与现金流压力"}
+{"query_id":"D-007607-v1-paraphrase","doc_id":"D-007607","version":1,"department":"hr","classification":"internal","document_type":"approval","kind":"paraphrase","text":"明年招人的经费，HR那边最后批了多少钱？"}
+{"query_id":"D-007607-v1-verbatim","doc_id":"D-007607","version":1,"department":"hr","classification":"internal","document_type":"approval","kind":"verbatim","text":"人力资源部招聘预算审批单批准金额是多少"}
 {"query_id":"D-007618-v1-paraphrase","doc_id":"D-007618","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Evergreen那家媒体公司对账、开发票的事情怎么弄？"}
 {"query_id":"D-007618-v1-verbatim","doc_id":"D-007618","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"verbatim","text":"Evergreen Media合同的广告与媒体结算范围包括哪些？"}
 {"query_id":"D-007633-v1-paraphrase","doc_id":"D-007633","version":1,"department":"finance","classification":"internal","document_type":"approval","kind":"paraphrase","text":"财务团队这回补充人手和上课花了公司多少钱批下来了"}
@@ -298,6 +432,8 @@
 {"query_id":"D-007693-v1-verbatim","doc_id":"D-007693","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"verbatim","text":"户外广告供应商入围前须经过至少三家比价吗"}
 {"query_id":"D-007708-v1-paraphrase","doc_id":"D-007708","version":1,"department":"support","classification":"internal","document_type":"report","kind":"paraphrase","text":"两年前第二季度，我们的一线客服整体表现和客户满意情况如何"}
 {"query_id":"D-007708-v1-verbatim","doc_id":"D-007708","version":1,"department":"support","classification":"internal","document_type":"report","kind":"verbatim","text":"客户支持部二季度服务质量回顾的核心指标是多少"}
+{"query_id":"D-007732-v1-paraphrase","doc_id":"D-007732","version":1,"department":"engineering","classification":"public","document_type":"policy","kind":"paraphrase","text":"代码提交和配置变更需要怎么做记录和复核？"}
+{"query_id":"D-007732-v1-verbatim","doc_id":"D-007732","version":1,"department":"engineering","classification":"public","document_type":"policy","kind":"verbatim","text":"工程部研发过程中的审计留痕有哪些要求？"}
 {"query_id":"D-007778-v1-paraphrase","doc_id":"D-007778","version":1,"department":"sales","classification":"internal","document_type":"contract","kind":"paraphrase","text":"给Juniper Health供货的那份大单合同一共多少钱？"}
 {"query_id":"D-007778-v1-verbatim","doc_id":"D-007778","version":1,"department":"sales","classification":"internal","document_type":"contract","kind":"verbatim","text":"Juniper Health采购框架合同的合同总金额是多少？"}
 {"query_id":"D-007787-v1-paraphrase","doc_id":"D-007787","version":1,"department":"finance","classification":"confidential","document_type":"report","kind":"paraphrase","text":"去年头三个月公司做生意实际进账的现金净额有多少"}
@@ -310,16 +446,24 @@
 {"query_id":"D-007855-v1-verbatim","doc_id":"D-007855","version":1,"department":"sales","classification":"internal","document_type":"report","kind":"verbatim","text":"2024年第三季度销售部的销售收入是多少？"}
 {"query_id":"D-007866-v1-paraphrase","doc_id":"D-007866","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"paraphrase","text":"上线新功能前要走哪些评审流程，灰度放量比例怎么定？"}
 {"query_id":"D-007866-v1-verbatim","doc_id":"D-007866","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"verbatim","text":"产品部需求评审和版本冻结、灰度发布的规定"}
+{"query_id":"D-007875-v1-paraphrase","doc_id":"D-007875","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"paraphrase","text":"工资一般每个月几号前发到手？"}
+{"query_id":"D-007875-v1-verbatim","doc_id":"D-007875","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"薪酬与预算管理制度中发薪周期具体是怎么规定的？"}
+{"query_id":"D-007881-v1-paraphrase","doc_id":"D-007881","version":1,"department":"procurement","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"想引进新的合作厂商，得满足哪些资格门槛才能进名单？"}
+{"query_id":"D-007881-v1-verbatim","doc_id":"D-007881","version":1,"department":"procurement","classification":"confidential","document_type":"policy","kind":"verbatim","text":"采购管理与供应商准入制度的适用范围包括哪些？"}
 {"query_id":"D-007901-v1-paraphrase","doc_id":"D-007901","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"paraphrase","text":"部门查账的规定从哪天起生效呀？"}
 {"query_id":"D-007901-v1-verbatim","doc_id":"D-007901","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"verbatim","text":"运营部内部审计管理制度什么时候开始执行？"}
 {"query_id":"D-007908-v1-paraphrase","doc_id":"D-007908","version":1,"department":"procurement","classification":"public","document_type":"report","kind":"paraphrase","text":"去年三季度买东西的执行总额一共花了多少钱？"}
 {"query_id":"D-007908-v1-verbatim","doc_id":"D-007908","version":1,"department":"procurement","classification":"public","document_type":"report","kind":"verbatim","text":"采购部2025年第三季度采购执行报告的核心指标是多少？"}
 {"query_id":"D-007958-v1-paraphrase","doc_id":"D-007958","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"paraphrase","text":"运营部搞的让利活动，领导最后批了多少钱，哪天签的字？"}
 {"query_id":"D-007958-v1-verbatim","doc_id":"D-007958","version":1,"department":"operations","classification":"internal","document_type":"approval","kind":"verbatim","text":"运营部专项促销投入批准金额是多少，批复日期是哪天？"}
+{"query_id":"D-007977-v1-paraphrase","doc_id":"D-007977","version":1,"department":"marketing","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Cedar那家公司签的品牌宣传数据服务，总价是几块钱？"}
+{"query_id":"D-007977-v1-verbatim","doc_id":"D-007977","version":1,"department":"marketing","classification":"internal","document_type":"contract","kind":"verbatim","text":"市场部和Cedar Analytics签的品牌推广合同金额多少？"}
 {"query_id":"D-008008-v1-paraphrase","doc_id":"D-008008","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"paraphrase","text":"超过多久不用的系统账号会被当成没人用？"}
 {"query_id":"D-008008-v1-verbatim","doc_id":"D-008008","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"verbatim","text":"信息技术部闲置账号的判定标准是什么？"}
 {"query_id":"D-008038-v1-paraphrase","doc_id":"D-008038","version":1,"department":"it","classification":"internal","document_type":"contract","kind":"paraphrase","text":"医疗信息系统的维护合同，运行达标比例定多少？"}
 {"query_id":"D-008038-v1-verbatim","doc_id":"D-008038","version":1,"department":"it","classification":"internal","document_type":"contract","kind":"verbatim","text":"Juniper Health维保合同的系统可用率要求是多少？"}
+{"query_id":"D-008054-v2-paraphrase","doc_id":"D-008054","version":2,"department":"sales","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"销售大单报价经过审核后，最新确定的金额有没有变化"}
+{"query_id":"D-008054-v2-verbatim","doc_id":"D-008054","version":2,"department":"sales","classification":"confidential","document_type":"approval","kind":"verbatim","text":"大客户报价审批单修订后批准金额是多少"}
 {"query_id":"D-008116-v1-paraphrase","doc_id":"D-008116","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"paraphrase","text":"新品上市那笔市场投放的钱批了多少，能挪去做别的吗？"}
 {"query_id":"D-008116-v1-verbatim","doc_id":"D-008116","version":1,"department":"marketing","classification":"internal","document_type":"approval","kind":"verbatim","text":"市场部专项推广预算的核定金额是多少元"}
 {"query_id":"D-008191-v2-paraphrase","doc_id":"D-008191","version":2,"department":"legal","classification":"internal","document_type":"policy","kind":"paraphrase","text":"现在多少钱以上的合同必须先过法务审查？"}
@@ -328,22 +472,44 @@
 {"query_id":"D-008230-v1-verbatim","doc_id":"D-008230","version":1,"department":"legal","classification":"internal","document_type":"policy","kind":"verbatim","text":"合规培训管理制度中对员工缺席培训怎么处理"}
 {"query_id":"D-008251-v1-paraphrase","doc_id":"D-008251","version":1,"department":"research","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年年底研究室的钱花得怎么样，有没有超预算或报销不规范的？"}
 {"query_id":"D-008251-v1-verbatim","doc_id":"D-008251","version":1,"department":"research","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第四季度研究院经费执行率和超支情况"}
+{"query_id":"D-008269-v1-paraphrase","doc_id":"D-008269","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Helios那家公司签的供电服务合同，要用到哪天？"}
+{"query_id":"D-008269-v1-verbatim","doc_id":"D-008269","version":1,"department":"finance","classification":"internal","document_type":"contract","kind":"verbatim","text":"Helios Energy能源服务合同的有效期到什么时候"}
 {"query_id":"D-008329-v1-paraphrase","doc_id":"D-008329","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"paraphrase","text":"今年四月到六月供货商出的各种问题，一共赔付了多少钱？"}
 {"query_id":"D-008329-v1-verbatim","doc_id":"D-008329","version":1,"department":"procurement","classification":"internal","document_type":"report","kind":"verbatim","text":"2026年第二季度供应商异常事件涉及的损失和补偿金额是多少"}
+{"query_id":"D-008373-v1-paraphrase","doc_id":"D-008373","version":1,"department":"procurement","classification":"confidential","document_type":"report","kind":"paraphrase","text":"前年四五六月份，合并供应商到底给公司省了多少钱"}
+{"query_id":"D-008373-v1-verbatim","doc_id":"D-008373","version":1,"department":"procurement","classification":"confidential","document_type":"report","kind":"verbatim","text":"2024年第二季度供应商整合带来的采购节约金额是多少"}
 {"query_id":"D-008404-v1-paraphrase","doc_id":"D-008404","version":1,"department":"research","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"一次花超五万的科研款项，得找哪些人签字批准？"}
 {"query_id":"D-008404-v1-verbatim","doc_id":"D-008404","version":1,"department":"research","classification":"confidential","document_type":"policy","kind":"verbatim","text":"项目经费支出单笔超过五万元，审批流程是什么？"}
 {"query_id":"D-008407-v1-paraphrase","doc_id":"D-008407","version":1,"department":"support","classification":"internal","document_type":"report","kind":"paraphrase","text":"客服第一次答复客户要算多久，用哪个时间点"}
 {"query_id":"D-008407-v1-verbatim","doc_id":"D-008407","version":1,"department":"support","classification":"internal","document_type":"report","kind":"verbatim","text":"工单首次回复时间怎么统计"}
+{"query_id":"D-008408-v2-paraphrase","doc_id":"D-008408","version":2,"department":"support","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"跟Ionic Labs合作外包客服的那份合同，整体花费有多少？"}
+{"query_id":"D-008408-v2-verbatim","doc_id":"D-008408","version":2,"department":"support","classification":"confidential","document_type":"contract","kind":"verbatim","text":"客户支持部和Ionic Labs的外包合同服务总金额是多少？"}
+{"query_id":"D-008431-v1-paraphrase","doc_id":"D-008431","version":1,"department":"finance","classification":"public","document_type":"approval","kind":"paraphrase","text":"编号是E4664那笔开销，财务最终批了多少钱？"}
+{"query_id":"D-008431-v1-verbatim","doc_id":"D-008431","version":1,"department":"finance","classification":"public","document_type":"approval","kind":"verbatim","text":"申请编号E4664的费用支出核准金额是多少"}
+{"query_id":"D-008469-v1-paraphrase","doc_id":"D-008469","version":1,"department":"research","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Granite那家公司签的协议，一共多少钱，什么时候到期？"}
+{"query_id":"D-008469-v1-verbatim","doc_id":"D-008469","version":1,"department":"research","classification":"internal","document_type":"contract","kind":"verbatim","text":"Granite Works的技术服务合同总金额是多少？"}
+{"query_id":"D-008518-v1-paraphrase","doc_id":"D-008518","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"paraphrase","text":"买实验仪器能不能绕过招标，直接找厂家下单"}
+{"query_id":"D-008518-v1-verbatim","doc_id":"D-008518","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"verbatim","text":"科研设备采购必须通过集中招标平台吗"}
 {"query_id":"D-008527-v1-paraphrase","doc_id":"D-008527","version":1,"department":"it","classification":"internal","document_type":"approval","kind":"paraphrase","text":"IT部买系统这笔审批，批下来的钱是不是封顶数？"}
 {"query_id":"D-008527-v1-verbatim","doc_id":"D-008527","version":1,"department":"it","classification":"internal","document_type":"approval","kind":"verbatim","text":"信息技术部核心系统采购的合规审查指什么？"}
 {"query_id":"D-008534-v1-paraphrase","doc_id":"D-008534","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"paraphrase","text":"E2392那笔付款法务最后批了多少钱，有没有上限"}
 {"query_id":"D-008534-v1-verbatim","doc_id":"D-008534","version":1,"department":"legal","classification":"internal","document_type":"approval","kind":"verbatim","text":"申请编号E2392的法务付款批准金额是多少"}
+{"query_id":"D-008572-v1-paraphrase","doc_id":"D-008572","version":1,"department":"engineering","classification":"public","document_type":"contract","kind":"paraphrase","text":"工程部找的那家宣传拍摄公司，合同有效期到什么时候"}
+{"query_id":"D-008572-v1-verbatim","doc_id":"D-008572","version":1,"department":"engineering","classification":"public","document_type":"contract","kind":"verbatim","text":"工程部与Evergreen Media的宣传服务合同总金额"}
+{"query_id":"D-008579-v1-paraphrase","doc_id":"D-008579","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"paraphrase","text":"一个账号连续多久没登录就算不用的？"}
+{"query_id":"D-008579-v1-verbatim","doc_id":"D-008579","version":1,"department":"it","classification":"internal","document_type":"policy","kind":"verbatim","text":"系统账号管理制度里闲置账号是怎么定义的？"}
+{"query_id":"D-008587-v1-paraphrase","doc_id":"D-008587","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"paraphrase","text":"参加公司外面的培训花超过三千块，得找哪个领导签字？"}
+{"query_id":"D-008587-v1-verbatim","doc_id":"D-008587","version":1,"department":"hr","classification":"internal","document_type":"policy","kind":"verbatim","text":"单次外部培训费用超过三千元需要谁批准？"}
 {"query_id":"D-008618-v2-paraphrase","doc_id":"D-008618","version":2,"department":"support","classification":"confidential","document_type":"contract","kind":"paraphrase","text":"和Fulcrum公司的运维协议啥时候起效？"}
 {"query_id":"D-008618-v2-verbatim","doc_id":"D-008618","version":2,"department":"support","classification":"confidential","document_type":"contract","kind":"verbatim","text":"客户支持部运维服务合同修订版的生效日期是哪天？"}
 {"query_id":"D-008625-v1-paraphrase","doc_id":"D-008625","version":1,"department":"hr","classification":"internal","document_type":"contract","kind":"paraphrase","text":"那家外部咨询机构的合同款项分几期支付？"}
 {"query_id":"D-008625-v1-verbatim","doc_id":"D-008625","version":1,"department":"hr","classification":"internal","document_type":"contract","kind":"verbatim","text":"Fulcrum Capital咨询合同的付款方式是怎样的？"}
 {"query_id":"D-008638-v1-paraphrase","doc_id":"D-008638","version":1,"department":"support","classification":"leadership","document_type":"contract","kind":"paraphrase","text":"跟Borealis那边续签的服务，领导们主要盯哪几项约定？"}
 {"query_id":"D-008638-v1-verbatim","doc_id":"D-008638","version":1,"department":"support","classification":"leadership","document_type":"contract","kind":"verbatim","text":"与Borealis Systems的服务续约合同，管理层关注哪些条款？"}
+{"query_id":"D-008688-v2-paraphrase","doc_id":"D-008688","version":2,"department":"engineering","classification":"internal","document_type":"policy","kind":"paraphrase","text":"外面的合作方想进工程部干活，需要先满足什么条件？"}
+{"query_id":"D-008688-v2-verbatim","doc_id":"D-008688","version":2,"department":"engineering","classification":"internal","document_type":"policy","kind":"verbatim","text":"外部供应商协作管理制度的准入标准有哪些"}
+{"query_id":"D-008764-v1-paraphrase","doc_id":"D-008764","version":1,"department":"marketing","classification":"internal","document_type":"contract","kind":"paraphrase","text":"给Acme公司做物流宣传的那份协议，钱分几次付？"}
+{"query_id":"D-008764-v1-verbatim","doc_id":"D-008764","version":1,"department":"marketing","classification":"internal","document_type":"contract","kind":"verbatim","text":"市场部与Acme Logistics签订的物流推广服务合同付款安排"}
 {"query_id":"D-008781-v1-paraphrase","doc_id":"D-008781","version":1,"department":"finance","classification":"leadership","document_type":"approval","kind":"paraphrase","text":"那笔一百多万的款子，领导最后同意付了没有？"}
 {"query_id":"D-008781-v1-verbatim","doc_id":"D-008781","version":1,"department":"finance","classification":"leadership","document_type":"approval","kind":"verbatim","text":"本次拨付1102095.21元的审批条件满足吗？"}
 {"query_id":"D-008787-v1-paraphrase","doc_id":"D-008787","version":1,"department":"marketing","classification":"internal","document_type":"policy","kind":"paraphrase","text":"新增岗位要补人，申请表里得写清哪些内容？"}
@@ -364,6 +530,8 @@
 {"query_id":"D-009105-v1-verbatim","doc_id":"D-009105","version":1,"department":"marketing","classification":"public","document_type":"approval","kind":"verbatim","text":"市场部专项预算申请的审批金额是多少？"}
 {"query_id":"D-009107-v1-paraphrase","doc_id":"D-009107","version":1,"department":"engineering","classification":"leadership","document_type":"contract","kind":"paraphrase","text":"跟Ionic公司的外包合作，高层怎么看它的风险？"}
 {"query_id":"D-009107-v1-verbatim","doc_id":"D-009107","version":1,"department":"engineering","classification":"leadership","document_type":"contract","kind":"verbatim","text":"Ionic Labs合作项目的外包依赖风险评估怎么做？"}
+{"query_id":"D-009113-v1-paraphrase","doc_id":"D-009113","version":1,"department":"hr","classification":"public","document_type":"contract","kind":"paraphrase","text":"给HR帮忙找简历、做培训的那家外包公司，合同一共多少钱？"}
+{"query_id":"D-009113-v1-verbatim","doc_id":"D-009113","version":1,"department":"hr","classification":"public","document_type":"contract","kind":"verbatim","text":"Evergreen Media招聘外包合同的总金额和付款方式"}
 {"query_id":"D-009138-v1-paraphrase","doc_id":"D-009138","version":1,"department":"procurement","classification":"confidential","document_type":"report","kind":"paraphrase","text":"今年一季度买东西省下来的钱，还有供应商按时送货比例，统计口径是啥？"}
 {"query_id":"D-009138-v1-verbatim","doc_id":"D-009138","version":1,"department":"procurement","classification":"confidential","document_type":"report","kind":"verbatim","text":"采购部2026年第一季度的采购节约额和准时交付率怎么算？"}
 {"query_id":"D-009139-v1-paraphrase","doc_id":"D-009139","version":1,"department":"research","classification":"public","document_type":"policy","kind":"paraphrase","text":"课题经费一次花超过五万块得找谁签字同意"}
@@ -380,10 +548,16 @@
 {"query_id":"D-009341-v1-verbatim","doc_id":"D-009341","version":1,"department":"finance","classification":"internal","document_type":"policy","kind":"verbatim","text":"招聘费用合规管理制度里猎头服务的付费条件是什么？"}
 {"query_id":"D-009355-v1-paraphrase","doc_id":"D-009355","version":1,"department":"sales","classification":"internal","document_type":"approval","kind":"paraphrase","text":"销售部给大客户的市场推广，今年批了多少预算"}
 {"query_id":"D-009355-v1-verbatim","doc_id":"D-009355","version":1,"department":"sales","classification":"internal","document_type":"approval","kind":"verbatim","text":"销售部大客户年度营销费用审批的批准金额是多少"}
+{"query_id":"D-009378-v1-paraphrase","doc_id":"D-009378","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"paraphrase","text":"科研这边的专项资金，这次批下来的数额是多少？"}
+{"query_id":"D-009378-v1-verbatim","doc_id":"D-009378","version":1,"department":"research","classification":"internal","document_type":"approval","kind":"verbatim","text":"研究院年度研发经费拨付批了多少钱？"}
 {"query_id":"D-009435-v1-paraphrase","doc_id":"D-009435","version":1,"department":"product","classification":"confidential","document_type":"report","kind":"paraphrase","text":"去年四季度产品线的整体经营数据，关键数值是多少？"}
 {"query_id":"D-009435-v1-verbatim","doc_id":"D-009435","version":1,"department":"product","classification":"confidential","document_type":"report","kind":"verbatim","text":"2025-Q4产品部经营报告的核心指标是多少？"}
+{"query_id":"D-009438-v1-paraphrase","doc_id":"D-009438","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"paraphrase","text":"同事出去跑业务的花费怎么报，合作的外包公司要怎么审核选用？"}
+{"query_id":"D-009438-v1-verbatim","doc_id":"D-009438","version":1,"department":"operations","classification":"internal","document_type":"policy","kind":"verbatim","text":"运营部员工出差报销和供应商准入要遵守什么规定？"}
 {"query_id":"D-009487-v1-paraphrase","doc_id":"D-009487","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"paraphrase","text":"产品规划的路线图隔多长时间刷新，对外公布前得谁拍板？"}
 {"query_id":"D-009487-v1-verbatim","doc_id":"D-009487","version":1,"department":"product","classification":"internal","document_type":"policy","kind":"verbatim","text":"产品部路线图多久更新一次，发布前要谁审核？"}
+{"query_id":"D-009489-v1-paraphrase","doc_id":"D-009489","version":1,"department":"marketing","classification":"leadership","document_type":"policy","kind":"paraphrase","text":"公司要收购别家那段时间，出差报销要走哪些签字流程"}
+{"query_id":"D-009489-v1-verbatim","doc_id":"D-009489","version":1,"department":"marketing","classification":"leadership","document_type":"policy","kind":"verbatim","text":"并购敏感期内市场部差旅审批的分级标准是怎样的"}
 {"query_id":"D-009498-v2-paraphrase","doc_id":"D-009498","version":2,"department":"sales","classification":"internal","document_type":"policy","kind":"paraphrase","text":"拿到潜在客户资料之后，多长时间要录进系统里"}
 {"query_id":"D-009498-v2-verbatim","doc_id":"D-009498","version":2,"department":"sales","classification":"internal","document_type":"policy","kind":"verbatim","text":"客户线索获取后多久内要完成系统登记"}
 {"query_id":"D-009520-v2-paraphrase","doc_id":"D-009520","version":2,"department":"research","classification":"internal","document_type":"contract","kind":"paraphrase","text":"跟Evergreen Media签的那份技术合作协议一共多少钱"}
@@ -392,8 +566,14 @@
 {"query_id":"D-009522-v1-verbatim","doc_id":"D-009522","version":1,"department":"engineering","classification":"internal","document_type":"policy","kind":"verbatim","text":"工程部出差期间发生的事件怎么分级响应？"}
 {"query_id":"D-009551-v1-paraphrase","doc_id":"D-009551","version":1,"department":"finance","classification":"confidential","document_type":"policy","kind":"paraphrase","text":"超预算花钱、账对不上这类情况，公司内部怎么分轻重缓急并上报？"}
 {"query_id":"D-009551-v1-verbatim","doc_id":"D-009551","version":1,"department":"finance","classification":"confidential","document_type":"policy","kind":"verbatim","text":"预算刚性与财务事件的等级划分标准是什么？"}
+{"query_id":"D-009552-v1-paraphrase","doc_id":"D-009552","version":1,"department":"procurement","classification":"confidential","document_type":"approval","kind":"paraphrase","text":"这笔采购打款的批复还能用多久，过期了要重新报吗？"}
+{"query_id":"D-009552-v1-verbatim","doc_id":"D-009552","version":1,"department":"procurement","classification":"confidential","document_type":"approval","kind":"verbatim","text":"大额采购付款审批事项的有效期到什么时候？"}
+{"query_id":"D-009568-v1-paraphrase","doc_id":"D-009568","version":1,"department":"product","classification":"public","document_type":"report","kind":"paraphrase","text":"去年年底这三个月的整体经营得分一共多少分"}
+{"query_id":"D-009568-v1-verbatim","doc_id":"D-009568","version":1,"department":"product","classification":"public","document_type":"report","kind":"verbatim","text":"产品部2025年第四季度的核心指标是多少"}
 {"query_id":"D-009587-v1-paraphrase","doc_id":"D-009587","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"paraphrase","text":"去年二季度我们部门砸了多少钱做推广，最后结账数字多少？"}
 {"query_id":"D-009587-v1-verbatim","doc_id":"D-009587","version":1,"department":"marketing","classification":"internal","document_type":"report","kind":"verbatim","text":"2025年第二季度市场部营销预算实际支出总额是多少？"}
+{"query_id":"D-009621-v1-paraphrase","doc_id":"D-009621","version":1,"department":"sales","classification":"leadership","document_type":"report","kind":"paraphrase","text":"客户欠款拖得太久，超出合同规定的期限很多，要上报哪个委员会？"}
+{"query_id":"D-009621-v1-verbatim","doc_id":"D-009621","version":1,"department":"sales","classification":"leadership","document_type":"report","kind":"verbatim","text":"销售部第三季度经营评估里回款账期超过三十天怎么处理？"}
 {"query_id":"D-009635-v1-paraphrase","doc_id":"D-009635","version":1,"department":"hr","classification":"internal","document_type":"approval","kind":"paraphrase","text":"人事部门这轮招人的经费批了多少？"}
 {"query_id":"D-009635-v1-verbatim","doc_id":"D-009635","version":1,"department":"hr","classification":"internal","document_type":"approval","kind":"verbatim","text":"人力资源部招聘专项审批的预算金额是多少？"}
 {"query_id":"D-009647-v1-paraphrase","doc_id":"D-009647","version":1,"department":"sales","classification":"internal","document_type":"approval","kind":"paraphrase","text":"销售部这次拓展业务花的钱最多能批多少"}

@@ -21,6 +21,15 @@
       "publication": "policy-kb-2026-10-bge-v2 catalog fragment with the pre-registered eligibility rule (finance_controller widening)",
       "ledger": "KB1-LOOP-56",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-v2.json"
+    },
+    {
+      "id": "queryset-v2",
+      "path": "queryset-v2/queries.jsonl",
+      "sha256": "36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec",
+      "produced_by": "evaluation/cmd/kb-queryset -targets 300 -batch 10 (claude-haiku-5-5), frozen before any retrieval run",
+      "publication": "corpus v2 sha256 2180645d… (manifest.json binds corpus_sha256, targets_sha256)",
+      "ledger": "KB1-LOOP-58",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-queryset-v2/queries.jsonl"
     }
   ]
 }

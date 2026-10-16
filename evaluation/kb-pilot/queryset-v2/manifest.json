@@ -1,0 +1,37 @@
+{
+ "version": "taskgate-kb-queryset-v2",
+ "generator": "evaluation/cmd/kb-queryset",
+ "model": "claude-haiku-5-5",
+ "corpus_sha256": "2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62",
+ "seed": 20261016,
+ "targets": 300,
+ "queries": 600,
+ "by_kind": {
+  "paraphrase": 300,
+  "verbatim": 300
+ },
+ "by_document_type": {
+  "approval": 150,
+  "contract": 150,
+  "policy": 150,
+  "report": 150
+ },
+ "by_department": {
+  "engineering": 56,
+  "finance": 56,
+  "hr": 56,
+  "it": 48,
+  "legal": 48,
+  "marketing": 48,
+  "operations": 48,
+  "procurement": 48,
+  "product": 48,
+  "research": 48,
+  "sales": 48,
+  "support": 48
+ },
+ "total_cost_usd": 0.21062973,
+ "queries_bytes": 144419,
+ "queries_sha256": "36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec",
+ "targets_sha256": "625ad2c792f1116c8e799121ef26f627ac83d8513e8fffc496bef4ed969d365b"
+}
