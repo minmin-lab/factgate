@@ -39,6 +39,16 @@
       "publication": "policy-kb-2026-10-bge-v2; misapproved grant = own department, clearance {public, internal, confidential}; kb-pilot budget in cells; TTL 2 min on the test clock",
       "ledger": "KB1-LOOP-59",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-b-v2.json"
+    },
+    {
+      "id": "ekb4-retrieval-quality-v2-run1",
+      "path": "ekb4/report-v2-run1.json",
+      "sha256": "191cd0e67df5b4c73918200a4c435c3be4d26cd9a5ff753ee27acf9d09a4b691",
+      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); runner of commit e8c21ec compared ordered lists",
+      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+      "note": "identity_by_k in this report is ORDER identity (99.7/99.5/98.8%); member identity recomputed post hoc by analyze_run1_order_differences.py is 5400/5400 (36 observations, 7 queries, same set different order; cause: single-vs-batch embedding differs by ~1e-11 cosine). A rerun with the corrected runner (member identity + order identity) is queued after the E-KB3 chain.",
+      "ledger": "KB1-LOOP-61",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run1.json"
     }
   ]
 }

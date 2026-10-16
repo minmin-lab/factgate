@@ -145,7 +145,8 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 		K           int      `json:"k"`
 		Gateway     []string `json:"gateway_hits"`
 		Direct      []string `json:"direct_hits"`
-		Identical   bool     `json:"identical"`
+		Identical   bool     `json:"identical"`    // same members (the pre-registered metric)
+		SameOrder   bool     `json:"same_order"`   // same members in the same order
 		RankDoc     int      `json:"rank_doc"`     // 1-based rank of the first chunk of the target doc_id (any version), 0 = not in top k
 		RankVersion int      `json:"rank_version"` // same for the exact target version
 		Error       string   `json:"error,omitempty"`
@@ -216,7 +217,8 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 				for _, hit := range exactHitsScoped(t, ctx, db, product.Collection, vectors[query.QueryID], query.Department, k) {
 					obs.Direct = append(obs.Direct, fmt.Sprintf("%s#%d#%d", hit.doc, hit.version, hit.chunk))
 				}
-				obs.Identical = strings.Join(obs.Gateway, ",") == strings.Join(obs.Direct, ",")
+				obs.SameOrder = strings.Join(obs.Gateway, ",") == strings.Join(obs.Direct, ",")
+				obs.Identical = sameMembers(obs.Gateway, obs.Direct)
 				for rank, id := range obs.Gateway {
 					parts := strings.Split(id, "#")
 					if parts[0] == query.DocID && obs.RankDoc == 0 {
@@ -242,6 +244,7 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	type bucket struct{ hits, total int }
 	summary := map[string]any{}
 	identical := map[int]*bucket{}
+	ordered := map[int]*bucket{}
 	recallKind := map[string]*bucket{}
 	recallType := map[string]*bucket{}
 	recallVersion := map[int]*bucket{}
@@ -260,6 +263,13 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 			identical[obs.K].total++
 			if obs.Identical {
 				identical[obs.K].hits++
+			}
+			if ordered[obs.K] == nil {
+				ordered[obs.K] = &bucket{}
+			}
+			ordered[obs.K].total++
+			if obs.SameOrder {
+				ordered[obs.K].hits++
 			}
 			keyKind := fmt.Sprintf("%s@%d", obs.Kind, obs.K)
 			if recallKind[keyKind] == nil {
@@ -302,6 +312,10 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	for k, b := range identical {
 		identityByK[strconv.Itoa(k)] = rate(b)
 	}
+	orderByK := map[string]float64{}
+	for k, b := range ordered {
+		orderByK[strconv.Itoa(k)] = rate(b)
+	}
 	recallByKind := map[string]float64{}
 	for key, b := range recallKind {
 		recallByKind[key] = rate(b)
@@ -338,6 +352,7 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	summary["deployments"] = deployments
 	summary["errors"] = errors
 	summary["gateway_vs_direct_identity_by_k"] = identityByK
+	summary["gateway_vs_direct_same_order_by_k"] = orderByK
 	summary["recall_at_k_by_kind"] = recallByKind
 	summary["recall_at_k_by_document_type"] = recallByType
 	summary["recall_at_k_exact_version"] = recallExactVersion
@@ -369,7 +384,7 @@ func TestEKB4RetrievalQuality(t *testing.T) {
 	}
 	sum := sha256.Sum256(encoded)
 	t.Logf("E-KB4 report %s sha256 %s", reportPath, hex.EncodeToString(sum[:])[:16])
-	t.Logf("identity by k %v; recall by kind %v; mrr@20 %v; cross-deployment %d/%d; errors %d", identityByK, recallByKind, mrrByKind, crossIdentical, crossTotal, errors)
+	t.Logf("set identity by k %v; same order by k %v; recall by kind %v; mrr@20 %v; cross-deployment %d/%d; errors %d", identityByK, orderByK, recallByKind, mrrByKind, crossIdentical, crossTotal, errors)
 	if errors > 0 {
 		t.Fatalf("%d searches failed; see the report", errors)
 	}
@@ -441,4 +456,25 @@ func exactHitsScoped(t *testing.T, ctx context.Context, db *pgx.Conn, collection
 func schemaOf(t *testing.T, harness *gatewayHarness) string {
 	t.Helper()
 	return fmt.Sprintf("%p", harness.store)
+}
+
+// sameMembers reports whether two hit lists hold the same chunk identities,
+// ignoring order. The pre-registered metric is member identity; order can
+// differ between two exact rankings only on near-ties, which a vector that
+// differs in its last bits (single versus batched embedding of the same
+// text) is enough to swap.
+func sameMembers(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	set := map[string]struct{}{}
+	for _, id := range left {
+		set[id] = struct{}{}
+	}
+	for _, id := range right {
+		if _, ok := set[id]; !ok {
+			return false
+		}
+	}
+	return len(set) == len(left)
 }
