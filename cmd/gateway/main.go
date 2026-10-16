@@ -185,6 +185,15 @@ func main() {
 		}
 	}
 
+	kbEmbedder, kbEmbedderKind, err := kbEmbedderFor(logicalCatalog, strings.TrimSpace(os.Getenv("KB_EMBEDDING_ENDPOINT")))
+	if err != nil {
+		logger.Error("knowledge product embedder configuration failed", "error", err)
+		os.Exit(1)
+	}
+	if len(logicalCatalog.KnowledgeProducts) > 0 {
+		logger.Info("knowledge product query embedder", "kind", kbEmbedderKind)
+	}
+
 	aliceToken := requiredEnv("TASKBOUND_ALICE_TOKEN")
 	carolToken := requiredEnv("TASKBOUND_CAROL_TOKEN")
 	if err := bootstrapPrincipal(ctx, store, control.Principal{ID: "principal_alice", Subject: "alice", Role: "query", TokenHash: tokenDigest(aliceToken)}); err != nil {
@@ -295,7 +304,7 @@ func main() {
 	}
 	defer connector.Close()
 	service, err := gatewayapp.New(gatewayapp.Config{
-		Catalog: logicalCatalog, Store: store, Approval: oaClient, PrincipalAttributes: principalAttributes,
+		Catalog: logicalCatalog, Store: store, Approval: oaClient, PrincipalAttributes: principalAttributes, KBEmbedder: kbEmbedder,
 		Connector: connector, CallbackSecret: requiredEnv("OA_CALLBACK_SECRET"), Logger: logger,
 		ReceiptVerifier: oaReceiptVerifier, QueryReceiptSigner: queryReceiptSigner, Background: ctx,
 		SettlementTimeout: settlementTimeout, SnapshotRegistry: snapshotRegistry,

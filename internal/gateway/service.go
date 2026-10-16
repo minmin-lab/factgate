@@ -21,6 +21,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/control"
 	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	"taskbound.local/agent-data-gateway/internal/domain"
+	"taskbound.local/agent-data-gateway/internal/kbpublish"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/ordinal"
 	"taskbound.local/agent-data-gateway/internal/principalattr"
@@ -49,11 +50,16 @@ type Config struct {
 	// Product eligibility predicates are evaluated against. It is required
 	// whenever the Catalog declares eligibility on any Product.
 	PrincipalAttributes *principalattr.Snapshot
-	CallbackSecret      string
-	Logger              *slog.Logger
-	Clock               func() time.Time
-	Background          context.Context
-	SettlementTimeout   time.Duration
+	// KBEmbedder embeds text queries for knowledge-product search. It may be
+	// nil, in which case text queries are refused and vector queries still
+	// work; a configured embedder is checked against each product's declared
+	// model before use.
+	KBEmbedder        kbpublish.Embedder
+	CallbackSecret    string
+	Logger            *slog.Logger
+	Clock             func() time.Time
+	Background        context.Context
+	SettlementTimeout time.Duration
 	// SpoolDirectory is the parent for query-private encrypted temporary
 	// directories. Empty uses the operating-system temporary directory.
 	SpoolDirectory string
@@ -87,6 +93,7 @@ type Service struct {
 	connector                DataConnector
 	snapshotRegistry         *ordinal.Registry
 	principalAttributes      *principalattr.Snapshot
+	kbEmbedder               kbpublish.Embedder
 	callbackSecret           []byte
 	logger                   *slog.Logger
 	clock                    func() time.Time
@@ -211,7 +218,7 @@ func New(config Config) (*Service, error) {
 		catalog: config.Catalog, store: config.Store, approval: config.Approval,
 		receiptVerifier:    config.ReceiptVerifier,
 		queryReceiptSigner: config.QueryReceiptSigner, connector: config.Connector,
-		snapshotRegistry: config.SnapshotRegistry, principalAttributes: config.PrincipalAttributes,
+		snapshotRegistry: config.SnapshotRegistry, principalAttributes: config.PrincipalAttributes, kbEmbedder: config.KBEmbedder,
 		callbackSecret: []byte(config.CallbackSecret), logger: config.Logger,
 		clock: config.Clock, background: config.Background, settlementTimeout: config.SettlementTimeout,
 		spoolDirectory:             config.SpoolDirectory,

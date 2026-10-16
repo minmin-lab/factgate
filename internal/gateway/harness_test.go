@@ -481,6 +481,11 @@ func (harness *gatewayHarness) createSummaryTaskWithGrantAndExposureProfile(t *t
 }
 
 func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.T, taskID string, narrow func(*domain.TaskGrantCoreV1), exposureLimits control.ExposureLimits, profile string, products []string, columns map[string][]string, sensitivity domain.Sensitivity) {
+	harness.createTaskWithGrantScopeAndExposureProfile(t, taskID, narrow, exposureLimits, profile, products, columns, sensitivity,
+		map[string]any{"department": []any{"销售部"}})
+}
+
+func (harness *gatewayHarness) createTaskWithGrantScopeAndExposureProfile(t *testing.T, taskID string, narrow func(*domain.TaskGrantCoreV1), exposureLimits control.ExposureLimits, profile string, products []string, columns map[string][]string, sensitivity domain.Sensitivity, scope map[string]any) {
 	t.Helper()
 	budget := domain.Budget{
 		MaxQueries: 10, MaxRows: 500, MaxDBTime: 30 * time.Second,
@@ -500,7 +505,7 @@ func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.
 	pendingValue := pendingContext{
 		Products:       append([]string(nil), products...),
 		Columns:        columns,
-		MandatoryScope: map[string]any{"department": []any{"销售部"}}, Budget: budget, Sensitivity: sensitivity,
+		MandatoryScope: scope, Budget: budget, Sensitivity: sensitivity,
 		DatasourceID: harness.connector.attestation.DatasourceID, SchemaDigest: harness.connector.attestation.SchemaDigest,
 		ApprovalMode: domain.ApprovalModeManual, Approver: "bob", CallbackContext: "seed-context-" + taskID,
 	}
@@ -583,7 +588,7 @@ func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.
 			TaskID: taskID, Subject: harness.alice.Subject, Purpose: "summarize travel expenses",
 			ApprovedProducts: append([]string(nil), products...),
 			ApprovedColumns:  columns,
-			MandatoryScope:   json.RawMessage(`{"department":["销售部"]}`), SensitivityCeiling: string(sensitivity),
+			MandatoryScope:   mustJSON(t, scope), SensitivityCeiling: string(sensitivity),
 			Budget: control.BudgetLimits{
 				Queries: core.Budget.MaxQueries, Rows: core.Budget.MaxResultRows, DBMS: core.Budget.MaxDBMS,
 			},
@@ -713,4 +718,13 @@ func prepareOrdinalForTest(t *testing.T, harness *gatewayHarness, taskID string,
 		t.Fatalf("task %s prepared no ordinal execution", taskID)
 	}
 	return prepared.Exposure.ordinal
+}
+
+func mustJSON(t *testing.T, value any) json.RawMessage {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("encode %T: %v", value, err)
+	}
+	return encoded
 }

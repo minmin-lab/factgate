@@ -163,7 +163,7 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	}
 	switch principal.Role {
 	case "query":
-		return append([]mcp.Tool(nil), queryTools...)
+		return append(append([]mcp.Tool(nil), queryTools...), retrievalTools...)
 	case "auditor":
 		return append([]mcp.Tool(nil), auditTools...)
 	default:
@@ -203,6 +203,8 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 			result, err = s.executePlan(ctx, principal, raw)
 		case "query_sql":
 			result, err = s.querySQL(ctx, principal, raw)
+		case searchTool.Name:
+			result, err = s.search(ctx, principal, raw)
 		case "get_query_result":
 			result, err = s.getQueryResult(ctx, principal, raw)
 		case "preview_result":
