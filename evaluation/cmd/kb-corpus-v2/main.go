@@ -1,0 +1,302 @@
+// Command kb-corpus-v2 writes the realistic knowledge-product corpus: the v1
+// generator's deterministic metadata plan is sent in batches to a headless
+// Claude Code invocation (claude -p) that writes Chinese prose; every document
+// is validated against its plan before it is appended to documents.jsonl, and
+// the run's cost is recorded. The result is frozen by digest, not regenerable.
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"taskbound.local/agent-data-gateway/evaluation/kbcorpus"
+)
+
+type batchRecord struct {
+	Batch      int      `json:"batch"`
+	DocIDs     []string `json:"doc_ids"`
+	Attempt    int      `json:"attempt"`
+	CostUSD    float64  `json:"cost_usd"`
+	DurationMS int64    `json:"duration_ms"`
+	Error      string   `json:"error,omitempty"`
+	Model      string   `json:"model"`
+	At         string   `json:"at"`
+}
+
+type claudeEnvelope struct {
+	Result       string  `json:"result"`
+	TotalCostUSD float64 `json:"total_cost_usd"`
+	IsError      bool    `json:"is_error"`
+}
+
+func main() {
+	seed := flag.Uint64("seed", 20261015, "plan seed (shared with corpus v1)")
+	documents := flag.Int("documents", 10000, "documents in the plan")
+	start := flag.Int("start", 0, "first plan index to generate (inclusive)")
+	limit := flag.Int("limit", 0, "number of plan entries to generate (0 = all remaining)")
+	batchSize := flag.Int("batch", 10, "documents per claude invocation")
+	out := flag.String("out", "evaluation/kbcorpus/raw/v2", "output directory")
+	model := flag.String("model", "claude-haiku-5-5", "model for claude -p")
+	claudeBin := flag.String("claude-bin", os.Getenv("CLAUDE_CODE_EXECPATH"), "claude executable")
+	maxAttempts := flag.Int("attempts", 3, "attempts per batch")
+	budgetUSD := flag.Float64("budget-usd", 120, "stop when cumulative cost exceeds this")
+	freeze := flag.String("freeze", "", "write manifest-v2.json here at the end (also written to -out)")
+	flag.Parse()
+	if *claudeBin == "" {
+		fatal(fmt.Errorf("claude executable is required (-claude-bin or CLAUDE_CODE_EXECPATH)"))
+	}
+	plans, err := kbcorpus.Generate(kbcorpus.Spec{Seed: *seed, Documents: *documents})
+	if err != nil {
+		fatal(err)
+	}
+	planJSONL, err := kbcorpus.EncodeJSONL(plans)
+	if err != nil {
+		fatal(err)
+	}
+	planDigest := sha256.Sum256(planJSONL)
+	if err := os.MkdirAll(*out, 0o755); err != nil {
+		fatal(err)
+	}
+	outputPath := filepath.Join(*out, "documents.jsonl")
+	applied := loadExisting(outputPath)
+	batchesPath := filepath.Join(*out, "batches.jsonl")
+	batchesFile, err := os.OpenFile(batchesPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		fatal(err)
+	}
+	defer batchesFile.Close()
+	outputFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		fatal(err)
+	}
+	defer outputFile.Close()
+
+	end := len(plans)
+	if *limit > 0 && *start+*limit < end {
+		end = *start + *limit
+	}
+	// Batches keep every version of a document together so a revision can copy
+	// its predecessor's sections.
+	var batches [][]kbcorpus.Document
+	for index := *start; index < end; {
+		var batch []kbcorpus.Document
+		for index < end && len(batch) < *batchSize {
+			doc := plans[index]
+			if _, done := applied[versionKey(doc.DocID, doc.Version)]; done {
+				index++
+				continue
+			}
+			batch = append(batch, doc)
+			index++
+			for index < end && plans[index].DocID == doc.DocID {
+				batch = append(batch, plans[index])
+				index++
+			}
+		}
+		if len(batch) > 0 {
+			batches = append(batches, batch)
+		}
+	}
+	var totalCost float64
+	retries, generated := 0, 0
+	for number, batch := range batches {
+		var lastErr error
+		for attempt := 1; attempt <= *maxAttempts; attempt++ {
+			record := batchRecord{Batch: number, Attempt: attempt, Model: *model, At: time.Now().UTC().Format(time.RFC3339)}
+			for _, doc := range batch {
+				record.DocIDs = append(record.DocIDs, versionKey(doc.DocID, doc.Version))
+			}
+			started := time.Now()
+			docs, cost, err := generateBatch(*claudeBin, *model, batch, applied)
+			record.DurationMS = time.Since(started).Milliseconds()
+			record.CostUSD = cost
+			totalCost += cost
+			if err != nil {
+				record.Error = err.Error()
+				lastErr = err
+				retries++
+			}
+			encoded, _ := json.Marshal(record)
+			_, _ = batchesFile.Write(append(encoded, '\n'))
+			if err == nil {
+				for _, doc := range docs {
+					line, _ := json.Marshal(doc)
+					if _, err := outputFile.Write(append(line, '\n')); err != nil {
+						fatal(err)
+					}
+					applied[versionKey(doc.DocID, doc.Version)] = doc
+					generated++
+				}
+				lastErr = nil
+				break
+			}
+			fmt.Fprintf(os.Stderr, "batch %d attempt %d failed: %v\n", number, attempt, err)
+		}
+		if lastErr != nil {
+			fmt.Fprintf(os.Stderr, "batch %d abandoned after %d attempts: %v\n", number, *maxAttempts, lastErr)
+		}
+		fmt.Printf("batch %d/%d done generated=%d cost_usd=%.4f\n", number+1, len(batches), generated, totalCost)
+		if totalCost > *budgetUSD {
+			fmt.Fprintf(os.Stderr, "budget %.2f USD exceeded (%.4f); stopping\n", *budgetUSD, totalCost)
+			break
+		}
+	}
+	_ = outputFile.Sync()
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		fatal(err)
+	}
+	docs, err := kbcorpus.DecodeJSONL(data)
+	if err != nil {
+		fatal(err)
+	}
+	counts := kbcorpus.CountDocuments(docs)
+	sum := sha256.Sum256(data)
+	manifest := kbcorpus.ManifestV2{Version: kbcorpus.VersionV2, Generator: kbcorpus.GeneratorV2,
+		PlanSpec: kbcorpus.Spec{Seed: *seed, Documents: *documents}, PlanSHA256: hex.EncodeToString(planDigest[:]),
+		Model: *model, BatchSize: *batchSize, Batches: countLines(batchesPath), Retries: retries, TotalCostUSD: sumCost(batchesPath),
+		Counts: counts, DocumentsBytes: int64(len(data)), DocumentsSHA256: hex.EncodeToString(sum[:])}
+	encoded, _ := json.MarshalIndent(manifest, "", "  ")
+	encoded = append(encoded, '\n')
+	if err := os.WriteFile(filepath.Join(*out, "manifest.json"), encoded, 0o644); err != nil {
+		fatal(err)
+	}
+	if *freeze != "" {
+		if err := os.WriteFile(*freeze, encoded, 0o644); err != nil {
+			fatal(err)
+		}
+	}
+	fmt.Printf("documents=%d versions=%d planned=%d generated_now=%d cost_usd=%.4f sha256=%s\n",
+		counts.Documents, counts.Versions, len(plans), generated, manifest.TotalCostUSD, manifest.DocumentsSHA256)
+}
+
+func versionKey(docID string, version int) string { return fmt.Sprintf("%s v%d", docID, version) }
+
+func loadExisting(path string) map[string]kbcorpus.Document {
+	applied := map[string]kbcorpus.Document{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return applied
+	}
+	docs, err := kbcorpus.DecodeJSONL(data)
+	if err != nil {
+		fatal(fmt.Errorf("existing %s is corrupt: %w", path, err))
+	}
+	for _, doc := range docs {
+		applied[versionKey(doc.DocID, doc.Version)] = doc
+	}
+	return applied
+}
+
+func generateBatch(claudeBin, model string, batch []kbcorpus.Document, applied map[string]kbcorpus.Document) ([]kbcorpus.Document, float64, error) {
+	prompt, err := kbcorpus.BatchPrompt(kbcorpus.PlanItems(batch))
+	if err != nil {
+		return nil, 0, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	command := exec.CommandContext(ctx, claudeBin, "-p", "--model", model, "--output-format", "json", prompt)
+	command.Dir = os.TempDir()
+	var stdout, stderr bytes.Buffer
+	command.Stdout, command.Stderr = &stdout, &stderr
+	if err := command.Run(); err != nil {
+		return nil, 0, fmt.Errorf("claude -p: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	var envelope claudeEnvelope
+	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+		return nil, 0, fmt.Errorf("decode claude envelope: %w", err)
+	}
+	if envelope.IsError {
+		return nil, envelope.TotalCostUSD, fmt.Errorf("claude reported an error: %s", truncate(envelope.Result))
+	}
+	generated, err := kbcorpus.ParseBatchResponse(envelope.Result)
+	if err != nil {
+		return nil, envelope.TotalCostUSD, err
+	}
+	if len(generated) != len(batch) {
+		return nil, envelope.TotalCostUSD, fmt.Errorf("%d documents generated for a batch of %d", len(generated), len(batch))
+	}
+	byKey := map[string]kbcorpus.GeneratedDocument{}
+	for _, item := range generated {
+		byKey[versionKey(item.DocID, item.Version)] = item
+	}
+	local := map[string]kbcorpus.Document{}
+	var docs []kbcorpus.Document
+	for _, plan := range batch {
+		item, ok := byKey[versionKey(plan.DocID, plan.Version)]
+		if !ok {
+			return nil, envelope.TotalCostUSD, fmt.Errorf("batch reply lacks %s", versionKey(plan.DocID, plan.Version))
+		}
+		var previous *kbcorpus.Document
+		if plan.Version > 1 {
+			if prior, ok := local[versionKey(plan.DocID, plan.Version-1)]; ok {
+				previous = &prior
+			} else if prior, ok := applied[versionKey(plan.DocID, plan.Version-1)]; ok {
+				previous = &prior
+			}
+		}
+		doc, err := kbcorpus.ApplyGenerated(plan, item, previous)
+		if err != nil {
+			return nil, envelope.TotalCostUSD, err
+		}
+		local[versionKey(doc.DocID, doc.Version)] = doc
+		docs = append(docs, doc)
+	}
+	return docs, envelope.TotalCostUSD, nil
+}
+
+func truncate(text string) string {
+	if len(text) > 300 {
+		return text[:300] + "..."
+	}
+	return text
+}
+
+func countLines(path string) int {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+	count := 0
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 1<<20), 1<<20)
+	for scanner.Scan() {
+		count++
+	}
+	return count
+}
+
+func sumCost(path string) float64 {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+	total := 0.0
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 1<<20), 1<<20)
+	for scanner.Scan() {
+		var record batchRecord
+		if json.Unmarshal(scanner.Bytes(), &record) == nil {
+			total += record.CostUSD
+		}
+	}
+	return total
+}
+
+func fatal(err error) {
+	fmt.Fprintln(os.Stderr, "kb-corpus-v2:", err)
+	os.Exit(1)
+}

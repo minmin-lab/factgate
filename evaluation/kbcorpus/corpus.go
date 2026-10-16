@@ -473,6 +473,28 @@ func sha256Hex(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// CountDocuments summarizes a document list.
+func CountDocuments(documents []Document) Counts {
+	counts := Counts{ByType: map[string]int{}, ByDepartment: map[string]int{}, ByClassification: map[string]int{}, ByRole: map[string]int{}}
+	seen := map[string]struct{}{}
+	for _, doc := range documents {
+		seen[doc.DocID] = struct{}{}
+		counts.Versions++
+		counts.ByType[doc.DocumentType]++
+		counts.ByDepartment[doc.Department]++
+		counts.ByClassification[doc.Classification]++
+		counts.ByRole[doc.JobRole]++
+		for _, section := range doc.Sections {
+			counts.Sections++
+			if section.Classification == ClassificationLeadership {
+				counts.LeadershipSections++
+			}
+		}
+	}
+	counts.Documents = len(seen)
+	return counts
+}
+
 // BuildManifest binds a spec to the JSONL it generated.
 func BuildManifest(spec Spec, documents []Document, jsonl []byte) (Manifest, error) {
 	specJSON, err := json.Marshal(spec)
