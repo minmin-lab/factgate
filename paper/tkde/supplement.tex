@@ -27,6 +27,7 @@
 \newcommand{\rieffect}{\mathcal E^{ri}}
 \input{generated/evidence.tex}
 \input{generated/p10.tex}
+\input{generated/kb.tex}
 
 \title{Supplement to ``FactGate: A Task-Scoped Data Gateway for AI Agents
 with Cumulative Exposure Accounting''}
@@ -3688,6 +3689,60 @@ collection carries the collection's footprint, as a one-cell aggregate does
 in the main paper. For \code{fetch}, $\facts_R$ is the fetched chunks and
 the composite is the only new Outcome Fact. An empty result has an empty base
 effect and still adds its atoms and one composite.
+
+\subsection{Approximate retrieval as a control arm (pilot measurement)}
+\label{sec:supp-kp-hnsw}
+
+The knowledge-product path ranks chunks by exact cosine distance inside the
+governed engine, so the hit set $y$ of a \code{search} is a function of the
+request and the index epoch alone (up to ties at the $k$ boundary, which the
+total order over chunk identity resolves). An approximate index (HNSW) is
+admitted only as a control arm, because it breaks the one property the
+composite Outcome Fact $c_q$ relies on: the same normal form $h_N$ returning
+the same $y$. Table~\ref{tab:supp-kp-hnsw} measures how far an HNSW arm
+drifts from the exact arm on the pilot publication (\KbHnswChunks{} chunks,
+\KbHnswDimension-dimensional \code{bge-m3} vectors, pgvector
+\KbHnswPgvector, HNSW $m=\KbHnswIndexM$, ef\_construction
+$=\KbHnswIndexEfConstruction$, index build \KbHnswIndexBuildSeconds{}\,s,
+\KbHnswIndexMiB{}\,MiB): \KbHnswQueries{} deterministic query vectors drawn
+from the collection, $k=20$, each query also run under the two mandatory
+scopes a task carries (department; department and classification), which
+the engine applies after the index walk. \emph{Identity} is the share of
+queries whose approximate hit set equals the exact top-$k$ exactly,
+\emph{recall} the mean $|y_{\mathrm{approx}}\cap y_{\mathrm{exact}}|/k$, and
+\emph{short} the number of queries that returned fewer than $k$ rows. The
+exact arm's median latency was \KbExactNoneLatencyMs{}\,ms without a scope,
+\KbExactDepartmentLatencyMs{}\,ms and
+\KbExactDepartmentClassificationLatencyMs{}\,ms under the two scopes.
+
+\begin{table}[h]
+\centering
+\caption{HNSW control arm against exact retrieval on the pilot knowledge
+publication (class \KbPilotClass; $k=20$; \KbHnswQueries{} queries; report
+digest \KbHnswReportDigest). Under pgvector's default
+\code{ef\_search}=40 with mandatory scopes applied after the index walk,
+most queries return short or different hit sets; the iterative scan removes
+the short results but still changes the set for a sizeable share of
+queries. The exact arm is the default; this table is the reason.}
+\label{tab:supp-kp-hnsw}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Mandatory scope & iterative scan & ef\_search & identity & recall & short & p50 ms \\
+\midrule
+\KbHnswTableBody
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is a pilot-class measurement on one synthetic publication; it is not a
+publication-campaign result, and it does not change the governed path, which
+is exact. What it establishes is the size of the effect the design guards
+against: an approximate index with scopes applied after the walk would make
+between roughly a sixth and all of the scoped queries settle a different
+composite than a repeat of the same request, which is precisely the replay
+the ledger must recognise.
 
 \subsection{Task contract and eligibility}
 

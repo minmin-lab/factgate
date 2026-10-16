@@ -1,0 +1,17 @@
+{
+  "version": "taskgate-kb-pilot-evidence-registry-v1",
+  "campaign_class": "kb-pilot",
+  "publication_eligible": false,
+  "note": "Pilot-class knowledge-product evidence (docs/kb_extension_plan.md §0). Each entry binds a file in this directory by sha256; paper/tkde/generate_kb_evidence.py refuses a file whose digest moved. Promotion to publication evidence is an author decision recorded in the ledger.",
+  "entries": [
+    {
+      "id": "k34-hnsw-v2",
+      "path": "k34-hnsw/report-v2.json",
+      "sha256": "15215487017ee68501f53365e819e6644e57d7ff7f822c2ca026aad6f2a168b2",
+      "produced_by": "evaluation/cmd/kb-hnsw-diff -collection policy_bge_v2 -queries 200 -seed kb-hnsw-diff-1",
+      "publication": "policy-kb-2026-10-bge-v2 (corpus v2 sha256 2180645d…, bge-m3 weights b5e0ce34…)",
+      "ledger": "KB1-LOOP-50",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/report-v2.json"
+    }
+  ]
+}

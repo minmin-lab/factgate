@@ -100,6 +100,19 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 
 **首次运行目标**：kbe2e4 上的 v1 + bge-m3 发布物（collection policy_bge_v1，48,183 块）作试跑；正式数字在 v2 + bge-m3 发布物上重跑同一命令并登记。
 
+**结果登记（2026-10-16，台账 KB1-LOOP-41 试跑 / KB1-LOOP-50 正式）**：v2 + bge-m3，k=20，identity_rate / mean_recall / short（200 条）：
+
+| 过滤 | iterative_scan | ef_search=40 | ef_search=200 |
+|---|---|---|---|
+| 无 | off | 0.964 / 0.997 / 0 | 0.990 / 0.999 / 0 |
+| department | off | 0.577 / 0.788 / 83 | 0.866 / 0.968 / 19 |
+| department | relaxed_order | 0.938 / 0.995 / 0 | 0.954 / 0.997 / 0 |
+| department+classification | off | 0.157 / 0.481 / 168 | 0.594 / 0.827 / 70 |
+| department+classification | relaxed_order | 0.848 / 0.988 / 0 | 0.888 / 0.993 / 0 |
+
+精确臂 p50 时延 56 / 18 / 12 ms（无 / 部门 / 部门+密级），HNSW 臂 1.3–3.2 ms。对照预登记：方向一致；"department 过滤下明显下降"在 v2 上出现
+（v1 未出现），严过滤下更重。报告：~/logs/kb1/k34-hnsw/report-v2.json（NAS kb-k34-hnsw/）。
+
 ## 证据与宏
 
 - 每部署目录：config.json（Catalog sha、epoch、kb-publication manifest、预算、种子）、raw/*.jsonl（逐步请求/响应/计费/拒绝码）、
