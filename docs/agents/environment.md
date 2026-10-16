@@ -103,3 +103,11 @@ WSL 内删除的空间不会自动回到 D 盘：`ext4.vhdx` 只增不减。回�
   measured paths 在该分支变动属预期。台账仍以 p10-r2/main 为准，kb-dev 的台账行定期以 docs-only 提交同步过去。
 - **Claude Code 连网关 MCP** 经本机 shim 127.0.0.1:8083（~/logs/demo-10/mcp_shim.py，启动脚本 start-mcp-shim.sh）；原因是网关 initialize 用
   DisallowUnknownFields 且只认协议 2025-06-18。WSL 重启后 shim 不自启。
+
+## 2026-10-16：GPU（RTX 4080 Laptop）持续负载会使整机蓝屏
+
+- 现象：WSL 内 bge-m3 编码满载约 56 s 后 GPU 掉离 PCIe 总线，Windows 蓝屏 0x113（nvlddmkm!NvDispatchPnp），System 日志同一时刻有 GPU 插槽的 WHEA 已纠正错误；WSL 内表现为 CUDA_ERROR_UNKNOWN、NVML 不可初始化、dmesg dxgkrnl WARNING（副作用）。两次（09:21、12:53）完全一致。TDR 已排除。
+- 证据与交接：~/logs/kb1/gpu-probe/{HANDOFF-windows-gpu.md,RESULT-windows-gpu.md}；台账 KB1-LOOP-30/32/34/36。
+- 规则：硬件问题（PCIe 链路电源管理 / 功耗）未处理前，**不得在 WSL 跑持续 GPU 负载**；嵌入发布用 CPU（`KB_EMBED_DEVICE=cpu`，约 5 块/秒）。复现脚本 `~/kb-embed/gpu-probe.sh` 只能在作者改完设置、保存全部工作并明确同意后启动。
+- 关联：2026-10-15 17:36 的 WSL 整机重启"原因未定"与 10-11 至 10-15 每晚的意外关机+固件硬件错误很可能同源，不再归因于内存耗尽。
+- 外接 HDMI 屏由 NVIDIA 驱动、内屏走核显；GPU 掉线时只有外接屏黑。
