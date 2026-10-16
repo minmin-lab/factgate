@@ -147,6 +147,93 @@ def tex(text: str) -> str:
     return text.replace("_", r"\_")
 
 
+def ekb4_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    summary = report["summary"]
+    lines = [
+        rf"\newcommand{{\KbEkbFourQueries}}{{{summary['queries']}}}",
+        rf"\newcommand{{\KbEkbFourDeployments}}{{{summary['deployments']}}}",
+        rf"\newcommand{{\KbEkbFourErrors}}{{{summary['errors']}}}",
+        rf"\newcommand{{\KbEkbFourCrossIdentical}}{{{summary['cross_deployment_identical']}}}",
+        rf"\newcommand{{\KbEkbFourCrossTotal}}{{{summary['cross_deployment_total']}}}",
+        rf"\newcommand{{\KbEkbFourReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+        rf"\newcommand{{\KbEkbFourQuerysetDigest}}{{\texttt{{{report['queryset_manifest']['queries_sha256'][:12]}}}}}",
+    ]
+    words = {"5": "Five", "10": "Ten", "20": "Twenty"}
+    for k, v in summary["gateway_vs_direct_identity_by_k"].items():
+        lines.append(rf"\newcommand{{\KbEkbFourIdentityK{words[k]}}}{{{pct(v)}}}")
+    for key, v in summary["recall_at_k_by_kind"].items():
+        kind, k = key.split("@")
+        lines.append(rf"\newcommand{{\KbEkbFourRecall{kind.capitalize()}K{words[k]}}}{{{pct(v)}}}")
+    for key, v in summary["recall_at_k_by_document_type"].items():
+        typ, k = key.split("@")
+        lines.append(rf"\newcommand{{\KbEkbFourRecall{typ.capitalize()}K{words[k]}}}{{{pct(v)}}}")
+    for k, v in summary["recall_at_k_exact_version"].items():
+        lines.append(rf"\newcommand{{\KbEkbFourRecallExactVersionK{words[k]}}}{{{pct(v)}}}")
+    for kind, v in summary["mrr_at_20_by_kind"].items():
+        lines.append(rf"\newcommand{{\KbEkbFourMrr{kind.capitalize()}}}{{{v:.3f}}}")
+    return lines
+
+
+def ekb1_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    lines = [
+        rf"\newcommand{{\KbEkbOneDeployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbOneSeeds}}{{{report['seeds']}}}",
+        rf"\newcommand{{\KbEkbOneMaxSteps}}{{{report['max_steps']}}}",
+        rf"\newcommand{{\KbEkbOneReleaseBudget}}{{{report['budget']['release_cells']}}}",
+        rf"\newcommand{{\KbEkbOneReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    for key, cell in report["summary"].items():
+        arm, strategy = key.split("/")
+        tag = ("Acl" if arm == "acl" else "FactGate") + strategy
+        lines += [
+            rf"\newcommand{{\KbEkbOne{tag}LeakMeanPct}}{{{pct(cell['leak_mean'])}}}",
+            rf"\newcommand{{\KbEkbOne{tag}LeakMaxPct}}{{{pct(cell['leak_max'])}}}",
+            rf"\newcommand{{\KbEkbOne{tag}LeakMinPct}}{{{pct(cell['leak_min'])}}}",
+            rf"\newcommand{{\KbEkbOne{tag}FirstRefusalMax}}{{{cell['first_refusal_max']}}}",
+            rf"\newcommand{{\KbEkbOne{tag}Runs}}{{{cell['runs']}}}",
+        ]
+    legit = report["legitimate"]
+    lines += [
+        rf"\newcommand{{\KbEkbOneLegitQuestions}}{{{legit['questions']}}}",
+        rf"\newcommand{{\KbEkbOneLegitCompleted}}{{{legit['completed']}}}",
+        rf"\newcommand{{\KbEkbOneLegitCompletionPct}}{{{pct(legit['completed'] / legit['questions']) if legit['questions'] else '0.0'}}}",
+        rf"\newcommand{{\KbEkbOneLegitAggregateCorrect}}{{{legit['aggregate_correct_runs']}}}",
+        rf"\newcommand{{\KbEkbOneLegitRuns}}{{{legit['runs']}}}",
+    ]
+    return lines
+
+
+def ekb3_macros(path: pathlib.Path, tier: str) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    lines = [
+        rf"\newcommand{{\KbEkbThree{tier}Chunks}}{{{report['chunks']:,}}}",
+        rf"\newcommand{{\KbEkbThree{tier}Rounds}}{{{report['rounds']}}}",
+        rf"\newcommand{{\KbEkbThree{tier}Deployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbThree{tier}ReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    words = {"5": "Five", "20": "Twenty"}
+    for key, cell in report["summary"].items():
+        parts = key.split("/")
+        op, arm = parts[0], parts[1]
+        if op == "aggregate":
+            novelty = parts[2]
+            tag = op.capitalize() + ("Direct" if arm == "direct" else "FactGate") + novelty.capitalize()
+        else:
+            k, novelty = parts[2][1:], parts[3]
+            tag = op.capitalize() + ("Direct" if arm == "direct" else "FactGate") + "K" + words[k] + novelty.capitalize()
+        lines += [
+            rf"\newcommand{{\KbEkbThree{tier}{tag}P50}}{{{cell['p50_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbThree{tier}{tag}P95}}{{{cell['p95_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbThree{tier}{tag}N}}{{{cell['n']}}}",
+        ]
+        for name, v in (cell.get("components_p50_ms") or {}).items():
+            comp = "".join(part.capitalize() for part in name.split("_"))
+            lines.append(rf"\newcommand{{\KbEkbThree{tier}{tag}{comp}}}{{{v:.1f}}}")
+    return lines
+
+
 def main() -> None:
     registry, paths = load_registry()
     lines = [
@@ -158,6 +245,13 @@ def main() -> None:
         lines += ekb2_macros(paths["ekb2-eligibility-gate-v2"])
     if "ekb2-misapproval-v2" in paths:
         lines += ekb2b_macros(paths["ekb2-misapproval-v2"])
+    if "ekb4-retrieval-quality-v2" in paths:
+        lines += ekb4_macros(paths["ekb4-retrieval-quality-v2"])
+    if "ekb1-adaptive-extraction-v2" in paths:
+        lines += ekb1_macros(paths["ekb1-adaptive-extraction-v2"])
+    for entry_id, tier in (("ekb3-overhead-48k", "FortyEightK"), ("ekb3-overhead-96k", "NinetySixK")):
+        if entry_id in paths:
+            lines += ekb3_macros(paths[entry_id], tier)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(lines)} lines)")
