@@ -182,6 +182,9 @@ type gatewayHarness struct {
 	// Tests that must observe or perturb Control state the store deliberately
 	// exposes no API for open their own connection to it.
 	dsn string
+	// taskBudget, when set, replaces the default task budget the seeding
+	// helpers use; experiment drivers that run many queries per task set it.
+	taskBudget *domain.Budget
 }
 
 // controlDB opens a second connection to this harness's Control schema.
@@ -490,6 +493,9 @@ func (harness *gatewayHarness) createTaskWithGrantScopeAndExposureProfile(t *tes
 	budget := domain.Budget{
 		MaxQueries: 10, MaxRows: 500, MaxDBTime: 30 * time.Second,
 		PerQueryTimeout: 5 * time.Second, TaskTTL: 30 * time.Minute,
+	}
+	if harness.taskBudget != nil {
+		budget = *harness.taskBudget
 	}
 	if exposureLimits.ReleaseFacts > 0 || exposureLimits.InfluenceFacts > 0 {
 		budget.MaxReleaseFacts = exposureLimits.ReleaseFacts
