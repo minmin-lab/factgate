@@ -274,6 +274,23 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
 - 作者 2026-10-16 表达的方向：企业文档与知识治理比报表数字场景更有价值，论文与产品可能以此为重点。论文重心是否迁移
   （维持"报表为证据核心、文档为第二实现实例"还是改为文档优先）是待作者决策项，见台账 KB1-LOOP-28。
 
+## 10a. K3.3 实施设计（2026-10-16，依 §9.7 方案 A；读代码后定）
+
+**读到的边界（读代码）**：`physicalquery.PreparedOperation` 只能经 `newPreparedOperation(identities, compiler, draft)` 产生，绑定成员集固定（新增成员会使当前契约版本的全部激活失效）；已有第二种准备 `PrepareSemanticView` 的先例：自带输入类型与 `identities()`，复用同一密封。网关 `executeSQL` 的链条是：守卫（任务/Grant/目录/委托/预算）→ 预留（`ReserveRequest.Exposure` 的三维估计）→ 以预留观测到的前置状态重推导 → Connector `QueryPairStream`（可见语句 + 溯源语句，溯源行流进 `ordinalDerivationSink`，按 `OrdinalProgram` 与 sidecar `SnapshotIndex` 得到 Release/Influence 位图与 V5 动态 Fact）→ `control.OrdinalExposureObservation` → `FinalizeOrdinalQuery*WithReceipt`（结算、回执、执行绑定同一事务）。结算层消费的是位图 + 动态 Fact，不关心语句从哪来。
+
+**方案（选定）**：检索 = "编译器产出的等价计划语句，外包一层命中集约束"。
+1. `physicalquery.PrepareRetrieval(RetrievalPreparationInputsV1)`：输入 = Grant、Catalog、知识产品、检索规范形（K3.1 `retrieval.NormalForm`，含注入范围原子）、查询向量（float32 数组，与规范形里的 int16 承诺一并绑定）、chunks/documents 发布物绑定、k。内部：
+   a. 由规范形构造等价 `queryplan.QueryPlan` P：`<kp>_chunks ⋈ <kp>_documents`（doc_id, version），Columns = doc_id, version, chunk_index, text（或 §9.8 的 text_sha256），Filters = 原子（注入范围原子按现有 V5 口径不进入调用方足迹）；经现有 `Prepare` 得到 S_v / S_c、`OrdinalProgram`、谓词足迹、字段表、sidecar grant——全部由现有编译器产出，不手写。
+   b. 外包：`WITH hits AS (SELECT doc_id, version, chunk_index, row_number() OVER (ORDER BY embedding <=> $vec, doc_id, version, chunk_index) AS rank FROM kb.chunks WHERE collection = $c AND <原子与范围按 kb.chunks 列渲染> LIMIT k)`，可见语句 = `SELECT s.* FROM (S_v) s JOIN hits USING (doc_id, version, chunk_index) ORDER BY hits.rank`，溯源语句同样对 S_c 做半连接。排序键带 (doc_id, version, chunk_index) 作全序，使两条语句在同一可重复读事务里命中同一集合（K3.4 的边界并列问题由此消除）。向量字面量进入语句文本，故被 VisibleTarget/CompanionTarget 摘要覆盖；finalizer 以同一输入重算即得同一字节。
+   c. 密封：`NormalFormSHA256` = 检索规范形摘要（域 `TASKGATE-RETRIEVAL-NF-V1`），`PlanSHA256` = P 的摘要，`PreparationInputsSHA256` = 检索输入摘要，其余成员与 SQL 路径同源（编译器身份、Catalog、快照绑定集、序数程序、字典集、谓词足迹、EstimatedBaseFacts = k）。配套 `RequireRetrievalInputs`。
+2. 网关 `executeRetrieval`：把 `executeSQL` 的守卫—预留—执行—结算链抽成可被两种准备共用的函数（只搬不改语义；现有测试原样通过是验收），检索调用它：预留估计 Release = k × 可见字段数、Influence = k 块行 + ≤k 文档行、Outcome = 调用方原子数 + 1；执行走同一 `QueryPairStream`；位图由现有 sink 从溯源行得出（命中块不在发布物中 → sink 查不到实体 → 关闭式失败，对应 `CHUNK_NOT_RETURNED` 的发布期一致性含义）；复合 c_q 的 `ResultObservationSHA256` 由现有 V5 路径按可见行计算。
+3. MCP 工具：`search`（文本或向量查询 + 过滤 + k）、`fetch`（按 (doc_id, version, chunk_index) 列表；规范形无原子）、`aggregate`（§5：对 `<kp>_values` 的现有 `query_sql` 包装，不新写结算）。`search` 的文本查询先经嵌入服务得向量；向量进入准备输入。
+4. 独立 oracle（`evaluation/kboracle`）与 K3.2 的 `retrieval.BuildEffect` 继续作为对照：对同一命中集逐成员核对结算写入的 Release/Influence/Outcome 集合。
+
+**新增待裁决 §9.9（有实现依据）**：可见语句必须投影 doc_id, version, chunk_index 才能与命中集连接并回给调用方，于是这三列的单元格也成为 Release Fact（R = 4|y| 而非 |y|）。推荐接受：这是通用代数原样发出（与 §9.2 同一理由），响应里本来就交付了这三个值；K3.2 的 effect.go 与 oracle 相应改为四列。放弃的替代：把身份列藏进溯源侧的句柄列（要改编译器的可见/溯源投影规则，触碰封印）。
+
+**阶段**：K3.3a `PrepareRetrieval` + 单元测试（finalizer 重算一致、篡改语句被 Validate 拒绝、命中集全序）；K3.3b 网关链条抽取与 `executeRetrieval` + 集成测试（重放 0/0/0、拆分不多扣、子任务共账、超限扣留）；K3.3c 三个 MCP 工具 + `scripts/integration-test.sh` 用例 + 文档。
+
 ## 10. 实施顺序（不等审阅即可做的部分）
 
 K2.2 表与角色（按 §1/§7，默认不含集合级关系）→ K2.5 语料生成器（独立于裁决）→ K2.3 kb-publish → K2.4 Catalog 块与激活
