@@ -78,6 +78,16 @@
       "note": "member identity 100/99.83/99.83% (k 5/10/20); the 6 differing observations (2 queries) are k-boundary ties between chunk 0 of two versions of one document (distance gaps 4e-9 and 2.6e-8) decided by single-vs-batch embedding noise (~1e-7 on CPU). A run with a vector arm (same vector to the gateway) is queued as run 3.",
       "ledger": "KB1-LOOP-64",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run2.json"
+    },
+    {
+      "id": "ekb1-adaptive-extraction-v2",
+      "path": "ekb1/report-v2-run2.json",
+      "sha256": "16a501a778084bf83656343b69cb8897bce0be76bb59d4c873ee75612c42a072",
+      "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); S2 rotates vocabulary texts per partition pass; embedding service on CPU",
+      "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
+      "note": "canonical E-KB1 run (run 2). FactGate arm identical to run 1: all 27 runs stopped by EXPOSURE_BUDGET_EXHAUSTED at 183-200 chunks; ACL S2 28.5% (run 1: 8.4%).",
+      "ledger": "KB1-LOOP-65",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run2.json"
     }
   ]
 }
