@@ -92,6 +92,61 @@ def hnsw_macros(path: pathlib.Path) -> list[str]:
     return lines
 
 
+def ekb2_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    lines = [
+        rf"\newcommand{{\KbEkbTwoSubjects}}{{{report['subjects']}}}",
+        rf"\newcommand{{\KbEkbTwoDeployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbTwoReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    tags = {"own-department-own-clearance": "OwnDeptOwnClearance", "other-department": "OtherDept",
+            "own-department-higher-classification": "HigherClassification", "controller-other-department": "ControllerOtherDept"}
+    for kind, tag in tags.items():
+        entry = report["summary"].get(kind)
+        if entry is None:
+            sys.exit(f"E-KB2 report lacks request type {kind}")
+        lines += [
+            rf"\newcommand{{\KbEkbTwo{tag}Requests}}{{{entry['requests']}}}",
+            rf"\newcommand{{\KbEkbTwo{tag}NotEligible}}{{{entry['not_eligible']}}}",
+            rf"\newcommand{{\KbEkbTwo{tag}Admitted}}{{{entry['admitted']}}}",
+            rf"\newcommand{{\KbEkbTwo{tag}NotEligiblePct}}{{{pct(entry['not_eligible_rate'])}}}",
+            rf"\newcommand{{\KbEkbTwo{tag}AdmittedPct}}{{{pct(entry['admitted_rate'])}}}",
+        ]
+    return lines
+
+
+def ekb2b_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    arms = report["arms"]
+    leaked = [a["leaked_chunks"] for a in arms]
+    bounds = {a["leak_bound_chunks"] for a in arms}
+    refusals = [a["first_refusal_step"] for a in arms]
+    codes = {a["refusal_code"] for a in arms}
+    after = {a["after_expiry_code"] for a in arms}
+    new_after = max(a["after_expiry_new_chunks"] for a in arms)
+    if len(bounds) != 1 or len(codes) != 1 or len(after) != 1:
+        sys.exit("E-KB2(b) arms disagree on bound, refusal code or expiry code; the macros assume one value each")
+    lines = [
+        rf"\newcommand{{\KbEkbTwoBArms}}{{{len(arms)}}}",
+        rf"\newcommand{{\KbEkbTwoBLeakMin}}{{{min(leaked)}}}",
+        rf"\newcommand{{\KbEkbTwoBLeakMax}}{{{max(leaked)}}}",
+        rf"\newcommand{{\KbEkbTwoBLeakBound}}{{{bounds.pop()}}}",
+        rf"\newcommand{{\KbEkbTwoBFirstRefusalMin}}{{{min(refusals)}}}",
+        rf"\newcommand{{\KbEkbTwoBFirstRefusalMax}}{{{max(refusals)}}}",
+        rf"\newcommand{{\KbEkbTwoBRefusalCode}}{{\code{{{tex(codes.pop())}}}}}",
+        rf"\newcommand{{\KbEkbTwoBAfterExpiryCode}}{{\code{{{tex(after.pop())}}}}}",
+        rf"\newcommand{{\KbEkbTwoBAfterExpiryNew}}{{{new_after}}}",
+        rf"\newcommand{{\KbEkbTwoBTTLSeconds}}{{{report['ttl_seconds']}}}",
+        rf"\newcommand{{\KbEkbTwoBReleaseBudget}}{{{report['budget']['release_cells']}}}",
+        rf"\newcommand{{\KbEkbTwoBReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    return lines
+
+
+def tex(text: str) -> str:
+    return text.replace("_", r"\_")
+
+
 def main() -> None:
     registry, paths = load_registry()
     lines = [
@@ -99,6 +154,10 @@ def main() -> None:
         rf"\newcommand{{\KbPilotClass}}{{{registry['campaign_class']}}}",
     ]
     lines += hnsw_macros(paths["k34-hnsw-v2"])
+    if "ekb2-eligibility-gate-v2" in paths:
+        lines += ekb2_macros(paths["ekb2-eligibility-gate-v2"])
+    if "ekb2-misapproval-v2" in paths:
+        lines += ekb2b_macros(paths["ekb2-misapproval-v2"])
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(lines)} lines)")
