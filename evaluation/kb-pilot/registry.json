@@ -59,6 +59,15 @@
       "note": "FactGate bound achieved in all 27 runs (183-200 chunks, 6.6-7.6%); ACL S2 saturated at 8.4% because the partition scan reused one query text; a rerun with rotating texts per partition is queued.",
       "ledger": "KB1-LOOP-62",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run1.json"
+    },
+    {
+      "id": "ekb3-overhead-48k",
+      "path": "ekb3/report-48k.json",
+      "sha256": "7db4e1f938cf1894e03067e1b3c694d3670bc902002fccc0c516aa588040493f",
+      "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 48k, 3 deployments x 200 rounds, machine otherwise idle 23:59-00:02)",
+      "publication": "policy-kb-2026-10-bge-v2 (48,183 chunks); vector queries on both arms",
+      "ledger": "KB1-LOOP-63",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-48k.json"
     }
   ]
 }
