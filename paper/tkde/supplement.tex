@@ -3567,12 +3567,18 @@ accounting with quantified probe capacity, not extraction resistance.
 
 This section defines how the task contract, the three set-valued budgets,
 settlement, and delegation conservation apply when the governed source is a
-document repository or knowledge base rather than a reporting Product. It is
-a definition, not an evaluated system: no knowledge-product path is
-implemented, and nothing in the main paper's evidence covers it. The purpose
-is to state precisely which results of the main paper are
-representation-independent and carry over unchanged, which carry over with
-additional premises, and which do not carry over at all.
+document repository or knowledge base rather than a reporting Product, and
+reports a pilot-class evaluation of the implementation. The knowledge-product
+path is implemented: documents, chunks and extracted values are published as
+three sealed relations of one index epoch, retrieval is prepared through the
+same sealed preparation boundary as \code{execute\_plan}, and the three
+request forms settle on the same ledger. The evidence in
+Section~\ref{sec:supp-kp-pilot} is pilot class (\KbPilotClass): one synthetic
+publication, independent control stores as deployments, and it is not part
+of the publication campaign the main paper's numbers come from. The purpose
+of the definitional part is to state precisely which results of the main
+paper are representation-independent and carry over unchanged, which carry
+over with additional premises, and which do not carry over at all.
 
 \subsection{Governance units}
 
@@ -3681,8 +3687,15 @@ The effect of a successful request is
  \facts_D(q) &= \facts_R(q)\ \cup\ \{f : f\ \text{read by an admitted aggregate or re-ranker}\},\\
  \facts_O(q) &= A(q)\cup\{c_q\}.
 \end{align*}
-For a plain \code{search}, $\facts_D=\facts_R$ plus the document Facts of
-the returned chunks. For \code{aggregate}, $\facts_R$ is the one derived
+In the implementation the chunk relation is read through the same relational
+algebra as a report, so for a plain \code{search} a returned chunk releases
+its four visible cells (document identifier, version, chunk index and text),
+and $\facts_D$ adds the chunk's row Fact, the two key cells and the row Fact
+of its document, and one further chunk cell for every attribute the caller
+filtered on; the task's mandatory scope is applied by the policy renderer and
+leaves no dependency witness. Measured on the pilot publication, a
+five-chunk search over five documents with one caller filter settles 20
+Release and 45 Dependency Facts. For \code{aggregate}, $\facts_R$ is the one derived
 value with witness $W$ over the matching documents and $\facts_D$ is every
 document and field the aggregate read, so a one-number answer over a
 collection carries the collection's footprint, as a one-cell aggregate does
@@ -3791,7 +3804,8 @@ queries with different text. Join-fanout conservation has no analogue.
 \centering
 \caption{Portability of the main paper's results to Knowledge Products.
 ``Carries'' means the statement and proof apply with the identities of this
-section substituted; nothing in this table is evaluated.}
+section substituted; the pilot evaluation of Section~\ref{sec:supp-kp-pilot}
+exercises the settlement rows, not the proofs.}
 \label{tab:supp-kp-portability}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -3869,6 +3883,162 @@ exceeds $B_O=8$, and is refused uncharged, and the ledger stays where it is.
 A worker delegated by the analyst replaying the first search charges
 $0/0/0$ against the same ledger.
 
+
+\subsection{Pilot evaluation}
+\label{sec:supp-kp-pilot}
+
+The four experiments below were pre-registered with expectations before any
+run (\code{docs/kb\_experiment\_design.md} in the repository) and are reported
+against those expectations. All run on one publication of the synthetic
+corpus (10{,}000 documents, 10{,}469 versions, 48{,}183 chunks embedded with
+\code{bge-m3}), with the same gateway binary; a deployment is a fresh control
+store and gateway instance over the same business database. Budgets are in
+cells, since a chunk releases four cells (\KbEkbOneReleaseBudget{} Release
+cells is roughly 200 chunks). Every number is a macro generated from the
+registered report whose digest the table names.
+
+\paragraph{E-KB1: adaptive extraction.}
+A scripted agent with a legitimate department grant runs three strategies
+for \KbEkbOneMaxSteps{} steps (S1 vocabulary scan, S2 partition scan over
+role and validity-month buckets, S3 adjacency fetch of hit documents) under
+two arms: per-query access control with no ledger, and FactGate under the
+pilot budget. Table~\ref{tab:supp-kp-ekb1} reports the share of the
+department's requestable chunks obtained (\KbEkbOneDeployments{}
+deployments $\times$ \KbEkbOneSeeds{} seeds per cell). Under FactGate every
+run stopped at \code{EXPOSURE\_BUDGET\_EXHAUSTED} within the budget bound;
+the step of first refusal was at most \KbEkbOneFactGateSOneFirstRefusalMax{}
+(S1), \KbEkbOneFactGateSTwoFirstRefusalMax{} (S2) and
+\KbEkbOneFactGateSThreeFirstRefusalMax{} (S3). The pre-registered table
+expected the no-ledger arm to reach 90\% under S2 and S3; the scripted
+partition scan reached \KbEkbOneAclSTwoLeakMeanPct\% and the adjacency fetch
+\KbEkbOneAclSThreeLeakMeanPct\%, so those two attacker scripts are weaker
+than the design envisioned, which affects only the comparison arm. Ten
+legitimate questions per department plus one aggregate, run under the same
+budget, completed \KbEkbOneLegitCompleted{} of \KbEkbOneLegitQuestions{}
+(\KbEkbOneLegitCompletionPct\%) with the aggregate correct in
+\KbEkbOneLegitAggregateCorrect{} of \KbEkbOneLegitRuns{} runs and no
+refusal: the budget sufficed, and the shortfall against the pre-registered
+90\% is retrieval quality (E-KB4), not the ledger.
+
+\begin{table}[h]
+\centering
+\caption{E-KB1, share of the department's requestable chunks obtained after
+\KbEkbOneMaxSteps{} steps (mean over runs; min--max in parentheses), report
+\KbEkbOneReportDigest.}
+\label{tab:supp-kp-ekb1}
+\scriptsize
+\begin{tabular}{lrr}
+\toprule
+Strategy & Per-query ACL, no ledger & FactGate, pilot budget \\
+\midrule
+S1 vocabulary scan & \KbEkbOneAclSOneLeakMeanPct\% (\KbEkbOneAclSOneLeakMinPct--\KbEkbOneAclSOneLeakMaxPct) & \KbEkbOneFactGateSOneLeakMeanPct\% (\KbEkbOneFactGateSOneLeakMinPct--\KbEkbOneFactGateSOneLeakMaxPct) \\
+S2 partition scan & \KbEkbOneAclSTwoLeakMeanPct\% (\KbEkbOneAclSTwoLeakMinPct--\KbEkbOneAclSTwoLeakMaxPct) & \KbEkbOneFactGateSTwoLeakMeanPct\% (\KbEkbOneFactGateSTwoLeakMinPct--\KbEkbOneFactGateSTwoLeakMaxPct) \\
+S3 adjacency fetch & \KbEkbOneAclSThreeLeakMeanPct\% (\KbEkbOneAclSThreeLeakMinPct--\KbEkbOneAclSThreeLeakMaxPct) & \KbEkbOneFactGateSThreeLeakMeanPct\% (\KbEkbOneFactGateSThreeLeakMinPct--\KbEkbOneFactGateSThreeLeakMaxPct) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{E-KB2: the eligibility gate.}
+\KbEkbTwoSubjects{} synthetic subjects (twelve departments, five roles,
+clearance derived from the role, one finance controller) each filed four
+request types on \KbEkbTwoDeployments{} deployments. Requests inside the
+subject's envelope were admitted \KbEkbTwoOwnDeptOwnClearanceAdmitted{} of
+\KbEkbTwoOwnDeptOwnClearanceRequests{} times and the controller's widened
+request \KbEkbTwoControllerOtherDeptAdmitted{} of
+\KbEkbTwoControllerOtherDeptRequests{}; requests for another department were
+refused \KbEkbTwoOtherDeptNotEligible{} of \KbEkbTwoOtherDeptRequests{} times
+and requests above the clearance \KbEkbTwoHigherClassificationNotEligible{}
+of \KbEkbTwoHigherClassificationRequests{}, all with \code{NOT\_ELIGIBLE}
+and no approval draft (report \KbEkbTwoReportDigest). In the misapproval arm
+an approver granted a request inside the envelope but broader than its
+purpose; the partition scan under that grant leaked
+\KbEkbTwoBLeakMin--\KbEkbTwoBLeakMax{} chunks against a bound of
+\KbEkbTwoBLeakBound{} before \KbEkbTwoBRefusalCode{} at step
+\KbEkbTwoBFirstRefusalMin--\KbEkbTwoBFirstRefusalMax{}, and after the
+\KbEkbTwoBTTLSeconds-second TTL the next request returned
+\KbEkbTwoBAfterExpiryCode{} and added \KbEkbTwoBAfterExpiryNew{} chunks
+(\KbEkbTwoBArms{} deployments, report \KbEkbTwoBReportDigest).
+
+\paragraph{E-KB3: settlement overhead.}
+Table~\ref{tab:supp-kp-ekb3} compares client latency of the three request
+forms through the gateway with direct execution of the same retrieval on the
+business database, on two publications (\KbEkbThreeFortyEightKChunks{} and
+\KbEkbThreeNinetySixKChunks{} chunks), \KbEkbThreeFortyEightKRounds{} rounds
+per deployment on \KbEkbThreeFortyEightKDeployments{} deployments with the
+machine otherwise idle. Both arms submit the query vector, so the embedding
+service is outside both measurements; rounds whose normal form repeats an
+earlier one are replay rounds. The gateway's cost is dominated by its two
+statements: the provenance statement and the visible statement each run the
+exact nearest-neighbour scan once, so the increment grows with the
+collection (median provenance time
+\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms at
+48k and \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms
+at 96k for $k=20$), while settlement persistence
+(\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelSettlePersist{} and
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelSettlePersist{}\,ms) and
+authorization do not. The pre-registered expectation that the gateway's p95
+would stay within twice the direct latency does not hold: with a department
+filter the direct scan takes a few milliseconds and the fixed settlement
+cost dominates. Replays settle in about a third of the novel latency.
+
+\begin{table}[h]
+\centering
+\caption{E-KB3, client latency p50 / p95 in ms, novel rounds unless marked
+(reports \KbEkbThreeFortyEightKReportDigest{} and
+\KbEkbThreeNinetySixKReportDigest).}
+\label{tab:supp-kp-ekb3}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrr}
+\toprule
+ & & \multicolumn{2}{c}{48k chunks} & \multicolumn{2}{c}{96k chunks} \\
+Request & Arm & p50 & p95 & p50 & p95 \\
+\midrule
+search $k=5$ & direct & \KbEkbThreeFortyEightKSearchDirectKFiveNovelPFifty & \KbEkbThreeFortyEightKSearchDirectKFiveNovelPNinetyFive & \KbEkbThreeNinetySixKSearchDirectKFiveNovelPFifty & \KbEkbThreeNinetySixKSearchDirectKFiveNovelPNinetyFive \\
+ & gateway & \KbEkbThreeFortyEightKSearchFactGateKFiveNovelPFifty & \KbEkbThreeFortyEightKSearchFactGateKFiveNovelPNinetyFive & \KbEkbThreeNinetySixKSearchFactGateKFiveNovelPFifty & \KbEkbThreeNinetySixKSearchFactGateKFiveNovelPNinetyFive \\
+search $k=20$ & direct & \KbEkbThreeFortyEightKSearchDirectKTwentyNovelPFifty & \KbEkbThreeFortyEightKSearchDirectKTwentyNovelPNinetyFive & \KbEkbThreeNinetySixKSearchDirectKTwentyNovelPFifty & \KbEkbThreeNinetySixKSearchDirectKTwentyNovelPNinetyFive \\
+ & gateway & \KbEkbThreeFortyEightKSearchFactGateKTwentyNovelPFifty & \KbEkbThreeFortyEightKSearchFactGateKTwentyNovelPNinetyFive & \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelPFifty & \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelPNinetyFive \\
+ & gateway, replay & \KbEkbThreeFortyEightKSearchFactGateKTwentyReplayPFifty & \KbEkbThreeFortyEightKSearchFactGateKTwentyReplayPNinetyFive & \KbEkbThreeNinetySixKSearchFactGateKTwentyReplayPFifty & \KbEkbThreeNinetySixKSearchFactGateKTwentyReplayPNinetyFive \\
+fetch $k=20$ & direct & \KbEkbThreeFortyEightKFetchDirectKTwentyNovelPFifty & \KbEkbThreeFortyEightKFetchDirectKTwentyNovelPNinetyFive & \KbEkbThreeNinetySixKFetchDirectKTwentyNovelPFifty & \KbEkbThreeNinetySixKFetchDirectKTwentyNovelPNinetyFive \\
+ & gateway & \KbEkbThreeFortyEightKFetchFactGateKTwentyNovelPFifty & \KbEkbThreeFortyEightKFetchFactGateKTwentyNovelPNinetyFive & \KbEkbThreeNinetySixKFetchFactGateKTwentyNovelPFifty & \KbEkbThreeNinetySixKFetchFactGateKTwentyNovelPNinetyFive \\
+aggregate & direct & \KbEkbThreeFortyEightKAggregateDirectNovelPFifty & \KbEkbThreeFortyEightKAggregateDirectNovelPNinetyFive & \KbEkbThreeNinetySixKAggregateDirectNovelPFifty & \KbEkbThreeNinetySixKAggregateDirectNovelPNinetyFive \\
+ & gateway & \KbEkbThreeFortyEightKAggregateFactGateNovelPFifty & \KbEkbThreeFortyEightKAggregateFactGateNovelPNinetyFive & \KbEkbThreeNinetySixKAggregateFactGateNovelPFifty & \KbEkbThreeNinetySixKAggregateFactGateNovelPNinetyFive \\
+ & gateway, replay & \KbEkbThreeFortyEightKAggregateFactGateReplayPFifty & \KbEkbThreeFortyEightKAggregateFactGateReplayPNinetyFive & \KbEkbThreeNinetySixKAggregateFactGateReplayPFifty & \KbEkbThreeNinetySixKAggregateFactGateReplayPNinetyFive \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{E-KB4: the gateway does not change the hit set.}
+\KbEkbFourQueries{} questions frozen before any run (two per target
+document, one close to the document's wording and one paraphrase, query set
+\KbEkbFourQuerysetDigest) were issued at $k\in\{5,10,20\}$ on
+\KbEkbFourDeployments{} deployments, in two arms. In the vector arm the
+gateway receives the very vector the direct arm ranks with; its hit set and
+its order agreed with direct exact retrieval in
+\KbEkbFourVectorIdentityKFive, \KbEkbFourVectorIdentityKTen{} and
+\KbEkbFourVectorIdentityKTwenty\% of the comparisons at $k=5,10,20$ (order
+identity \KbEkbFourVectorSameOrderKFive, \KbEkbFourVectorSameOrderKTen{} and
+\KbEkbFourVectorSameOrderKTwenty\%). In the text arm the gateway embeds the
+normalized question itself through the trusted embedding service; member
+identity was \KbEkbFourIdentityKFive, \KbEkbFourIdentityKTen{} and
+\KbEkbFourIdentityKTwenty\% and order identity \KbEkbFourSameOrderKFive,
+\KbEkbFourSameOrderKTen{} and \KbEkbFourSameOrderKTwenty\%; every residual
+difference is a tie at the $k$ boundary between the same chunk text in two
+versions of one document, decided by the service returning vectors that
+differ in their last bits for single and batched inputs, which is a property
+of the embedding service rather than of the gateway. The gateway's own hit
+sets agree across deployments in \KbEkbFourCrossIdentical{} of
+\KbEkbFourCrossTotal{} comparisons. Retrieval
+quality on this synthetic corpus is reported, not claimed: recall of the
+target document at $k=5/10/20$ is
+\KbEkbFourRecallVerbatimKFive/\KbEkbFourRecallVerbatimKTen/\KbEkbFourRecallVerbatimKTwenty\%
+for questions close to the wording and
+\KbEkbFourRecallParaphraseKFive/\KbEkbFourRecallParaphraseKTen/\KbEkbFourRecallParaphraseKTwenty\%
+for paraphrases (MRR at $k=20$: \KbEkbFourMrrVerbatim{} and
+\KbEkbFourMrrParaphrase), below the pre-registered thresholds of 80\% and
+60\% at $k=10$; the gap is a property of the embedding and segmentation,
+which the gateway neither improves nor degrades (report \KbEkbFourReportDigest).
+
 \subsection{Non-claims}
 
 The main paper's limitations apply, and three are sharper here. Chunks and
@@ -3878,8 +4048,9 @@ rules is the boundary of unit-3 accounting. Equivalence is syntactic: two
 phrasings of one question are two composites. Relative similarity scores,
 embedding inversion, agent memory, and the content of a model's paraphrase
 after chunks have entered its context are outside the guarantee, as
-inference is outside the guarantee of the main paper. None of this section
-is implemented or measured.
+inference is outside the guarantee of the main paper. The pilot evaluation
+measures one synthetic publication under scripted agents; retrieval quality
+is reported for completeness and is not a contribution of this work.
 
 \section{Enterprise Integration and Governance Vision}
 \label{sec:supp-enterprise-vision}

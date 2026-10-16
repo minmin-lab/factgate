@@ -162,6 +162,12 @@ def ekb4_macros(path: pathlib.Path) -> list[str]:
     words = {"5": "Five", "10": "Ten", "20": "Twenty"}
     for k, v in summary["gateway_vs_direct_identity_by_k"].items():
         lines.append(rf"\newcommand{{\KbEkbFourIdentityK{words[k]}}}{{{pct(v)}}}")
+    for k, v in summary.get("gateway_vs_direct_same_order_by_k", {}).items():
+        lines.append(rf"\newcommand{{\KbEkbFourSameOrderK{words[k]}}}{{{pct(v)}}}")
+    for k, v in summary.get("vector_arm_identity_by_k", {}).items():
+        lines.append(rf"\newcommand{{\KbEkbFourVectorIdentityK{words[k]}}}{{{pct(v)}}}")
+    for k, v in summary.get("vector_arm_same_order_by_k", {}).items():
+        lines.append(rf"\newcommand{{\KbEkbFourVectorSameOrderK{words[k]}}}{{{pct(v)}}}")
     for key, v in summary["recall_at_k_by_kind"].items():
         kind, k = key.split("@")
         lines.append(rf"\newcommand{{\KbEkbFourRecall{kind.capitalize()}K{words[k]}}}{{{pct(v)}}}")
@@ -186,7 +192,7 @@ def ekb1_macros(path: pathlib.Path) -> list[str]:
     ]
     for key, cell in report["summary"].items():
         arm, strategy = key.split("/")
-        tag = ("Acl" if arm == "acl" else "FactGate") + strategy
+        tag = ("Acl" if arm == "acl" else "FactGate") + {"S1": "SOne", "S2": "STwo", "S3": "SThree"}[strategy]
         lines += [
             rf"\newcommand{{\KbEkbOne{tag}LeakMeanPct}}{{{pct(cell['leak_mean'])}}}",
             rf"\newcommand{{\KbEkbOne{tag}LeakMaxPct}}{{{pct(cell['leak_max'])}}}",
@@ -224,9 +230,9 @@ def ekb3_macros(path: pathlib.Path, tier: str) -> list[str]:
             k, novelty = parts[2][1:], parts[3]
             tag = op.capitalize() + ("Direct" if arm == "direct" else "FactGate") + "K" + words[k] + novelty.capitalize()
         lines += [
-            rf"\newcommand{{\KbEkbThree{tier}{tag}P50}}{{{cell['p50_ms']:.1f}}}",
-            rf"\newcommand{{\KbEkbThree{tier}{tag}P95}}{{{cell['p95_ms']:.1f}}}",
-            rf"\newcommand{{\KbEkbThree{tier}{tag}N}}{{{cell['n']}}}",
+            rf"\newcommand{{\KbEkbThree{tier}{tag}PFifty}}{{{cell['p50_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbThree{tier}{tag}PNinetyFive}}{{{cell['p95_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbThree{tier}{tag}Count}}{{{cell['n']}}}",
         ]
         for name, v in (cell.get("components_p50_ms") or {}).items():
             comp = "".join(part.capitalize() for part in name.split("_"))
@@ -252,6 +258,11 @@ def main() -> None:
     for entry_id, tier in (("ekb3-overhead-48k", "FortyEightK"), ("ekb3-overhead-96k", "NinetySixK")):
         if entry_id in paths:
             lines += ekb3_macros(paths[entry_id], tier)
+    import re
+    for line in lines:
+        match = re.match(r"\\newcommand\{\\([A-Za-z0-9]+)\}", line)
+        if match and re.search(r"[0-9]", match.group(1)):
+            sys.exit(f"macro name {match.group(1)} contains a digit; TeX control sequences admit letters only")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(lines)} lines)")
