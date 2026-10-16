@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	snapshotOwnerRole = "taskgate_snapshot_owner"
-	readerRole        = "gateway_reader"
+	// loadBatchStatements bounds one pgx batch during the load step.
+	loadBatchStatements = 2000
+	snapshotOwnerRole   = "taskgate_snapshot_owner"
+	readerRole          = "gateway_reader"
 )
 
 // PublicationRef is one compiled V4 bundle of the epoch.
@@ -261,29 +263,65 @@ func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) er
 		spec.Collection, "knowledge product "+spec.KnowledgeProduct+" epoch "+spec.Epoch); err != nil {
 		return fmt.Errorf("insert collection: %w", err)
 	}
+	// Rows are sent in bounded batches: one batch for a 10^5-chunk collection
+	// carries hundreds of megabytes of vector text and exceeds the protocol
+	// message limit ("write failed: message body too large", measured on the
+	// 96,401-chunk publication).
 	batch := &pgx.Batch{}
+	sent := 0
+	flush := func() error {
+		if batch.Len() == 0 {
+			return nil
+		}
+		results := tx.SendBatch(ctx, batch)
+		for index := 0; index < batch.Len(); index++ {
+			if _, err := results.Exec(); err != nil {
+				_ = results.Close()
+				return fmt.Errorf("load kb rows (statement %d): %w", sent+index, err)
+			}
+		}
+		if err := results.Close(); err != nil {
+			return err
+		}
+		sent += batch.Len()
+		batch = &pgx.Batch{}
+		return nil
+	}
+	queue := func(sql string, args ...any) error {
+		batch.Queue(sql, args...)
+		if batch.Len() >= loadBatchStatements {
+			return flush()
+		}
+		return nil
+	}
 	for _, label := range prepared.Labels {
-		batch.Queue(`INSERT INTO kb.labels (collection, label) VALUES ($1, $2)`, spec.Collection, label)
+		if err := queue(`INSERT INTO kb.labels (collection, label) VALUES ($1, $2)`, spec.Collection, label); err != nil {
+			return err
+		}
 	}
 	for _, doc := range prepared.Documents {
 		var validUntil any
 		if doc.ValidUntil != "" {
 			validUntil = doc.ValidUntil
 		}
-		batch.Queue(`INSERT INTO kb.documents (collection, doc_id, version, title, document_type, department, classification, job_role, labels, valid_from, valid_until, content_sha256, chunk_count, body)
+		if err := queue(`INSERT INTO kb.documents (collection, doc_id, version, title, document_type, department, classification, job_role, labels, valid_from, valid_until, content_sha256, chunk_count, body)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 			spec.Collection, doc.DocID, doc.Version, doc.Title, doc.DocumentType, doc.Department, doc.Classification, doc.JobRole,
-			append([]string{}, doc.Labels...), doc.ValidFrom, validUntil, sha256Hex([]byte(doc.Body)), chunkCount(prepared.Chunks, doc), doc.Body)
+			append([]string{}, doc.Labels...), doc.ValidFrom, validUntil, sha256Hex([]byte(doc.Body)), chunkCount(prepared.Chunks, doc), doc.Body); err != nil {
+			return err
+		}
 	}
 	for _, chunk := range prepared.Chunks {
 		var validUntil any
 		if chunk.ValidUntil != "" {
 			validUntil = chunk.ValidUntil
 		}
-		batch.Queue(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, embedding, department, classification, job_role, labels, valid_until)
+		if err := queue(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, embedding, department, classification, job_role, labels, valid_until)
 			VALUES ($1, $2, $3, $4, $5, $6, $7::vector, $8, $9, $10, $11, $12)`,
 			spec.Collection, chunk.DocID, chunk.Version, chunk.ChunkIndex, chunk.Text, chunk.TextSHA256, VectorLiteral(chunk.Embedding),
-			chunk.Department, chunk.Classification, chunk.JobRole, append([]string{}, chunk.Labels...), validUntil)
+			chunk.Department, chunk.Classification, chunk.JobRole, append([]string{}, chunk.Labels...), validUntil); err != nil {
+			return err
+		}
 	}
 	for _, value := range prepared.Values {
 		var valueText, valueNumeric, valueDate any
@@ -295,19 +333,14 @@ func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) er
 		default:
 			valueNumeric = value.Raw
 		}
-		batch.Queue(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_text, value_numeric, value_date, department, classification)
+		if err := queue(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_text, value_numeric, value_date, department, classification)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10::date, $11, $12)`,
 			spec.Collection, value.DocID, value.Version, value.DocumentType, value.Field, value.ValueType, value.CanonicalValue,
-			valueText, valueNumeric, valueDate, value.Department, value.Classification)
-	}
-	results := tx.SendBatch(ctx, batch)
-	for index := 0; index < batch.Len(); index++ {
-		if _, err := results.Exec(); err != nil {
-			_ = results.Close()
-			return fmt.Errorf("load kb rows (statement %d): %w", index, err)
+			valueText, valueNumeric, valueDate, value.Department, value.Classification); err != nil {
+			return err
 		}
 	}
-	if err := results.Close(); err != nil {
+	if err := flush(); err != nil {
 		return err
 	}
 	for _, kind := range RelationKinds {
