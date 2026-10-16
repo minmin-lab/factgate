@@ -5,10 +5,19 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/jackc/pgx/v5"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"taskbound.local/agent-data-gateway/internal/catalog"
+	"taskbound.local/agent-data-gateway/internal/catalogschema"
+	"taskbound.local/agent-data-gateway/internal/dataconnector"
+	"taskbound.local/agent-data-gateway/internal/domain"
+	"taskbound.local/agent-data-gateway/internal/exposure"
+	"taskbound.local/agent-data-gateway/internal/kbpublish"
 	"testing"
 	"time"
 
@@ -243,4 +252,229 @@ func indexOf(values []string, target string) int {
 func tokenDigestFor(subject string) string {
 	sum := sha256.Sum256([]byte("ekb2-token-" + subject))
 	return hex.EncodeToString(sum[:])
+}
+
+// E-KB2 (b), the misapproval arm: an approver grants a request that is inside
+// the subject's envelope but broader than the task's purpose (own department,
+// every classification the clearance admits). The S2 partition scan runs
+// under that grant until the budget refuses or the TTL (2 minutes, advanced on
+// the test clock) expires. Pre-registered expectation: leaked chunks ≤
+// min(B_R cells / 4, requestable), and after expiry no request adds a chunk.
+//
+//	KB_E2E_*, CONTROL_TEST_POSTGRES_DSN, KB_EMBEDDING_ENDPOINT, KB_EKB2B_REPORT (required); KB_EKB2_DEPLOYMENTS (default 3)
+func TestEKB2MisapprovalArm(t *testing.T) {
+	businessDSN, artifactDir, epoch := os.Getenv("KB_E2E_BUSINESS_DSN"), os.Getenv("KB_E2E_ARTIFACT_DIR"), os.Getenv("KB_E2E_EPOCH")
+	endpoint, reportPath := strings.TrimSpace(os.Getenv("KB_EMBEDDING_ENDPOINT")), os.Getenv("KB_EKB2B_REPORT")
+	if businessDSN == "" || artifactDir == "" || epoch == "" || os.Getenv("CONTROL_TEST_POSTGRES_DSN") == "" || endpoint == "" || reportPath == "" {
+		t.Skip("KB_E2E_*, CONTROL_TEST_POSTGRES_DSN, KB_EMBEDDING_ENDPOINT and KB_EKB2B_REPORT are required")
+	}
+	deployments := 3
+	if v := os.Getenv("KB_EKB2_DEPLOYMENTS"); v != "" {
+		deployments, _ = strconv.Atoi(v)
+	}
+	const (
+		budgetQueries = 256
+		budgetRelease = 800
+		budgetInflu   = 2400
+		budgetOutcome = 64
+		kMax          = 20
+		ttl           = 2 * time.Minute
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	fragment, err := os.ReadFile(filepath.Join(artifactDir, "kb", epoch, "catalog-fragment.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	probe, err := catalog.Parse([]byte(kbOnlyCatalog(t, readDemoCatalog(t), string(fragment), "", "")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	built, err := catalogschema.Build(probe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	probeConnector, err := dataconnector.New(ctx, dataconnector.Config{DSN: businessDSN, StatementTimeout: 10 * time.Second, ConnectTimeout: 5 * time.Second, MaxRows: 500, MaxConnections: 2, ExpectedSchema: built.Entries})
+	if err != nil {
+		t.Fatal(err)
+	}
+	attestation, err := probeConnector.Attestation(ctx)
+	probeConnector.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsedDSN, _ := url.Parse(businessDSN)
+	database := strings.Trim(parsedDSN.Path, "/")
+	product := probe.KnowledgeProducts[0]
+	embedder, err := kbpublish.NewHTTPEmbedder(endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := pgx.Connect(ctx, businessDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close(ctx)
+	departments := []string{"sales", "finance", "hr"}
+	// Misapproved grant: a manager-level clearance (public, internal,
+	// confidential) for a task whose purpose needed far less.
+	granted := []any{"public", "internal", "confidential"}
+	type arm struct {
+		Deployment      int    `json:"deployment"`
+		Department      string `json:"department"`
+		Requestable     int    `json:"requestable_chunks"`
+		Steps           int    `json:"steps"`
+		Leaked          int    `json:"leaked_chunks"`
+		LeakBound       int    `json:"leak_bound_chunks"`
+		FirstRefusal    int    `json:"first_refusal_step"`
+		RefusalCode     string `json:"refusal_code"`
+		AfterExpiryCode string `json:"after_expiry_code"`
+		AfterExpiryNew  int    `json:"after_expiry_new_chunks"`
+		ChargedRelease  int64  `json:"charged_release"`
+	}
+	var arms []arm
+	for d := 1; d <= deployments; d++ {
+		harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: func(base string) string {
+			return kbOnlyCatalog(t, base, string(fragment), database, attestation.SchemaDigest)
+		}})
+		harness.taskBudget = &domain.Budget{MaxQueries: budgetQueries, MaxRows: 1000000, MaxDBTime: 2 * time.Hour, PerQueryTimeout: 20 * time.Second, TaskTTL: ttl}
+		builtD, err := catalogschema.Build(harness.catalog)
+		if err != nil {
+			t.Fatal(err)
+		}
+		connector, err := dataconnector.New(ctx, dataconnector.Config{DSN: businessDSN, StatementTimeout: 20 * time.Second, ConnectTimeout: 5 * time.Second, MaxRows: 1000, MaxConnections: 4,
+			ExpectedSchema: builtD.Entries, ExpectedSchemaDigest: builtD.Source.SchemaDigest,
+			ExpectedAttestation: dataconnector.ExpectedAttestation{DatasourceID: builtD.Source.DatasourceID, Database: builtD.Source.Database, User: builtD.Source.User, PostgreSQLMajorVersion: builtD.Source.PostgreSQLMajorVersion}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		att, err := connector.Attestation(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		harness.connector.attestation = att
+		harness.service.connector = connector
+		installKnowledgeRegistry(t, harness, artifactDir)
+		harness.service.kbEmbedder = embedder
+		chunks, documents := product.Products.Chunks, product.Products.Documents
+		department := departments[(d-1)%len(departments)]
+		taskID := fmt.Sprintf("ekb2b-d%d-%s", d, department)
+		harness.createTaskWithGrantScopeAndExposureProfile(t, taskID, nil,
+			control.ExposureLimits{ReleaseFacts: budgetRelease, InfluenceFacts: budgetInflu, OutcomeFacts: budgetOutcome}, exposure.ProfileV5,
+			[]string{chunks, documents}, map[string][]string{
+				chunks:    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+				documents: {"doc_id", "version", "title", "document_type", "kb_department", "classification"},
+			}, domain.SensitivityHigh, map[string]any{"kb_department": []any{department}, "classification": granted})
+		var requestable int
+		if err := db.QueryRow(ctx, `SELECT count(*) FROM kb.chunks WHERE collection = $1 AND department = $2 AND classification IN ('public','internal','confidential')`, product.Collection, department).Scan(&requestable); err != nil {
+			t.Fatal(err)
+		}
+		a := arm{Deployment: d, Department: department, Requestable: requestable, LeakBound: budgetRelease / 4}
+		if requestable < a.LeakBound {
+			a.LeakBound = requestable
+		}
+		departmentZH := map[string]string{"sales": "销售部", "finance": "财务部", "hr": "人力资源部"}[department]
+		generic := departmentZH + "制度 合同 审批 报告"
+		// E-KB1's S2: job_role × six valid_until buckets (30 partitions), then
+		// S1 vocabulary texts, so the arm keeps asking for new chunks until the
+		// ledger refuses rather than repeating requests the ledger replays for free.
+		var minDate, maxDate *time.Time
+		if err := db.QueryRow(ctx, `SELECT min(valid_until), max(valid_until) FROM kb.chunks WHERE collection = $1 AND department = $2 AND valid_until IS NOT NULL`, product.Collection, department).Scan(&minDate, &maxDate); err != nil {
+			t.Fatal(err)
+		}
+		type partition struct{ role, from, to string }
+		var parts []partition
+		for _, role := range []string{"staff", "manager", "director", "executive", "hr"} {
+			span := maxDate.Sub(*minDate) / 6
+			for b := 0; b < 6; b++ {
+				from, to := minDate.Add(time.Duration(b)*span), minDate.Add(time.Duration(b+1)*span)
+				if b == 5 {
+					to = maxDate.AddDate(0, 0, 1)
+				}
+				parts = append(parts, partition{role, from.Format("2006-01-02"), to.Format("2006-01-02")})
+			}
+		}
+		words := []string{"报销", "采购", "培训", "考核", "预算", "安全", "流程", "权限", "供应商", "客户", "项目", "绩效", "招聘", "薪酬", "差旅", "合规", "风险", "数据", "系统", "变更"}
+		seen := map[string]struct{}{}
+		step := 0
+		for step < 400 {
+			step++
+			args := map[string]any{"task_id": taskID, "request_id": fmt.Sprintf("%s-step%d", taskID, step), "knowledge_product": product.Name, "k": kMax}
+			if step <= len(parts) {
+				part := parts[step-1]
+				args["query"] = map[string]any{"text": generic}
+				args["filters"] = []map[string]any{{"attribute": "job_role", "op": "=", "value": part.role},
+					{"attribute": "valid_until", "op": ">=", "value": part.from}, {"attribute": "valid_until", "op": "<", "value": part.to}}
+			} else {
+				word := words[(step-len(parts)-1)%len(words)]
+				template := []string{"%s%s制度", "%s审批流程", "关于%s的规定", "%s报告"}[((step-len(parts)-1)/len(words))%4]
+				text := fmt.Sprintf(template, word)
+				if strings.Count(template, "%s") == 2 {
+					text = fmt.Sprintf(template, departmentZH, word)
+				}
+				args["query"] = map[string]any{"text": text}
+			}
+			result, err := callGatewayTool(harness.service, harness.alice, "search", args)
+			if err != nil {
+				code := "ERROR"
+				if toolErr, ok := err.(*mcp.ToolError); ok {
+					code = toolErr.Code
+				}
+				a.FirstRefusal, a.RefusalCode = step, code
+				break
+			}
+			for _, hit := range searchHits(t, result) {
+				seen[hitID(hit)] = struct{}{}
+			}
+			addCharge(result, &a.ChargedRelease, new(int64), new(int64))
+		}
+		a.Steps, a.Leaked = step, len(seen)
+		// Expiry: advance the clock past the TTL; a further request must be
+		// refused and add nothing.
+		harness.clock.value = harness.clock.value.Add(ttl + time.Second)
+		before := len(seen)
+		result, err := callGatewayTool(harness.service, harness.alice, "search", map[string]any{"task_id": taskID, "request_id": taskID + "-after-expiry",
+			"knowledge_product": product.Name, "query": map[string]any{"text": generic}, "k": kMax})
+		if err != nil {
+			if toolErr, ok := err.(*mcp.ToolError); ok {
+				a.AfterExpiryCode = toolErr.Code
+			} else {
+				a.AfterExpiryCode = "ERROR"
+			}
+		} else {
+			for _, hit := range searchHits(t, result) {
+				seen[hitID(hit)] = struct{}{}
+			}
+		}
+		a.AfterExpiryNew = len(seen) - before
+		arms = append(arms, a)
+		t.Logf("d%d %s: requestable=%d leaked=%d bound=%d first_refusal=%d %s charged_release=%d after_expiry=%s new=%d", d, department, requestable, a.Leaked, a.LeakBound, a.FirstRefusal, a.RefusalCode, a.ChargedRelease, a.AfterExpiryCode, a.AfterExpiryNew)
+		connector.Close()
+	}
+	out := map[string]any{"version": "taskgate-kb-ekb2b-report-v1", "campaign_class": "kb-pilot", "publication_eligible": false,
+		"generated_at": time.Now().UTC().Format(time.RFC3339), "publication_epoch": epoch, "ttl_seconds": int(ttl.Seconds()),
+		"budget": map[string]any{"queries": budgetQueries, "release_cells": budgetRelease, "influence": budgetInflu, "outcome": budgetOutcome, "k_max": kMax}, "arms": arms}
+	encoded, err := json.MarshalIndent(out, "", " ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(reportPath, append(encoded, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(encoded)
+	t.Logf("E-KB2(b) report %s sha256 %s", reportPath, hex.EncodeToString(sum[:])[:16])
+	for _, a := range arms {
+		if a.Leaked > a.LeakBound {
+			t.Fatalf("deployment %d leaked %d chunks, above the bound %d", a.Deployment, a.Leaked, a.LeakBound)
+		}
+		if a.RefusalCode != apierr.CodeExposureBudgetExhausted {
+			t.Fatalf("deployment %d: scan ended with %q at step %d, want the exposure budget refusal", a.Deployment, a.RefusalCode, a.FirstRefusal)
+		}
+		if a.AfterExpiryNew != 0 || a.AfterExpiryCode == "" {
+			t.Fatalf("deployment %d: after TTL expiry code %q, new chunks %d", a.Deployment, a.AfterExpiryCode, a.AfterExpiryNew)
+		}
+	}
 }

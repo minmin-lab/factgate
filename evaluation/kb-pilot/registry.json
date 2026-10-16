@@ -30,6 +30,15 @@
       "publication": "corpus v2 sha256 2180645d… (manifest.json binds corpus_sha256, targets_sha256)",
       "ledger": "KB1-LOOP-58",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-queryset-v2/queries.jsonl"
+    },
+    {
+      "id": "ekb2-misapproval-v2",
+      "path": "ekb2/report-b-v2.json",
+      "sha256": "65828141892a254a5ff36b094616ae397bb0831060dbf074ee9a13cfc1ae0efd",
+      "produced_by": "go test ./internal/gateway -run TestEKB2MisapprovalArm (KB_EKB2_DEPLOYMENTS=3)",
+      "publication": "policy-kb-2026-10-bge-v2; misapproved grant = own department, clearance {public, internal, confidential}; kb-pilot budget in cells; TTL 2 min on the test clock",
+      "ledger": "KB1-LOOP-59",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-b-v2.json"
     }
   ]
 }
