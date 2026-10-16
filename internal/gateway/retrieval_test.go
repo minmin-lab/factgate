@@ -12,6 +12,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/control"
 	"taskbound.local/agent-data-gateway/internal/domain"
 	"taskbound.local/agent-data-gateway/internal/exposure"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 )
 
 // kbCatalogRewrite merges the knowledge-product fragment used by the catalog
@@ -148,5 +149,89 @@ func TestMandatoryScopeValuesAndRetrievalBody(t *testing.T) {
 	}
 	if strings.Contains(string(left), "task_id") || strings.Contains(string(left), "request_id") {
 		t.Fatalf("envelope keys leaked into the retrieval body: %s", left)
+	}
+}
+
+// kbSubjectSnapshot gives alice the attested attributes a knowledge-product
+// envelope reads: department and clearance, plus an optional job_family.
+func kbSubjectSnapshot(t *testing.T, department string, clearance []string, jobFamily string) *principalattr.Snapshot {
+	t.Helper()
+	text := "version: taskgate-principal-attributes-v1\nsubjects:\n  - subject: alice\n    attributes:\n      department: [" + department + "]\n      clearance: [" + strings.Join(clearance, ", ") + "]\n"
+	if jobFamily != "" {
+		text += "      job_family: [" + jobFamily + "]\n"
+	}
+	snapshot, err := principalattr.Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return snapshot
+}
+
+func kbTaskRequest(department string, classification []string) map[string]any {
+	values := make([]any, 0, len(classification))
+	for _, value := range classification {
+		values = append(values, value)
+	}
+	return map[string]any{
+		"objective":     "查阅本部门制度与合同",
+		"data_products": []string{"policy_kb_chunks", "policy_kb_documents"},
+		"columns": map[string][]string{
+			"policy_kb_chunks":    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification"},
+			"policy_kb_documents": {"doc_id", "version", "title", "kb_department", "classification"},
+		},
+		"scopes": map[string]any{"kb_department": []any{department}, "classification": values},
+	}
+}
+
+func TestKnowledgeProductEligibilityGatesRequests(t *testing.T) {
+	cases := []struct {
+		name     string
+		snapshot func(*testing.T) *principalattr.Snapshot
+		request  map[string]any
+		eligible bool
+	}{
+		{"own department within clearance", func(t *testing.T) *principalattr.Snapshot {
+			return kbSubjectSnapshot(t, "finance", []string{"public", "internal"}, "")
+		},
+			kbTaskRequest("finance", []string{"internal"}), true},
+		{"other department", func(t *testing.T) *principalattr.Snapshot {
+			return kbSubjectSnapshot(t, "finance", []string{"public", "internal"}, "")
+		},
+			kbTaskRequest("hr", []string{"internal"}), false},
+		{"higher classification", func(t *testing.T) *principalattr.Snapshot {
+			return kbSubjectSnapshot(t, "finance", []string{"public", "internal"}, "")
+		},
+			kbTaskRequest("finance", []string{"confidential"}), false},
+		{"controller widens department", func(t *testing.T) *principalattr.Snapshot {
+			return kbSubjectSnapshot(t, "finance", []string{"public", "internal"}, "finance_controller")
+		}, kbTaskRequest("hr", []string{"internal"}), true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: kbCatalogRewrite(t), principalAttributes: tc.snapshot(t)})
+			result, err := callGatewayTool(harness.service, harness.alice, "request_data_task", tc.request)
+			if !tc.eligible {
+				requireToolCode(t, err, apierr.CodeNotEligible)
+				if len(harness.approval.requests) != 0 {
+					t.Fatalf("an ineligible request produced %d OA drafts", len(harness.approval.requests))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("eligible request refused: %v", err)
+			}
+			if len(harness.approval.requests) != 1 {
+				t.Fatalf("OA drafts = %d, want 1", len(harness.approval.requests))
+			}
+			verdict := persistedVerdict(t, harness, result["task_id"].(string))
+			if verdict == nil || len(verdict.Rules) != 2 {
+				t.Fatalf("verdict %+v, want one inherited rule per knowledge relation", verdict)
+			}
+			for _, rule := range verdict.Rules {
+				if _, ok := rule.Envelope["kb_department"]; !ok {
+					t.Fatalf("rule %s lacks the kb_department envelope trace: %+v", rule.Product, rule.Envelope)
+				}
+			}
+		})
 	}
 }

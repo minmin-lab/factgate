@@ -496,7 +496,8 @@ kb_publications:
 - 启动激活：Gateway 在加载 snapshot 发布物之后读取 `$GATEWAY_SNAPSHOT_ARTIFACT_DIR/kb/<epoch>/kb-publication.json`，核对清单
   自摘要、`kb_publications` 绑定、三个 bundle 的 product/publication/relation/sidecar 身份与 manifest/dictionary/sidecar 摘要；
   任一不符即拒绝启动。
-- `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验。
+- `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验；申请其 chunks / documents / values
+  任一关系时，Gateway 在建草稿前按该知识产品的包络编译资格（关系继承知识产品的 eligibility），包络外即 `NOT_ELIGIBLE`。
 - 检索语言（`internal/retrieval`）是封闭的：`search`（AND 过滤原子 + 一个文本或向量查询承诺 + `k ≤ k_max`）、`fetch`
   （本根家族已返回过的块引用）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
   `= <> in`；date/numeric: `= <> < <= > >=  in`；text_set: `has`），字面量用 exposure 规范编码；任务强制范围按 `attributes[].scope`

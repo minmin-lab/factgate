@@ -84,6 +84,16 @@ func (s *Service) compileEligibility(products []catalog.Product, subject string,
 	for _, product := range products {
 		if product.Eligibility != nil {
 			governed = append(governed, product)
+			continue
+		}
+		// A relation of a knowledge product inherits the knowledge product's
+		// eligibility (docs/kb-design.md §6): the envelope is declared once on
+		// the knowledge product and applies to its chunks, documents and
+		// values alike, under the same mandatory scopes.
+		if owner, owned := s.knowledgeProductOwning(product.Name); owned && owner.Eligibility != nil {
+			inherited := product
+			inherited.Eligibility = owner.Eligibility
+			governed = append(governed, inherited)
 		}
 	}
 	if len(governed) == 0 {
@@ -206,4 +216,18 @@ func subsetOfSorted(requested, admissible []string) bool {
 		}
 	}
 	return true
+}
+
+// knowledgeProductOwning returns the knowledge product whose chunks,
+// documents or values relation is the named Product.
+func (s *Service) knowledgeProductOwning(product string) (catalog.KnowledgeProduct, bool) {
+	if s.catalog == nil {
+		return catalog.KnowledgeProduct{}, false
+	}
+	for _, kp := range s.catalog.KnowledgeProducts {
+		if kp.Products.Chunks == product || kp.Products.Documents == product || kp.Products.Values == product {
+			return kp, true
+		}
+	}
+	return catalog.KnowledgeProduct{}, false
 }
