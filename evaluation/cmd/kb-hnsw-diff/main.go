@@ -172,7 +172,7 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 	for _, f := range filterList {
 		for _, q := range qs {
 			t0 := time.Now()
-			hits, err := search(ctx, conn, collection, q, f, maxK+1, "SET LOCAL enable_indexscan = off; SET LOCAL enable_bitmapscan = off; SET LOCAL enable_indexonlyscan = off")
+			hits, err := search(ctx, conn, collection, rep.Dimension, q, f, maxK+1, "SET LOCAL enable_indexscan = off; SET LOCAL enable_bitmapscan = off; SET LOCAL enable_indexonlyscan = off")
 			if err != nil {
 				return fmt.Errorf("exact %s: %w", f, err)
 			}
@@ -188,8 +188,17 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 	if _, err := conn.Exec(ctx, "SET maintenance_work_mem = '"+strings.ReplaceAll(maintenanceMem, "'", "")+"'"); err != nil {
 		return err
 	}
+	// A parallel build places the graph in dynamic shared memory sized by
+	// maintenance_work_mem; containers with a small /dev/shm cannot hold it.
+	// The build is serial so that memory stays process-local.
+	if _, err := conn.Exec(ctx, "SET max_parallel_maintenance_workers = 0"); err != nil {
+		return err
+	}
 	t0 := time.Now()
-	if _, err := conn.Exec(ctx, fmt.Sprintf("CREATE INDEX %s ON kb.chunks USING hnsw (embedding vector_cosine_ops) WITH (m = %d, ef_construction = %d)", indexName, m, efBuild)); err != nil {
+	// kb.chunks.embedding is declared without a fixed dimension (the model
+	// dimension belongs to the knowledge product), and HNSW needs one, so the
+	// index and both arms use the same typed expression.
+	if _, err := conn.Exec(ctx, fmt.Sprintf("CREATE INDEX %s ON kb.chunks USING hnsw ((embedding::vector(%d)) vector_cosine_ops) WITH (m = %d, ef_construction = %d)", indexName, rep.Dimension, m, efBuild)); err != nil {
 		return fmt.Errorf("create hnsw index: %w", err)
 	}
 	rep.IndexBuildSecs = time.Since(t0).Seconds()
@@ -213,7 +222,7 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 					settings := fmt.Sprintf("SET LOCAL enable_seqscan = off; SET LOCAL hnsw.ef_search = %d; SET LOCAL hnsw.iterative_scan = %s", ef, it)
 					for i, q := range qs {
 						t0 := time.Now()
-						hits, err := search(ctx, conn, collection, q, f, k, settings)
+						hits, err := search(ctx, conn, collection, rep.Dimension, q, f, k, settings)
 						if err != nil {
 							return fmt.Errorf("hnsw %s ef=%d %s k=%d: %w", f, ef, it, k, err)
 						}
@@ -249,7 +258,7 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 
 // search runs one query inside a transaction so SET LOCAL planner settings
 // apply to it alone. The query chunk itself is excluded from the result.
-func search(ctx context.Context, conn *pgx.Conn, collection string, q query, filter string, limit int, settings string) ([]kbhnsw.Hit, error) {
+func search(ctx context.Context, conn *pgx.Conn, collection string, dim int, q query, filter string, limit int, settings string) ([]kbhnsw.Hit, error) {
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -268,7 +277,8 @@ func search(ctx context.Context, conn *pgx.Conn, collection string, q query, fil
 		where += " AND department = $7 AND classification = $8"
 		args = append(args, q.Department, q.Classification)
 	}
-	sql := "SELECT doc_id, version, chunk_index, embedding <=> $2::vector AS distance FROM kb.chunks WHERE " + where + " ORDER BY embedding <=> $2::vector LIMIT $6"
+	expr := fmt.Sprintf("embedding::vector(%d) <=> $2::vector(%d)", dim, dim)
+	sql := "SELECT doc_id, version, chunk_index, " + expr + " AS distance FROM kb.chunks WHERE " + where + " ORDER BY " + expr + " LIMIT $6"
 	rows, err := tx.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
