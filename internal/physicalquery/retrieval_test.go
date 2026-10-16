@@ -107,10 +107,10 @@ func kbTestInputs() RetrievalPreparationInputsV1 {
 	normalForm := retrieval.NormalForm{
 		Version: "taskgate-retrieval-nf-v1", Tool: retrieval.ToolSearch, KnowledgeProduct: "policy_kb", Epoch: testKBSnapshot,
 		Atoms: []retrieval.Atom{
-			{Attribute: "classification", Type: "enum", Operator: "=", CanonicalLiteral: "internal"},
-			{Attribute: "job_role", Type: "text", Operator: "in", CanonicalLiteral: "analyst"},
-			{Attribute: "job_role", Type: "text", Operator: "in", CanonicalLiteral: "manager"},
-			{Attribute: "kb_department", Type: "enum", Operator: "=", CanonicalLiteral: "finance", Injected: true},
+			{Attribute: "classification", Type: "enum", Operator: "=", CanonicalLiteral: "s:internal"},
+			{Attribute: "job_role", Type: "text", Operator: "in", CanonicalLiteral: "s:analyst"},
+			{Attribute: "job_role", Type: "text", Operator: "in", CanonicalLiteral: "s:manager"},
+			{Attribute: "kb_department", Type: "enum", Operator: "=", CanonicalLiteral: "s:finance", Injected: true},
 		},
 		Query: &retrieval.QueryCommitment{Kind: "text", SHA256: strings.Repeat("4", 64), Dimension: 3},
 		K:     5,
@@ -256,7 +256,7 @@ func TestPrepareRetrievalRefusesUnpreparedShapes(t *testing.T) {
 		t.Fatal("fetch prepared before its wrapper exists")
 	}
 	has := kbTestInputs()
-	has.NormalForm.Atoms = append(has.NormalForm.Atoms, retrieval.Atom{Attribute: "labels", Type: "text_set", Operator: "has", CanonicalLiteral: "urgent"})
+	has.NormalForm.Atoms = append(has.NormalForm.Atoms, retrieval.Atom{Attribute: "labels", Type: "text_set", Operator: "has", CanonicalLiteral: "s:urgent"})
 	if _, err := PrepareRetrievalWith(has, compiler); err == nil {
 		t.Fatal("text_set has-atom prepared without a plan rendering")
 	}
@@ -264,6 +264,11 @@ func TestPrepareRetrievalRefusesUnpreparedShapes(t *testing.T) {
 	wrongProfile.Grant.ExposureProfile = exposure.ProfileV4
 	if _, err := PrepareRetrievalWith(wrongProfile, compiler); err == nil {
 		t.Fatal("retrieval prepared under a profile without a predicate footprint")
+	}
+	untagged := kbTestInputs()
+	untagged.NormalForm.Atoms[0].CanonicalLiteral = "internal"
+	if _, err := PrepareRetrievalWith(untagged, compiler); err == nil {
+		t.Fatal("atom literal without its canonical type tag accepted")
 	}
 	noVector := kbTestInputs()
 	noVector.QueryVector = nil

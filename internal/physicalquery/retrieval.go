@@ -405,19 +405,30 @@ func retrievalPlanFilters(chunks string, nf retrieval.NormalForm) ([]queryplan.F
 	return filters, nil
 }
 
-// retrievalFilterValue types the canonical literal the way a JSON plan would
-// carry it, so the compiler's footprint canonicalizes it to the same atom.
+// retrievalFilterValue turns the atom's canonical literal back into the raw
+// value a JSON plan would carry, so the compiler's footprint canonicalizes it
+// to the same atom. Canonical literals are exposure.CanonicalSQLValue forms:
+// a type tag and a colon before the value (s: text, n: numeric, d: date).
 func retrievalFilterValue(atom retrieval.Atom) (any, error) {
+	tag := map[string]string{"enum": "s:", "text": "s:", "numeric": "n:", "date": "d:"}[atom.Type]
+	if tag == "" {
+		return nil, fmt.Errorf("atom type %q on %q has no plan literal", atom.Type, atom.Attribute)
+	}
+	if !strings.HasPrefix(atom.CanonicalLiteral, tag) {
+		return nil, fmt.Errorf("atom on %q carries literal %q without the %s tag of its type", atom.Attribute, atom.CanonicalLiteral, atom.Type)
+	}
+	raw := strings.TrimPrefix(atom.CanonicalLiteral, tag)
 	switch atom.Type {
 	case "numeric":
-		if _, err := strconv.ParseFloat(atom.CanonicalLiteral, 64); err != nil {
+		if _, err := strconv.ParseFloat(raw, 64); err != nil {
 			return nil, fmt.Errorf("atom on %q carries non-numeric literal %q", atom.Attribute, atom.CanonicalLiteral)
 		}
-		return json.Number(atom.CanonicalLiteral), nil
-	case "enum", "text", "date":
-		return atom.CanonicalLiteral, nil
+		return json.Number(raw), nil
 	default:
-		return nil, fmt.Errorf("atom type %q on %q has no plan literal", atom.Type, atom.Attribute)
+		if raw == "" || strings.ContainsAny(raw, "\x00\r\n") {
+			return nil, fmt.Errorf("atom on %q carries an invalid literal", atom.Attribute)
+		}
+		return raw, nil
 	}
 }
 
