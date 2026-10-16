@@ -35,7 +35,7 @@
 | K2.3 | `cmd/kb-publish`：冻结一个 collection 为发布物（块 id、内容哈希、标签、抽取值、嵌入模型版本、切分摘要），生成序数字典与清单，输出摘要写回 Catalog | 两次运行同输入同摘要；篡改一块即失败 | DONE |
 | K2.4 | Catalog `knowledge_products` 块与校验；网关启动激活知识发布物 | 激活失败即拒启动 | DONE |
 | K2.5 | 合成语料生成器 `evaluation/cmd/kb-corpus`：1 万份文档、12 部门、5 岗位、4 密级、自定义标签、领导层专属章节；文档类型含合同/审批单/制度/报告，带可抽取字段 | 语料冻结并 digest 绑定 | DONE |
-| K2.6 | GPU 嵌入：WSL 装 CUDA 版 torch 与 nvidia-container-toolkit；嵌入提供者 `bge-m3`（权重 sha256 入发布期）接入 kb-publish；嵌入服务（受信边界内，供查询文本嵌入）；hash-projection-v1 留作测试提供者 | GPU 上 48k 块编码完成并记时；同输入两次嵌入余弦差 < 1e-4；发布期清单含模型摘要 | DOING |
+| K2.6 | GPU 嵌入：WSL 装 CUDA 版 torch 与 nvidia-container-toolkit；嵌入提供者 `bge-m3`（权重 sha256 入发布期）接入 kb-publish；嵌入服务（受信边界内，供查询文本嵌入）；hash-projection-v1 留作测试提供者 | GPU 上 48k 块编码完成并记时；同输入两次嵌入余弦差 < 1e-4；发布期清单含模型摘要 | DONE |
 | K2.7 | 真实感语料 v2：LLM 生成（元数据与可抽取字段受控），冻结 manifest + digest，JSONL 镜像 NAS（唯一备份） | 文档数、分布与 v1 口径相同或明写差异；digest 绑定；NAS sha256 核验 | DONE |
 
 ### 阶段 3：检索工具与结算
