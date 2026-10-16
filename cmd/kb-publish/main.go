@@ -33,6 +33,7 @@ func main() {
 	adminEnv := flag.String("admin-dsn-env", "KB_ADMIN_POSTGRES_DSN", "environment variable holding the administrator DSN (publish only)")
 	readerEnv := flag.String("reader-dsn-env", "SNAPSHOT_POSTGRES_DSN", "environment variable holding the read-only scanner DSN")
 	embeddingEnv := flag.String("embedding-endpoint-env", "KB_EMBEDDING_ENDPOINT", "environment variable holding the trusted embedding service URL (learned models only)")
+	embeddingCache := flag.String("embedding-cache", os.Getenv("KB_EMBEDDING_CACHE_DIR"), "directory persisting computed vectors so an interrupted publish resumes (default $KB_EMBEDDING_CACHE_DIR)")
 	flag.Parse()
 	if *activate {
 		if *catalogPath == "" || *artifactDir == "" || flag.NArg() != 0 {
@@ -85,7 +86,7 @@ func main() {
 	if adminDSN == "" {
 		fatal(fmt.Errorf("%s is required", *adminEnv))
 	}
-	options := kbpublish.Options{AdminDSN: adminDSN, ReaderDSN: readerDSN, OutputDir: *out, EmbeddingEndpoint: strings.TrimSpace(os.Getenv(*embeddingEnv))}
+	options := kbpublish.Options{AdminDSN: adminDSN, ReaderDSN: readerDSN, OutputDir: *out, EmbeddingEndpoint: strings.TrimSpace(os.Getenv(*embeddingEnv)), EmbeddingCacheDir: *embeddingCache}
 	if *out == "" {
 		options.OutputDir = filepath.Join(*artifactDir, "kb", spec.Epoch)
 		options.BundleDir = *artifactDir

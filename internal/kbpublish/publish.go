@@ -109,6 +109,9 @@ type Options struct {
 	// ignored by the hash provider. Embedder, when set, overrides both.
 	EmbeddingEndpoint string
 	Embedder          Embedder
+	// EmbeddingCacheDir, when set, persists every computed vector so an
+	// interrupted publish resumes without re-encoding (see EmbeddingCache).
+	EmbeddingCacheDir string
 }
 
 // Result reports what Publish produced.
@@ -137,6 +140,13 @@ func Publish(ctx context.Context, spec Spec, options Options) (Result, error) {
 		if embedder, err = EmbedderFor(spec, options.EmbeddingEndpoint); err != nil {
 			return Result{}, err
 		}
+	}
+	if options.EmbeddingCacheDir != "" {
+		cache, err := NewEmbeddingCache(options.EmbeddingCacheDir, embedder.Info())
+		if err != nil {
+			return Result{}, err
+		}
+		embedder = &CachingEmbedder{Inner: embedder, Cache: cache}
 	}
 	prepared, err := PrepareWith(spec, corpus, embedder)
 	if err != nil {
