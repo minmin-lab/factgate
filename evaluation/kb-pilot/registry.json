@@ -12,6 +12,15 @@
       "publication": "policy-kb-2026-10-bge-v2 (corpus v2 sha256 2180645d…, bge-m3 weights b5e0ce34…)",
       "ledger": "KB1-LOOP-50",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/report-v2.json"
+    },
+    {
+      "id": "ekb2-eligibility-gate-v2",
+      "path": "ekb2/report-v2.json",
+      "sha256": "2618b6e3d59cd7a3bc93807b9d29f8f3733b35cb7bf405f5de22aece3e4299b8",
+      "produced_by": "go test ./internal/gateway -run TestEKB2EligibilityGate (KB_EKB2_DEPLOYMENTS=3)",
+      "publication": "policy-kb-2026-10-bge-v2 catalog fragment with the pre-registered eligibility rule (finance_controller widening)",
+      "ledger": "KB1-LOOP-56",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-v2.json"
     }
   ]
 }
