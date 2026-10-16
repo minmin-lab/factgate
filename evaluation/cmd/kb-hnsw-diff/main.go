@@ -29,6 +29,9 @@ import (
 
 const indexName = "kb_chunks_hnsw_diff"
 
+// exactSettings keeps the exact arm on a full scan.
+const exactSettings = "SET LOCAL enable_indexscan = off; SET LOCAL enable_bitmapscan = off; SET LOCAL enable_indexonlyscan = off"
+
 type query struct {
 	kbhnsw.Key
 	Department     string
@@ -170,9 +173,12 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 	exact := make(map[string][][]kbhnsw.Hit, len(filterList))
 	exactLat := make(map[string][]float64, len(filterList))
 	for _, f := range filterList {
+		if err := verifyPlan(ctx, conn, collection, rep.Dimension, qs[0], f, maxK+1, exactSettings, false); err != nil {
+			return fmt.Errorf("exact %s: %w", f, err)
+		}
 		for _, q := range qs {
 			t0 := time.Now()
-			hits, err := search(ctx, conn, collection, rep.Dimension, q, f, maxK+1, "SET LOCAL enable_indexscan = off; SET LOCAL enable_bitmapscan = off; SET LOCAL enable_indexonlyscan = off")
+			hits, err := search(ctx, conn, collection, rep.Dimension, q, f, maxK+1, exactSettings)
 			if err != nil {
 				return fmt.Errorf("exact %s: %w", f, err)
 			}
@@ -219,7 +225,13 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 					}
 					var outcomes []kbhnsw.Outcome
 					var lat []float64
-					settings := fmt.Sprintf("SET LOCAL enable_seqscan = off; SET LOCAL hnsw.ef_search = %d; SET LOCAL hnsw.iterative_scan = %s", ef, it)
+					// pgvector 0.8 costs the HNSW scan against a btree-filter-plus-sort plan,
+					// which is exact retrieval in disguise; the sort paths are disabled so
+					// the approximate arm really runs the index, and the plan is verified.
+					settings := fmt.Sprintf("SET LOCAL enable_seqscan = off; SET LOCAL enable_sort = off; SET LOCAL enable_incremental_sort = off; SET LOCAL enable_bitmapscan = off; SET LOCAL hnsw.ef_search = %d; SET LOCAL hnsw.iterative_scan = %s", ef, it)
+					if err := verifyPlan(ctx, conn, collection, rep.Dimension, qs[0], f, k, settings, true); err != nil {
+						return fmt.Errorf("hnsw %s ef=%d %s k=%d: %w", f, ef, it, k, err)
+					}
 					for i, q := range qs {
 						t0 := time.Now()
 						hits, err := search(ctx, conn, collection, rep.Dimension, q, f, k, settings)
@@ -256,17 +268,9 @@ func run(dsnEnv, collection string, n int, seed, ks, efs, iteratives, filters st
 	return nil
 }
 
-// search runs one query inside a transaction so SET LOCAL planner settings
-// apply to it alone. The query chunk itself is excluded from the result.
-func search(ctx context.Context, conn *pgx.Conn, collection string, dim int, q query, filter string, limit int, settings string) ([]kbhnsw.Hit, error) {
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, settings); err != nil {
-		return nil, err
-	}
+// searchSQL builds the retrieval statement and its arguments. The query
+// chunk itself is excluded from the result.
+func searchSQL(collection string, dim int, q query, filter string, limit int) (string, []any) {
 	where := "collection = $1 AND NOT (doc_id = $3 AND version = $4 AND chunk_index = $5)"
 	args := []any{collection, q.Embedding, q.DocID, q.Version, q.ChunkIndex, limit}
 	switch filter {
@@ -279,6 +283,58 @@ func search(ctx context.Context, conn *pgx.Conn, collection string, dim int, q q
 	}
 	expr := fmt.Sprintf("embedding::vector(%d) <=> $2::vector(%d)", dim, dim)
 	sql := "SELECT doc_id, version, chunk_index, " + expr + " AS distance FROM kb.chunks WHERE " + where + " ORDER BY " + expr + " LIMIT $6"
+	return sql, args
+}
+
+// verifyPlan runs EXPLAIN for one query under the arm's settings and checks
+// that the plan uses the HNSW index exactly when wantHNSW is set. The planner
+// may otherwise substitute a btree-filter-plus-sort plan, which is exact
+// retrieval and would make the approximate arm's figures meaningless.
+func verifyPlan(ctx context.Context, conn *pgx.Conn, collection string, dim int, q query, filter string, limit int, settings string, wantHNSW bool) error {
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, settings); err != nil {
+		return err
+	}
+	sql, args := searchSQL(collection, dim, q, filter, limit)
+	rows, err := tx.Query(ctx, "EXPLAIN (FORMAT TEXT) "+sql, args...)
+	if err != nil {
+		return err
+	}
+	var plan []string
+	for rows.Next() {
+		var line string
+		if err := rows.Scan(&line); err != nil {
+			return err
+		}
+		plan = append(plan, line)
+	}
+	if rows.Err() != nil {
+		return rows.Err()
+	}
+	text := strings.Join(plan, "\n")
+	usesHNSW := strings.Contains(text, "Index Scan using "+indexName) && strings.Contains(text, "Order By:")
+	if usesHNSW != wantHNSW {
+		return fmt.Errorf("planner did not produce the intended arm (want hnsw=%v); plan:\n%s", wantHNSW, text)
+	}
+	return nil
+}
+
+// search runs one query inside a transaction so SET LOCAL planner settings
+// apply to it alone.
+func search(ctx context.Context, conn *pgx.Conn, collection string, dim int, q query, filter string, limit int, settings string) ([]kbhnsw.Hit, error) {
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, settings); err != nil {
+		return nil, err
+	}
+	sql, args := searchSQL(collection, dim, q, filter, limit)
 	rows, err := tx.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err

@@ -2,13 +2,14 @@
 
 状态：草案 v1，2026-10-15，等作者审阅后用 `/loop` 启动。分支 `kb-dev`（自 p10-r2 468f87c 建）。
 目标：TKDE 稿在"全部改完"后投：知识产品路径从"定义"升级为"实现并评估"（作者决策，台账 LOOP-54）。
+框架（2026-10-16 作者定，台账 KB1-LOOP-40）：论文主张为"面向 Agent 的企业数据产品暴露治理"，报表与文档/知识是同一机制的两个实例，文档场景为主叙事（kb-design §9b）；K4 实验按可发表级执行，正文改写在阶段 5。
 
 ## 0. 边界与证据政策（需作者在审阅时确认）
 
 - **封印证据不动。** V5 campaign（faf4d095）的数字、原始证据、generate_evidence.py 一律不改。
 - **两个证据锚点。** 知识产品实验是第二套证据：绑定它自己的提交，由后封印生成器（generate_p10_evidence.py 同类，新文件 `paper/tkde/generate_kb_evidence.py`）出宏并做严格校验；V5 证据以 draft 模式（祖先校验）验证。论文可复现性声明改为"两个提交锚点"。
   `make paper-final-check` 在 kb-dev 上会因 measured paths 变动而失败，这是预期；改为新目标 `make paper-kb-check`（V5 draft + KB final）。
-- **新实验类名** campaign_class 用 `kb-pilot`，publication_eligible 保持 false，直到作者裁决其为正式证据。
+- **新实验类名** campaign_class 用 `kb-pilot`，publication_eligible 保持 false，直到作者裁决其为正式证据。 2026-10-16 作者采纳统一框架后，K4 证据按可发表级设计（三部署、冻结语料 v2 + bge-m3、预先登记预期），翻 true 仍待作者裁决。
 - **主张不超证据。** 论文只说实现了什么、测了什么；未做的仍写"未评估"。
 - **签署类动作永不代签**：catalog 变更凑齐后作者一次签署；Zenodo 发布只在作者明示后。
 
