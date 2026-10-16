@@ -504,6 +504,18 @@ kb_publications:
   `RETRIEVAL_FILTER_UNSUPPORTED`、`RETRIEVAL_QUERY_UNSUPPORTED`（含任何未知字段，如重排器、more-like-this）、
   `RETRIEVAL_K_EXCEEDED`、`RETRIEVAL_SCOPE_EXCEEDED`、`CHUNK_NOT_RETURNED`、`AGGREGATE_UNSUPPORTED`。
 
+检索工具与结算（K3.3）：Gateway 向 query 角色列出 `search`、`fetch`、`aggregate` 三个 MCP 工具（参数：`task_id`、`request_id`、
+`knowledge_product`，以及各自的 `filters` / `query{text|vector}` / `k`、`chunks[]`、`field` + `aggregate`）。`search` 与 `fetch` 由
+`physicalquery.PrepareRetrieval` 准备：先把规范形变成 `chunks ⋈ documents` 的关系计划交给与 `execute_plan` 相同的编译器，再给两条语句各包一层
+命中集 CTE（在 `kb.chunks` 上按精确余弦距离排序、同一调用方原子、身份三列全序、`LIMIT k`；`fetch` 按身份枚举、不排序）；密封、预留、
+执行、序数推导、结算、回执、重放全部复用 `execute_plan` 的链条，响应列为 `doc_id, version, chunk_index, text`。效果口径见
+docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块行、文档键单元格与文档行、每个调用方过滤属性一个块单元格）。
+`aggregate` 直接是 values 关系上的一个计划（`field` 与 `value_type` 过滤 + 白名单聚合），不新写结算。任务必须同时授权 chunks 与
+documents 两个 Product（aggregate 授权 values），且携带 V5 暴露 profile。文本查询由受信嵌入服务编码：Gateway 读 `KB_EMBEDDING_ENDPOINT`
+（compose 中默认为空），未配置时文本查询以 `RETRIEVAL_QUERY_UNSUPPORTED` 拒绝、向量查询仍可用；嵌入器在使用前按知识产品声明的
+模型 / 维度 / 权重 sha256 核对。业务库须把 pgvector 装在 `pg_catalog`（`db/init/kb-schema.psql`）：连接器为每条语句钉
+`search_path = pg_catalog`，距离算子只有在那里才可解析。
+
 发布流程：`kb-publish -spec <spec.json> -artifact-dir <snapshot artifact root>` 写入 kb.* 行、建冻结物化视图、编译三个 bundle 到
 `<root>/<publication>/`，并在 `<root>/kb/<epoch>/` 留下清单、三个 compiler input 与 `catalog-fragment.yaml`；
 `kb-publish -merge -base config/catalog.yaml -fragment <root>/kb/<epoch>/catalog-fragment.yaml -out candidate.yaml` 把片段追加进

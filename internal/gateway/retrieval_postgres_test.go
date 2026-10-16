@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -262,6 +263,49 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 	t.Logf("fetch of 2 settled chunks + 1 out-of-scope chunk: rows=%d release actual=%d charged=%d influence actual=%d charged=%d outcome charged=%d",
 		len(fetchedHits), fetchCharge.ActualReleaseFacts, fetchCharge.ChargedReleaseFacts, fetchCharge.ActualInfluenceFacts, fetchCharge.ChargedInfluenceFacts, fetchCharge.ChargedOutcomeFacts)
 
+	// Aggregate: count and sum of contract amounts under the task scope equal
+	// direct SQL on the published values relation.
+	values := product.Products.Values
+	harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-agg", nil,
+		control.ExposureLimits{ReleaseFacts: 400, InfluenceFacts: 100000, OutcomeFacts: 64}, exposure.ProfileV5,
+		[]string{values}, map[string][]string{values: {"doc_id", "version", "document_type", "field", "value_type", "canonical_value", "value_numeric", "value_date", "kb_department", "classification"}},
+		domain.SensitivityHigh, scope)
+	var directCount int64
+	var directSum string
+	valuesRelation := harness.catalog.Products[indexOfProduct(t, harness.catalog, values)].ReportingView
+	if err := db.QueryRow(ctx, `SELECT count(*), coalesce(sum(value_numeric), 0)::text FROM `+valuesRelation+
+		` WHERE field = 'amount' AND value_type = 'numeric' AND kb_department = 'finance' AND classification IN ('internal','public')`).Scan(&directCount, &directSum); err != nil {
+		t.Fatal(err)
+	}
+	counted, err := callGatewayTool(harness.service, harness.alice, "aggregate", map[string]any{"task_id": "task-kb-agg", "request_id": "kb-e2e-count",
+		"knowledge_product": product.Name, "field": "amount", "aggregate": "count"})
+	if err != nil {
+		t.Fatalf("aggregate count: %v", err)
+	}
+	if got := aggregateNumber(t, counted); got != float64(directCount) {
+		t.Fatalf("aggregate count %v, direct %d", got, directCount)
+	}
+	summed, err := callGatewayTool(harness.service, harness.alice, "aggregate", map[string]any{"task_id": "task-kb-agg", "request_id": "kb-e2e-sum",
+		"knowledge_product": product.Name, "field": "amount", "aggregate": "sum"})
+	if err != nil {
+		t.Fatalf("aggregate sum: %v", err)
+	}
+	directSumValue, err := strconv.ParseFloat(directSum, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := aggregateNumber(t, summed); math.Abs(got-directSumValue) > 1e-6*math.Max(1, math.Abs(directSumValue)) {
+		t.Fatalf("aggregate sum %v, direct %s", got, directSum)
+	}
+	aggCharge := summed["exposure"].(control.ExposureCharge)
+	if aggCharge.ActualReleaseFacts == 0 || aggCharge.ActualInfluenceFacts < directCount {
+		t.Fatalf("aggregate charge %+v, want a derived release fact and a witness set of at least %d", aggCharge, directCount)
+	}
+	t.Logf("aggregate count=%d sum=%s: release actual=%d influence actual=%d outcome actual=%d", directCount, directSum, aggCharge.ActualReleaseFacts, aggCharge.ActualInfluenceFacts, aggCharge.ActualOutcomeFacts)
+	_, err = callGatewayTool(harness.service, harness.alice, "aggregate", map[string]any{"task_id": "task-kb-agg", "request_id": "kb-e2e-agg-bad",
+		"knowledge_product": product.Name, "field": "amount", "aggregate": "sum", "filters": []map[string]any{{"attribute": "job_role", "op": "=", "value": "manager"}}})
+	requireToolCode(t, err, apierr.CodeRetrievalFilterUnsupported)
+
 	// Over the limit: a task whose release budget cannot hold one search is
 	// refused closed, before anything is charged.
 	harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-tight", nil,
@@ -496,4 +540,41 @@ func vectorLiteralOf(vector []float32) string {
 		parts = append(parts, fmt.Sprintf("%g", value))
 	}
 	return "[" + strings.Join(parts, ",") + "]"
+}
+
+func indexOfProduct(t *testing.T, loaded *catalog.Catalog, name string) int {
+	t.Helper()
+	for i, product := range loaded.Products {
+		if product.Name == name {
+			return i
+		}
+	}
+	t.Fatalf("catalog lacks product %s", name)
+	return -1
+}
+
+// aggregateNumber reads the single cell of an aggregate response as a number.
+func aggregateNumber(t *testing.T, result map[string]any) float64 {
+	t.Helper()
+	encoded, err := json.Marshal(result["rows"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows [][]any
+	if err := json.Unmarshal(encoded, &rows); err != nil || len(rows) != 1 || len(rows[0]) != 1 {
+		t.Fatalf("aggregate rows %s", encoded)
+	}
+	switch v := rows[0][0].(type) {
+	case float64:
+		return v
+	case string:
+		parsed, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			t.Fatalf("aggregate cell %q is not numeric", v)
+		}
+		return parsed
+	default:
+		t.Fatalf("aggregate cell has type %T", v)
+		return 0
+	}
 }

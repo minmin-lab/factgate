@@ -99,6 +99,14 @@ dictionary 才保存可恢复 canonical payload。二者及 bitmap 仍是敏感�
 
 默认部署不向宿主机发布 Business PostgreSQL 或 MinIO；只有 Gateway 所在隔离内部网络可达。`compose.debug.yaml` 是明确标记的非论文调试覆盖，只将业务库和 MinIO 绑定到宿主机回环地址。控制库、业务库与结果对象存储使用独立的数据、凭据和 Volume，业务只读账号无法访问控制库或结果 bucket。
 
+### 知识产品的两个边界（KB-1）
+
+- 名字解析：数据连接器为每条受治理语句钉 `search_path = pg_catalog`，策略语言不接受带模式限定的算子或函数，因此 pgvector 必须装在
+  `pg_catalog`（`db/init/kb-schema.psql`）。这保持了"未限定名只能解析到系统目录"的性质；代价是业务库管理员要把扩展放进系统模式。
+- 嵌入服务：文本查询的向量由受信边界内的嵌入服务计算（`KB_EMBEDDING_ENDPOINT`）。它看到查询文本与块文本，不接触账本与授权；
+  查询承诺 h_N 取规范化文本的摘要而非向量，向量只进入准备输入并被语句摘要覆盖。服务不可用时文本查询关闭式拒绝，向量查询不受影响。
+  直连嵌入服务或向量库的客户端绕过账本，与直连数据库相同。
+
 ## 需要运营配合的边界
 
 - Catalog 管理员必须保证字段的业务语义正确、`entity_key` 在 snapshot 内稳定唯一、数据更新时提升 snapshot，且 View 不包含未发布敏感列；legacy Attestation 和 semantic View 四摘要只能证明被检查的结构/定义/计划/interface 与已发布 contract 一致，不能证明这些语义本身正确。

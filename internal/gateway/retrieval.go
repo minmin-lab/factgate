@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"taskbound.local/agent-data-gateway/internal/apierr"
@@ -63,7 +64,7 @@ var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chun
 	}, "task_id", "request_id", "knowledge_product", "chunks")}
 
 // retrievalTools are listed to query principals alongside queryTools.
-var retrievalTools = []mcp.Tool{searchTool, fetchTool}
+var retrievalTools = []mcp.Tool{searchTool, fetchTool, aggregateTool}
 
 func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
 	return s.retrieve(ctx, principal, raw, retrieval.ToolSearch)
@@ -339,4 +340,206 @@ func chunkVectorSource(product catalog.KnowledgeProduct) physicalquery.Retrieval
 		EntityColumns:    []string{"doc_id", "version", "chunk_index"},
 		AttributeColumns: map[string]string{"kb_department": "department"},
 	}
+}
+
+var aggregateTool = mcp.Tool{Name: "aggregate", Description: "对知识产品抽取值做 count / sum / min / max：按字段与范围过滤后在 values 关系上执行，结算与 query_sql 相同（派生 Fact 带见证集）。",
+	InputSchema: objectSchema(map[string]any{
+		"task_id":           map[string]any{"type": "string"},
+		"request_id":        requestIDSchema(),
+		"knowledge_product": map[string]any{"type": "string", "minLength": 1},
+		"filters": map[string]any{"type": "array", "items": objectSchema(map[string]any{
+			"attribute": map[string]any{"type": "string", "minLength": 1},
+			"op":        map[string]any{"type": "string", "enum": []string{"=", "<>", "in"}},
+			"value":     map[string]any{},
+			"values":    map[string]any{"type": "array"},
+		}, "attribute", "op")},
+		"field":     map[string]any{"type": "string", "minLength": 1},
+		"aggregate": map[string]any{"type": "string", "enum": []string{"count", "sum", "min", "max"}},
+	}, "task_id", "request_id", "knowledge_product", "field", "aggregate")}
+
+// aggregate is kb-design §5's third tool: the request is normalized by the
+// closed retrieval language, then executed as an ordinary plan over the
+// knowledge product's values relation, so settlement, replay and receipts are
+// exactly execute_plan's. Nothing retrieval-specific is settled.
+func (s *Service) aggregate(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
+	requestStarted := time.Now()
+	var envelope struct {
+		TaskID    string `json:"task_id"`
+		RequestID string `json:"request_id"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "参数不是合法 JSON 对象"}
+	}
+	if err := validateRequestID(envelope.RequestID); err != nil {
+		return nil, err
+	}
+	body, err := retrievalBody(raw)
+	if err != nil {
+		return nil, err
+	}
+	request, err := retrieval.DecodeRequest(retrieval.ToolAggregate, body)
+	if err != nil {
+		return nil, retrievalToolError(err)
+	}
+	task, err := s.ownedTask(ctx, principal, envelope.TaskID)
+	if err != nil {
+		return nil, err
+	}
+	requestSummary := retrieval.ToolAggregate + "\x00" + task.ID + "\x00" + string(body)
+	existing, lookupErr := s.store.GetQueryByRequestID(ctx, task.ID, envelope.RequestID)
+	if lookupErr == nil {
+		if existing.RequestDigest != digest(requestSummary) {
+			return nil, toolError(control.ErrIdempotencyConflict)
+		}
+		replayed, err := s.queryReplayResponseAt(ctx, existing, requestStarted, time.Now())
+		if err != nil {
+			return nil, err
+		}
+		replayed["tool"] = retrieval.ToolAggregate
+		return replayed, nil
+	}
+	if !errors.Is(lookupErr, control.ErrNotFound) {
+		return nil, lookupErr
+	}
+	if task.State != control.TaskActive {
+		return nil, &mcp.ToolError{Code: apierr.CodeTaskNotActive, Message: "任务尚未批准或已经归档"}
+	}
+	if err := s.ensureActiveTaskFamily(ctx, task); err != nil {
+		return nil, toolError(err)
+	}
+	grant, err := s.store.GetGrant(ctx, task.ID)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := s.aggregatePlan(grant, request)
+	if err != nil {
+		return nil, err
+	}
+	prepared, err := s.prepareTaskPlan(ctx, task, grant, plan)
+	if err != nil {
+		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, envelope.RequestID, digest(requestSummary), requestStarted, err)
+		if replayErr != nil {
+			return nil, replayErr
+		}
+		response, ok := replayed.(map[string]any)
+		if !ok {
+			return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "持久查询重放结果格式无效"}
+		}
+		response["tool"] = retrieval.ToolAggregate
+		return response, nil
+	}
+	resultNames := queryPlanResultNames(plan)
+	metadata := &queryResponseMetadata{Plan: plan, OutputFormat: "json", DisplayColumns: resultNames,
+		ResultOrder: identityResultOrder(len(resultNames)), SemanticColumns: queryPlanSemanticColumns(plan)}
+	if prepared.Exposure != nil {
+		metadata.PlanDigest = prepared.Exposure.planDigest
+		metadata.PredicateFootprint = predicateFootprintResponseFor(prepared.Exposure)
+	}
+	return s.executeSQL(ctx, principal, task, envelope.RequestID, prepared, requestSummary, metadata, requestStarted)
+}
+
+// aggregatePlan maps the normalized aggregate onto the values relation: the
+// extracted field and its value type select the rows, caller atoms become
+// filters when the values relation carries the attribute, and the function
+// reads the typed value column. The task's mandatory scope is applied by the
+// policy renderer, as for every plan.
+func (s *Service) aggregatePlan(grant control.TaskGrant, request retrieval.Request) (queryplan.QueryPlan, error) {
+	if s.catalog == nil {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "本实例未加载 Catalog"}
+	}
+	product, found := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
+	if !found {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+	}
+	values := product.Products.Values
+	if values == "" || !contains(grant.ApprovedProducts, values) {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未授权该知识产品的抽取值关系"}
+	}
+	valuesProduct, found := s.catalog.LookupProduct(values)
+	if !found {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "Catalog 未声明抽取值关系"}
+	}
+	scope, err := mandatoryScopeValues(grant)
+	if err != nil {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "任务强制范围无法解析"}
+	}
+	form, err := retrieval.Normalize(product, scope, request)
+	if err != nil {
+		return queryplan.QueryPlan{}, retrievalToolError(err)
+	}
+	if form.Aggregate == nil {
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeRetrievalQueryUnsupported, Message: "aggregate 需要字段与聚合函数"}
+	}
+	columns := map[string]bool{}
+	for _, field := range valuesProduct.Fields {
+		columns[field.Name] = true
+	}
+	plan := queryplan.QueryPlan{Product: values, Filters: []queryplan.Filter{
+		{Column: "field", Op: "=", Value: form.Aggregate.Field},
+		{Column: "value_type", Op: "=", Value: form.Aggregate.ValueType},
+	}}
+	filters, err := aggregateAtomFilters(form, columns)
+	if err != nil {
+		return queryplan.QueryPlan{}, err
+	}
+	plan.Filters = append(plan.Filters, filters...)
+	column := "canonical_value"
+	switch form.Aggregate.Function {
+	case "count":
+	case "sum", "min", "max":
+		switch form.Aggregate.ValueType {
+		case "numeric":
+			column = "value_numeric"
+		case "date":
+			if form.Aggregate.Function == "sum" {
+				return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeAggregateUnsupported, Message: "日期字段不支持 sum"}
+			}
+			column = "value_date"
+		default:
+			return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeAggregateUnsupported, Message: "文本字段只支持 count"}
+		}
+	default:
+		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeAggregateUnsupported, Message: "未知聚合函数"}
+	}
+	plan.Aggregates = []queryplan.Aggregate{{Function: form.Aggregate.Function, Column: column, Alias: form.Aggregate.Function}}
+	return plan, nil
+}
+
+// aggregateAtomFilters renders caller atoms (grouped back from IN lists) as
+// plan filters on the values relation; an attribute the relation lacks is a
+// closed refusal rather than a silently dropped filter.
+func aggregateAtomFilters(form retrieval.NormalForm, columns map[string]bool) ([]queryplan.Filter, error) {
+	type key struct{ attribute, operator string }
+	grouped := map[key][]retrieval.Atom{}
+	var order []key
+	for _, atom := range form.CallerAtoms() {
+		if !columns[atom.Attribute] {
+			return nil, &mcp.ToolError{Code: apierr.CodeRetrievalFilterUnsupported,
+				Message: fmt.Sprintf("aggregate 的过滤属性 %q 不在抽取值关系上", atom.Attribute)}
+		}
+		k := key{atom.Attribute, atom.Operator}
+		if _, seen := grouped[k]; !seen {
+			order = append(order, k)
+		}
+		grouped[k] = append(grouped[k], atom)
+	}
+	var filters []queryplan.Filter
+	for _, k := range order {
+		atoms := grouped[k]
+		switch k.operator {
+		case "in":
+			list := make([]any, 0, len(atoms))
+			for _, atom := range atoms {
+				list = append(list, strings.TrimPrefix(atom.CanonicalLiteral, "s:"))
+			}
+			filters = append(filters, queryplan.Filter{Column: k.attribute, Op: "IN", Value: list})
+		case "=", "<>":
+			for _, atom := range atoms {
+				filters = append(filters, queryplan.Filter{Column: k.attribute, Op: k.operator, Value: strings.TrimPrefix(atom.CanonicalLiteral, "s:")})
+			}
+		default:
+			return nil, &mcp.ToolError{Code: apierr.CodeRetrievalFilterUnsupported, Message: fmt.Sprintf("aggregate 不支持算子 %q", k.operator)}
+		}
+	}
+	return filters, nil
 }

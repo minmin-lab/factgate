@@ -207,6 +207,8 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 			result, err = s.search(ctx, principal, raw)
 		case fetchTool.Name:
 			result, err = s.fetch(ctx, principal, raw)
+		case aggregateTool.Name:
+			result, err = s.aggregate(ctx, principal, raw)
 		case "get_query_result":
 			result, err = s.getQueryResult(ctx, principal, raw)
 		case "preview_result":

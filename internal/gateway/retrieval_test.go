@@ -67,8 +67,8 @@ func TestSearchToolIsListedAndRejectsClosedForm(t *testing.T) {
 	for _, tool := range harness.service.ListTools(harness.alice) {
 		listed[tool.Name] = true
 	}
-	if !listed["search"] || !listed["fetch"] {
-		t.Fatalf("search and fetch are not both listed to query principals: %v", listed)
+	if !listed["search"] || !listed["fetch"] || !listed["aggregate"] {
+		t.Fatalf("search, fetch and aggregate are not all listed to query principals: %v", listed)
 	}
 	base := func(overrides map[string]any) map[string]any {
 		args := map[string]any{"task_id": taskID, "request_id": "kb-search-1", "knowledge_product": "policy_kb",
