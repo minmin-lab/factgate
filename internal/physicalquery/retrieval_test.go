@@ -247,13 +247,14 @@ func TestPrepareRetrievalRefusesUnpreparedShapes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fetch := kbTestInputs()
-	fetch.NormalForm.Tool = retrieval.ToolFetch
-	fetch.NormalForm.Atoms = nil
-	fetch.NormalForm.Query = nil
-	fetch.QueryVector = nil
-	if _, err := PrepareRetrievalWith(fetch, compiler); err == nil {
-		t.Fatal("fetch prepared before its wrapper exists")
+	fetchWithAtoms := kbTestInputs()
+	fetchWithAtoms.NormalForm.Tool = retrieval.ToolFetch
+	fetchWithAtoms.NormalForm.Query = nil
+	fetchWithAtoms.NormalForm.K = 0
+	fetchWithAtoms.NormalForm.Chunks = []retrieval.ChunkRef{{DocID: "D-1", Version: 1, ChunkIndex: 0}}
+	fetchWithAtoms.QueryVector = nil
+	if _, err := PrepareRetrievalWith(fetchWithAtoms, compiler); err == nil {
+		t.Fatal("fetch with caller atoms prepared")
 	}
 	has := kbTestInputs()
 	has.NormalForm.Atoms = append(has.NormalForm.Atoms, retrieval.Atom{Attribute: "labels", Type: "text_set", Operator: "has", CanonicalLiteral: "s:urgent"})
@@ -279,5 +280,56 @@ func TestPrepareRetrievalRefusesUnpreparedShapes(t *testing.T) {
 	unscoped.Grant.MandatoryScope = json.RawMessage(`{"classification":["internal"]}`)
 	if _, err := PrepareRetrievalWith(unscoped, compiler); err == nil {
 		t.Fatal("retrieval prepared for a task that carries no value for a mandatory scope")
+	}
+}
+
+func TestPrepareRetrievalFetchNamesItsChunks(t *testing.T) {
+	compiler, err := LocalCompilerIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputs := kbTestInputs()
+	inputs.NormalForm.Tool = retrieval.ToolFetch
+	inputs.NormalForm.Query = nil
+	inputs.NormalForm.K = 0
+	inputs.NormalForm.Chunks = []retrieval.ChunkRef{{DocID: "D-9", Version: 2, ChunkIndex: 3}, {DocID: "D-1", Version: 1, ChunkIndex: 0}}
+	inputs.NormalForm.Atoms = []retrieval.Atom{{Attribute: "kb_department", Type: "enum", Operator: "=", CanonicalLiteral: "s:finance", Injected: true}}
+	inputs.QueryVector = nil
+	prepared, err := PrepareRetrievalWith(inputs, compiler)
+	if err != nil {
+		t.Fatalf("prepare fetch: %v", err)
+	}
+	visible, companion, err := prepared.ExecutableStatements()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{visible, companion} {
+		for _, want := range []string{`("doc_id" = E'D-1' AND "version" = 1 AND "chunk_index" = 0) OR ("doc_id" = E'D-9' AND "version" = 2 AND "chunk_index" = 3)`, "LIMIT 2", "0 AS \"tg_distance\""} {
+			if !strings.Contains(statement, want) {
+				t.Fatalf("fetch statement lacks %s:\n%s", want, statement)
+			}
+		}
+		if strings.Contains(statement, "<=>") {
+			t.Fatalf("fetch statement ranks by a vector:\n%s", statement)
+		}
+	}
+	if prepared.Binding().EstimatedBaseFacts != 2 {
+		t.Fatalf("estimated base facts %d, want 2", prepared.Binding().EstimatedBaseFacts)
+	}
+	footprint, err := prepared.PredicateFootprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if footprint == nil || footprint.UniqueAtomCount != 0 {
+		t.Fatalf("fetch footprint %+v, want no caller atoms", footprint)
+	}
+	engine := sqlpolicy.New(sqlpolicy.Config{})
+	for _, statement := range []string{visible, companion} {
+		if _, err := engine.Authorize(sqlpolicy.Request{SQL: statement, Grant: prepared.PolicyGrant(), RowLimit: 2}); err != nil {
+			t.Fatalf("policy rejected the fetch statement: %v\n%s", err, statement)
+		}
+	}
+	if err := prepared.RequireRetrievalInputs(inputs, compiler); err != nil {
+		t.Fatal(err)
 	}
 }

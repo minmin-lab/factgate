@@ -141,8 +141,27 @@ func (inputs RetrievalPreparationInputsV1) Validate() error {
 		if nf.Query.Dimension != 0 && nf.Query.Dimension != len(inputs.QueryVector) {
 			return fmt.Errorf("query vector has %d dimensions, the commitment names %d", len(inputs.QueryVector), nf.Query.Dimension)
 		}
+	case retrieval.ToolFetch:
+		if len(nf.Chunks) == 0 || nf.Query != nil || len(inputs.QueryVector) != 0 {
+			return errors.New("fetch normal form must name chunks and carry no query")
+		}
+		for _, atom := range nf.Atoms {
+			if !atom.Injected {
+				return errors.New("fetch normal form carries caller atoms")
+			}
+		}
+		seen := map[retrieval.ChunkRef]struct{}{}
+		for _, ref := range nf.Chunks {
+			if strings.TrimSpace(ref.DocID) == "" || ref.Version < 0 || ref.ChunkIndex < 0 {
+				return fmt.Errorf("fetch names an invalid chunk %+v", ref)
+			}
+			if _, duplicate := seen[ref]; duplicate {
+				return fmt.Errorf("fetch names chunk %+v twice", ref)
+			}
+			seen[ref] = struct{}{}
+		}
 	default:
-		return fmt.Errorf("retrieval preparation does not prepare tool %q yet", nf.Tool)
+		return fmt.Errorf("retrieval preparation does not prepare tool %q", nf.Tool)
 	}
 	for _, atom := range nf.Atoms {
 		if atom.Injected {
@@ -512,7 +531,7 @@ func wrapRetrievalDraft(draft *OperationDraft, inputs RetrievalPreparationInputs
 		return err
 	}
 	draft.NormalFormSHA256 = normalForm
-	draft.EstimatedBaseFacts = uint64(inputs.NormalForm.K)
+	draft.EstimatedBaseFacts = uint64(retrievalHitLimit(inputs.NormalForm))
 
 	vectorGrant, err := retrievalVectorGrant(inputs)
 	if err != nil {
@@ -541,8 +560,12 @@ func retrievalHitOrder(entity []string) string {
 func renderRetrievalHits(inputs RetrievalPreparationInputsV1) (string, error) {
 	source := inputs.VectorSource
 	entity := source.EntityColumns
-	vector := vectorLiteral(inputs.QueryVector)
-	distance := quoteIdent(source.EmbeddingColumn) + " <=> " + sqlStringLiteral(vector)
+	// search ranks by exact cosine distance; fetch names its chunks and ranks
+	// them by identity alone, so the distance column is a constant.
+	distance := "0"
+	if inputs.NormalForm.Tool == retrieval.ToolSearch {
+		distance = quoteIdent(source.EmbeddingColumn) + " <=> " + sqlStringLiteral(vectorLiteral(inputs.QueryVector))
+	}
 	var b strings.Builder
 	// The identity columns keep their names: the policy analyzer resolves a
 	// CTE's columns by their source names, and only an expression may carry an
@@ -585,9 +608,41 @@ func renderRetrievalHits(inputs RetrievalPreparationInputsV1) (string, error) {
 			b.WriteString(" AND " + quoteIdent(column) + " " + filter.Op + " " + literal)
 		}
 	}
-	b.WriteString(" ORDER BY " + distance + " ASC, " + quoteIdent(entity[0]) + " ASC, " +
-		quoteIdent(entity[1]) + " ASC, " + quoteIdent(entity[2]) + " ASC LIMIT " + strconv.Itoa(inputs.NormalForm.K))
+	if inputs.NormalForm.Tool == retrieval.ToolFetch {
+		refs := append([]retrieval.ChunkRef(nil), inputs.NormalForm.Chunks...)
+		sort.Slice(refs, func(i, j int) bool {
+			if refs[i].DocID != refs[j].DocID {
+				return refs[i].DocID < refs[j].DocID
+			}
+			if refs[i].Version != refs[j].Version {
+				return refs[i].Version < refs[j].Version
+			}
+			return refs[i].ChunkIndex < refs[j].ChunkIndex
+		})
+		parts := make([]string, 0, len(refs))
+		for _, ref := range refs {
+			parts = append(parts, "("+quoteIdent(entity[0])+" = "+sqlStringLiteral(ref.DocID)+" AND "+
+				quoteIdent(entity[1])+" = "+strconv.Itoa(ref.Version)+" AND "+quoteIdent(entity[2])+" = "+strconv.Itoa(ref.ChunkIndex)+")")
+		}
+		b.WriteString(" AND (" + strings.Join(parts, " OR ") + ")")
+	}
+	// A bare integer in ORDER BY would be read as an output position, so the
+	// constant fetch distance is not an ordering key; identity alone orders it.
+	order := quoteIdent(entity[0]) + " ASC, " + quoteIdent(entity[1]) + " ASC, " + quoteIdent(entity[2]) + " ASC"
+	if inputs.NormalForm.Tool == retrieval.ToolSearch {
+		order = distance + " ASC, " + order
+	}
+	b.WriteString(" ORDER BY " + order + " LIMIT " + strconv.Itoa(retrievalHitLimit(inputs.NormalForm)))
 	return b.String(), nil
+}
+
+// retrievalHitLimit is the hit-set bound: k for search, the number of named
+// chunks for fetch.
+func retrievalHitLimit(form retrieval.NormalForm) int {
+	if form.Tool == retrieval.ToolFetch {
+		return len(form.Chunks)
+	}
+	return form.K
 }
 
 // retrievalVectorGrant admits the vector relation to the policy grant with the

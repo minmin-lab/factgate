@@ -50,10 +50,32 @@ var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过
 		"k": map[string]any{"type": "integer", "minimum": 1},
 	}, "task_id", "request_id", "knowledge_product", "query", "k")}
 
+var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chunk_index) 取回先前检索命中的分块正文；取回同样按任务账本结算，已结算过的分块不再重复计费。",
+	InputSchema: objectSchema(map[string]any{
+		"task_id":           map[string]any{"type": "string"},
+		"request_id":        requestIDSchema(),
+		"knowledge_product": map[string]any{"type": "string", "minLength": 1},
+		"chunks": map[string]any{"type": "array", "minItems": 1, "items": objectSchema(map[string]any{
+			"doc_id":      map[string]any{"type": "string", "minLength": 1},
+			"version":     map[string]any{"type": "integer", "minimum": 0},
+			"chunk_index": map[string]any{"type": "integer", "minimum": 0},
+		}, "doc_id", "version", "chunk_index")},
+	}, "task_id", "request_id", "knowledge_product", "chunks")}
+
 // retrievalTools are listed to query principals alongside queryTools.
-var retrievalTools = []mcp.Tool{searchTool}
+var retrievalTools = []mcp.Tool{searchTool, fetchTool}
 
 func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
+	return s.retrieve(ctx, principal, raw, retrieval.ToolSearch)
+}
+
+func (s *Service) fetch(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
+	return s.retrieve(ctx, principal, raw, retrieval.ToolFetch)
+}
+
+// retrieve is the shared flow of search and fetch: decode, idempotency,
+// task and grant checks, preparation, then executeSQL.
+func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw json.RawMessage, tool string) (any, error) {
 	requestStarted := time.Now()
 	var envelope struct {
 		TaskID    string `json:"task_id"`
@@ -69,7 +91,7 @@ func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.
 	if err != nil {
 		return nil, err
 	}
-	request, err := retrieval.DecodeRequest(retrieval.ToolSearch, body)
+	request, err := retrieval.DecodeRequest(tool, body)
 	if err != nil {
 		return nil, retrievalToolError(err)
 	}
@@ -77,7 +99,7 @@ func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.
 	if err != nil {
 		return nil, err
 	}
-	requestSummary := "search\x00" + task.ID + "\x00" + string(body)
+	requestSummary := tool + "\x00" + task.ID + "\x00" + string(body)
 	existing, lookupErr := s.store.GetQueryByRequestID(ctx, task.ID, envelope.RequestID)
 	if lookupErr == nil {
 		if existing.RequestDigest != digest(requestSummary) {
@@ -87,7 +109,7 @@ func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.
 		if err != nil {
 			return nil, err
 		}
-		replayed["tool"] = retrieval.ToolSearch
+		replayed["tool"] = tool
 		return replayed, nil
 	}
 	if !errors.Is(lookupErr, control.ErrNotFound) {
@@ -113,7 +135,7 @@ func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.
 		if !ok {
 			return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "持久查询重放结果格式无效"}
 		}
-		response["tool"] = retrieval.ToolSearch
+		response["tool"] = tool
 		return response, nil
 	}
 	metadata := &queryResponseMetadata{Plan: plan, OutputFormat: "json",
@@ -192,9 +214,11 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	if err != nil {
 		return preparedQueryPlan{}, queryplan.QueryPlan{}, retrievalToolError(err)
 	}
-	vector, err := s.retrievalQueryVector(product, request)
-	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, err
+	var vector []float32
+	if request.Tool == retrieval.ToolSearch {
+		if vector, err = s.retrievalQueryVector(product, request); err != nil {
+			return preparedQueryPlan{}, queryplan.QueryPlan{}, err
+		}
 	}
 	view, err := physicalquery.CatalogViewFromCatalog(*s.catalog)
 	if err != nil {

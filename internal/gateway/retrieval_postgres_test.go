@@ -228,6 +228,40 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 		t.Fatalf("k=10 charged %d outcome facts, want 1 (new composite, same atom)", widerCharge.ChargedOutcomeFacts)
 	}
 
+	// Fetch: two chunks already settled by the search come back in identity
+	// order with no new Release charge and one new composite; a chunk outside
+	// the task's mandatory scope is not returned at all.
+	var hrDoc string
+	var hrVersion, hrChunk int
+	if err := db.QueryRow(ctx, `SELECT doc_id, version, chunk_index FROM kb.chunks WHERE collection = $1 AND department = 'hr' LIMIT 1`, product.Collection).Scan(&hrDoc, &hrVersion, &hrChunk); err != nil {
+		t.Fatal(err)
+	}
+	fetchArgs := map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch", "knowledge_product": product.Name,
+		"chunks": []map[string]any{
+			{"doc_id": hits[1][0], "version": hits[1][1], "chunk_index": hits[1][2]},
+			{"doc_id": hits[0][0], "version": hits[0][1], "chunk_index": hits[0][2]},
+			{"doc_id": hrDoc, "version": hrVersion, "chunk_index": hrChunk},
+		}}
+	fetched, err := callGatewayTool(harness.service, harness.alice, "fetch", fetchArgs)
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	fetchedHits := searchHits(t, fetched)
+	if len(fetchedHits) != 2 {
+		t.Fatalf("fetch returned %d rows, want the 2 in-scope chunks: %#v", len(fetchedHits), fetchedHits)
+	}
+	for _, row := range fetchedHits {
+		if fmt.Sprint(row[0]) == hrDoc {
+			t.Fatalf("fetch returned a chunk outside the task scope: %#v", row)
+		}
+	}
+	fetchCharge := fetched["exposure"].(control.ExposureCharge)
+	if fetchCharge.ChargedReleaseFacts != 0 || fetchCharge.ActualReleaseFacts != 8 || fetchCharge.ChargedOutcomeFacts != 1 || fetchCharge.ActualPredicateAtomCount != 0 {
+		t.Fatalf("fetch charge %+v, want 8 actual / 0 charged release cells, no atoms, one new composite", fetchCharge)
+	}
+	t.Logf("fetch of 2 settled chunks + 1 out-of-scope chunk: rows=%d release actual=%d charged=%d influence actual=%d charged=%d outcome charged=%d",
+		len(fetchedHits), fetchCharge.ActualReleaseFacts, fetchCharge.ChargedReleaseFacts, fetchCharge.ActualInfluenceFacts, fetchCharge.ChargedInfluenceFacts, fetchCharge.ChargedOutcomeFacts)
+
 	// Over the limit: a task whose release budget cannot hold one search is
 	// refused closed, before anything is charged.
 	harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-tight", nil,

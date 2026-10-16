@@ -63,14 +63,12 @@ func kbVector(dimension int) []float64 {
 
 func TestSearchToolIsListedAndRejectsClosedForm(t *testing.T) {
 	harness, taskID := kbSearchHarness(t, exposure.ProfileV5)
-	listed := false
+	listed := map[string]bool{}
 	for _, tool := range harness.service.ListTools(harness.alice) {
-		if tool.Name == "search" {
-			listed = true
-		}
+		listed[tool.Name] = true
 	}
-	if !listed {
-		t.Fatal("search is not listed to query principals")
+	if !listed["search"] || !listed["fetch"] {
+		t.Fatalf("search and fetch are not both listed to query principals: %v", listed)
 	}
 	base := func(overrides map[string]any) map[string]any {
 		args := map[string]any{"task_id": taskID, "request_id": "kb-search-1", "knowledge_product": "policy_kb",
