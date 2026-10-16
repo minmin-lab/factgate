@@ -61,24 +61,24 @@ func effectHashes(t *testing.T, effect retrieval.Effect) ([]string, []string, []
 
 func TestHandComputedCounts(t *testing.T) {
 	form := normalize(t, retrieval.ToolSearch, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"},{"attribute":"valid_until","op":">=","value":"2026-01-01"}],"query":{"text":"pricing"},"k":4}`)
-	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha"}}
+	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha", Attributes: testAttributes()}}
 	effect, err := retrieval.BuildEffect(testBinding(), form, hits)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(effect.Release) != 1 || len(effect.Dependency) != 3 || len(effect.Atoms) != 2 || len(effect.Outcome()) != 3 {
+	if len(effect.Release) != 4 || len(effect.Dependency) != dependencyCount(1, 1, 2) || len(effect.Atoms) != 2 || len(effect.Outcome()) != 3 {
 		t.Fatalf("one chunk: R=%d D=%d atoms=%d O=%d", len(effect.Release), len(effect.Dependency), len(effect.Atoms), len(effect.Outcome()))
 	}
 	// Two chunks of one document share the document row Fact.
-	hits = append(hits, retrieval.Hit{DocID: "D-1", Version: 1, ChunkIndex: 1, Text: "beta"})
+	hits = append(hits, retrieval.Hit{DocID: "D-1", Version: 1, ChunkIndex: 1, Text: "beta", Attributes: testAttributes()})
 	effect, err = retrieval.BuildEffect(testBinding(), form, hits)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(effect.Release) != 2 || len(effect.Dependency) != 5 {
+	if len(effect.Release) != 8 || len(effect.Dependency) != dependencyCount(2, 1, 2) {
 		t.Fatalf("two chunks one document: R=%d D=%d", len(effect.Release), len(effect.Dependency))
 	}
-	expected, err := Compute(testBinding(), form, []Chunk{{"D-1", 1, 0, "alpha"}, {"D-1", 1, 1, "beta"}})
+	expected, err := Compute(testBinding(), form, []Chunk{{"D-1", 1, 0, "alpha", testAttributes()}, {"D-1", 1, 1, "beta", testAttributes()}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,14 +122,14 @@ func TestRandomHitSetsMatchOracleMemberByMember(t *testing.T) {
 		var chunks []Chunk
 		seen := map[string]struct{}{}
 		for len(hits) < count {
-			hit := retrieval.Hit{DocID: fmt.Sprintf("D-%d", rng.IntN(6)), Version: 1 + rng.IntN(2), ChunkIndex: rng.IntN(4), Text: fmt.Sprintf("text %d", rng.IntN(1000))}
+			hit := retrieval.Hit{DocID: fmt.Sprintf("D-%d", rng.IntN(6)), Version: 1 + rng.IntN(2), ChunkIndex: rng.IntN(4), Text: fmt.Sprintf("text %d", rng.IntN(1000)), Attributes: map[string]string{"job_role": []string{"staff", "manager"}[rng.IntN(2)], "valid_until": fmt.Sprintf("2026-%02d-01", 1+rng.IntN(12))}}
 			id := fmt.Sprintf("%s/%d/%d", hit.DocID, hit.Version, hit.ChunkIndex)
 			if _, duplicate := seen[id]; duplicate {
 				continue
 			}
 			seen[id] = struct{}{}
 			hits = append(hits, hit)
-			chunks = append(chunks, Chunk{hit.DocID, hit.Version, hit.ChunkIndex, hit.Text})
+			chunks = append(chunks, Chunk{hit.DocID, hit.Version, hit.ChunkIndex, hit.Text, hit.Attributes})
 		}
 		effect, err := retrieval.BuildEffect(testBinding(), form, hits)
 		if err != nil {
@@ -148,7 +148,7 @@ func TestRandomHitSetsMatchOracleMemberByMember(t *testing.T) {
 
 func TestReplayAndDistinctRequestsOnComposite(t *testing.T) {
 	form := normalize(t, retrieval.ToolSearch, `{"query":{"text":"pricing"},"k":4}`)
-	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha"}, {DocID: "D-2", Version: 1, ChunkIndex: 0, Text: "gamma"}}
+	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha", Attributes: testAttributes()}, {DocID: "D-2", Version: 1, ChunkIndex: 0, Text: "gamma", Attributes: testAttributes()}}
 	first, _ := retrieval.BuildEffect(testBinding(), form, hits)
 	second, _ := retrieval.BuildEffect(testBinding(), form, []retrieval.Hit{hits[1], hits[0]})
 	firstHash, _ := first.Composite.Hash()
@@ -180,10 +180,23 @@ func TestReplayAndDistinctRequestsOnComposite(t *testing.T) {
 	}
 	fetch := normalize(t, retrieval.ToolFetch, `{"chunks":[{"doc_id":"D-1","version":1,"chunk_index":0}]}`)
 	fetched, err := retrieval.BuildEffect(testBinding(), fetch, hits[:1])
-	if err != nil || len(fetched.Atoms) != 0 || len(fetched.Outcome()) != 1 || len(fetched.Dependency) != 3 {
+	if err != nil || len(fetched.Atoms) != 0 || len(fetched.Outcome()) != 1 || len(fetched.Dependency) != dependencyCount(1, 1, 0) {
 		t.Fatalf("fetch effect = atoms %d outcome %d dependency %d (%v)", len(fetched.Atoms), len(fetched.Outcome()), len(fetched.Dependency), err)
 	}
 	if _, err := retrieval.BuildEffect(testBinding(), form, []retrieval.Hit{hits[0], hits[0]}); err == nil {
 		t.Fatal("duplicate hit accepted")
 	}
+}
+
+// testAttributes gives a hit values for every attribute the tests filter on.
+func testAttributes() map[string]string {
+	return map[string]string{"job_role": "staff", "valid_until": "2026-06-01"}
+}
+
+// dependencyCount is the general algebra's F_D size for chunks hits in docs
+// distinct documents under filtered caller-filtered attributes: four visible
+// cells and one row per chunk, two key cells and one row per document, one
+// chunk cell per filtered attribute (kb-design §5, measured 2026-10-16).
+func dependencyCount(chunks, docs, filtered int) int {
+	return chunks*(4+1+filtered) + docs*(2+1)
 }

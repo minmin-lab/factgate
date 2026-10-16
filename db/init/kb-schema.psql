@@ -8,7 +8,13 @@
 -- one index publication epoch. The gateway (gateway_reader) only reads.
 BEGIN;
 
-CREATE EXTENSION IF NOT EXISTS vector;
+-- pgvector lives in pg_catalog on purpose. The Gateway's data connector pins
+-- search_path to pg_catalog for every governed statement, and the policy
+-- language admits no schema-qualified operator, so the distance operator the
+-- knowledge retrieval wrapper renders (embedding <=> query) is resolvable only
+-- from there. The extension is relocatable; an existing installation moves
+-- with ALTER EXTENSION vector SET SCHEMA pg_catalog.
+CREATE EXTENSION IF NOT EXISTS vector SCHEMA pg_catalog;
 
 CREATE SCHEMA kb;
 REVOKE ALL ON SCHEMA kb FROM PUBLIC;

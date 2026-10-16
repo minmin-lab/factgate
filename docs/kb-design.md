@@ -168,11 +168,17 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 
 | 工具 | F_R | F_D | F_O |
 |---|---|---|---|
-| search | {text 单元格 Fact : chunk ∈ y} | F_R ∪ {chunk 行 Fact : chunk ∈ y} ∪ {f_doc : d ∈ D(y)} | A(q) ∪ {c_q} |
-| fetch | 同上（对请求的块） | 同上 | {c_q}（无原子：块 id 不是调用方字面量而是先前结果） |
+| search | {doc_id, version, chunk_index, text 四个单元格 Fact : chunk ∈ y} | F_R ∪ {chunk 行 Fact : chunk ∈ y} ∪ {f_doc, doc.doc_id 单元格, doc.version 单元格 : d ∈ D(y)} ∪ {chunk 的 a 单元格 : chunk ∈ y, a ∈ 调用方过滤属性} | A(q) ∪ {c_q} |
+| fetch | 同上（对请求的块） | 同上（无调用方过滤属性项） | {c_q}（无原子：块 id 不是调用方字面量而是先前结果） |
 | aggregate | {派生 Fact：见证 W = 匹配的 values 单元格} | 匹配的全部 values 单元格与其文档行 Fact（现有聚合依赖口径） | A(q) ∪ {c_q} |
 | 空结果 | ∅ | ∅ | A(q) ∪ {c_q} |
 
+- **口径来源（2026-10-16 实测后改，台账 KB1-LOOP-47）**：检索按 §10a 以 chunks ⋈ documents 的关系计划准备，F_R / F_D 就是现有
+  V5 关系代数对该计划的输出，不另造：可见四列即 Release；溯源见证 = 两源的行 Fact + 连接键单元格（documents.doc_id / version）
+  + 外层过滤读到的 chunk 单元格（每个调用方过滤属性一个）；注入的强制范围由策略渲染器施加，不留见证。字段身份带稳定关系角色
+  （`policy_kb_chunks.text` 而非裸列名 `text`，因为是关系计划而非单源计划）。实测（kbe2e5，k=5，过滤 classification）：R=20、
+  D=45=5×(4+1+1)+5×(2+1)，与 kboracle 按定义重算的计数一致；effect.go 与 oracle 已改为此口径并 200 次随机命中集逐成员一致。
+  原"仅 text 单元格为 Release"的写法作废（§9.9）。
 - 实现备注（K3.2 已落地：internal/retrieval/effect.go，独立 oracle evaluation/kboracle）：实体键按 snapshot 编译器的构造
   `ComposeCanonicalKeyV2("base-entity", ν.kind, 逐键字段 name/sqlType/规范值)`；分块 Result 身份 = 裸列名 `text` 的单元格
   Fact（单源计划的 field id 是裸列名）；原子算子映射到 V5 词表（`=`/`in`/`has` → EQ 逐字面量、`<>` → NE、`<`/`<=`/`>`/`>=` →
@@ -211,6 +217,9 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
   发布期清单；网关（K3.3）在 `search` 收到文本查询时调用它得到查询向量（容器经 host-gateway 访问宿主）。查询文本的承诺
   h_N 仍取规范化文本的 sha256，不取向量；向量只用于引擎排序。嵌入服务与业务库同属受信任执行器一侧：它看到查询文本与
   块文本，但不接触账本与授权。
+- pgvector 装在 `pg_catalog`（2026-10-16 实测后定，台账 KB1-LOOP-46）：连接器对每条受治理语句钉 `search_path = pg_catalog`，
+  策略语言不放行带模式限定的算子，检索包裹语句里的 `embedding <=> q` 只有在 pg_catalog 里才可解析；扩展可迁移
+  （`ALTER EXTENSION vector SET SCHEMA pg_catalog`）。放弃的替代：改连接器钉（被评估的语句分类器按字节绑定）、改策略分析器。
 - 直连向量库的客户端绕过账本，与直连数据库相同【读论文】。
 
 ## 8. 与论文的一致性
@@ -287,7 +296,7 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
 3. MCP 工具：`search`（文本或向量查询 + 过滤 + k）、`fetch`（按 (doc_id, version, chunk_index) 列表；规范形无原子）、`aggregate`（§5：对 `<kp>_values` 的现有 `query_sql` 包装，不新写结算）。`search` 的文本查询先经嵌入服务得向量；向量进入准备输入。
 4. 独立 oracle（`evaluation/kboracle`）与 K3.2 的 `retrieval.BuildEffect` 继续作为对照：对同一命中集逐成员核对结算写入的 Release/Influence/Outcome 集合。
 
-**新增待裁决 §9.9（有实现依据）**：可见语句必须投影 doc_id, version, chunk_index 才能与命中集连接并回给调用方，于是这三列的单元格也成为 Release Fact（R = 4|y| 而非 |y|）。推荐接受：这是通用代数原样发出（与 §9.2 同一理由），响应里本来就交付了这三个值；K3.2 的 effect.go 与 oracle 相应改为四列。放弃的替代：把身份列藏进溯源侧的句柄列（要改编译器的可见/溯源投影规则，触碰封印）。
+**新增待裁决 §9.9（有实现依据）**：可见语句必须投影 doc_id, version, chunk_index 才能与命中集连接并回给调用方，于是这三列的单元格也成为 Release Fact（R = 4|y| 而非 |y|）。推荐接受：这是通用代数原样发出（与 §9.2 同一理由），响应里本来就交付了这三个值；K3.2 的 effect.go 与 oracle 相应改为四列。 **已按推荐实施（2026-10-16，KB1-LOOP-47）；作者若否决需回到 §10a 的替代方案。**放弃的替代：把身份列藏进溯源侧的句柄列（要改编译器的可见/溯源投影规则，触碰封印）。
 
 **阶段**：K3.3a `PrepareRetrieval` + 单元测试（finalizer 重算一致、篡改语句被 Validate 拒绝、命中集全序）；K3.3b 网关链条抽取与 `executeRetrieval` + 集成测试（重放 0/0/0、拆分不多扣、子任务共账、超限扣留）；K3.3c 三个 MCP 工具 + `scripts/integration-test.sh` 用例 + 文档。
 

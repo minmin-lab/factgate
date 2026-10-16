@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"taskbound.local/agent-data-gateway/internal/exposure"
 )
@@ -25,6 +26,12 @@ type Hit struct {
 	Version    int
 	ChunkIndex int
 	Text       string
+	// Attributes holds the chunk's values for the attributes the caller
+	// filtered on, as canonical tokens (enum/text: the token; date:
+	// YYYY-MM-DD; numeric: the decimal). The general algebra counts a chunk
+	// cell for every attribute a plan filter reads (an outer_filter witness),
+	// so a hit must carry those values for the effect to be computed.
+	Attributes map[string]string
 }
 
 // Binding is the immutable identity the effect is computed under: the
@@ -179,6 +186,18 @@ func BuildEffect(binding Binding, form NormalForm, hits []Hit) (Effect, error) {
 
 	seenChunks := map[string]struct{}{}
 	dependency := map[string]exposure.FactID{}
+	chunksNS, documentsNS := binding.SourceNamespace+".chunks", binding.SourceNamespace+".documents"
+	filtered := filteredAttributes(form)
+	addDependency := func(facts ...exposure.FactID) error {
+		for _, fact := range facts {
+			hash, err := fact.Hash()
+			if err != nil {
+				return err
+			}
+			dependency[hash] = fact
+		}
+		return nil
+	}
 	for _, hit := range hits {
 		chunkKey, err := ChunkEntityKey(binding.SourceNamespace, hit.DocID, hit.Version, hit.ChunkIndex)
 		if err != nil {
@@ -188,12 +207,21 @@ func BuildEffect(binding Binding, form NormalForm, hits []Hit) (Effect, error) {
 			return Effect{}, fmt.Errorf("hit %s v%d #%d is returned twice", hit.DocID, hit.Version, hit.ChunkIndex)
 		}
 		seenChunks[chunkKey] = struct{}{}
-		cell, err := exposure.NewBaseCellFactV2(binding.SourceNamespace+".chunks", binding.Epoch, chunkKey, ChunkTextField, "text", hit.Text)
-		if err != nil {
-			return Effect{}, err
+		// Release: the four visible cells of the chunk, under the relational
+		// field identity (role.column) the join preparation gives them.
+		var cells []exposure.FactID
+		for _, column := range []struct {
+			name, sqlType string
+			value         any
+		}{{"doc_id", "text", hit.DocID}, {"version", "integer", int64(hit.Version)}, {"chunk_index", "integer", int64(hit.ChunkIndex)}, {ChunkTextField, "text", hit.Text}} {
+			cell, err := exposure.NewBaseCellFactV2(chunksNS, binding.Epoch, chunkKey, binding.ChunksProduct+"."+column.name, column.sqlType, column.value)
+			if err != nil {
+				return Effect{}, err
+			}
+			cells = append(cells, cell)
 		}
-		effect.Release = append(effect.Release, cell)
-		chunkRow, err := exposure.NewBaseRowFactV2(binding.SourceNamespace+".chunks", binding.Epoch, chunkKey)
+		effect.Release = append(effect.Release, cells...)
+		chunkRow, err := exposure.NewBaseRowFactV2(chunksNS, binding.Epoch, chunkKey)
 		if err != nil {
 			return Effect{}, err
 		}
@@ -201,16 +229,38 @@ func BuildEffect(binding Binding, form NormalForm, hits []Hit) (Effect, error) {
 		if err != nil {
 			return Effect{}, err
 		}
-		documentRow, err := exposure.NewBaseRowFactV2(binding.SourceNamespace+".documents", binding.Epoch, documentKey)
+		documentRow, err := exposure.NewBaseRowFactV2(documentsNS, binding.Epoch, documentKey)
 		if err != nil {
 			return Effect{}, err
 		}
-		for _, fact := range []exposure.FactID{cell, chunkRow, documentRow} {
-			hash, err := fact.Hash()
+		documentDocID, err := exposure.NewBaseCellFactV2(documentsNS, binding.Epoch, documentKey, binding.DocumentsProduct+".doc_id", "text", hit.DocID)
+		if err != nil {
+			return Effect{}, err
+		}
+		documentVersion, err := exposure.NewBaseCellFactV2(documentsNS, binding.Epoch, documentKey, binding.DocumentsProduct+".version", "integer", int64(hit.Version))
+		if err != nil {
+			return Effect{}, err
+		}
+		if err := addDependency(append(cells, chunkRow, documentRow, documentDocID, documentVersion)...); err != nil {
+			return Effect{}, err
+		}
+		// One chunk cell per attribute the caller filtered on.
+		for _, attribute := range filtered {
+			raw, present := hit.Attributes[attribute.Attribute]
+			if !present {
+				return Effect{}, fmt.Errorf("hit %s v%d #%d carries no value for filtered attribute %q", hit.DocID, hit.Version, hit.ChunkIndex, attribute.Attribute)
+			}
+			sqlType, value, err := attributeCellValue(attribute.Type, raw)
+			if err != nil {
+				return Effect{}, fmt.Errorf("attribute %q: %w", attribute.Attribute, err)
+			}
+			cell, err := exposure.NewBaseCellFactV2(chunksNS, binding.Epoch, chunkKey, binding.ChunksProduct+"."+attribute.Attribute, sqlType, value)
 			if err != nil {
 				return Effect{}, err
 			}
-			dependency[hash] = fact
+			if err := addDependency(cell); err != nil {
+				return Effect{}, err
+			}
 		}
 	}
 	effect.Release = sortFacts(effect.Release)
@@ -300,4 +350,39 @@ func Hashes(facts []exposure.FactID) ([]string, error) {
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+// filteredAttributes lists, once each and in attribute order, the attributes
+// the caller's atoms read. Injected scope atoms are applied by the policy
+// renderer, not by a plan filter, and leave no witness.
+func filteredAttributes(form NormalForm) []Atom {
+	seen := map[string]struct{}{}
+	var out []Atom
+	for _, atom := range form.CallerAtoms() {
+		if _, done := seen[atom.Attribute]; done {
+			continue
+		}
+		seen[atom.Attribute] = struct{}{}
+		out = append(out, atom)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Attribute < out[j].Attribute })
+	return out
+}
+
+// attributeCellValue types a chunk attribute token for its cell Fact.
+func attributeCellValue(attributeType, raw string) (string, any, error) {
+	switch attributeType {
+	case "enum", "text":
+		return "text", raw, nil
+	case "date":
+		parsed, err := time.Parse("2006-01-02", raw)
+		if err != nil {
+			return "", nil, fmt.Errorf("date attribute value %q is not YYYY-MM-DD", raw)
+		}
+		return "date", parsed, nil
+	case "numeric":
+		return "numeric", json.Number(raw), nil
+	default:
+		return "", nil, fmt.Errorf("attribute type %q has no cell form", attributeType)
+	}
 }

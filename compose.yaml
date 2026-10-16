@@ -347,6 +347,8 @@ services:
       context: .
       args:
         TARGET: gateway
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       GATEWAY_ADDR: :8082
       CONTROL_POSTGRES_DSN: postgres://gateway_control:${CONTROL_DB_PASSWORD:?set CONTROL_DB_PASSWORD in .env}@control-postgres:5432/${CONTROL_POSTGRES_DB:-taskbound_gateway}?sslmode=disable
@@ -390,6 +392,10 @@ services:
       GATEWAY_AUDIT_ANCHOR_KEY_ID: ${GATEWAY_AUDIT_ANCHOR_KEY_ID:-}
       GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY: ${GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY:-}
       GATEWAY_SNAPSHOT_ARTIFACT_DIR: /var/lib/taskgate/snapshot-index
+      # Knowledge-product text queries are embedded by the trusted embedding
+      # service on the host (docs/kb-design.md §7). Empty means the Gateway
+      # starts and refuses text queries; vector queries still work.
+      KB_EMBEDDING_ENDPOINT: ${KB_EMBEDDING_ENDPOINT:-}
       GATEWAY_CONNECTOR_MAX_ROWS: ${GATEWAY_CONNECTOR_MAX_ROWS:-1200000}
       # The code default is 5s, which is a sensible bound for interactive
       # queries but not for the result-heavy Publication: reading 100,000 rows

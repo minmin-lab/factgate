@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	"taskbound.local/agent-data-gateway/internal/exposure"
 	"taskbound.local/agent-data-gateway/internal/retrieval"
@@ -30,6 +31,9 @@ type Chunk struct {
 	Version    int
 	ChunkIndex int
 	Text       string
+	// Attributes are the chunk's values for the caller-filtered attributes,
+	// as canonical tokens (see retrieval.Hit).
+	Attributes map[string]string
 }
 
 func canonical(sqlType string, value any) string {
@@ -66,19 +70,61 @@ func Compute(binding retrieval.Binding, form retrieval.NormalForm, chunks []Chun
 	release := map[string]struct{}{}
 	dependency := map[string]struct{}{}
 	var releaseFacts []exposure.FactID
+	// The attributes the caller filtered on, once each: a plan filter reads
+	// the chunk's cell, so the general algebra counts it as a dependency.
+	filteredTypes := map[string]string{}
+	var filtered []string
+	for _, atom := range form.Atoms {
+		if atom.Injected {
+			continue
+		}
+		if _, seen := filteredTypes[atom.Attribute]; !seen {
+			filtered = append(filtered, atom.Attribute)
+		}
+		filteredTypes[atom.Attribute] = atom.Type
+	}
 	for _, chunk := range chunks {
 		chunkKey := key(ns+".chunks", "doc_id", "text", canonical("text", chunk.DocID), "version", "integer", canonical("integer", int64(chunk.Version)),
 			"chunk_index", "integer", canonical("integer", int64(chunk.ChunkIndex)))
 		docKey := key(ns+".documents", "doc_id", "text", canonical("text", chunk.DocID), "version", "integer", canonical("integer", int64(chunk.Version)))
-		textCell, err := exposure.NewBaseCellFactV2(ns+".chunks", binding.Epoch, chunkKey, "text", "text", chunk.Text)
-		if err != nil {
-			return Expected{}, err
+		// Release: four visible cells under the relational field identity role.column.
+		for _, column := range []struct {
+			name, sqlType string
+			value         any
+		}{{"doc_id", "text", chunk.DocID}, {"version", "integer", int64(chunk.Version)}, {"chunk_index", "integer", int64(chunk.ChunkIndex)}, {"text", "text", chunk.Text}} {
+			cell, err := exposure.NewBaseCellFactV2(ns+".chunks", binding.Epoch, chunkKey, binding.ChunksProduct+"."+column.name, column.sqlType, column.value)
+			if err != nil {
+				return Expected{}, err
+			}
+			releaseFacts = append(releaseFacts, cell)
+			release[hashOf(cell, nil)] = struct{}{}
+			dependency[hashOf(cell, nil)] = struct{}{}
 		}
-		releaseFacts = append(releaseFacts, textCell)
-		release[hashOf(textCell, nil)] = struct{}{}
-		dependency[hashOf(textCell, nil)] = struct{}{}
 		dependency[hashOf(exposure.NewBaseRowFactV2(ns+".chunks", binding.Epoch, chunkKey))] = struct{}{}
 		dependency[hashOf(exposure.NewBaseRowFactV2(ns+".documents", binding.Epoch, docKey))] = struct{}{}
+		dependency[hashOf(exposure.NewBaseCellFactV2(ns+".documents", binding.Epoch, docKey, binding.DocumentsProduct+".doc_id", "text", chunk.DocID))] = struct{}{}
+		dependency[hashOf(exposure.NewBaseCellFactV2(ns+".documents", binding.Epoch, docKey, binding.DocumentsProduct+".version", "integer", int64(chunk.Version)))] = struct{}{}
+		for _, attribute := range filtered {
+			raw, present := chunk.Attributes[attribute]
+			if !present {
+				return Expected{}, fmt.Errorf("chunk %s v%d #%d lacks filtered attribute %q", chunk.DocID, chunk.Version, chunk.ChunkIndex, attribute)
+			}
+			var sqlType string
+			var value any
+			switch filteredTypes[attribute] {
+			case "date":
+				parsed, err := time.Parse("2006-01-02", raw)
+				if err != nil {
+					return Expected{}, err
+				}
+				sqlType, value = "date", parsed
+			case "numeric":
+				sqlType, value = "numeric", json.Number(raw)
+			default:
+				sqlType, value = "text", raw
+			}
+			dependency[hashOf(exposure.NewBaseCellFactV2(ns+".chunks", binding.Epoch, chunkKey, binding.ChunksProduct+"."+attribute, sqlType, value))] = struct{}{}
+		}
 	}
 
 	// Outcome: caller atoms under the retrieval context, plus one composite.
