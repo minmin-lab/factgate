@@ -49,6 +49,16 @@
       "note": "identity_by_k in this report is ORDER identity (99.7/99.5/98.8%); member identity recomputed post hoc by analyze_run1_order_differences.py is 5400/5400 (36 observations, 7 queries, same set different order; cause: single-vs-batch embedding differs by ~1e-11 cosine). A rerun with the corrected runner (member identity + order identity) is queued after the E-KB3 chain.",
       "ledger": "KB1-LOOP-61",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run1.json"
+    },
+    {
+      "id": "ekb1-adaptive-extraction-v2-run1",
+      "path": "ekb1/report-v2-run1.json",
+      "sha256": "19c02cc9749ba18f3d5475b3a8cb9c7e78583582e11c3a5672f803f272156d54",
+      "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); runner of commit 5ccbeb4 (S2 = one generic query per partition)",
+      "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
+      "note": "FactGate bound achieved in all 27 runs (183-200 chunks, 6.6-7.6%); ACL S2 saturated at 8.4% because the partition scan reused one query text; a rerun with rotating texts per partition is queued.",
+      "ledger": "KB1-LOOP-62",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run1.json"
     }
   ]
 }

@@ -383,17 +383,25 @@ func TestEKB1AdaptiveExtraction(t *testing.T) {
 								}
 							}
 						case strategy == "S2":
+							// Partition scan: every pass over the partitions uses the next
+							// vocabulary text, so the scan keeps asking for new chunks
+							// instead of repeating one query per partition (run 1 reused the
+							// generic query and saturated at ~8% on the ACL arm).
 							part := parts[partIndex%len(parts)]
+							text := generic
+							if pass := partIndex / len(parts); pass > 0 {
+								text = texts[(pass-1)%len(texts)]
+							}
 							partIndex++
 							if arm == "acl" {
-								ids = directSearch(department, vectorCache[generic], kMax, part.role, part.from, part.to)
+								ids = directSearch(department, vectorCache[text], kMax, part.role, part.from, part.to)
 							} else {
 								filters := []map[string]any{{"attribute": "job_role", "op": "=", "value": part.role}}
 								if part.hasDates {
 									filters = append(filters, map[string]any{"attribute": "valid_until", "op": ">=", "value": part.from}, map[string]any{"attribute": "valid_until", "op": "<", "value": part.to})
 								}
 								var result map[string]any
-								result, err = search(taskID, fmt.Sprintf("%s-step%d", taskID, step), generic, kMax, filters)
+								result, err = search(taskID, fmt.Sprintf("%s-step%d", taskID, step), text, kMax, filters)
 								if err == nil {
 									for _, hit := range searchHits(t, result) {
 										ids = append(ids, hitID(hit))
