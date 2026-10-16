@@ -88,6 +88,16 @@
       "note": "canonical E-KB1 run (run 2). FactGate arm identical to run 1: all 27 runs stopped by EXPOSURE_BUDGET_EXHAUSTED at 183-200 chunks; ACL S2 28.5% (run 1: 8.4%).",
       "ledger": "KB1-LOOP-65",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run2.json"
+    },
+    {
+      "id": "ekb4-retrieval-quality-v2",
+      "path": "ekb4/report-v2-run3.json",
+      "sha256": "c4636e4d28d50ee0ccb54b83e9acf9f6460bc0e0230f6711b1fbe5a98e91d052",
+      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20, text arm + vector arm); embedding service on CPU",
+      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+      "note": "canonical E-KB4 run (run 3). Vector arm: member identity and order identity 100% at every k. Text arm: member identity 100/99.83/99.83%, same order 99.33/99.00/97.83% (embedding single-vs-batch noise on duplicate-content boundary ties). recall@k identical to runs 1 and 2.",
+      "ledger": "KB1-LOOP-67",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run3.json"
     }
   ]
 }
