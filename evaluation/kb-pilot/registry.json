@@ -98,6 +98,15 @@
       "note": "canonical E-KB4 run (run 3). Vector arm: member identity and order identity 100% at every k. Text arm: member identity 100/99.83/99.83%, same order 99.33/99.00/97.83% (embedding single-vs-batch noise on duplicate-content boundary ties). recall@k identical to runs 1 and 2.",
       "ledger": "KB1-LOOP-67",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run3.json"
+    },
+    {
+      "id": "ekb3-overhead-96k",
+      "path": "ekb3/report-96k.json",
+      "sha256": "8de7d39ba2907cebd4bf6a70b9ae26eeaa7e841b619f5898ec1c7e08e2c55510",
+      "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 96k, 3 deployments x 200 rounds, machine otherwise idle 05:21-05:25)",
+      "publication": "policy-kb-2026-10-bge-20k (96,401 chunks; manifest 081e2274…; vectors GPU/CPU mixed from the resumable cache); vector queries on both arms",
+      "ledger": "KB1-LOOP-68",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-96k.json"
     }
   ]
 }
