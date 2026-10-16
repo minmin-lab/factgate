@@ -63,8 +63,12 @@ def hnsw_macros(path: pathlib.Path) -> list[str]:
             continue
         exact[result["filter"]] = result["exact_latency_ms"]["p50"]
         summary = result["summary"]
+        # LaTeX control sequences admit letters only, so ef_search is spelled out.
+        ef_word = {40: "Forty", 100: "Hundred", 200: "TwoHundred"}.get(result["ef_search"])
+        if ef_word is None:
+            sys.exit(f"ef_search {result['ef_search']} has no macro spelling")
         tag = "".join(part.capitalize() for part in result["filter"].replace("+", " ").split()) + \
-            ("Relaxed" if result["iterative_scan"] == "relaxed_order" else "Off") + f"Ef{result['ef_search']}"
+            ("Relaxed" if result["iterative_scan"] == "relaxed_order" else "Off") + "Ef" + ef_word
         lines += [
             rf"\newcommand{{\KbHnsw{tag}Identity}}{{{pct(summary['identity_rate'])}}}",
             rf"\newcommand{{\KbHnsw{tag}Recall}}{{{summary['mean_recall']:.3f}}}",
