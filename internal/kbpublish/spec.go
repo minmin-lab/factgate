@@ -24,6 +24,7 @@ const (
 
 	SegmentationSectionWindowV1 = "section-window-v1"
 	EmbeddingHashProjectionV1   = "hash-projection-v1"
+	EmbeddingBGEM3              = "bge-m3"
 	ExtractionSourceFrontMatter = "frontmatter"
 	ExtractionScopeDocument     = "document"
 )
@@ -71,8 +72,9 @@ type Segmentation struct {
 }
 
 type Embedding struct {
-	Model     string `json:"model"`
-	Dimension int    `json:"dimension"`
+	Model         string `json:"model"`
+	Dimension     int    `json:"dimension"`
+	WeightsSHA256 string `json:"weights_sha256,omitempty"`
 }
 
 type ExtractionRule struct {
@@ -136,8 +138,12 @@ func (s Spec) Validate() error {
 		return fmt.Errorf("publish spec: segmentation function must be %q", SegmentationSectionWindowV1)
 	case s.Segmentation.WindowChars < 64 || s.Segmentation.WindowChars > 8192:
 		return errors.New("publish spec: window_chars must be between 64 and 8192")
-	case s.Embedding.Model != EmbeddingHashProjectionV1:
-		return fmt.Errorf("publish spec: embedding model must be %q", EmbeddingHashProjectionV1)
+	case s.Embedding.Model != EmbeddingHashProjectionV1 && s.Embedding.Model != EmbeddingBGEM3:
+		return fmt.Errorf("publish spec: embedding model must be %q or %q", EmbeddingHashProjectionV1, EmbeddingBGEM3)
+	case s.Embedding.Model == EmbeddingBGEM3 && !shaPattern.MatchString(s.Embedding.WeightsSHA256):
+		return errors.New("publish spec: bge-m3 requires embedding.weights_sha256")
+	case s.Embedding.Model == EmbeddingHashProjectionV1 && s.Embedding.WeightsSHA256 != "":
+		return errors.New("publish spec: hash-projection-v1 has no weights")
 	case s.Embedding.Dimension < 16 || s.Embedding.Dimension > 4096:
 		return errors.New("publish spec: embedding dimension must be between 16 and 4096")
 	}

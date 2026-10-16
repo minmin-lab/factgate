@@ -105,6 +105,10 @@ type Options struct {
 	// BundleDir is the snapshot artifact root the bundles are compiled into
 	// (<BundleDir>/<publication>/). Empty means <OutputDir>/bundles.
 	BundleDir string
+	// EmbeddingEndpoint is the trusted embedding service for learned models;
+	// ignored by the hash provider. Embedder, when set, overrides both.
+	EmbeddingEndpoint string
+	Embedder          Embedder
 }
 
 // Result reports what Publish produced.
@@ -128,7 +132,13 @@ func Publish(ctx context.Context, spec Spec, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("read corpus: %w", err)
 	}
-	prepared, err := Prepare(spec, corpus)
+	embedder := options.Embedder
+	if embedder == nil {
+		if embedder, err = EmbedderFor(spec, options.EmbeddingEndpoint); err != nil {
+			return Result{}, err
+		}
+	}
+	prepared, err := PrepareWith(spec, corpus, embedder)
 	if err != nil {
 		return Result{}, err
 	}
@@ -513,7 +523,7 @@ func DeclarationDigests(spec Spec) (string, string, string, error) {
 	if err != nil {
 		return "", "", "", err
 	}
-	embedding, err := catalog.CanonicalDeclarationDigest(catalog.KBEmbedding{Model: spec.Embedding.Model, Dimension: spec.Embedding.Dimension})
+	embedding, err := catalog.CanonicalDeclarationDigest(catalog.KBEmbedding{Model: spec.Embedding.Model, Dimension: spec.Embedding.Dimension, WeightsSHA256: spec.Embedding.WeightsSHA256})
 	if err != nil {
 		return "", "", "", err
 	}
@@ -602,7 +612,12 @@ func CatalogFragment(spec Spec, manifest Manifest) string {
 	fmt.Fprintf(&out, "    index_publication: %s\n    document_types: %s\n    attributes:\n", spec.Epoch, yamlList(spec.DocumentTypes))
 	out.WriteString("      - {name: kb_department, type: enum, scope: kb_department}\n      - {name: classification, type: enum, scope: classification}\n")
 	fmt.Fprintf(&out, "      - {name: job_role, type: enum, allowed_values: %s}\n      - {name: labels, type: text_set}\n      - {name: valid_until, type: date}\n", yamlList(manifest.Vocabulary.JobRoles))
-	fmt.Fprintf(&out, "    segmentation: {function: %s, window_chars: %d}\n    embedding: {model: %s, dimension: %d}\n", spec.Segmentation.Function, spec.Segmentation.WindowChars, spec.Embedding.Model, spec.Embedding.Dimension)
+	fmt.Fprintf(&out, "    segmentation: {function: %s, window_chars: %d}\n", spec.Segmentation.Function, spec.Segmentation.WindowChars)
+	if spec.Embedding.WeightsSHA256 != "" {
+		fmt.Fprintf(&out, "    embedding: {model: %s, dimension: %d, weights_sha256: %s}\n", spec.Embedding.Model, spec.Embedding.Dimension, spec.Embedding.WeightsSHA256)
+	} else {
+		fmt.Fprintf(&out, "    embedding: {model: %s, dimension: %d}\n", spec.Embedding.Model, spec.Embedding.Dimension)
+	}
 	if len(spec.ExtractionRules) > 0 {
 		out.WriteString("    extraction_rules:\n")
 		for _, rule := range spec.ExtractionRules {

@@ -188,8 +188,20 @@ func (c *Catalog) validateKnowledgeProducts() ValidationErrors {
 		if product.Segmentation.Function != KBSegmentationSectionWindowV1 || product.Segmentation.WindowChars < 64 || product.Segmentation.WindowChars > 8192 {
 			problems = append(problems, fieldError(path+".segmentation", "segmentation must be "+KBSegmentationSectionWindowV1+" with window_chars in 64..8192", ErrInvalidCatalog))
 		}
-		if product.Embedding.Model != KBEmbeddingHashProjectionV1 || product.Embedding.Dimension < 16 || product.Embedding.Dimension > 4096 {
-			problems = append(problems, fieldError(path+".embedding", "embedding must be "+KBEmbeddingHashProjectionV1+" with dimension in 16..4096", ErrInvalidCatalog))
+		switch product.Embedding.Model {
+		case KBEmbeddingHashProjectionV1:
+			if product.Embedding.WeightsSHA256 != "" {
+				problems = append(problems, fieldError(path+".embedding.weights_sha256", "the hash-projection provider has no weights", ErrInvalidCatalog))
+			}
+		case KBEmbeddingBGEM3:
+			if !sha256HexPattern.MatchString(product.Embedding.WeightsSHA256) {
+				problems = append(problems, fieldError(path+".embedding.weights_sha256", "a learned embedding model requires its weights sha256", ErrInvalidCatalog))
+			}
+		default:
+			problems = append(problems, fieldError(path+".embedding.model", "embedding model must be "+KBEmbeddingHashProjectionV1+" or "+KBEmbeddingBGEM3, ErrInvalidCatalog))
+		}
+		if product.Embedding.Dimension < 16 || product.Embedding.Dimension > 4096 {
+			problems = append(problems, fieldError(path+".embedding.dimension", "embedding dimension must be in 16..4096", ErrInvalidCatalog))
 		}
 		rules := make(map[string]struct{}, len(product.ExtractionRules))
 		for ruleIndex, rule := range product.ExtractionRules {

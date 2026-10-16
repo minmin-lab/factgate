@@ -221,8 +221,24 @@ func canonicalValue(valueType, raw string) (string, error) {
 }
 
 // Prepare loads the corpus named by the spec, checks its digest, and derives
-// chunks, values and the label vocabulary deterministically.
+// chunks, values and the label vocabulary deterministically, embedding chunk
+// text with the spec's provider.
 func Prepare(spec Spec, corpus []byte) (Prepared, error) {
+	return PrepareWith(spec, corpus, nil)
+}
+
+// PrepareWith is Prepare with an explicit embedder (nil selects the provider
+// the spec names: the hash provider needs nothing, bge-m3 needs an endpoint).
+func PrepareWith(spec Spec, corpus []byte, embedder Embedder) (Prepared, error) {
+	if embedder == nil {
+		var err error
+		if embedder, err = EmbedderFor(spec, ""); err != nil {
+			return Prepared{}, err
+		}
+	}
+	if err := embedder.Check(spec.Embedding); err != nil {
+		return Prepared{}, err
+	}
 	if sha256Hex(corpus) != spec.Corpus.SHA256 {
 		return Prepared{}, errors.New("corpus bytes do not match the sha256 declared by the publish spec")
 	}
@@ -254,9 +270,6 @@ func Prepare(spec Spec, corpus []byte) (Prepared, error) {
 		if err != nil {
 			return Prepared{}, err
 		}
-		for index := range chunks {
-			chunks[index].Embedding = Embed(chunks[index].Text, spec.Embedding.Dimension)
-		}
 		prepared.Chunks = append(prepared.Chunks, chunks...)
 		values, err := Extract(doc, spec.ExtractionRules)
 		if err != nil {
@@ -271,5 +284,30 @@ func Prepare(spec Spec, corpus []byte) (Prepared, error) {
 		prepared.Labels = append(prepared.Labels, label)
 	}
 	sort.Strings(prepared.Labels)
+	for start := 0; start < len(prepared.Chunks); start += embedBatch {
+		end := start + embedBatch
+		if end > len(prepared.Chunks) {
+			end = len(prepared.Chunks)
+		}
+		texts := make([]string, 0, end-start)
+		for _, chunk := range prepared.Chunks[start:end] {
+			texts = append(texts, chunk.Text)
+		}
+		vectors, err := embedder.Embed(texts)
+		if err != nil {
+			return Prepared{}, fmt.Errorf("embed chunks %d..%d: %w", start, end, err)
+		}
+		if len(vectors) != len(texts) {
+			return Prepared{}, fmt.Errorf("embedder returned %d vectors for %d texts", len(vectors), len(texts))
+		}
+		for offset, vector := range vectors {
+			if len(vector) != spec.Embedding.Dimension {
+				return Prepared{}, fmt.Errorf("embedder returned dimension %d, spec declares %d", len(vector), spec.Embedding.Dimension)
+			}
+			prepared.Chunks[start+offset].Embedding = vector
+		}
+	}
 	return prepared, nil
 }
+
+const embedBatch = 128

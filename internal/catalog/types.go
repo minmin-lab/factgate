@@ -297,6 +297,9 @@ type KBSegmentation struct {
 type KBEmbedding struct {
 	Model     string `yaml:"model" json:"model"`
 	Dimension int    `yaml:"dimension" json:"dimension"`
+	// WeightsSHA256 binds a learned model's weight file; required for every
+	// model except the deterministic test provider.
+	WeightsSHA256 string `yaml:"weights_sha256,omitempty" json:"weights_sha256,omitempty"`
 }
 
 type KBExtractionRule struct {
@@ -326,7 +329,10 @@ type KBPublication struct {
 
 const (
 	KBSegmentationSectionWindowV1 = "section-window-v1"
-	KBEmbeddingHashProjectionV1   = "hash-projection-v1"
+	// KBEmbeddingHashProjectionV1 is the deterministic, dependency-free test
+	// provider; KBEmbeddingBGEM3 is the learned model deployments use.
+	KBEmbeddingHashProjectionV1 = "hash-projection-v1"
+	KBEmbeddingBGEM3            = "bge-m3"
 )
 
 // LookupKnowledgeProduct returns the knowledge product with the given name.
