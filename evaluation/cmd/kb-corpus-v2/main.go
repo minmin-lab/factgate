@@ -246,11 +246,23 @@ func main() {
 
 func versionKey(docID string, version int) string { return fmt.Sprintf("%s v%d", docID, version) }
 
+// loadExisting reads the documents already generated. A run interrupted mid
+// write (WSL restart, power loss) can leave one truncated final line; that
+// line is dropped from the file and regenerated rather than treated as
+// corruption. Any earlier malformed line is still fatal.
 func loadExisting(path string) map[string]kbcorpus.Document {
 	applied := map[string]kbcorpus.Document{}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return applied
+	}
+	if len(data) > 0 && data[len(data)-1] != '\n' {
+		cut := bytes.LastIndexByte(data, '\n') + 1
+		fmt.Fprintf(os.Stderr, "dropping truncated final line (%d bytes) from %s\n", len(data)-cut, path)
+		if err := os.WriteFile(path, data[:cut], 0o644); err != nil {
+			fatal(err)
+		}
+		data = data[:cut]
 	}
 	docs, err := kbcorpus.DecodeJSONL(data)
 	if err != nil {
