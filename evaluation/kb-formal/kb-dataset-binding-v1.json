@@ -1,0 +1,310 @@
+{
+ "version": "taskgate-kb-dataset-binding-v1",
+ "note": "Frozen inputs of the knowledge-product formal round (docs/kb_experiment_design.md, 正式轮规程 §2). The author approves the SHA-256 of this file; the formal gateway build seals it as -dataset-binding.",
+ "corpora": [
+  {
+   "documents": {
+    "path": "evaluation/kbcorpus/raw/v1-20k/documents.jsonl",
+    "sha256": "785ed1fdd60988be511a19d827ae7a46de7ba271587c73f1de620a06b2742481",
+    "bytes": 109351700
+   },
+   "manifest": {
+    "path": "evaluation/kbcorpus/raw/v1-20k/manifest.json",
+    "sha256": "ff50b2079e9fbde81029748b73dd5cd50ccfb43627d65c998d0daa9639465c10",
+    "bytes": 1162
+   },
+   "epochs": [
+    "policy-kb-2026-10-bge-20k"
+   ]
+  },
+  {
+   "documents": {
+    "path": "evaluation/kbcorpus/raw/v2/documents.jsonl",
+    "sha256": "2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62",
+    "bytes": 59545641
+   },
+   "manifest": {
+    "path": "evaluation/kbcorpus/raw/v2/manifest.json",
+    "sha256": "36bb2e66cee0e864920ec2bc31f819d7460bab050374594d4c469373a2c01c3e",
+    "bytes": 1278
+   },
+   "epochs": [
+    "policy-kb-2026-10-bge-v2",
+    "policy-kb-2026-10-bge-v2c"
+   ]
+  }
+ ],
+ "publications": [
+  {
+   "epoch": "policy-kb-2026-10-bge-20k",
+   "files": [
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/catalog-fragment.yaml",
+     "sha256": "2db85a3c9d7d0670b378f55746f0e2ad7b97ba5d285f0f769aa7344bb8f7949e",
+     "bytes": 9026
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/inputs/chunks.json",
+     "sha256": "ac7eb4b2232855c5ce3bee24c962d5cf944e5cbc48e57ea858a4f08490121854",
+     "bytes": 3905
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/inputs/documents.json",
+     "sha256": "9d23dd7b4b8e35c0d73717273356974fc5152752915f2c9726cafda94a3420db",
+     "bytes": 4852
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/inputs/values.json",
+     "sha256": "25d2be2556bee04c634db30a4bc01baa26d9919492cccd3de9190c20f1bc4fde",
+     "bytes": 4632
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/kb-publication.json",
+     "sha256": "eda9fe01b4adf477f0cd08ce21413b8aaf2d423140bf83e10ada56dfc72662a0",
+     "bytes": 5143
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-20k/spec.json",
+     "sha256": "30fac3c8c845a22db6b988ea96ddee38bf3427434f81cfb8c1e0767798372dd5",
+     "bytes": 1863
+    }
+   ]
+  },
+  {
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "files": [
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/catalog-fragment.yaml",
+     "sha256": "e1ecae594737d69103115347491859982b3d9b9f546149fff7fff8638a5c2805",
+     "bytes": 9005
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/inputs/chunks.json",
+     "sha256": "addb198fa98f99e788df788a046f72033e90ba80179c3578ab9e36ccafb8f0a3",
+     "bytes": 3901
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/inputs/documents.json",
+     "sha256": "3e7cd5e0d91df1baf87da6123401b23f394c6c17e32104856067ed27d2eb6030",
+     "bytes": 4848
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/inputs/values.json",
+     "sha256": "d9691b719d106547c7dd9f737e843948d58d07c4e650d9788db96788decbb0cd",
+     "bytes": 4628
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/kb-publication.json",
+     "sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+     "bytes": 5133
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2/spec.json",
+     "sha256": "6a051c1047163aa5c3aa5a242ffb49b79663de883dd2f9e98ffc0d9eaacec7d4",
+     "bytes": 1858
+    }
+   ]
+  },
+  {
+   "epoch": "policy-kb-2026-10-bge-v2c",
+   "files": [
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/catalog-fragment.yaml",
+     "sha256": "f006308ecb11c64ef099454bf72054b5be68b6b23456d4c0b62cf9bb3fb9c855",
+     "bytes": 11060
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/inputs/chunks.json",
+     "sha256": "04d0d6891b8401059ad9bffb2283d5379a47ba0588c497a025c5f7289667ca45",
+     "bytes": 3905
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/inputs/collection_values.json",
+     "sha256": "e8458b11e0ed102c332fe319a439f6709a7a6e826708cc3065d2a9ef93ac09b7",
+     "bytes": 3892
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/inputs/documents.json",
+     "sha256": "8e1cd840f61d6d081bac9051a9760c55e02b0044a4b3f333132f2847831729c5",
+     "bytes": 4852
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/inputs/values.json",
+     "sha256": "6fbd9884a4b32a872747a90f83fd7900676e2f59ea00bcd33870294574e56b2f",
+     "bytes": 4632
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/kb-publication.json",
+     "sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
+     "bytes": 5888
+    },
+    {
+     "path": "evaluation/kb-formal/publications/policy-kb-2026-10-bge-v2c/spec.json",
+     "sha256": "cd3506e3eea39f9816a2f32202ffe927817585a952cf18134bced83b65c3edb7",
+     "bytes": 1862
+    }
+   ]
+  }
+ ],
+ "embedding": {
+  "model": "bge-m3",
+  "dimension": 1024,
+  "weights_file": "pytorch_model.bin",
+  "weights_sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38",
+  "cache_files": 139354,
+  "cache_content_sha256": "5980758d1e55f0d606757e851641cf6e07aca02826583d5c0c20f71881e082cf",
+  "python_environment": {
+   "pip_freeze_sha256": "375fff526c5f53c94630aa1ec9e08892a2f94cec21ede85c1a95f632aabe8350",
+   "python": "3.10.12",
+   "record_files": 71,
+   "records_sha256": "9f398ddac845a14907418fa0499d901694d568cc62532bc87c78eeb3c01fab4a",
+   "version": "taskgate-kb-embed-venv-identity-v1"
+  }
+ },
+ "images": {
+  "business-postgres": "pgvector/pgvector@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+  "kb-embed": "mcr.microsoft.com/playwright/python@sha256:f3a3d2e0332df4c7b6992db0ad0687df1653efd4671612b8ca1be6ae5fc06448"
+ },
+ "query_set": [
+  {
+   "path": "evaluation/kb-pilot/queryset-v2/manifest.json",
+   "sha256": "7f41fb6ba957f98257c332d85280c6d7ab9017087a9d965aab473586cf5ddf30",
+   "bytes": 868
+  },
+  {
+   "path": "evaluation/kb-pilot/queryset-v2/queries.jsonl",
+   "sha256": "36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec",
+   "bytes": 144419
+  },
+  {
+   "path": "evaluation/kb-pilot/queryset-v2/targets.json",
+   "sha256": "b6ed7080260900126f0a8215a5d587cdc33e9210d6f8c4ed79e8ddcd6d9251ac",
+   "bytes": 49740
+  }
+ ],
+ "profiles": [
+  {
+   "name": "kb-20k-large",
+   "epoch": "policy-kb-2026-10-bge-20k",
+   "catalog_sha256": "c5c7b40e6b75c514ddf6a79c03f1efb1c1a6e13175cde70a4beffe82a0f0ef22",
+   "schema_digest": "67cbe85d3850147a192d6dc4990bc77a39ba4310dba052d0d0f4087efc2a2fa7"
+  },
+  {
+   "name": "kb-v2-large",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "catalog_sha256": "3ac8ad92abb4eaa8078a6e84bbc6e40be384032f869295d895cf493a95df5972",
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc"
+  },
+  {
+   "name": "kb-v2-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "catalog_sha256": "4579aa62eaf3b8c0c9bc5d818718ee8898ff40ae310ac65fd4da171cc53db409",
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc"
+  },
+  {
+   "name": "kb-v2c-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2c",
+   "catalog_sha256": "84ea9a07c726a0169b560b270245d9e0998d60833b8246de75145f307ce3103d",
+   "schema_digest": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8"
+  }
+ ],
+ "profile_files": [
+  {
+   "path": "evaluation/kb-formal/profiles/kb-20k-large.catalog.yaml",
+   "sha256": "c5c7b40e6b75c514ddf6a79c03f1efb1c1a6e13175cde70a4beffe82a0f0ef22",
+   "bytes": 9639
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-20k-large.principal-attributes.yaml",
+   "sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "bytes": 226
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2-large.catalog.yaml",
+   "sha256": "3ac8ad92abb4eaa8078a6e84bbc6e40be384032f869295d895cf493a95df5972",
+   "bytes": 9618
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2-large.principal-attributes.yaml",
+   "sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "bytes": 226
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2-pilot.catalog.yaml",
+   "sha256": "4579aa62eaf3b8c0c9bc5d818718ee8898ff40ae310ac65fd4da171cc53db409",
+   "bytes": 9595
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2-pilot.principal-attributes.yaml",
+   "sha256": "94f27b10797d98a29f109699601dfa5efbd34e80290212d7baa0d3c3b710c73b",
+   "bytes": 9162
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2c-pilot.catalog.yaml",
+   "sha256": "84ea9a07c726a0169b560b270245d9e0998d60833b8246de75145f307ce3103d",
+   "bytes": 11536
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/kb-v2c-pilot.principal-attributes.yaml",
+   "sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "bytes": 226
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/registry.json",
+   "sha256": "7dfd1518ce78ad3f9629e39771d28e71317551193140da5529e2267925da6719",
+   "bytes": 2950
+  },
+  {
+   "path": "evaluation/kb-formal/profiles/schema-attestations.json",
+   "sha256": "8782bbb962e7aa7b02081583fa151aff696ccf58b5e466bad1a27ec72144443d",
+   "bytes": 628
+  }
+ ],
+ "source_files": [
+  {
+   "path": "tools/kb-embed/service.py",
+   "sha256": "d18c42d5fe95ed075bc910142b2bfa98d9f5e177761e561d10e6275aa8a1bbad",
+   "bytes": 2518
+  },
+  {
+   "path": "tools/kb-embed/requirements-freeze.txt",
+   "sha256": "375fff526c5f53c94630aa1ec9e08892a2f94cec21ede85c1a95f632aabe8350",
+   "bytes": 1370
+  },
+  {
+   "path": "tools/kb-embed/venv-identity.py",
+   "sha256": "86fe0a383b78b249aea62cfc9089ddbea167811fd37773fdac20d96b78f42e2d",
+   "bytes": 1211
+  },
+  {
+   "path": "evaluation/kb-formal/compose.kb.yaml",
+   "sha256": "8699084dd5299ba37a44a031789cf573cdd0f225a138088a2223fab6bb43634e",
+   "bytes": 4718
+  },
+  {
+   "path": "db/init-kb/00-kb-base.sh",
+   "sha256": "abfd8a52885c505055afdbaa7b8b735f81ccc68899e83bf0af9b7b1a6d815ba3",
+   "bytes": 2530
+  },
+  {
+   "path": "db/init-kb/30-kb-schema.sh",
+   "sha256": "cb03de458999c1235502b8ec10f53f0c8427dc9dc26ae6017d7a0d7353215ff2",
+   "bytes": 394
+  },
+  {
+   "path": "db/init/30-kb-schema.sh",
+   "sha256": "2826f8f0584ed0e9a9c84dce5a413d72267382b5886d24fd8ea6b627d9e625ee",
+   "bytes": 1317
+  },
+  {
+   "path": "db/init/kb-schema.psql",
+   "sha256": "037041cf86d10c856a0ce6e4892d383209b11c64627110d6b0f0a8c766b57ea0",
+   "bytes": 5777
+  },
+  {
+   "path": "formal-build/base-images.json",
+   "sha256": "03e4667ceb803f6e1df89c8ec8cc85dd0a9dd7aa8dd9d182c963c6f30e385b80",
+   "bytes": 1775
+  }
+ ]
+}
