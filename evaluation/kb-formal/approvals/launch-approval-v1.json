@@ -1,0 +1,8 @@
+{
+  "version": "taskgate-kb-formal-launch-approval-v1",
+  "approval_id": "APPROVE-KB-FORMAL-v1",
+  "approval_status": "AUTHOR_APPROVED",
+  "author": {"name": "wuminmin", "approved_on": "2026-10-17"},
+  "approved_binding": {"path": "evaluation/kb-formal/kb-dataset-binding-v1.json", "sha256": "7896e2252f919f2e5066d0796138d559ba52d00e9fbf08ad33d9730d4e09ca57", "bytes": 11343},
+  "scope": {"campaign_class": "kb-publication", "profiles": 4, "repetitions": 3, "deployments": 12}
+}
