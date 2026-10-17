@@ -206,6 +206,7 @@ func main() {
 		logger.Error("bootstrap Carol", "error", err)
 		os.Exit(1)
 	}
+	var filePrincipals []control.Principal
 	if path := strings.TrimSpace(os.Getenv("PRINCIPALS_PATH")); path != "" {
 		// Additional query principals, for example the subjects an eligibility
 		// experiment needs; the file holds token digests only.
@@ -220,6 +221,7 @@ func main() {
 				os.Exit(1)
 			}
 		}
+		filePrincipals = extra
 		logger.Info("principals bootstrapped from file", "count", len(extra))
 	}
 	oaClient, err := approval.NewClient(requiredEnv("OA_BASE_URL"), requiredEnv("OA_SERVICE_TOKEN"), nil)
@@ -341,10 +343,15 @@ func main() {
 		logger.Error("initialize audit anchor publisher", "error", err)
 		os.Exit(1)
 	}
-	authenticator := mcp.NewStaticAuthenticator([]mcp.TokenIdentity{
+	digestIdentities := make([]mcp.DigestIdentity, 0, len(filePrincipals))
+	for _, principal := range filePrincipals {
+		digestIdentities = append(digestIdentities, mcp.DigestIdentity{TokenSHA256: principal.TokenHash,
+			Principal: mcp.Principal{ID: principal.ID, Subject: principal.Subject, Role: principal.Role}})
+	}
+	authenticator := mcp.NewStaticAuthenticatorWithDigests([]mcp.TokenIdentity{
 		{Token: aliceToken, Principal: mcp.Principal{ID: "principal_alice", Subject: "alice", Role: "query"}},
 		{Token: carolToken, Principal: mcp.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor"}},
-	})
+	}, digestIdentities)
 	mcpServer, err := mcp.NewServer(authenticator, service, logger)
 	if err != nil {
 		logger.Error("initialize MCP server", "error", err)

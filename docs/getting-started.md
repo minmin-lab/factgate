@@ -166,7 +166,8 @@ MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 16 个普通任务/查询工
 不同 clearance 的申请人）。文件格式 `taskgate-principals-v1`：每项 `id`（`principal_` 开头）、`subject`、`role`（只能是
 `query`）、`token_sha256`（bearer token 的 SHA-256，小写十六进制）；文件里只有摘要，没有 token。Gateway 启动时像引导 Alice
 一样逐个引导，未知键、重复或与 Alice / Carol 冲突的 id、subject、token 摘要都使启动失败；已持久化的同 id 主体与文件不一致
-时同样拒启动。这些主体的属性仍写在 `PRINCIPAL_ATTRIBUTES_PATH` 的快照里。
+时同样拒启动。认证时网关对出示的 token 求 SHA-256，与文件里的摘要做常数时间比较。这些主体的属性仍写在
+`PRINCIPAL_ATTRIBUTES_PATH` 的快照里。
 Gateway 按产品的最高敏感级别选择 Catalog Profile，并把完整资源与三维
 exposure 上限写入审批 Manifest。Agent 不申请更小预算，也不因剩余额度获得收益；
 批准额度必须在被全部消耗时仍然满足企业安全政策。

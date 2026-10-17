@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -160,5 +162,27 @@ func TestInitializeValidatesAndNegotiatesProtocol(t *testing.T) {
 	server.ServeHTTP(invalidResult, invalid)
 	if !strings.Contains(invalidResult.Body.String(), `"code":-32602`) {
 		t.Fatalf("invalid initialize response = %s", invalidResult.Body.String())
+	}
+}
+
+func TestStaticAuthenticatorAdmitsDigestIdentities(t *testing.T) {
+	sum := sha256.Sum256([]byte("file-principal-token"))
+	digest := hex.EncodeToString(sum[:])
+	authenticator := NewStaticAuthenticatorWithDigests(
+		[]TokenIdentity{{Token: "alice-token", Principal: Principal{ID: "principal_alice", Subject: "alice", Role: "query"}}},
+		[]DigestIdentity{{TokenSHA256: digest, Principal: Principal{ID: "principal_kb_s01", Subject: "kb_s01", Role: "query"}}})
+	if principal, ok := authenticator.Authenticate(context.Background(), "alice-token"); !ok || principal.Subject != "alice" {
+		t.Fatalf("static identity: %+v %v", principal, ok)
+	}
+	if principal, ok := authenticator.Authenticate(context.Background(), "file-principal-token"); !ok || principal.Subject != "kb_s01" {
+		t.Fatalf("digest identity: %+v %v", principal, ok)
+	}
+	for _, wrong := range []string{"", digest, "file-principal-token ", "alice-token2"} {
+		if _, ok := authenticator.Authenticate(context.Background(), wrong); ok {
+			t.Errorf("token %q authenticated", wrong)
+		}
+	}
+	if _, ok := NewStaticAuthenticator(nil).Authenticate(context.Background(), "file-principal-token"); ok {
+		t.Error("an authenticator without digests admitted a digest identity")
 	}
 }

@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
@@ -36,16 +37,42 @@ type Authenticator interface {
 	Authenticate(context.Context, string) (Principal, bool)
 }
 
-type StaticAuthenticator struct{ identities []TokenIdentity }
+// DigestIdentity authenticates a principal by the SHA-256 of its bearer token
+// (lowercase hex), so a deployment can configure it without holding the
+// token: the gateway's principals file carries digests only.
+type DigestIdentity struct {
+	TokenSHA256 string
+	Principal   Principal
+}
+
+type StaticAuthenticator struct {
+	identities []TokenIdentity
+	digests    []DigestIdentity
+}
 
 func NewStaticAuthenticator(identities []TokenIdentity) *StaticAuthenticator {
 	return &StaticAuthenticator{identities: append([]TokenIdentity(nil), identities...)}
+}
+
+// NewStaticAuthenticatorWithDigests also admits digest identities. A presented
+// token is hashed once and compared in constant time against every digest.
+func NewStaticAuthenticatorWithDigests(identities []TokenIdentity, digests []DigestIdentity) *StaticAuthenticator {
+	return &StaticAuthenticator{identities: append([]TokenIdentity(nil), identities...), digests: append([]DigestIdentity(nil), digests...)}
 }
 
 func (a *StaticAuthenticator) Authenticate(_ context.Context, token string) (Principal, bool) {
 	for _, identity := range a.identities {
 		if len(token) == len(identity.Token) && subtle.ConstantTimeCompare([]byte(token), []byte(identity.Token)) == 1 {
 			return identity.Principal, true
+		}
+	}
+	if len(a.digests) != 0 {
+		sum := sha256.Sum256([]byte(token))
+		presented := []byte(hex.EncodeToString(sum[:]))
+		for _, identity := range a.digests {
+			if len(presented) == len(identity.TokenSHA256) && subtle.ConstantTimeCompare(presented, []byte(identity.TokenSHA256)) == 1 {
+				return identity.Principal, true
+			}
 		}
 	}
 	return Principal{}, false
