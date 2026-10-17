@@ -80,8 +80,24 @@ for manifest in formal-gateway-build.json oa-demo-build.json; do
 done
 note "IMAGES gateway $(jq -r .image_id "$staging/formal-gateway-build.json" | cut -c1-19) oa-demo $(jq -r .image_id "$staging/oa-demo-build.json" | cut -c1-19)"
 
+# ---- the campaign branch: a named, published pointer to the frozen commit ----
+# The V5 runtime identity check (final-v5-gateway-build verify) requires the
+# source tree to be on a named branch equal to its origin counterpart. The
+# round's source tree checks out kb-campaign/<campaign>, which nothing moves,
+# so the check holds for the whole round while kb-dev advances.
+branch=kb-campaign/$campaign
+nas_repo=${KB_FORMAL_NAS_REPO:-/volume1/homes/wuminmin/github/minmin-lab/factgate}
+! git rev-parse --verify --quiet "refs/heads/$branch" > /dev/null || die "branch $branch already exists"
+git branch "$branch" "$commit"
+git push -q nas "$branch" || die "could not push $branch to the NAS"
+published=$(ssh nas "bash -lc 'cd $nas_repo && git push -q origin $branch && git ls-remote --heads origin $branch'" | cut -c1-40) \
+  || die "the NAS could not publish $branch"
+[[ "$published" == "$commit" ]] || die "origin has $branch at ${published:-nothing}, not $commit"
+git update-ref "refs/remotes/origin/$branch" "$commit"
+note "BRANCH $branch published at $commit"
+
 # ---- round root and detached start ----
-KB_FORMAL_IMAGES=$staging KB_FORMAL_COMMIT=$commit bash evaluation/kb-formal/scripts/prepare-round.sh
+KB_FORMAL_IMAGES=$staging KB_FORMAL_COMMIT=$commit KB_FORMAL_BRANCH=$branch bash evaluation/kb-formal/scripts/prepare-round.sh
 root=$(cd "$KB_FORMAL_ROOT" && pwd)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   install -m 644 "$KB_FORMAL_APPROVAL" "$root/approval.json"

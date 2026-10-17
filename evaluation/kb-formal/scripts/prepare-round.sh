@@ -13,12 +13,16 @@
 #   KB_FORMAL_CLASS   pilot | formal
 #   KB_FORMAL_IMAGES  directory holding compose.formal-gateway.yaml,
 #                     compose.formal-oa-demo.yaml and their build manifests
+#   KB_FORMAL_BRANCH  a published branch at that commit for source/ to check
+#                     out (launch-round.sh publishes kb-campaign/<campaign>): the
+#                     V5 runtime identity check needs a named branch equal to
+#                     its origin counterpart
 # Optional: KB_FORMAL_COMMIT, the commit to prepare (launch-round.sh passes the
 # one its gates and image builds used); without it, HEAD of a clean working
 # tree. A formal round also requires that commit to equal origin/kb-dev.
 set -eEuo pipefail
 
-: "${KB_FORMAL_ROOT:?}" "${KB_FORMAL_CLASS:?}" "${KB_FORMAL_IMAGES:?}"
+: "${KB_FORMAL_ROOT:?}" "${KB_FORMAL_CLASS:?}" "${KB_FORMAL_IMAGES:?}" "${KB_FORMAL_BRANCH:?}"
 [[ "$KB_FORMAL_CLASS" == pilot || "$KB_FORMAL_CLASS" == formal ]] || { echo "class must be pilot or formal" >&2; exit 2; }
 die() { echo "prepare-round: $*" >&2; exit 1; }
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
@@ -39,7 +43,9 @@ done
 mkdir -p "$KB_FORMAL_ROOT"
 root=$(cd "$KB_FORMAL_ROOT" && pwd)
 source=$root/source
-git worktree add --quiet --detach "$source" "$commit"
+[[ "$(git rev-parse --verify --quiet "refs/heads/$KB_FORMAL_BRANCH")" == "$commit" ]] || die "branch $KB_FORMAL_BRANCH is not at $commit"
+[[ "$(git rev-parse --verify --quiet "refs/remotes/origin/$KB_FORMAL_BRANCH")" == "$commit" ]] || die "origin/$KB_FORMAL_BRANCH is not at $commit"
+git worktree add --quiet "$source" "$KB_FORMAL_BRANCH"
 for spec in "$source"/evaluation/kb-formal/publications/*/spec.json; do
   corpus=$(jq -r .corpus.path "$spec")
   want=$(jq -r .corpus.sha256 "$spec")
