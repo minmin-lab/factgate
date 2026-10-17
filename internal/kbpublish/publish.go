@@ -44,6 +44,7 @@ type Counts struct {
 	Chunks           int `json:"chunks"`
 	LeadershipChunks int `json:"leadership_chunks"`
 	Values           int `json:"values"`
+	CollectionValues int `json:"collection_values,omitempty"`
 	Labels           int `json:"labels"`
 }
 
@@ -186,7 +187,7 @@ func Verify(ctx context.Context, outputDir, readerDSN string) (Manifest, error) 
 		return Manifest{}, err
 	}
 	defer os.RemoveAll(verifyDir)
-	for _, kind := range RelationKinds {
+	for _, kind := range ManifestKinds(published.Publications) {
 		reference, ok := published.Publications[kind]
 		if !ok {
 			return Manifest{}, fmt.Errorf("published manifest lacks the %s publication", kind)
@@ -343,11 +344,11 @@ func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) er
 	if err := flush(); err != nil {
 		return err
 	}
-	for _, kind := range RelationKinds {
+	for _, kind := range spec.Kinds() {
 		names := spec.Relation(kind)
 		schema, relation, _ := strings.Cut(names.SourceRelation, ".")
 		relationSQL := pgx.Identifier{schema, relation}.Sanitize()
-		if _, err := tx.Exec(ctx, "CREATE MATERIALIZED VIEW "+relationSQL+" AS "+relationSelect(kind, spec.Collection)); err != nil {
+		if _, err := tx.Exec(ctx, "CREATE MATERIALIZED VIEW "+relationSQL+" AS "+relationSelect(kind, spec.Collection, spec.CollectionScopedFields())); err != nil {
 			return fmt.Errorf("create %s: %w", names.SourceRelation, err)
 		}
 		for _, statement := range []string{
@@ -377,9 +378,20 @@ func chunkCount(chunks []Chunk, doc kbcorpus.Document) int {
 	return count
 }
 
-func relationSelect(kind, collection string) string {
+func relationSelect(kind, collection string, collectionScopedFields []string) string {
 	literal := "'" + strings.ReplaceAll(collection, "'", "''") + "'"
 	switch kind {
+	case CollectionValuesKind:
+		// One row per distinct value within the mandatory scope attributes: the
+		// collection-scoped identity carries department and classification so
+		// the policy renderer can still bound it, but no document identity.
+		fields := make([]string, 0, len(collectionScopedFields))
+		for _, field := range collectionScopedFields {
+			fields = append(fields, "'"+strings.ReplaceAll(field, "'", "''")+"'")
+		}
+		return `SELECT DISTINCT field, value_type, canonical_value, value_text, value_numeric, value_date, department AS kb_department, classification
+			FROM kb.extracted_values WHERE collection = ` + literal + ` AND field IN (` + strings.Join(fields, ", ") + `)
+			ORDER BY field, canonical_value, kb_department, classification`
 	case "documents":
 		return `SELECT doc_id, version, title, document_type, department AS kb_department, classification, job_role,
 			array_to_string(labels, ',') AS labels, valid_from, valid_until, content_sha256, chunk_count
@@ -405,12 +417,15 @@ var relationFields = map[string][][2]string{
 	"values": {{"doc_id", "text"}, {"version", "integer"}, {"document_type", "text"}, {"field", "text"}, {"value_type", "text"},
 		{"canonical_value", "text"}, {"value_text", "text"}, {"value_numeric", "numeric"}, {"value_date", "date"},
 		{"kb_department", "text"}, {"classification", "text"}},
+	CollectionValuesKind: {{"field", "text"}, {"value_type", "text"}, {"canonical_value", "text"}, {"value_text", "text"},
+		{"value_numeric", "numeric"}, {"value_date", "date"}, {"kb_department", "text"}, {"classification", "text"}},
 }
 
 var relationKeys = map[string][]string{
-	"documents": {"doc_id", "version"},
-	"chunks":    {"doc_id", "version", "chunk_index"},
-	"values":    {"doc_id", "version", "field"},
+	"documents":          {"doc_id", "version"},
+	"chunks":             {"doc_id", "version", "chunk_index"},
+	"values":             {"doc_id", "version", "field"},
+	CollectionValuesKind: {"field", "canonical_value", "kb_department", "classification"},
 }
 
 func databaseCollation(ctx context.Context, readerDSN string) (string, string, error) {
@@ -492,9 +507,13 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 		}
 	}
 	inputPaths := map[string]string{}
-	for _, kind := range RelationKinds {
+	manifest.Counts.CollectionValues = countCollectionValues(spec, prepared.Values)
+	for _, kind := range spec.Kinds() {
 		if kind == "values" && len(prepared.Values) == 0 {
 			return Result{}, errors.New("no extracted values: declare at least one extraction rule that matches the corpus")
+		}
+		if kind == CollectionValuesKind && manifest.Counts.CollectionValues == 0 {
+			return Result{}, errors.New("no collection-scoped values: the collection-scoped rules match nothing in the corpus")
 		}
 		input := compilerInput(spec, kind, collation, collationVersion)
 		scanned, err := snapshotbundle.ScanPostgresSnapshot(ctx, input, options.ReaderDSN)
@@ -618,7 +637,7 @@ func yamlList(values []string) string {
 // kb_publications binding. The result validates under internal/catalog.
 func CatalogFragment(spec Spec, manifest Manifest) string {
 	var out strings.Builder
-	kinds := append([]string(nil), RelationKinds...)
+	kinds := ManifestKinds(manifest.Publications)
 	sort.Strings(kinds)
 	out.WriteString("# Generated by cmd/kb-publish for " + spec.KnowledgeProduct + " epoch " + spec.Epoch + "\n")
 	fmt.Fprintf(&out, "scopes:\n  - name: kb_department\n    type: enum\n    description: knowledge product department scope\n    allowed_values: %s\n", yamlList(manifest.Vocabulary.Departments))
@@ -636,7 +655,7 @@ func CatalogFragment(spec Spec, manifest Manifest) string {
 		fmt.Fprintf(&out, "  - name: %s\n    source: %s\n    reporting_view: %s\n    description: knowledge product %s %s\n    sensitivity: %s\n    snapshot: %s\n    snapshot_publication: %s\n    entity_key: [%s]\n    fact_namespace: %s\n    stable_relation_role: %s\n    scopes: [kb_department, classification]\n",
 			reference.Product, spec.CatalogSource, reference.SourceRelation, spec.KnowledgeProduct, kind, spec.Sensitivity, spec.Epoch,
 			reference.PublicationName, strings.Join(relationKeys[kind], ", "), reference.SourceNamespace, reference.Product)
-		if kind == "values" && len(spec.Retrieval.Aggregates) > 0 {
+		if (kind == "values" || kind == CollectionValuesKind) && len(spec.Retrieval.Aggregates) > 0 {
 			fmt.Fprintf(&out, "    allowed_aggregates: [%s]\n", strings.Join(spec.Retrieval.Aggregates, ", "))
 		}
 		out.WriteString("    fields:\n")
@@ -672,4 +691,25 @@ func CatalogFragment(spec Spec, manifest Manifest) string {
 	fmt.Fprintf(&out, "kb_publications:\n  - epoch: %s\n    knowledge_product: %s\n    manifest_digest: %s\n    segmentation_digest: %s\n    embedding_digest: %s\n    extraction_rules_digest: %s\n",
 		spec.Epoch, spec.KnowledgeProduct, manifest.ManifestDigest, manifest.SegmentationDigest, manifest.EmbeddingDigest, manifest.ExtractionRulesDigest)
 	return out.String()
+}
+
+// countCollectionValues counts the rows of the collection_values relation:
+// distinct (field, canonical value, department, classification) over the
+// collection-scoped fields.
+func countCollectionValues(spec Spec, values []Value) int {
+	scoped := map[string]struct{}{}
+	for _, field := range spec.CollectionScopedFields() {
+		scoped[field] = struct{}{}
+	}
+	if len(scoped) == 0 {
+		return 0
+	}
+	distinct := map[string]struct{}{}
+	for _, value := range values {
+		if _, ok := scoped[value.Field]; !ok {
+			continue
+		}
+		distinct[value.Field+"\x00"+value.CanonicalValue+"\x00"+value.Department+"\x00"+value.Classification] = struct{}{}
+	}
+	return len(distinct)
 }

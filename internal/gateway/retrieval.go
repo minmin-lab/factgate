@@ -451,7 +451,15 @@ func (s *Service) aggregatePlan(grant control.TaskGrant, request retrieval.Reque
 	if !found {
 		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
 	}
+	// A collection-scoped field aggregates over the deduplicated relation, so
+	// the witness set and the dependency are distinct values within the
+	// task's scope rather than one row per document.
 	values := product.Products.Values
+	for _, rule := range product.ExtractionRules {
+		if rule.Field == request.Field && rule.Scope == catalog.KBExtractionScopeCollection {
+			values = product.Products.CollectionValues
+		}
+	}
 	if values == "" || !contains(grant.ApprovedProducts, values) {
 		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未授权该知识产品的抽取值关系"}
 	}

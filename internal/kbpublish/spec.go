@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -27,6 +28,7 @@ const (
 	EmbeddingBGEM3              = "bge-m3"
 	ExtractionSourceFrontMatter = "frontmatter"
 	ExtractionScopeDocument     = "document"
+	ExtractionScopeCollection   = "collection"
 )
 
 var (
@@ -177,8 +179,8 @@ func (s Spec) Validate() error {
 		default:
 			return fmt.Errorf("publish spec: extraction_rules[%d] type %q is not supported", index, rule.Type)
 		}
-		if rule.Source != ExtractionSourceFrontMatter || rule.Scope != ExtractionScopeDocument {
-			return fmt.Errorf("publish spec: extraction_rules[%d] supports only source=frontmatter scope=document in KB-1", index)
+		if rule.Source != ExtractionSourceFrontMatter || (rule.Scope != ExtractionScopeDocument && rule.Scope != ExtractionScopeCollection) {
+			return fmt.Errorf("publish spec: extraction_rules[%d] supports source=frontmatter with scope=document or scope=collection", index)
 		}
 		key := rule.DocumentType + "\x00" + rule.Field
 		if _, duplicate := seen[key]; duplicate {
@@ -194,9 +196,50 @@ func epochToken(epoch string) string {
 	return strings.NewReplacer("-", "_", ".", "_").Replace(epoch)
 }
 
-// RelationKinds are the three frozen relations of a knowledge product in
-// publication order.
+// RelationKinds are the three frozen relations every knowledge product
+// publishes, in publication order. CollectionValuesKind is the fourth,
+// published only when some extraction rule is collection-scoped.
 var RelationKinds = []string{"documents", "chunks", "values"}
+
+// CollectionValuesKind names the deduplicated values relation.
+const CollectionValuesKind = "collection_values"
+
+// CollectionScopedFields lists the fields some rule declares collection-scoped,
+// sorted and distinct.
+func (s Spec) CollectionScopedFields() []string {
+	seen := map[string]struct{}{}
+	for _, rule := range s.ExtractionRules {
+		if rule.Scope == ExtractionScopeCollection {
+			seen[rule.Field] = struct{}{}
+		}
+	}
+	fields := make([]string, 0, len(seen))
+	for field := range seen {
+		fields = append(fields, field)
+	}
+	sort.Strings(fields)
+	return fields
+}
+
+// Kinds lists the relations this spec publishes.
+func (s Spec) Kinds() []string {
+	kinds := append([]string(nil), RelationKinds...)
+	if len(s.CollectionScopedFields()) > 0 {
+		kinds = append(kinds, CollectionValuesKind)
+	}
+	return kinds
+}
+
+// ManifestKinds lists the relations a manifest holds, in publication order.
+func ManifestKinds(publications map[string]PublicationRef) []string {
+	kinds := make([]string, 0, len(publications))
+	for _, kind := range append(append([]string(nil), RelationKinds...), CollectionValuesKind) {
+		if _, ok := publications[kind]; ok {
+			kinds = append(kinds, kind)
+		}
+	}
+	return kinds
+}
 
 // RelationNames derives the physical and Catalog names of one relation kind.
 type RelationNames struct {

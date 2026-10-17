@@ -66,7 +66,17 @@ func VerifyCatalogBinding(cat *catalog.Catalog, product catalog.KnowledgeProduct
 		return fmt.Errorf("knowledge product %s: segmentation, embedding or extraction digests differ from the Catalog binding", product.Name)
 	}
 	relations := map[string]string{"documents": product.Products.Documents, "chunks": product.Products.Chunks, "values": product.Products.Values}
-	for _, kind := range RelationKinds {
+	if product.Products.CollectionValues != "" {
+		relations[CollectionValuesKind] = product.Products.CollectionValues
+	}
+	if _, published := manifest.Publications[CollectionValuesKind]; published != (product.Products.CollectionValues != "") {
+		return fmt.Errorf("knowledge product %s: manifest and Catalog disagree about the %s relation", product.Name, CollectionValuesKind)
+	}
+	kinds := append([]string(nil), RelationKinds...)
+	if product.Products.CollectionValues != "" {
+		kinds = append(kinds, CollectionValuesKind)
+	}
+	for _, kind := range kinds {
 		reference, ok := manifest.Publications[kind]
 		if !ok {
 			return fmt.Errorf("knowledge product %s: manifest lacks the %s publication", product.Name, kind)

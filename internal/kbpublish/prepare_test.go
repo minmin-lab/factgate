@@ -160,7 +160,7 @@ func TestSpecValidationAndNames(t *testing.T) {
 		func(s *Spec) { s.Segmentation.WindowChars = 10 },
 		func(s *Spec) { s.Embedding.Dimension = 1 },
 		func(s *Spec) { s.ExtractionRules[0].Type = "float" },
-		func(s *Spec) { s.ExtractionRules[0].Scope = "collection" },
+		func(s *Spec) { s.ExtractionRules[0].Scope = "chunk" },
 		func(s *Spec) { s.ExtractionRules = append(s.ExtractionRules, s.ExtractionRules[0]) },
 	}
 	for index, mutate := range mutations {

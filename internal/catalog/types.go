@@ -274,7 +274,20 @@ type KnowledgeProductRelations struct {
 	Documents string `yaml:"documents" json:"documents"`
 	Chunks    string `yaml:"chunks" json:"chunks"`
 	Values    string `yaml:"values" json:"values"`
+	// CollectionValues is the fourth relation, present exactly when some
+	// extraction rule is collection-scoped: one row per distinct (field,
+	// canonical value, department, classification), so a value shared by many
+	// documents is one Fact within the task's mandatory scope.
+	CollectionValues string `yaml:"collection_values,omitempty" json:"collection_values,omitempty"`
 }
+
+// Extraction rule scopes. A document-scoped value is one Fact per document
+// version; a collection-scoped value is one Fact per distinct value within
+// the mandatory scope attributes.
+const (
+	KBExtractionScopeDocument   = "document"
+	KBExtractionScopeCollection = "collection"
+)
 
 // KBAttribute is one filterable attribute of a collection. Scope binds it to
 // a mandatory Catalog Scope so the task's mandatory scope is injected as a

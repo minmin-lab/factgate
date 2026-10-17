@@ -21,9 +21,10 @@ var kbAggregates = map[string]struct{}{"count": {}, "sum": {}, "min": {}, "max":
 // kbRelationKinds pairs each relation kind with the fields its Product must
 // publish for the knowledge Fact identities of docs/kb-design.md to exist.
 var kbRelationRequiredFields = map[string][]string{
-	"documents": {"doc_id", "version", "content_sha256", "chunk_count"},
-	"chunks":    {"doc_id", "version", "chunk_index", "text", "text_sha256"},
-	"values":    {"doc_id", "version", "field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
+	"documents":         {"doc_id", "version", "content_sha256", "chunk_count"},
+	"chunks":            {"doc_id", "version", "chunk_index", "text", "text_sha256"},
+	"values":            {"doc_id", "version", "field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
+	"collection_values": {"field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
 }
 
 // CanonicalDeclarationDigest is the SHA-256 of a declaration's canonical JSON;
@@ -103,7 +104,23 @@ func (c *Catalog) validateKnowledgeProducts() ValidationErrors {
 			}
 		}
 		relations := map[string]string{"documents": product.Products.Documents, "chunks": product.Products.Chunks, "values": product.Products.Values}
-		for _, kind := range []string{"documents", "chunks", "values"} {
+		kinds := []string{"documents", "chunks", "values"}
+		collectionScoped := false
+		for _, rule := range product.ExtractionRules {
+			if rule.Scope == KBExtractionScopeCollection {
+				collectionScoped = true
+			}
+		}
+		if product.Products.CollectionValues != "" {
+			relations["collection_values"] = product.Products.CollectionValues
+			kinds = append(kinds, "collection_values")
+			if !collectionScoped {
+				problems = append(problems, fieldError(path+".products.collection_values", "declared without any collection-scoped extraction rule", ErrInvalidCatalog))
+			}
+		} else if collectionScoped {
+			problems = append(problems, fieldError(path+".products.collection_values", "a collection-scoped extraction rule requires the collection_values relation", ErrInvalidCatalog))
+		}
+		for _, kind := range kinds {
 			relationPath := path + ".products." + kind
 			relation, ok := c.LookupProduct(relations[kind])
 			if !ok {
@@ -215,8 +232,8 @@ func (c *Catalog) validateKnowledgeProducts() ValidationErrors {
 			if _, ok := kbValueTypes[rule.Type]; !ok {
 				problems = append(problems, fieldError(rulePath+".type", "extraction type must be text, numeric, integer, bigint, or date", ErrInvalidCatalog))
 			}
-			if rule.Source != "frontmatter" || rule.Scope != "document" {
-				problems = append(problems, fieldError(rulePath, "extraction rules support source=frontmatter and scope=document", ErrInvalidCatalog))
+			if rule.Source != "frontmatter" || (rule.Scope != KBExtractionScopeDocument && rule.Scope != KBExtractionScopeCollection) {
+				problems = append(problems, fieldError(rulePath, "extraction rules support source=frontmatter and scope=document|collection", ErrInvalidCatalog))
 			}
 			key := rule.DocumentType + "\x00" + rule.Field
 			if _, duplicate := rules[key]; duplicate {

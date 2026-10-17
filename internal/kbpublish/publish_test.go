@@ -121,7 +121,7 @@ func testSpec(corpusPath, corpusSHA string) Spec {
 		Embedding:    Embedding{Model: EmbeddingHashProjectionV1, Dimension: 64},
 		ExtractionRules: []ExtractionRule{
 			{DocumentType: "contract", Field: "amount", Type: "numeric", Source: "frontmatter", Scope: "document"},
-			{DocumentType: "contract", Field: "counterparty", Type: "text", Source: "frontmatter", Scope: "document"},
+			{DocumentType: "contract", Field: "counterparty", Type: "text", Source: "frontmatter", Scope: "collection"},
 			{DocumentType: "approval", Field: "approved_amount", Type: "numeric", Source: "frontmatter", Scope: "document"},
 			{DocumentType: "policy", Field: "effective_on", Type: "date", Source: "frontmatter", Scope: "document"},
 		}}
