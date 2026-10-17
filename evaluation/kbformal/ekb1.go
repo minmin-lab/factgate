@@ -625,3 +625,158 @@ func RunEKB2b(ctx context.Context, d *Deployment) (EKB2bArm, error) {
 	arm.AfterExpiryNew = len(seen) - before
 	return arm, nil
 }
+
+// ---- E-KB4: the gateway does not change the hit set ----
+
+// EKB4Observation matches the pilot report's observation entries.
+type EKB4Observation struct {
+	QueryID         string   `json:"query_id"`
+	Kind            string   `json:"kind"`
+	DocumentType    string   `json:"document_type"`
+	Department      string   `json:"department"`
+	K               int      `json:"k"`
+	Gateway         []string `json:"gateway_hits"`
+	Direct          []string `json:"direct_hits"`
+	Identical       bool     `json:"identical"`
+	SameOrder       bool     `json:"same_order"`
+	GatewayVector   []string `json:"gateway_vector_hits"`
+	VectorIdentical bool     `json:"vector_identical"`
+	VectorSameOrder bool     `json:"vector_same_order"`
+	RankDoc         int      `json:"rank_doc"`
+	RankVersion     int      `json:"rank_version"`
+	Error           string   `json:"error,omitempty"`
+}
+
+// EKB4Deployment matches the pilot report's deployments_detail entries.
+type EKB4Deployment struct {
+	Deployment   int               `json:"deployment"`
+	Tasks        int               `json:"tasks"`
+	Observations []EKB4Observation `json:"observations"`
+	Seconds      float64           `json:"seconds"`
+}
+
+func sameMembers(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	set := map[string]struct{}{}
+	for _, id := range left {
+		set[id] = struct{}{}
+	}
+	for _, id := range right {
+		if _, ok := set[id]; !ok {
+			return false
+		}
+	}
+	return len(set) == len(left)
+}
+
+// RunEKB4 issues every frozen question at k in {5, 10, 20} in the text arm
+// (the gateway embeds the question) and the vector arm (the gateway receives
+// the vector the direct arm ranks with), against direct exact retrieval under
+// the same department scope.
+func RunEKB4(ctx context.Context, d *Deployment, embedder kbpublish.Embedder, querysetDir string) (EKB4Deployment, error) {
+	started := time.Now()
+	product := d.Product
+	queries, _, err := LoadQueryset(querysetDir)
+	if err != nil {
+		return EKB4Deployment{}, err
+	}
+	if err := embedder.Check(kbpublish.Embedding{Model: product.Embedding.Model, Dimension: product.Embedding.Dimension, WeightsSHA256: product.Embedding.WeightsSHA256}); err != nil {
+		return EKB4Deployment{}, fmt.Errorf("embedding service does not match the knowledge product: %w", err)
+	}
+	literals := map[string]string{}
+	floats := map[string][]float64{}
+	for start := 0; start < len(queries); start += 32 {
+		end := start + 32
+		if end > len(queries) {
+			end = len(queries)
+		}
+		texts := make([]string, 0, end-start)
+		for _, query := range queries[start:end] {
+			texts = append(texts, retrieval.NormalizeText(query.Text))
+		}
+		embedded, err := embedder.Embed(texts)
+		if err != nil || len(embedded) != len(texts) {
+			return EKB4Deployment{}, fmt.Errorf("embed queries %d..%d: %v", start, end, err)
+		}
+		for i, query := range queries[start:end] {
+			parts := make([]string, 0, len(embedded[i]))
+			vector := make([]float64, len(embedded[i]))
+			for j, value := range embedded[i] {
+				parts = append(parts, fmt.Sprintf("%g", value))
+				vector[j] = float64(value)
+			}
+			literals[query.QueryID] = "[" + strings.Join(parts, ",") + "]"
+			floats[query.QueryID] = vector
+		}
+	}
+	report := EKB4Deployment{Deployment: d.Index}
+	tasks := map[string]string{}
+	allScope := []string{"public", "internal", "confidential", "leadership"}
+	for _, query := range queries {
+		taskID, ok := tasks[query.Department]
+		if !ok {
+			taskID, _, err = d.Provisioner.Provision(ctx, TaskRequest{Objective: "E-KB4 retrieval quality " + query.Department,
+				Products: []string{product.Products.Chunks, product.Products.Documents}, Columns: d.chunkColumns(),
+				Scope: map[string]any{"kb_department": []string{query.Department}, "classification": allScope}})
+			if err != nil {
+				return report, fmt.Errorf("provision %s: %w", query.Department, err)
+			}
+			tasks[query.Department] = taskID
+		}
+		for _, k := range []int{5, 10, 20} {
+			observation := EKB4Observation{QueryID: query.QueryID, Kind: query.Kind, DocumentType: query.DocumentType, Department: query.Department, K: k}
+			text, err := d.Retrieve(ctx, d.Alice, "search", map[string]any{"task_id": taskID, "request_id": fmt.Sprintf("%s-k%d", query.QueryID, k),
+				"knowledge_product": product.Name, "query": map[string]any{"text": query.Text}, "k": k})
+			if err != nil {
+				if code, _ := stopCode(err); code == "ERROR" {
+					return report, fmt.Errorf("%s k=%d: %w", query.QueryID, k, err)
+				}
+				observation.Error = err.Error()
+				report.Observations = append(report.Observations, observation)
+				continue
+			}
+			for _, row := range text.Rows {
+				observation.Gateway = append(observation.Gateway, hitIDOf(row))
+			}
+			direct, err := d.identities(ctx, `SELECT doc_id, version, chunk_index FROM kb.chunks
+				WHERE collection = $1 AND department = $2 AND classification IN ('public','internal','confidential','leadership')
+				ORDER BY embedding <=> $3::vector, doc_id, version, chunk_index LIMIT $4`, product.Collection, query.Department, literals[query.QueryID], k)
+			if err != nil {
+				return report, err
+			}
+			observation.Direct = direct
+			observation.SameOrder = strings.Join(observation.Gateway, ",") == strings.Join(observation.Direct, ",")
+			observation.Identical = sameMembers(observation.Gateway, observation.Direct)
+			vector, err := d.Retrieve(ctx, d.Alice, "search", map[string]any{"task_id": taskID, "request_id": fmt.Sprintf("%s-k%d-vec", query.QueryID, k),
+				"knowledge_product": product.Name, "query": map[string]any{"vector": floats[query.QueryID]}, "k": k})
+			if err != nil {
+				if code, _ := stopCode(err); code == "ERROR" {
+					return report, fmt.Errorf("%s k=%d vector: %w", query.QueryID, k, err)
+				}
+				observation.Error = "vector arm: " + err.Error()
+				report.Observations = append(report.Observations, observation)
+				continue
+			}
+			for _, row := range vector.Rows {
+				observation.GatewayVector = append(observation.GatewayVector, hitIDOf(row))
+			}
+			observation.VectorSameOrder = strings.Join(observation.GatewayVector, ",") == strings.Join(observation.Direct, ",")
+			observation.VectorIdentical = sameMembers(observation.GatewayVector, observation.Direct)
+			for rank, id := range observation.Gateway {
+				fields := strings.Split(id, "#")
+				if fields[0] == query.DocID && observation.RankDoc == 0 {
+					observation.RankDoc = rank + 1
+				}
+				if fields[0] == query.DocID && fields[1] == strconv.Itoa(query.Version) && observation.RankVersion == 0 {
+					observation.RankVersion = rank + 1
+				}
+			}
+			report.Observations = append(report.Observations, observation)
+		}
+	}
+	report.Tasks = len(tasks)
+	report.Seconds = time.Since(started).Seconds()
+	return report, nil
+}

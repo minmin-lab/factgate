@@ -55,7 +55,7 @@ func readEnvFile(path string) (map[string]string, error) {
 }
 
 func run() error {
-	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb5")
+	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb4 | ekb5")
 	label := flag.String("label", "", "ekb5: document | collection")
 	deployment := flag.Int("deployment", 0, "deployment index (1..3)")
 	reportPath := flag.String("report", "", "create the per-deployment report here")
@@ -136,6 +136,12 @@ func run() error {
 			return embedErr
 		}
 		result, err = kbformal.RunEKB1(ctx, d, embedder, *queryset, *seeds, *steps)
+	case "ekb4":
+		embedder, embedErr := kbpublish.NewHTTPEmbedder(*embedding)
+		if embedErr != nil {
+			return embedErr
+		}
+		result, err = kbformal.RunEKB4(ctx, d, embedder, *queryset)
 	default:
 		return fmt.Errorf("unknown experiment %q", *experiment)
 	}

@@ -9,11 +9,16 @@
 //	                            business database (reader DSN in $KB_FORMAL_READER_DSN)
 //	                            against the profile Catalog, and optionally record the
 //	                            digest in profiles/schema-attestations.json
+//	kb-formal-profile -principals DIR
+//	                            write fresh file principals for one deployment:
+//	                            DIR/principals.json (mode 0644, token digests only) and
+//	                            DIR/principal-tokens.json (mode 0600, the bearer tokens)
 package main
 
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -36,7 +41,15 @@ func main() {
 	profileName := flag.String("profile", "", "attest: the profile")
 	dsnEnv := flag.String("dsn-env", "KB_FORMAL_READER_DSN", "attest: environment variable holding the read-only business DSN")
 	record := flag.Bool("record", false, "attest: record the digest in profiles/schema-attestations.json")
+	principalsDir := flag.String("principals", "", "write fresh file principals and their tokens into this directory")
 	flag.Parse()
+	if *principalsDir != "" {
+		if err := writePrincipals(*principalsDir); err != nil {
+			fmt.Fprintln(os.Stderr, "kb-formal-profile:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *attest {
 		if err := attestProfile(*root, *profileName, *dsnEnv, *record); err != nil {
 			fmt.Fprintln(os.Stderr, "kb-formal-profile:", err)
@@ -135,4 +148,36 @@ func attestProfile(root, name, dsnEnv string, record bool) error {
 	}
 	path := filepath.Join(kbformal.ProfilesDir(root), "schema-attestations.json")
 	return os.WriteFile(path, append(encoded, '\n'), 0o644)
+}
+
+// writePrincipals creates the two files exclusively, so a deployment's
+// principals are never overwritten, and sets each mode explicitly so the umask
+// cannot make the principals file unreadable to the gateway's user.
+func writePrincipals(dir string) error {
+	principals, tokens, err := kbformal.FilePrincipals(rand.Reader)
+	if err != nil {
+		return err
+	}
+	for _, file := range []struct {
+		name string
+		data []byte
+		mode os.FileMode
+	}{{"principal-tokens.json", tokens, 0o600}, {"principals.json", principals, 0o644}} {
+		handle, err := os.OpenFile(filepath.Join(dir, file.name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if err != nil {
+			return err
+		}
+		if _, err := handle.Write(file.data); err != nil {
+			handle.Close()
+			return err
+		}
+		if err := handle.Chmod(file.mode); err != nil {
+			handle.Close()
+			return err
+		}
+		if err := handle.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
