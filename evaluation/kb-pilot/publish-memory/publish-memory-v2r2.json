@@ -1,0 +1,96 @@
+{
+ "version": "kb-publish-memory-v1",
+ "campaign_class": "kb-pilot",
+ "publication_eligible": false,
+ "generated_at": "2026-10-17T12:26:46+08:00",
+ "unit": {
+  "rss": "KiB: GNU time 'Maximum resident set size (kbytes)' (Linux ru_maxrss)",
+  "verification": {
+   "alloc_100_mib_kib": 110876,
+   "alloc_400_mib_kib": 418152,
+   "difference_kib": 307276,
+   "expected_if_kib": 307200,
+   "expected_if_decimal_kb": 314573
+  }
+ },
+ "host": {
+  "mem_total_kib": 30797500,
+  "swap_total_kib": 0,
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "source": "/proc/meminfo at 2026-10-17T12:26:46+08:00"
+ },
+ "measurements": [
+  {
+   "key": "v2-r2",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2",
+   "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+   "row_counts": {
+    "chunks": 48183,
+    "documents": 10469,
+    "values": 15881
+   },
+   "chunks": 48183,
+   "peak_rss_kib": 2093056,
+   "elapsed": "0:42.14",
+   "method": "go run ./cmd/kb-publish under /usr/bin/time -v; every vector read from the embedding cache",
+   "timing_log": "/home/wmm/logs/kb1/e2e-bge-gpu/time-2.log",
+   "nas_timing_log": "/mnt/ctg-pto-dev/factgate-evidence/kb-publish-bge-v2-gpu-rev2/time-2.log",
+   "used_by": "E-KB3 48k tier; E-KB1, E-KB2, E-KB4, E-KB5 (document scope)"
+  },
+  {
+   "key": "v2c-r2",
+   "publication": "policy-kb-2026-10-bge-v2c revision 2",
+   "kb_publication_sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
+   "row_counts": {
+    "chunks": 48183,
+    "collection_values": 438,
+    "documents": 10469,
+    "values": 15881
+   },
+   "chunks": 48183,
+   "peak_rss_kib": 2092020,
+   "elapsed": "0:42.69",
+   "method": "go run ./cmd/kb-publish under /usr/bin/time -v; every vector read from the embedding cache",
+   "timing_log": "/home/wmm/logs/kb1/e2e-bge-v2c/time-1.log",
+   "nas_timing_log": "/mnt/ctg-pto-dev/factgate-evidence/kb-publish-bge-v2c-rev2/time-1.log",
+   "used_by": "E-KB5 (collection scope)"
+  },
+  {
+   "key": "20k-r2",
+   "publication": "policy-kb-2026-10-bge-20k revision 2",
+   "kb_publication_sha256": "eda9fe01b4adf477f0cd08ce21413b8aaf2d423140bf83e10ada56dfc72662a0",
+   "row_counts": {
+    "chunks": 96401,
+    "documents": 20989,
+    "values": 31821
+   },
+   "chunks": 96401,
+   "peak_rss_kib": 4164944,
+   "elapsed": "1:40.88",
+   "method": "go run ./cmd/kb-publish under /usr/bin/time -v; every vector read from the embedding cache",
+   "timing_log": "/home/wmm/logs/kb1/e2e-bge-20k/time-3.log",
+   "nas_timing_log": "/mnt/ctg-pto-dev/factgate-evidence/kb-publish-bge-20k-rev2/time-3.log",
+   "used_by": "E-KB3 96k tier"
+  }
+ ],
+ "context": {
+  "revision1_same_inputs": [
+   {
+    "publication": "policy-kb-2026-10-bge-v2c revision 1",
+    "peak_rss_kib": 2493812,
+    "timing_log": "/home/wmm/logs/kb1/e2e-bge-v2c/time-0.log"
+   },
+   {
+    "publication": "policy-kb-2026-10-bge-20k revision 1",
+    "peak_rss_kib": 4929540,
+    "timing_log": "/home/wmm/logs/kb1/e2e-bge-20k/time-2.log"
+   }
+  ],
+  "binary_direct_96401_chunks": {
+   "baseline_peak_rss_kib": 4122792,
+   "qualified_ids_only_prototype_peak_rss_kib": 2644564,
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-publish-proto-qualified-only-20261017/",
+   "note": "same commit 25bab3c, scratch databases, prototype not merged"
+  }
+ }
+}

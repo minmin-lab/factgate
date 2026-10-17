@@ -45,7 +45,7 @@ returns exactly the hit set of direct exact retrieval with a measured settlement
 
 - RQ 不变的部分：V5 campaign 的报表路径结果原样（封存证据）。
 - 新增文档路径 RQ：(a) 自适应抽取在预算下的外泄上界被实现并实测（E-KB1）；(b) 资格门与误批止损（E-KB2）；(c) 结算开销（E-KB3，
-  10^5 档；10^6 档未评估：§9.8 实施后实测仍不可行）；(d) 网关与直连命中集一致率与 recall@k（E-KB4）。近似检索对照臂（K3.4）进补充材料（已入）。
+  10^5 档；10^6 档未评估，作者 2026-10-17 定，补充材料报发布内存斜率）；(d) 网关与直连命中集一致率与 recall@k（E-KB4）。近似检索对照臂（K3.4）进补充材料（已入）。
 - 证据类别：文档路径现为 kb-pilot（publication_eligible false）。进入主稿前须作者裁决翻为正式证据；否则文档路径结果只进补充材料，
   主稿按路线一措辞。
 
@@ -62,6 +62,5 @@ returns exactly the hit set of direct exact retrieval with a measured settlement
 
 - 文档路径证据是否翻为正式（campaign_class / publication_eligible）；若翻，三部署的定义采用"独立控制库 + 独立 Service 实例 + 同一业务库"
   还是三个 compose 栈（后者需重做 E-KB1–E-KB4）。
-- E-KB3 的 10^6 档：§9.8 实施后实测发布峰值 RSS 只降约 15%，外推 10^6 块约 43 GB，仍超本机内存；做不做、是否为此把 chunks
-  关系改为只发布角色限定 field id（kb-design §9.8 实测段的候选 i），待作者定。
+- 已定（2026-10-17）：E-KB3 的 10^6 档不做，论文写明未评估并报发布内存斜率（kb-design §9.8 选项 iii）。
 - 主稿页数（K5.1）。

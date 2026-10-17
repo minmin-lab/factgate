@@ -4022,7 +4022,14 @@ pre-registered expectation that the gateway's p95 would stay within twice
 the direct latency does not hold: with a department filter the direct scan
 takes a few milliseconds and the settlement cost, which does not depend on
 the scan, dominates. A replayed search costs roughly a third of a novel one
-and a replayed aggregate roughly half.
+and a replayed aggregate roughly half. The pre-registered design also called
+for a tier of $10^6$ chunks, which was not evaluated: the publisher's peak
+resident memory grew with the collection (\KbPublishRssSmallGiB{}\,GiB for
+\KbPublishChunksSmall{} chunks, \KbPublishRssLargeGiB{}\,GiB for
+\KbPublishChunksLarge, about \KbPublishRssPerChunkKiB{}\,KiB per added chunk),
+and a linear projection to $10^6$ chunks, about
+\KbPublishRssMillionGiB{}\,GiB, exceeds the \KbHostMemoryGiB{}\,GiB of the
+evaluation host (report \KbPublishMemoryReportDigest).
 
 \begin{table}[h]
 \centering

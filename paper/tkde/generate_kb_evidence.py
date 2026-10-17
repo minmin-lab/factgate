@@ -199,6 +199,37 @@ def duplicate_vector_macros(path: pathlib.Path) -> list[str]:
     ]
 
 
+def publish_memory_macros(path: pathlib.Path) -> list[str]:
+    # Peak resident memory of the publisher on the two publications E-KB3 runs
+    # on, and the linear projection to 10^6 chunks that kept that tier out of
+    # the evaluation. The supplement says the projection exceeds the host's
+    # memory, so the macros are refused if the data say otherwise.
+    report = json.loads(path.read_text(encoding="utf-8"))
+    unit = report["unit"]["verification"]
+    if abs(unit["difference_kib"] - unit["expected_if_kib"]) >= abs(unit["difference_kib"] - unit["expected_if_decimal_kb"]):
+        sys.exit(f"{path}: the RSS unit check does not support KiB")
+    by_key = {m["key"]: m for m in report["measurements"]}
+    small, large = by_key["v2-r2"], by_key["20k-r2"]
+    if large["chunks"] <= small["chunks"] or large["peak_rss_kib"] <= small["peak_rss_kib"]:
+        sys.exit(f"{path}: memory did not grow with the collection; the supplement's sentence would be false")
+    slope = (large["peak_rss_kib"] - small["peak_rss_kib"]) / (large["chunks"] - small["chunks"])
+    million_kib = small["peak_rss_kib"] + slope * (10**6 - small["chunks"])
+    gib = 1024 * 1024
+    host_gib = report["host"]["mem_total_kib"] / gib
+    if million_kib / gib <= host_gib:
+        sys.exit(f"{path}: the 10^6 projection fits the host; the supplement's sentence would be false")
+    return [
+        rf"\newcommand{{\KbPublishChunksSmall}}{{{small['chunks']:,}}}",
+        rf"\newcommand{{\KbPublishChunksLarge}}{{{large['chunks']:,}}}",
+        rf"\newcommand{{\KbPublishRssSmallGiB}}{{{small['peak_rss_kib'] / gib:.1f}}}",
+        rf"\newcommand{{\KbPublishRssLargeGiB}}{{{large['peak_rss_kib'] / gib:.1f}}}",
+        rf"\newcommand{{\KbPublishRssPerChunkKiB}}{{{slope:.0f}}}",
+        rf"\newcommand{{\KbPublishRssMillionGiB}}{{{million_kib / gib:.0f}}}",
+        rf"\newcommand{{\KbHostMemoryGiB}}{{{host_gib:.1f}}}",
+        rf"\newcommand{{\KbPublishMemoryReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+
+
 def ekb1_macros(path: pathlib.Path) -> list[str]:
     report = json.loads(path.read_text(encoding="utf-8"))
     lines = [
@@ -327,6 +358,7 @@ def main() -> None:
     lines += ekb5_macros(paths["ekb5-collection-scope-v2r2"])
     for entry_id, tier in (("ekb3-overhead-48k-r2", "FortyEightK"), ("ekb3-overhead-96k-r2", "NinetySixK")):
         lines += ekb3_macros(paths[entry_id], tier)
+    lines += publish_memory_macros(paths["kb-publish-memory-v2r2"])
     import re
     for line in lines:
         match = re.match(r"\\newcommand\{\\([A-Za-z0-9]+)\}", line)
