@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Knowledge-product pilot evidence macros -> paper/tkde/generated/kb.tex.
+"""Knowledge-product evidence macros -> paper/tkde/generated/kb.tex.
 
 Reads evaluation/kb-pilot/registry.json, verifies every registered file's
 sha256, and emits \\newcommand macros for the supplementary knowledge-product
-sections. Pilot class only (campaign_class kb-pilot, publication_eligible
-false): the macros carry the numbers, the registry carries the binding, and
-promotion to publication evidence is an author decision, never this script's.
+sections. The pilot class (campaign_class kb-pilot, publication_eligible
+false) is in force until the author promotes formal evidence: E-KB1 to E-KB5
+come from the formal registration (evaluation/kb-formal/kb-publication-evidence-v1.json,
+written by kb-formal-register) only when the author's signed approval
+(evaluation/kb-formal/approvals/evidence-approval-v1.json) names that
+registration's exact bytes. Promotion is the author's decision, never this
+script's: a registration without the approval leaves the pilot in force.
+The HNSW, duplicate-vector and publish-memory measurements are not part of the
+formal round and always come from the pilot registry.
 generate_evidence.py (V5) and generate_p10_evidence.py are untouched.
 """
 from __future__ import annotations
@@ -17,6 +23,9 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 REGISTRY = ROOT / "evaluation/kb-pilot/registry.json"
+FORMAL_REGISTRATION = ROOT / "evaluation/kb-formal/kb-publication-evidence-v1.json"
+EVIDENCE_APPROVAL = ROOT / "evaluation/kb-formal/approvals/evidence-approval-v1.json"
+FORMAL_IDS = ("ekb1", "ekb2a", "ekb2b", "ekb3-48k", "ekb3-96k", "ekb4", "ekb5")
 OUT = ROOT / "paper/tkde/generated/kb.tex"
 
 
@@ -36,6 +45,59 @@ def load_registry() -> tuple[dict, dict[str, pathlib.Path]]:
             sys.exit(f"{entry['id']}: {path} has sha256 {digest}, registry binds {entry['sha256']}")
         paths[entry["id"]] = path
     return registry, paths
+
+
+class EvidenceError(Exception):
+    pass
+
+
+def verify_approval(approval: dict, registration_bytes: bytes, registration_path: str) -> None:
+    """The author's approval must be AUTHOR_APPROVED and name exactly these registration bytes."""
+    approved = approval.get("approved_registration") or {}
+    if approval.get("approval_status") != "AUTHOR_APPROVED":
+        raise EvidenceError("the evidence approval is not AUTHOR_APPROVED")
+    if approved.get("path") != registration_path:
+        raise EvidenceError(f"the evidence approval names {approved.get('path')}, not {registration_path}")
+    if approved.get("sha256") != hashlib.sha256(registration_bytes).hexdigest():
+        raise EvidenceError("the evidence approval names other registration bytes")
+
+
+def formal_paths(registration: dict, base: pathlib.Path) -> dict[str, pathlib.Path]:
+    """Every registered file at its digest, every experiment present, every report formal."""
+    if registration.get("campaign_class") != "kb-publication" or registration.get("publication_eligible") is not True:
+        raise EvidenceError("the registration is not kb-publication evidence")
+    paths: dict[str, pathlib.Path] = {}
+    for entry in registration["entries"]:
+        path = base / entry["path"]
+        if sha256(path) != entry["sha256"]:
+            raise EvidenceError(f"{entry['id']}: {path} differs from the registration")
+        paths[entry["id"]] = path
+    missing = [name for name in FORMAL_IDS if name not in paths]
+    if missing:
+        raise EvidenceError(f"the registration lacks {', '.join(missing)}")
+    for name in FORMAL_IDS:
+        report = json.loads(paths[name].read_text(encoding="utf-8"))
+        if report.get("campaign_class") != "kb-publication" or report.get("publication_eligible") is not True:
+            raise EvidenceError(f"{name} is not a formal report")
+    return paths
+
+
+def load_formal():
+    """(registration, paths, registration sha256) with the author's approval, else None."""
+    if not FORMAL_REGISTRATION.exists():
+        return None
+    if not EVIDENCE_APPROVAL.exists():
+        print("formal knowledge-product evidence is registered but not approved by the author; the macros stay on the pilot evidence",
+              file=sys.stderr)
+        return None
+    registration_bytes = FORMAL_REGISTRATION.read_bytes()
+    try:
+        verify_approval(json.loads(EVIDENCE_APPROVAL.read_text(encoding="utf-8")), registration_bytes,
+                        str(FORMAL_REGISTRATION.relative_to(ROOT)))
+        registration = json.loads(registration_bytes)
+        return registration, formal_paths(registration, FORMAL_REGISTRATION.parent), hashlib.sha256(registration_bytes).hexdigest()
+    except EvidenceError as err:
+        sys.exit(f"formal evidence: {err}")
 
 
 def pct(value: float) -> str:
@@ -349,15 +411,31 @@ def main() -> None:
     # generation instead of silently dropping its macros. Revision 2 entries
     # (chunk Result cell = text_sha256, kb-design 9.8) supersede the v2 ones,
     # which stay in the registry as history.
+    formal = load_formal()
+    if formal:
+        registration, experiments, registration_sha = formal
+        lines += [
+            r"\newcommand{\KbEvidenceClass}{kb-publication}",
+            rf"\newcommand{{\KbFormalCampaign}}{{{registration['campaign']}}}",
+            rf"\newcommand{{\KbFormalRegistrationDigest}}{{\texttt{{{registration_sha[:12]}}}}}",
+        ]
+        source = {"ekb1": experiments["ekb1"], "ekb2a": experiments["ekb2a"], "ekb2b": experiments["ekb2b"], "ekb4": experiments["ekb4"],
+                  "ekb5": experiments["ekb5"], "ekb3-48k": experiments["ekb3-48k"], "ekb3-96k": experiments["ekb3-96k"]}
+    else:
+        lines.append(r"\newcommand{\KbEvidenceClass}{kb-pilot}")
+        source = {"ekb1": paths["ekb1-adaptive-extraction-v2r3"], "ekb2a": paths["ekb2-eligibility-gate-v2r2"],
+                  "ekb2b": paths["ekb2-misapproval-v2r2"], "ekb4": paths["ekb4-retrieval-quality-v2r2"],
+                  "ekb5": paths["ekb5-collection-scope-v2r2"], "ekb3-48k": paths["ekb3-overhead-48k-r2"],
+                  "ekb3-96k": paths["ekb3-overhead-96k-r2"]}
     lines += hnsw_macros(paths["k34-hnsw-v2r2"])
-    lines += ekb2_macros(paths["ekb2-eligibility-gate-v2r2"])
-    lines += ekb2b_macros(paths["ekb2-misapproval-v2r2"])
-    lines += ekb4_macros(paths["ekb4-retrieval-quality-v2r2"])
+    lines += ekb2_macros(source["ekb2a"])
+    lines += ekb2b_macros(source["ekb2b"])
+    lines += ekb4_macros(source["ekb4"])
     lines += duplicate_vector_macros(paths["ekb4-duplicate-text-vectors-v2r2"])
-    lines += ekb1_macros(paths["ekb1-adaptive-extraction-v2r3"])
-    lines += ekb5_macros(paths["ekb5-collection-scope-v2r2"])
-    for entry_id, tier in (("ekb3-overhead-48k-r2", "FortyEightK"), ("ekb3-overhead-96k-r2", "NinetySixK")):
-        lines += ekb3_macros(paths[entry_id], tier)
+    lines += ekb1_macros(source["ekb1"])
+    lines += ekb5_macros(source["ekb5"])
+    for entry_id, tier in (("ekb3-48k", "FortyEightK"), ("ekb3-96k", "NinetySixK")):
+        lines += ekb3_macros(source[entry_id], tier)
     lines += publish_memory_macros(paths["kb-publish-memory-v2r2"])
     import re
     for line in lines:
