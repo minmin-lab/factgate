@@ -1,6 +1,8 @@
-# KB-1 实验设计（K4.1，待作者审阅）
+# KB-1 实验设计（K4.1，2026-10-17 作者认可）
 
-状态：草案 v1，2026-10-16。证据政策按 docs/kb_extension_plan.md §0：campaign_class `kb-pilot`、`publication_eligible: false`、
+状态：v1，2026-10-16 起草；**2026-10-17 作者认可**（"我同意k4.1"，台账 KB1-LOOP-79），并定正式轮按方案 C 执行，见
+docs/kb_extension_plan.md 阶段 4b；正式轮的执行规程待补为本文"正式轮"一节（K4.8），预登记的问题、预期与停止规则不改。
+起草时的状态：草案 v1，2026-10-16。证据政策按 docs/kb_extension_plan.md §0：campaign_class `kb-pilot`、`publication_eligible: false`、
 三部署重复、登记到新文件 `evaluation/final-v5-wsl2/kb-pilot-evidence-v1.json`，宏由 `paper/tkde/generate_kb_evidence.py` 产出
 （封印的 pilot-evidence-v1.json 与 generate_evidence.py 不动）。停止规则与阈值用保守先验，写在执行之前，不以实测拟合。
 前置：K3.3（执行接入，§9.7 已定方案 A，已落地）与 §9.8（Result 单元格取 text_sha256，2026-10-17 作者同意，已落地）；语料已冻结（manifest-v1.json，
