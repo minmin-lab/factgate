@@ -73,6 +73,9 @@ failed_step=""
 stack=""
 error_line=""
 step() { printf '%s %s\n' "$(date -Is)" "$*" | tee -a "$log"; }
+# after() reports what happens after the record is written: to stdout only, so
+# no recorded file changes once its digest is in deployment-record.json.
+after() { printf '%s %s\n' "$(date -Is)" "$*"; }
 die() { failed_step=$*; step "FAIL $*"; exit 1; }
 project="kbformal-$(printf '%s/%s/%s/%s' "$campaign" "$profile" "$rep" "$attempt" | sha256sum | cut -c1-16)"
 compose() {
@@ -154,7 +157,7 @@ on_exit() {
     teardown || step "teardown after the failure left residue (cleanup.json)"
   fi
   destroy
-  finish && step "failure record mirrored to $target" || step "the failure record could not be mirrored"
+  finish && after "failure record mirrored to $target" || after "the failure record could not be mirrored"
 }
 trap 'error_line=$LINENO' ERR
 trap on_exit EXIT
@@ -284,7 +287,7 @@ if [[ -z "$schema_digest" ]]; then
   destroy
   outcome=reference
   finish || die "NAS copy does not verify"
-  step "DONE reference deployment mirrored to $target"
+  after "DONE reference deployment mirrored to $target"
   exit 0
 fi
 [[ "$attested" == "$schema_digest" ]] || die "live schema digest ${attested:-?} differs from the profile's $schema_digest"
@@ -357,4 +360,4 @@ destroy
 step "TEARDOWN zero residue; private files destroyed"
 outcome=complete
 finish || die "NAS copy does not verify"
-step "DONE mirrored to $target"
+after "DONE mirrored to $target"
