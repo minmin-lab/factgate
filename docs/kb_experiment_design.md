@@ -148,6 +148,90 @@ k=20，identity_rate / mean_recall / short（200 条）：
 与修订 1 相比 identity 最多差 1.0 个百分点、recall 最多差 0.003；精确臂 p50 59.8 / 18.5 ms（无 / 部门）。报告
 evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb-k34-hnsw/）。
 
+## 正式轮（方案 C）规程（K4.8，2026-10-17 起草，开跑前冻结）
+
+本节规定方案 C 的正式轮怎么跑。上文预登记的问题、预期与停止规则不变；本节只规定部署、驱动、审批、证据与签署。开跑前的任何
+修改都记台账；开跑后不改。
+
+### 1. 标准与总体做法
+
+- 与论文里 V5 正式证据同一标准：每次部署用冻结的提交全新拉起整套服务；请求经网关 HTTP 接口（MCP `/mcp`，bearer token）发出；
+  任务经 `request_data_task` → OA 提交 → 审批人批准 → 回调激活；三次重复；每部署留逐文件摘要的部署记录；封存后镜像 NAS
+  并登记；作者签署证据绑定。
+- 不并入 V5 publication 类：它写死 V5 的 172 格与 11 个 profile，并入会改协议、master catalog 与 registry 的冻结摘要。另建并行
+  的 KB runner，复用 V5 的保证件：launcher 闸门与 WSL preflight；提交冻结的宿主构建（-trimpath，构建清单记提交、二进制摘要、
+  全部受控文件摘要）；正式网关镜像 build + verify；每部署唯一的 compose 项目名与主机预检；零残留清理；凭据只在进程内读取；
+  驱动 stderr 闸门；NAS 镜像。
+- 试点结果不改标签；正式证据只来自按本规程跑的一轮。
+
+### 2. 冻结与作者批准
+
+- 提交冻结：全部代码与配置定稿后的一个提交，HEAD 等于 origin，工作树干净。运行期间不改任何受控文件；台账备注先写
+  `~/logs/pending-registration.md`，封存后再登记。
+- KB 数据绑定，开跑前由作者批准其 SHA-256：两份语料文件及其 manifest、三份 publish 规格（入库）、嵌入模型权重摘要、嵌入缓存
+  内容清单摘要、嵌入服务代码（入库）与 Python 环境清单摘要、两个镜像摘要（pgvector 业务库、嵌入服务基础镜像）、查询集清单、
+  四个 profile Catalog 与主体属性文件的摘要。该文件作为正式网关构建的 `-dataset-binding` 封进构建清单。
+- 发射前通知作者，作者同意后才启动。
+
+### 3. Profile 与部署
+
+- 四个 profile，各是一份只含 KB 产品的 Catalog，确定性生成、入库，摘要登记在 KB profile registry：
+  1. kb-v2-pilot：v2 发布物；预算 kb-pilot（查询 256，Release 800，Dependency 2,400，Outcome 64，TTL 30 min）；
+     跑 E-KB1、E-KB2(a)、E-KB2(b)、E-KB5 文档级。
+  2. kb-v2-large：v2 发布物；预算 kb-large（查询 100,000，Release 10^8，Dependency 10^9，Outcome 10^7，行 10^7，单次超时 60 s，
+     TTL 12 h）；跑 E-KB3 的 48k 档与 E-KB4。
+  3. kb-20k-large：20k 发布物；预算 kb-large；跑 E-KB3 的 96k 档。
+  4. kb-v2c-pilot：v2c 发布物（counterparty 为集合级）；预算 kb-pilot；跑 E-KB5 集合级。
+- 每个 profile 重复 3 次，共 12 次全新部署。每次部署：compose.yaml 加 KB 叠加层，含控制库；业务库（pgvector 镜像按摘要钉住，
+  `KB_REQUIRE_PGVECTOR=1`）；MinIO；OA；嵌入服务容器（基础镜像按摘要钉住，只读挂载冻结的 Python 环境、模型与服务代码，
+  `/model` 报告的权重摘要须等于绑定值）；KB 装载作业（用冻结提交构建的 kb-publish 向新业务库发布，语料与缓存只读挂载并先核
+  摘要，发布清单摘要须等于 Catalog 绑定值）；KB sidecar 安装；正式网关镜像（`GATEWAY_SNAPSHOT_ARTIFACT_DIR` 与
+  `GATEWAY_KB_ARTIFACT_DIR` 分开挂载）。
+- 业务库 schema 摘要在冻结前由一次参考部署测得并写入 profile Catalog；此后每次部署的实时 attestation 须等于它。
+
+### 4. 主体与审批
+
+- E-KB1、E-KB2(b)、E-KB3、E-KB4、E-KB5 的任务由 alice 发起。alice 的属性为 job_family finance_controller，clearance 覆盖实验
+  所用的密级，因此可以申请任一单个部门；每个任务的授权范围仍按实验限定在单个部门，与预登记一致。alice 在 OA 提交，bob 批准；
+  E-KB2(b) 由 bob 把 TTL 缩小到 120 s 后批准。
+- E-KB2(a) 的 60 个主体由网关启动时从主体文件引导。主体文件只含 token 的 SHA-256；明文 token 每部署新生成，只在进程内与
+  0600 私有文件里。60 个主体的属性写在 profile 的主体属性文件里。E-KB2(a) 只走到草稿（AWAITING_SUBMISSION），不需要 OA 账户。
+- 网关的主体文件功能（`PRINCIPALS_PATH`）是本轮前置的代码改动，单独测试、入库。
+
+### 5. 驱动
+
+- 外部驱动程序用冻结提交构建（-trimpath，带构建清单），经 MCP over HTTP 调用网关。E-KB1–E-KB5 的实验逻辑与进程内 runner
+  共用一个包，只换客户端。直连臂用业务库只读账号，凭据在进程内读取；嵌入用部署内的嵌入服务。
+- 每个 search / fetch 响应都核对：回执验签（query receipt keyring）、回执里的 Catalog 摘要等于 profile 摘要、交付正文的
+  sha256 等于结果里的摘要。
+- 驱动 stderr 必须为空；安全诊断写进报告。
+
+### 6. 对拍（K4.9 验收）
+
+- 正式轮之前，在一次非正式部署上用外部驱动跑全部实验，与进程内 runner 在同一发布物上的报告逐项比对：计数、命中集、
+  Release / Dependency / Outcome、拒绝码与终止码必须一致；时延不比。
+
+### 7. 证据、封存与登记
+
+- 每次部署留：环境采集、正式网关运行时身份、嵌入服务身份、KB 数据身份（发布清单、schema 摘要）、网关诊断里的 Catalog 摘要、
+  各实验报告与逐请求记录、清理记录，以及列出每个文件 sha256 与大小的 deployment-record.json。部署结束即镜像 NAS，并在 NAS
+  上复算摘要。
+- 12 次部署全部通过后，KB finalizer 复核全部部署记录并按实验汇总，create-exclusive 写 campaign-evidence.json；登记到
+  `evaluation/kb-formal/kb-publication-evidence-v1.json`（campaign_class `kb-publication`，publication_eligible true）；
+  `generate_kb_evidence.py` 增加正式类加载器，只认封存后的证据。作者对登记签署批准记录。
+
+### 8. 失败规则
+
+- 任一部署出现以下情况即失败，整轮记为 incomplete：Catalog、发布清单、schema 或嵌入身份的摘要不符；回执验签失败；交付正文
+  摘要不符；驱动 stderr 非空；清理有残留；预登记停止规则以外的异常终止。不续跑，换新 campaign ID 整轮重跑；失败与无效记录
+  全部保留。
+
+### 9. 工作量（读代码估计，未细算）
+
+网关主体文件；实验逻辑抽成共用包并做进程内回归；MCP 客户端与 OA 审批流程；profile Catalog 与属性文件生成；KB compose 叠加层、
+嵌入服务容器与装载作业；KB runner（闸门、构建、部署循环、记录、清理、镜像）；finalizer、登记与生成器正式类；非正式部署上的
+对拍与修正；正式运行 12 次部署。按模块看是数天的工程量。
+
 ## 证据与宏
 
 - 每部署目录：config.json（Catalog sha、epoch、kb-publication manifest、预算、种子）、raw/*.jsonl（逐步请求/响应/计费/拒绝码）、
