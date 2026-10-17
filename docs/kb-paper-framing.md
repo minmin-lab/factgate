@@ -56,7 +56,7 @@ returns exactly the hit set of direct exact retrieval with a measured settlement
 3. 架构节：知识产品发布与激活、嵌入服务位置（受信边界内）、pgvector 装 pg_catalog 的原因一句。
 4. 实验节：新增文档路径小节，引用 generated/kb.tex 宏。
 5. 威胁模型：知识产品的两个边界（已写入 docs/threat-model.md，正文摘一句）。
-6. 补充材料"知识产品"节：由"定义"改"实现并评估"，效果定义段改口径。
+6. 补充材料"知识产品"节：由"定义"改"实现并评估"、效果定义段改口径、Worked example 按实测代数重算——已完成（2026-10-17，作者定 §9.2 A）。
 
 ## 7. 需要作者决定的点
 

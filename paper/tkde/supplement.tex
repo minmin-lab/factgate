@@ -3865,24 +3865,31 @@ A departmental collection holds eight documents $d_1\ldots d_8$, each
 segmented into four chunks; $d_7$ and $d_8$ carry the label
 \code{leadership-only}. A marketing analyst's task is approved with scope
 \code{department = marketing} and the eligibility envelope excludes the two
-restricted documents, so the mandatory filter already removes them. Budgets
-are $B_R/B_D/B_O = 12/40/8$. A \code{search} for ``Q3 pricing policy'' with
-$k=4$ returns four chunks from $d_1$, $d_2$: it charges $4$ Result Facts,
-$6$ Dependency Facts (four chunks and two document Facts), and $1$ composite.
-Re-issuing the identical request charges $0/0/0$. Adding the filter
-\code{year = 2026} changes the atom set and charges one atom and one
-composite and, if the hit set is a subset of the first, no base Facts. An
-\code{aggregate} counting documents that mention a competitor reads all six
-admissible documents: it charges one derived Result Fact with a six-document
-witness, six Dependency Facts of which four are new, and one composite.
-A \code{fetch} of two further chunks of $d_1$ charges $2/2/1$. The ledger
-now reads $(7, 12, 5)$. A search with one new filter atom whose four new
-chunks raise the Result count to $11$ still fits and brings the Outcome
-count to $7$; the next distinct request needs two more Outcome Facts,
-exceeds $B_O=8$, and is refused uncharged, and the ledger stays where it is.
-A worker delegated by the analyst replaying the first search charges
+restricted documents, so the mandatory filter already removes them. The
+accounting below is the implemented one: a returned chunk releases its four
+visible cells (document identifier, version, chunk index, text) and depends
+in addition on its row Fact and on the two key cells and the row Fact of its
+document; a caller filter adds one chunk cell per attribute filtered on.
+Budgets are stated in cells, $B_R/B_D/B_O = 48/160/10$, so $B_R$ is twelve
+chunks. A \code{search} for ``Q3 pricing policy'' with $k=4$ returns four
+chunks from $d_1$, $d_2$: it charges $16$ Result Facts, $26$ Dependency
+Facts (sixteen cells, four chunk rows, and three Facts for each of the two
+documents), and $1$ composite. Re-issuing the identical request charges
+$0/0/0$. Adding the filter \code{year = 2026} changes the atom set and
+charges one atom and one composite; if the hit set is a subset of the first,
+no cell is newly released, but the four \code{year} cells the filter read
+are four new Dependency Facts. An \code{aggregate} counting contracts whose
+counterparty is a given competitor reads six rows of the values relation: it
+charges one derived Result Fact with a six-row witness, $24$ Dependency
+Facts (the rows and the cells read, all new), two atoms and one composite.
+A \code{fetch} of two further chunks of $d_1$ charges $8/10/1$: eight cells,
+two chunk rows, and nothing for $d_1$, which is already on the ledger. The
+ledger now reads $(25, 64, 7)$. A search with one new filter atom whose four
+new chunks come from two further documents raises the counts to $(41, 94,
+9)$ and still fits; the next distinct request needs two more Outcome Facts,
+exceeds $B_O=10$, and is refused uncharged, and the ledger stays where it
+is. A worker delegated by the analyst replaying the first search charges
 $0/0/0$ against the same ledger.
-
 
 \subsection{Pilot evaluation}
 \label{sec:supp-kp-pilot}
