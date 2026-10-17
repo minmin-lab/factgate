@@ -25,6 +25,11 @@
 #   KB_FORMAL_CLASS       pilot | formal
 # Optional:
 #   KB_FORMAL_EXPERIMENTS pilot only: a subset of the profile's experiments
+#   KB_FORMAL_RECORD_ATTESTATION=1  pilot only: for a profile without a schema
+#                         digest, make this the reference deployment (正式轮规程
+#                         §3): record the live digest in
+#                         evaluation/kb-formal/profiles/schema-attestations.json
+#                         with kb-formal-profile -attest -record, then tear down
 #   KB_FORMAL_NAS_ROOT    default /mnt/ctg-pto-dev/factgate-evidence
 #   KB_EMBED_VENV, KB_EMBED_MODEL, KB_EMBEDDING_CACHE_DIR  execution-host paths
 set -eEuo pipefail
@@ -267,7 +272,20 @@ attested=$(sed -n 's/.*schema_digest=\([0-9a-f]\{64\}\).*/\1/p' <<<"$attestation
 echo "$attestation" > "$dir/schema-attestation.txt"
 if [[ -z "$schema_digest" ]]; then
   [[ "$KB_FORMAL_CLASS" == pilot ]] || die "a formal deployment requires an attested profile"
-  die "profile $profile is unattested: record ${attested:-?} with kb-formal-profile -attest -record, regenerate, commit, and rerun"
+  [[ "${KB_FORMAL_RECORD_ATTESTATION:-}" == 1 ]] \
+    || die "profile $profile is unattested (live ${attested:-?}): rerun with KB_FORMAL_RECORD_ATTESTATION=1 as its reference deployment, then regenerate and commit the profiles"
+  KB_FORMAL_READER_DSN=$reader_dsn "$bin/kb-formal-profile" -attest -profile "$profile" -record >> "$dir/schema-attestation.txt" 2>> "$log" \
+    || die "recording the attestation failed"
+  recorded=$(sed -n '2s/.*schema_digest=\([0-9a-f]\{64\}\).*/\1/p' "$dir/schema-attestation.txt")
+  [[ -n "$attested" && "$recorded" == "$attested" ]] || die "the recorded digest ${recorded:-?} differs from the first measurement ${attested:-?}"
+  step "REFERENCE recorded schema_digest=$recorded for $profile in evaluation/kb-formal/profiles/schema-attestations.json"
+  teardown || die "teardown left residue"
+  stack=""
+  destroy
+  outcome=reference
+  finish || die "NAS copy does not verify"
+  step "DONE reference deployment mirrored to $target"
+  exit 0
 fi
 [[ "$attested" == "$schema_digest" ]] || die "live schema digest ${attested:-?} differs from the profile's $schema_digest"
 step "ATTEST schema_digest=$attested"
