@@ -1,6 +1,7 @@
 # 知识产品设计记录（KB-1 / K2.1）
 
-状态：草案 v1，2026-10-15，**待作者审阅**（kb_extension_plan K2.1 BLOCKED）。分支 kb-dev。
+状态：v1，2026-10-15 起草；**2026-10-17 作者认可**（"我同意1 和 4"，台账 KB1-LOOP-78），kb_extension_plan K2.1 DONE。分支 kb-dev。
+§9 各点的裁决写在各点之下；之后的改动照常记台账。
 依据：paper/tkde/supplement.tex §"Knowledge Products: Carrying the Contract to Document Access"（LOOP-53 写入）、
 docs/kb_extension_plan.md、现有实现（internal/exposure/fact.go 的 FactID 编码、internal/snapshotbundle 与
 internal/ordinal 的发布物与字典、internal/catalog 的 snapshot_publications、阶段 1 的 eligibility）。
@@ -249,6 +250,7 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
    重放。文本查询的嵌入在受信边界内由嵌入服务计算（新组件，部署位置一节补写）。同时作者定：语料改为真实感文档（K2.7）、
    增加检索质量指标（K4.6：合法任务 recall@k、直连 vs 网关命中集一致率）。
 5. **生成回答 f_gen** 明确不在 KB-1 范围（论文已写"第四层为未来工作"），确认。
+   **已定（2026-10-17 作者："我同意1 和 4"）**：f_gen 不在 KB-1 范围，论文保持"第四层为未来工作"的表述。
 6. **新拒绝码六个**（含 `RETRIEVAL_SCOPE_EXCEEDED`）与 `NOT_ELIGIBLE` 一样进入 apierr 与文档；确认命名。
    **已定（2026-10-17 作者："1 认可；2 我选 a"）**：六个码按原命名进入 apierr 与文档；`CHUNK_NOT_RETURNED` 按 (a) 实现——
    `fetch` 只能取本根任务族此前 `search`/`fetch` 已返回过的块：网关在准备之前把每个块引用解析为分块发布物 HOT 索引里的
