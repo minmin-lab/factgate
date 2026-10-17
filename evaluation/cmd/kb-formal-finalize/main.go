@@ -384,6 +384,30 @@ func run() error {
 		return fmt.Errorf("binding at %s: %w", commit, err)
 	}
 	bindingSum := sha256.Sum256(binding)
+	approvalSHA256 := ""
+	if *class == "formal" {
+		// launch-round.sh installs the author's approval record in the root; it
+		// must approve exactly the binding of the round's commit.
+		approvalBytes, err := os.ReadFile(filepath.Join(root, "approval.json"))
+		if err != nil {
+			return fmt.Errorf("a formal round needs the approval record: %w", err)
+		}
+		var approval struct {
+			Status  string `json:"approval_status"`
+			Binding struct {
+				Path   string `json:"path"`
+				SHA256 string `json:"sha256"`
+			} `json:"approved_binding"`
+		}
+		if err := json.Unmarshal(approvalBytes, &approval); err != nil {
+			return fmt.Errorf("approval record: %w", err)
+		}
+		if approval.Status != "AUTHOR_APPROVED" || approval.Binding.Path != kbformal.BindingPath || approval.Binding.SHA256 != hex.EncodeToString(bindingSum[:]) {
+			return errors.New("the approval record does not approve the dataset binding of the round's commit")
+		}
+		approvalSum := sha256.Sum256(approvalBytes)
+		approvalSHA256 = hex.EncodeToString(approvalSum[:])
+	}
 	evidence := filepath.Join(root, "evidence")
 	if err := os.Mkdir(evidence, 0o755); err != nil {
 		return err
@@ -402,7 +426,7 @@ func run() error {
 		files = append(files, file)
 	}
 	campaignEvidence := map[string]any{"version": "taskgate-kb-campaign-evidence-v1", "campaign": campaign, "class": *class, "campaign_class": campaignClass,
-		"publication_eligible": *class == "formal", "commit": commit, "dataset_binding_sha256": hex.EncodeToString(bindingSum[:]),
+		"publication_eligible": *class == "formal", "commit": commit, "dataset_binding_sha256": hex.EncodeToString(bindingSum[:]), "approval_sha256": approvalSHA256,
 		"profile_registry_sha256": func() string { s := sha256.Sum256(registryData); return hex.EncodeToString(s[:]) }(),
 		"deployments":             deployments, "evidence": files, "generated_at": generated}
 	summary, err := writeExclusive(filepath.Join(evidence, "campaign-evidence.json"), campaignEvidence)
