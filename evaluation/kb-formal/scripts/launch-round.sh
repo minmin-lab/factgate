@@ -51,11 +51,13 @@ staging=$(dirname "$KB_FORMAL_ROOT")/.$campaign.images
 [[ ! -e "$staging" ]] || die "$staging already exists"
 mkdir -p "$staging"
 proxy_ip=$(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)
+listening=$(ss -ltnH | awk '{print $4}')
+! grep -qE ':3000$' <<<"$listening" || die "port 3000 (the local module proxy) is already in use: $(ss -ltnpH 'sport = :3000' 2>/dev/null | head -1)"
 python3 -m http.server 3000 --bind "$proxy_ip" --directory "$HOME/go/pkg/mod/cache/download" > "$staging/goproxy.log" 2>&1 &
 proxy_pid=$!
 trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
 sleep 1
-[[ "$(tr '\0' ' ' < /proc/$proxy_pid/cmdline 2>/dev/null)" == *http.server* ]] || die "the local module proxy did not start"
+[[ "$(tr '\0' ' ' < /proc/$proxy_pid/cmdline 2>/dev/null)" == *http.server* ]] || die "the local module proxy did not start: $(tail -n 1 "$staging/goproxy.log")"
 export TASKGATE_FORMAL_BUILD_GOPROXY="http://$proxy_ip:3000,https://proxy.golang.org,direct"
 gateway_flags=(-root "$repo" -profile-registry "$registry" -dataset-binding "$binding")
 note "BUILD gateway"
