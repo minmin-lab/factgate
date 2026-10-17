@@ -69,10 +69,10 @@
 | 编号 | 任务 | 验收 | 状态 |
 |---|---|---|---|
 | K4.8 | 正式轮设计：把部署、驱动、审批、证据封存与签署流程写进实验设计的"正式轮"一节；预登记的问题、预期与停止规则不改 | 设计一节 + 台账行 | DOING：规程初稿已写入 kb_experiment_design"正式轮"一节，开跑前冻结；2026-10-17 补实现说明（装载作业、参考部署、实验逻辑移植的偏离与等价性证明、逐请求记录、部署记录文件、pilot 才可重试），台账 KB1-LOOP-85/86 |
-| K4.9 | 外部驱动：E-KB1–E-KB5 改为经网关 HTTP 接口驱动的程序，审批走真实回调；在同一发布物上与进程内 runner 逐项对拍 | 对拍一致（延迟除外） | DOING：驱动覆盖 E-KB1–E-KB5（E-KB3 两档、E-KB5 两种发布）；部署 1 上 E-KB1、E-KB2(a)、E-KB2(b)、E-KB4、E-KB5 文档级与试点一致（台账 KB1-LOOP-83/85）；全部 12 次部署、三个部署序号的彩排对拍待跑 |
-| K4.10 | 部署接入：全新部署能装载 KB 发布物（kb schema、pg_catalog 中的 pgvector、序数 sidecar）、Catalog 含 knowledge_products、网关容器能访问嵌入服务；网关镜像由冻结提交构建 | 一次全新部署上冒烟通过 | DOING：kb-v2-pilot 冒烟通过（2026-10-17，台账 KB1-LOOP-82）；单次部署脚本 run-deployment.sh 与整轮 run-round.sh 已入库，kb-v2-large 全新部署端到端通过；kb-20k-large 与 kb-v2c-pilot 的 schema 摘要由参考部署记录（进行中） |
-| K4.11 | 正式发射：开跑前通知作者；三次全新部署；证据封存、NAS 镜像核验、注册为正式类 | 三部署全部通过，封存核验 | TODO |
-| K4.12 | 论文更新：宏改用正式证据，补充材料"试点评估"改为正式；作者签署证据绑定（并入 K5.2） | 构建与渲染检查通过；补充材料 E-KB3 段"正文在结算后读取、不在分量里"一句是对试点（旧做法）的描述，换正式证据时改为"结算前补进规范结果、计入 result_delivery 分量" | TODO |
+| K4.9 | 外部驱动：E-KB1–E-KB5 改为经网关 HTTP 接口驱动的程序，审批走真实回调；在同一发布物上与进程内 runner 逐项对拍 | 对拍一致（延迟除外） | DOING：驱动覆盖 E-KB1–E-KB5（E-KB3 两档、E-KB5 两种发布）；部署 1 上 E-KB1、E-KB2(a)、E-KB2(b)、E-KB4、E-KB5 文档级与试点一致（台账 KB1-LOOP-83/85）；12 次部署三个部署序号的彩排对拍进行中（kb-formal-rehearsal-20261017i，经正式启动器） |
+| K4.10 | 部署接入：全新部署能装载 KB 发布物（kb schema、pg_catalog 中的 pgvector、序数 sidecar）、Catalog 含 knowledge_products、网关容器能访问嵌入服务；网关镜像由冻结提交构建 | 一次全新部署上冒烟通过 | DONE（2026-10-17）：冒烟通过（KB1-LOOP-82）；四个 profile 的 schema 摘要均由参考部署记录（KB1-LOOP-86）；单次部署 run-deployment.sh 在冻结检出上端到端通过（含 V5 运行时身份、批准的健康检查、全部镜像按摘要钉住，KB1-LOOP-88） |
+| K4.11 | 正式发射：开跑前通知作者；三次全新部署；证据封存、NAS 镜像核验、注册为正式类 | 三部署全部通过，封存核验 | DOING：工具齐备（launch-round、prepare-round、run-round、kb-formal-binding、kb-formal-finalize、kb-formal-register、compare-combined、compare-macros）；彩排进行中；正式发射待作者批准数据绑定并同意 |
+| K4.12 | 论文更新：宏改用正式证据，补充材料"试点评估"改为正式；作者签署证据绑定（并入 K5.2） | 构建与渲染检查通过；补充材料 E-KB3 段"正文在结算后读取、不在分量里"一句是对试点（旧做法）的描述，换正式证据时改为"结算前补进规范结果、计入 result_delivery 分量" | DOING：生成器正式类闸门已入库（只有作者签署的证据批准记录点名登记文件的确切字节时才用正式证据，否则沿用试点；test_generate_kb_evidence.py）；补充材料改写与证据绑定签署待正式轮之后 |
 
 ### 阶段 5：投稿前
 
