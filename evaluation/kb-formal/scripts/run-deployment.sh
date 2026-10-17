@@ -16,7 +16,8 @@
 # Required environment:
 #   KB_FORMAL_ROOT        campaign root: bin/ holds the sealed host binaries
 #                         (kb-publish, snapshot-sidecar-install, kb-formal-driver,
-#                         kb-formal-profile) and their build.json, images/ the mode-0600 compose
+#                         kb-formal-profile, final-v5-gateway-build) and their
+#                         build.json, images/ the mode-0600 compose
 #                         overrides naming the formal gateway and oa-demo images;
 #                         a formal campaign also holds source/, the frozen tree
 #                         whose copy of this script runs
@@ -164,7 +165,7 @@ trap on_exit EXIT
 step "START campaign=$campaign profile=$profile repetition=$rep attempt=$attempt class=$KB_FORMAL_CLASS project=$project commit=$commit binaries=${binaries_commit:-?}"
 
 # ---- profile facts (the profile files are source-controlled and regenerate byte for byte) ----
-for binary in kb-publish snapshot-sidecar-install kb-formal-driver kb-formal-profile; do
+for binary in kb-publish snapshot-sidecar-install kb-formal-driver kb-formal-profile final-v5-gateway-build; do
   [[ -x "$bin/$binary" ]] || die "missing sealed binary $binary"
 done
 for override in compose.formal-gateway.yaml compose.formal-oa-demo.yaml; do
@@ -305,6 +306,11 @@ curl -fsS -m 10 http://127.0.0.1:8082/.well-known/taskgate/query-receipt-keyring
 docker exec "${project}-gateway-1" sh -c 'cd /usr/local/share/taskgate && for f in *; do printf "%s=%s\n" "$f" "$(cat "$f")"; done; printf "running_binary_sha256=%s\n" "$(sha256sum /usr/local/bin/app | cut -d" " -f1)"' \
   > "$dir/gateway-identity.txt" || die "the gateway runtime identity could not be read"
 [[ "$(sed -n 's/^gateway-binary-sha256=//p' "$dir/gateway-identity.txt")" == "$(sed -n 's/^running_binary_sha256=//p' "$dir/gateway-identity.txt")" ]] || die "the running gateway binary differs from the image's recorded digest"
+# The V5 typed runtime identity: image, binary and healthcheck of the running
+# gateway resolved against this source tree, which the image must have been
+# built from.
+"$bin/final-v5-gateway-build" verify -root "$repo" -project "$project" -out "$dir/gateway-runtime-identity.json" >> "$log" 2>&1 \
+  || die "the formal gateway runtime identity does not verify against $commit"
 diagnostic > "$dir/gateway-diagnostic-start.json" || die "the gateway profile diagnostic could not be read"
 [[ "$(jq -r .readiness_status "$dir/gateway-diagnostic-start.json")" == ready ]] || die "the gateway diagnostic does not report ready"
 [[ "$(jq -r .activation.catalog_sha256 "$dir/gateway-diagnostic-start.json")" == "$(jq -r .catalog_sha256 <<<"$entry")" ]] || die "the gateway diagnostic names another Catalog"

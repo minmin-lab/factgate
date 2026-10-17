@@ -48,11 +48,12 @@ done
 mkdir -p "$root/bin" "$root/images"
 (
   cd "$source"
-  for target in cmd/kb-publish cmd/snapshot-sidecar-install evaluation/cmd/kb-formal-driver evaluation/cmd/kb-formal-profile evaluation/cmd/kb-formal-finalize; do
+  for target in cmd/kb-publish cmd/snapshot-sidecar-install evaluation/cmd/kb-formal-driver evaluation/cmd/kb-formal-profile evaluation/cmd/kb-formal-finalize \
+    evaluation/cmd/final-v5-gateway-build; do
     go build -trimpath -o "$root/bin/$(basename "$target")" "./$target"
   done
 )
-(cd "$root/bin" && sha256sum kb-publish snapshot-sidecar-install kb-formal-driver kb-formal-profile kb-formal-finalize) > "$root/bin/SHA256SUMS"
+(cd "$root/bin" && sha256sum kb-publish snapshot-sidecar-install kb-formal-driver kb-formal-profile kb-formal-finalize final-v5-gateway-build) > "$root/bin/SHA256SUMS"
 printf '{"version":"taskgate-kb-formal-host-build-v1","commit":"%s","go":"%s","cgo":"%s","flags":"-trimpath","clean_tree":true}\n' \
   "$commit" "$(go env GOVERSION)" "$(go env CGO_ENABLED)" > "$root/bin/build.json"
 for file in "$KB_FORMAL_IMAGES"/*; do
