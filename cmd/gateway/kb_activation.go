@@ -8,12 +8,15 @@ import (
 )
 
 // activateKnowledgeProducts proves that every knowledge product the Catalog
-// declares has its digest-bound index publication manifest under the snapshot
-// artifact directory and that the manifest is the epoch the Catalog binds.
+// declares has its digest-bound index publication manifest in the kb manifest
+// directory (GATEWAY_KB_ARTIFACT_DIR, holding <epoch>/kb-publication.json and
+// nothing undeclared) and that the manifest is the epoch the Catalog binds. The
+// directory is separate from GATEWAY_SNAPSHOT_ARTIFACT_DIR because the snapshot
+// loader refuses any entry there that is not a declared publication.
 // The gateway refuses to start otherwise, exactly as it does for a missing
 // snapshot publication.
-func activateKnowledgeProducts(logicalCatalog *catalog.Catalog, artifactDir string) ([]kbpublish.Manifest, error) {
-	manifests, err := kbpublish.ActivateFromDirectory(logicalCatalog, artifactDir)
+func activateKnowledgeProducts(logicalCatalog *catalog.Catalog, kbDir string) ([]kbpublish.Manifest, error) {
+	manifests, err := kbpublish.ActivateFromDirectory(logicalCatalog, kbDir)
 	if err != nil {
 		return nil, fmt.Errorf("activate knowledge products: %w", err)
 	}

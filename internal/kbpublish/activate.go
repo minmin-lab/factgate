@@ -11,10 +11,24 @@ import (
 	"taskbound.local/agent-data-gateway/internal/catalog"
 )
 
-// ManifestPath is where a deployment keeps the kb publication manifest of an
-// epoch inside the snapshot artifact directory the gateway already loads.
-func ManifestPath(artifactDir, epoch string) string {
-	return filepath.Join(artifactDir, "kb", epoch, "kb-publication.json")
+// KBDir is the manifest directory kb-publish writes under a snapshot artifact
+// root: <root>/kb/<epoch>/kb-publication.json. A deployed gateway reads the
+// manifests from a directory of their own (GATEWAY_KB_ARTIFACT_DIR), never from
+// inside its snapshot artifact directory, because the snapshot loader admits
+// only declared publications there and refuses anything else at startup.
+func KBDir(artifactRoot string) string {
+	return filepath.Join(artifactRoot, "kb")
+}
+
+// ManifestPath is the manifest of an epoch in the layout kb-publish writes
+// under a snapshot artifact root.
+func ManifestPath(artifactRoot, epoch string) string {
+	return EpochManifestPath(KBDir(artifactRoot), epoch)
+}
+
+// EpochManifestPath is the manifest of an epoch inside a kb manifest directory.
+func EpochManifestPath(kbDir, epoch string) string {
+	return filepath.Join(kbDir, epoch, "kb-publication.json")
 }
 
 // LoadManifest reads a kb publication manifest and checks its self-digest.
@@ -104,17 +118,47 @@ func VerifyCatalogBinding(cat *catalog.Catalog, product catalog.KnowledgeProduct
 }
 
 // ActivateFromDirectory verifies every knowledge product the Catalog declares
-// against the manifests under artifactDir. Any failure refuses activation.
-func ActivateFromDirectory(cat *catalog.Catalog, artifactDir string) ([]Manifest, error) {
+// against the manifests in kbDir, a directory holding one <epoch>/ entry per
+// declared epoch. Like the snapshot loader, it admits exactly what the Catalog
+// declares: an undeclared, symlinked or non-directory entry refuses activation,
+// as does any manifest that is missing or not the Catalog-bound epoch.
+func ActivateFromDirectory(cat *catalog.Catalog, kbDir string) ([]Manifest, error) {
 	if cat == nil || len(cat.KnowledgeProducts) == 0 {
 		return nil, nil
 	}
-	if strings.TrimSpace(artifactDir) == "" {
-		return nil, errors.New("knowledge products are declared but no snapshot artifact directory is configured")
+	if strings.TrimSpace(kbDir) == "" {
+		return nil, errors.New("knowledge products are declared but no kb manifest directory is configured")
+	}
+	info, err := os.Lstat(kbDir)
+	if err != nil {
+		return nil, fmt.Errorf("stat kb manifest directory: %w", err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, errors.New("kb manifest path must be a real directory")
+	}
+	declared := make(map[string]struct{}, len(cat.KnowledgeProducts))
+	for _, product := range cat.KnowledgeProducts {
+		declared[product.IndexPublication] = struct{}{}
+	}
+	entries, err := os.ReadDir(kbDir)
+	if err != nil {
+		return nil, fmt.Errorf("read kb manifest directory: %w", err)
+	}
+	for _, entry := range entries {
+		entryInfo, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+		if !entry.IsDir() || entryInfo.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("unexpected non-directory kb manifest entry %q", entry.Name())
+		}
+		if _, ok := declared[entry.Name()]; !ok {
+			return nil, fmt.Errorf("kb manifest directory contains undeclared epoch %q", entry.Name())
+		}
 	}
 	manifests := make([]Manifest, 0, len(cat.KnowledgeProducts))
 	for _, product := range cat.KnowledgeProducts {
-		manifest, err := LoadManifest(ManifestPath(artifactDir, product.IndexPublication))
+		manifest, err := LoadManifest(EpochManifestPath(kbDir, product.IndexPublication))
 		if err != nil {
 			return nil, fmt.Errorf("knowledge product %s: %w", product.Name, err)
 		}

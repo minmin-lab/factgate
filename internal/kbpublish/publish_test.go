@@ -233,7 +233,7 @@ func TestPublishIsDeterministicAcrossDatabasesAndVerifies(t *testing.T) {
 			t.Fatalf("bundle %s not at the loader layout: %v", name, err)
 		}
 	}
-	if manifests, err := ActivateFromDirectory(knowledgeCatalog, artifactRoot); err != nil || len(manifests) != 1 {
+	if manifests, err := ActivateFromDirectory(knowledgeCatalog, KBDir(artifactRoot)); err != nil || len(manifests) != 1 {
 		t.Fatalf("activation from artifact layout: %v %v", manifests, err)
 	}
 

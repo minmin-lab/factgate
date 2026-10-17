@@ -26,7 +26,7 @@ func main() {
 	out := flag.String("out", "", "explicit output directory (overrides -artifact-dir; bundles in <out>/bundles)")
 	verify := flag.Bool("verify", false, "verify an existing output directory against the database instead of publishing")
 	merge := flag.Bool("merge", false, "merge -fragment into -base and write the validated candidate Catalog to -out")
-	activate := flag.Bool("activate", false, "run the gateway's knowledge-product activation check for -catalog against -artifact-dir")
+	activate := flag.Bool("activate", false, "run the gateway's knowledge-product activation check for -catalog against <artifact-dir>/kb (the directory a deployment passes as GATEWAY_KB_ARTIFACT_DIR)")
 	catalogPath := flag.String("catalog", "", "activate: the candidate Catalog to check")
 	basePath := flag.String("base", "config/catalog.yaml", "merge: the Catalog to extend")
 	fragmentPath := flag.String("fragment", "", "merge: the catalog-fragment.yaml a publish produced")
@@ -44,7 +44,7 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
-		manifests, err := kbpublish.ActivateFromDirectory(loaded, *artifactDir)
+		manifests, err := kbpublish.ActivateFromDirectory(loaded, kbpublish.KBDir(*artifactDir))
 		if err != nil {
 			fatal(err)
 		}

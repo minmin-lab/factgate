@@ -279,7 +279,9 @@ docker compose down --volumes --remove-orphans
    bundle，并在 `<root>/kb/<epoch>/` 留下清单与 `catalog-fragment.yaml`；嵌入模型为 `bge-m3` 时需 `KB_EMBEDDING_ENDPOINT` 指向
    受信嵌入服务（`/model`、`/embed`），`KB_EMBEDDING_CACHE_DIR` 可选用于断点续算。
 3. `kb-publish -merge` 把片段并入 Catalog，按 docs/catalog-guide.md 的发布清单重编 snapshot-index、安装 sidecar、重算 `schema_digest`。
-4. Gateway 启动时激活知识发布物（`GATEWAY_SNAPSHOT_ARTIFACT_DIR`），并按 Catalog 选择查询嵌入器（`KB_EMBEDDING_ENDPOINT`，
-   compose 默认为空：文本查询拒绝、向量查询可用）。
+4. Gateway 启动时激活知识发布物：三个 bundle 与其他 publication 一样放在 `GATEWAY_SNAPSHOT_ARTIFACT_DIR`，kb-publish 输出的
+   `<root>/kb` 目录单独挂给 `GATEWAY_KB_ARTIFACT_DIR`（snapshot 目录里多一项未声明条目即拒启动）；并按 Catalog 选择查询嵌入器
+   （`KB_EMBEDDING_ENDPOINT`，compose 默认为空：文本查询拒绝、向量查询可用）。业务库的 `KB_REQUIRE_PGVECTOR` 默认 0，
+   知识产品部署应设为 1，镜像缺 pgvector 时初始化即失败。
 5. 任务同时申请 chunks 与 documents 两个 Product（aggregate 申请 values），批准后用 `search` / `fetch` / `aggregate`；结算与回执
    与 `execute_plan` 相同。端到端示例见 `internal/gateway/retrieval_postgres_test.go`（环境变量 `KB_E2E_*`）。

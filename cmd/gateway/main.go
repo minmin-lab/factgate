@@ -175,7 +175,7 @@ func main() {
 		logger.Error("snapshot index artifact directory is required by the Catalog")
 		os.Exit(1)
 	}
-	if kbManifests, err := activateKnowledgeProducts(logicalCatalog, strings.TrimSpace(os.Getenv("GATEWAY_SNAPSHOT_ARTIFACT_DIR"))); err != nil {
+	if kbManifests, err := activateKnowledgeProducts(logicalCatalog, strings.TrimSpace(os.Getenv("GATEWAY_KB_ARTIFACT_DIR"))); err != nil {
 		logger.Error("knowledge product activation failed", "error", err)
 		os.Exit(1)
 	} else {

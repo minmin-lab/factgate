@@ -120,31 +120,72 @@ func TestVerifyCatalogBindingAcceptsBoundEpochAndRejectsDrift(t *testing.T) {
 
 func TestActivateFromDirectoryFailsClosed(t *testing.T) {
 	cat, manifest := fixtureCatalogAndManifest(t, nil)
-	dir := t.TempDir()
-	if _, err := ActivateFromDirectory(cat, dir); err == nil || !strings.Contains(err.Error(), "read kb publication manifest") {
-		t.Fatalf("missing manifest: %v", err)
+	root := t.TempDir()
+	kbDir := KBDir(root)
+	if _, err := ActivateFromDirectory(cat, kbDir); err == nil || !strings.Contains(err.Error(), "stat kb manifest directory") {
+		t.Fatalf("missing kb manifest directory: %v", err)
 	}
 	if _, err := ActivateFromDirectory(cat, ""); err == nil {
-		t.Fatal("empty artifact dir accepted")
+		t.Fatal("empty kb manifest directory accepted")
 	}
-	path := ManifestPath(dir, manifest.Epoch)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(kbDir, manifest.Epoch), 0o755); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := ActivateFromDirectory(cat, kbDir); err == nil || !strings.Contains(err.Error(), "read kb publication manifest") {
+		t.Fatalf("missing manifest: %v", err)
+	}
+	path := EpochManifestPath(kbDir, manifest.Epoch)
+	if path != ManifestPath(root, manifest.Epoch) {
+		t.Fatalf("kb-publish layout %s and gateway layout %s disagree", ManifestPath(root, manifest.Epoch), path)
 	}
 	encoded, _ := encodeManifest(manifest)
 	if err := os.WriteFile(path, encoded, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	manifests, err := ActivateFromDirectory(cat, dir)
+	manifests, err := ActivateFromDirectory(cat, kbDir)
 	if err != nil || len(manifests) != 1 || manifests[0].ManifestDigest != manifest.ManifestDigest {
 		t.Fatalf("activation = %v, %v", manifests, err)
+	}
+	// Files the publisher leaves beside the manifest are not activated and do
+	// not block activation; entries the Catalog does not declare do.
+	if err := os.WriteFile(filepath.Join(kbDir, manifest.Epoch, "catalog-fragment.yaml"), []byte("products: []\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ActivateFromDirectory(cat, kbDir); err != nil {
+		t.Fatalf("publisher side file refused: %v", err)
+	}
+	stray := filepath.Join(kbDir, "policy-kb-undeclared-epoch")
+	if err := os.Mkdir(stray, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ActivateFromDirectory(cat, kbDir); err == nil || !strings.Contains(err.Error(), "undeclared epoch") {
+		t.Fatalf("undeclared epoch accepted: %v", err)
+	}
+	if err := os.Remove(stray); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(kbDir, "README"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ActivateFromDirectory(cat, kbDir); err == nil || !strings.Contains(err.Error(), "non-directory") {
+		t.Fatalf("stray file accepted: %v", err)
+	}
+	if err := os.Remove(filepath.Join(kbDir, "README")); err != nil {
+		t.Fatal(err)
+	}
+	linked := filepath.Join(root, "linked-kb")
+	if err := os.Symlink(kbDir, linked); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ActivateFromDirectory(cat, linked); err == nil || !strings.Contains(err.Error(), "real directory") {
+		t.Fatalf("symlinked kb manifest directory accepted: %v", err)
 	}
 	// A byte edited in the stored manifest breaks its self-digest.
 	tampered := strings.Replace(string(encoded), `"window_chars": 800`, `"window_chars": 801`, 1)
 	if err := os.WriteFile(path, []byte(tampered), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ActivateFromDirectory(cat, dir); err == nil || !strings.Contains(err.Error(), "digest does not match its content") {
+	if _, err := ActivateFromDirectory(cat, kbDir); err == nil || !strings.Contains(err.Error(), "digest does not match its content") {
 		t.Fatalf("tampered manifest: %v", err)
 	}
 	plain, err := catalog.Load(filepath.Join("..", "..", "config", "catalog.yaml"))

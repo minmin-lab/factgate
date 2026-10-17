@@ -3,10 +3,11 @@ set -eu
 
 # Installs the Knowledge Product source schema (kb-schema.psql, same directory)
 # when the pgvector extension is available on this server. The default
-# compose.yaml business-postgres image ships pgvector and sets
-# KB_REQUIRE_PGVECTOR=1, so a missing extension fails initialization there.
-# Research overlays that pin a plain PostgreSQL image skip the schema: they
-# never publish a knowledge product.
+# compose.yaml business-postgres image ships pgvector, so the schema is
+# installed there. KB_REQUIRE_PGVECTOR defaults to 0 because the formal and
+# db-test topologies pin a plain PostgreSQL image for this service and never
+# publish a knowledge product; a knowledge-product deployment sets it to 1 so
+# a missing extension fails initialization instead of being skipped.
 
 schema_file=${KB_SCHEMA_FILE:-/docker-entrypoint-initdb.d/kb-schema.psql}
 available=$(psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --no-psqlrc --tuples-only --no-align \
