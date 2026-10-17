@@ -9,7 +9,9 @@
 # file, and mirror it to the NAS. A failed deployment is torn down, recorded
 # with its failing step and mirrored the same way; nothing is retried here.
 # Each run is one attempt (deployments/<profile>/<NNN>/attempt-<n>, the next
-# free n), so a failed attempt is never overwritten and a retry is visible.
+# free n), so a failed attempt is never overwritten and a retry is visible. Only
+# pilot runs retry: a failed formal deployment makes the round incomplete and
+# the round is rerun under a new campaign ID (正式轮规程 §8).
 #
 # Required environment:
 #   KB_FORMAL_ROOT        campaign root: bin/ holds the sealed host binaries
@@ -51,6 +53,7 @@ commit=$(git rev-parse HEAD)
 binaries_commit=$(jq -r .commit "$bin/build.json" 2>/dev/null || true)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   [[ "$binaries_commit" == "$commit" ]] || { echo "the sealed binaries were built from ${binaries_commit:-?}, not $commit" >&2; exit 2; }
+  [[ "$attempt" == 1 ]] || { echo "a formal campaign does not retry a deployment (正式轮规程 §8); start a new campaign" >&2; exit 2; }
   [[ "$repo" == "$root/source" ]] || { echo "a formal deployment runs the script of the campaign's frozen source tree" >&2; exit 2; }
   [[ -z "$(git status --porcelain)" ]] || { echo "the frozen source tree is not clean" >&2; exit 2; }
   [[ -z "${KB_FORMAL_EXPERIMENTS:-}" ]] || { echo "a formal deployment runs the profile's full experiment list" >&2; exit 2; }
@@ -72,6 +75,16 @@ compose() {
     -f "$images/compose.formal-gateway.yaml" -f "$images/compose.formal-oa-demo.yaml" -f evaluation/kb-formal/compose.kb.yaml "$@"
 }
 env_value() { grep "^$1=" "$dir/env" | cut -d= -f2-; }
+# The content digest of the embedding cache: every vector file, in path order.
+cache_digest() {
+  find "$embed_cache" -type f -name '*.f32le' -printf '%P\n' | LC_ALL=C sort | (cd "$embed_cache" && xargs -d '\n' sha256sum) | sha256sum | cut -d' ' -f1
+}
+# diagnostic reads the gateway's admin profile-activation view; the admin token
+# reaches curl through a file descriptor, never through the argument list.
+diagnostic() {
+  curl -fsS -m 10 -H @<(printf 'Authorization: Bearer %s\n' "$(env_value GATEWAY_ADMIN_TOKEN)") \
+    http://127.0.0.1:8082/admin/v1/evaluation/profile-activation
+}
 
 # teardown collects the container logs, removes the project with its volumes,
 # and records the residue count; it fails unless nothing remains.
@@ -190,9 +203,10 @@ timeout 5 ls "$nas_root" > /dev/null || die "NAS evidence root is not mounted"
     printf 'MINIO_ROOT_USER=kbformaladmin\nMINIO_ROOT_PASSWORD=%s\n' "$(r)"
     printf 'TASKBOUND_ALICE_TOKEN=%s\nTASKBOUND_CAROL_TOKEN=%s\nOA_SERVICE_TOKEN=%s\n' "$(r)" "$(r)" "$(r)"
     printf 'OA_CALLBACK_SECRET=%s\nOA_SESSION_SECRET=%s\nOA_ALICE_PASSWORD=%s\nOA_BOB_PASSWORD=%s\n' "$(r)" "$(r)" "$(r)" "$(r)"
+    printf 'GATEWAY_ADMIN_TOKEN=%s\nTASKGATE_EXPERIMENT_CLASS=%s\n' "$(r)" "$([[ "$KB_FORMAL_CLASS" == formal ]] && echo publication || echo pilot)"
   } > "$dir/env"
 )
-[[ "$(grep -c '^[A-Z_]*=.' "$dir/env")" == 24 ]] || die "the deployment env does not have its 24 values"
+[[ "$(grep -c '^[A-Z_]*=.' "$dir/env")" == 26 ]] || die "the deployment env does not have its 26 values"
 "$bin/kb-formal-profile" -principals "$dir" >> "$log" 2>&1 || die "file principals could not be written"
 mkdir -p "$dir/stage/snapshot" "$dir/stage/kb"
 export KB_EMBED_VENV=$embed_venv KB_EMBED_MODEL=$embed_model
@@ -220,13 +234,16 @@ corpus_path=$(jq -r .corpus.path "$spec")
 [[ "$(sha256sum "$corpus_path" | cut -d' ' -f1)" == "$(jq -r .corpus.sha256 "$spec")" ]] || die "corpus digest differs from the spec"
 admin_dsn="postgres://postgres:$(env_value POSTGRES_PASSWORD)@127.0.0.1:25434/travel_demo?sslmode=disable"
 reader_dsn="postgres://gateway_reader:$(env_value GATEWAY_DB_PASSWORD)@127.0.0.1:25434/travel_demo?sslmode=disable"
-cache_before=$(find "$embed_cache" -name '*.f32le' | wc -l)
-step "LOAD kb-publish epoch=$epoch"
+cache_before=$(cache_digest) || die "embedding cache digest failed"
+echo "$cache_before" > "$dir/embedding-cache.sha256"
+step "LOAD kb-publish epoch=$epoch embedding_cache=$cache_before"
 KB_ADMIN_POSTGRES_DSN=$admin_dsn SNAPSHOT_POSTGRES_DSN=$reader_dsn KB_EMBEDDING_ENDPOINT=http://127.0.0.1:28090 \
   /usr/bin/time -v "$bin/kb-publish" -spec "$spec" -artifact-dir "$dir/artifacts" -embedding-cache "$embed_cache" \
   > "$dir/kb-publish.log" 2> "$dir/kb-publish.time" || die "kb-publish failed"
-step "LOAD embedding cache entries added: $(( $(find "$embed_cache" -name '*.f32le' | wc -l) - cache_before ))"
+cache_after=$(cache_digest) || die "embedding cache digest failed"
+[[ "$cache_after" == "$cache_before" ]] || die "kb-publish changed the embedding cache ($cache_before -> $cache_after)"
 republished=$dir/artifacts/kb/$epoch
+[[ "$(sha256sum "$republished/kb-publication.json" | cut -d' ' -f1)" == "$(jq -r .kb_publication_sha256 <<<"$entry")" ]] || die "the republished manifest digest differs from the registry"
 [[ "$(cd "$publication" && find . -type f ! -path ./spec.json | sort)" == "$(cd "$republished" && find . -type f | sort)" ]] || die "the republished file set differs from the frozen one"
 while IFS= read -r relative; do
   cmp -s "$publication/$relative" "$republished/$relative" || die "republished $relative differs from the frozen file"
@@ -264,7 +281,13 @@ compose up -d --wait --no-deps gateway >> "$log" 2>&1 || die "gateway did not be
 docker logs "${project}-gateway-1" > "$dir/logs/gateway-startup.txt" 2>&1
 grep -q "\"knowledge product activated\".*\"epoch\":\"$epoch\"" "$dir/logs/gateway-startup.txt" || die "gateway did not activate $epoch"
 curl -fsS -m 10 http://127.0.0.1:8082/.well-known/taskgate/query-receipt-keyring.json > "$dir/receipt-keyring.json" || die "keyring fetch failed"
-step "GATEWAY healthy and activated $epoch"
+docker exec "${project}-gateway-1" sh -c 'cd /usr/local/share/taskgate && for f in *; do printf "%s=%s\n" "$f" "$(cat "$f")"; done; printf "running_binary_sha256=%s\n" "$(sha256sum /usr/local/bin/app | cut -d" " -f1)"' \
+  > "$dir/gateway-identity.txt" || die "the gateway runtime identity could not be read"
+[[ "$(sed -n 's/^gateway-binary-sha256=//p' "$dir/gateway-identity.txt")" == "$(sed -n 's/^running_binary_sha256=//p' "$dir/gateway-identity.txt")" ]] || die "the running gateway binary differs from the image's recorded digest"
+diagnostic > "$dir/gateway-diagnostic-start.json" || die "the gateway profile diagnostic could not be read"
+[[ "$(jq -r .readiness_status "$dir/gateway-diagnostic-start.json")" == ready ]] || die "the gateway diagnostic does not report ready"
+[[ "$(jq -r .activation.catalog_sha256 "$dir/gateway-diagnostic-start.json")" == "$(jq -r .catalog_sha256 <<<"$entry")" ]] || die "the gateway diagnostic names another Catalog"
+step "GATEWAY healthy, activated $epoch, binary $(sed -n 's/^running_binary_sha256=//p' "$dir/gateway-identity.txt" | cut -c1-12), catalog $(jq -r .activation.catalog_sha256 "$dir/gateway-diagnostic-start.json" | cut -c1-12)"
 
 # ---- experiments ----
 for experiment in "${experiments[@]}"; do
@@ -275,12 +298,18 @@ for experiment in "${experiments[@]}"; do
   esac
   step "EXPERIMENT $experiment"
   KB_FORMAL_READER_DSN=$reader_dsn "$bin/kb-formal-driver" "${driver_args[@]}" -deployment "$rep" -report "$dir/reports/$experiment.json" \
+    -request-log "$dir/reports/$experiment.requests.jsonl" \
     -catalog "$catalog" -env-file "$dir/env" -principal-tokens "$dir/principal-tokens.json" \
     > "$dir/logs/driver-$experiment.stdout" 2> "$dir/logs/driver-$experiment.stderr" \
     || die "experiment $experiment failed: $(tail -c 400 "$dir/logs/driver-$experiment.stderr")"
   [[ ! -s "$dir/logs/driver-$experiment.stderr" ]] || die "experiment $experiment wrote to stderr"
   step "EXPERIMENT $experiment done in $(jq -r .seconds "$dir/reports/$experiment.json") s"
 done
+
+# The same gateway process served every experiment.
+diagnostic > "$dir/gateway-diagnostic-end.json" || die "the gateway profile diagnostic could not be read after the experiments"
+[[ "$(jq -r .activation.process_instance_nonce "$dir/gateway-diagnostic-end.json")" == "$(jq -r .activation.process_instance_nonce "$dir/gateway-diagnostic-start.json")" ]] \
+  || die "the gateway process changed during the experiments"
 
 # ---- environment capture ----
 python3 - "$project" "$images" <<'PY' > "$dir/environment.json"
