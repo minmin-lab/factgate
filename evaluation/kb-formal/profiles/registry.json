@@ -1,0 +1,69 @@
+{
+ "version": "taskgate-kb-formal-profile-registry-v1",
+ "profiles": [
+  {
+   "name": "kb-20k-large",
+   "epoch": "policy-kb-2026-10-bge-20k",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb3-96k"
+   ],
+   "catalog": "kb-20k-large.catalog.yaml",
+   "catalog_sha256": "e211714d10a21ad3e85f8b61fc020779d6eb3dde228b3244781af925f78b3c5e",
+   "principal_attributes": "kb-20k-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "eda9fe01b4adf477f0cd08ce21413b8aaf2d423140bf83e10ada56dfc72662a0",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2-large",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb3-48k",
+    "ekb4"
+   ],
+   "catalog": "kb-v2-large.catalog.yaml",
+   "catalog_sha256": "01398dee616c00cb7055278680ef4cd0f51ef8167b012c6a4e6474c4960a5249",
+   "principal_attributes": "kb-v2-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb1",
+    "ekb2a",
+    "ekb2b",
+    "ekb5-document"
+   ],
+   "catalog": "kb-v2-pilot.catalog.yaml",
+   "catalog_sha256": "5b913784fc00706f636723873eb9dddc3d189345b8f646fe25fe1a211a9d8640",
+   "principal_attributes": "kb-v2-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "94f27b10797d98a29f109699601dfa5efbd34e80290212d7baa0d3c3b710c73b",
+   "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 60
+  },
+  {
+   "name": "kb-v2c-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2c",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb5-collection"
+   ],
+   "catalog": "kb-v2c-pilot.catalog.yaml",
+   "catalog_sha256": "da23460450ab9e77863635117d10cf772990519c67ae1c5550cac4b1f4bcd8b5",
+   "principal_attributes": "kb-v2c-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 0
+  }
+ ]
+}
