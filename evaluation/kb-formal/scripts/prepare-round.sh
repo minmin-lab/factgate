@@ -13,7 +13,9 @@
 #   KB_FORMAL_CLASS   pilot | formal
 #   KB_FORMAL_IMAGES  directory holding compose.formal-gateway.yaml,
 #                     compose.formal-oa-demo.yaml and their build manifests
-# A formal round also requires a clean working tree whose HEAD equals origin/kb-dev.
+# Optional: KB_FORMAL_COMMIT, the commit to prepare (launch-round.sh passes the
+# one its gates and image builds used); without it, HEAD of a clean working
+# tree. A formal round also requires that commit to equal origin/kb-dev.
 set -eEuo pipefail
 
 : "${KB_FORMAL_ROOT:?}" "${KB_FORMAL_CLASS:?}" "${KB_FORMAL_IMAGES:?}"
@@ -21,8 +23,12 @@ set -eEuo pipefail
 die() { echo "prepare-round: $*" >&2; exit 1; }
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 cd "$repo"
-[[ -z "$(git status --porcelain)" ]] || die "the working tree is not clean"
-commit=$(git rev-parse HEAD)
+if [[ -n "${KB_FORMAL_COMMIT:-}" ]]; then
+  commit=$(git rev-parse --verify "${KB_FORMAL_COMMIT}^{commit}") || die "unknown commit $KB_FORMAL_COMMIT"
+else
+  [[ -z "$(git status --porcelain)" ]] || die "the working tree is not clean"
+  commit=$(git rev-parse HEAD)
+fi
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   [[ "$commit" == "$(git rev-parse origin/kb-dev)" ]] || die "HEAD $commit is not origin/kb-dev"
 fi

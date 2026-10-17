@@ -73,10 +73,15 @@ GOFLAGS=-buildvcs=false go run ./evaluation/cmd/kb-formal-aux-build -root "$repo
   || die "the oa-demo build failed (see $staging/oa-demo-build.log)"
 kill "$proxy_pid" 2>/dev/null || true
 trap - EXIT
+# Both images, and the source tree prepared next, come from the commit the
+# gates passed, even if the working tree moves meanwhile.
+for manifest in formal-gateway-build.json oa-demo-build.json; do
+  [[ "$(jq -r .submission_commit "$staging/$manifest")" == "$commit" ]] || die "$manifest names commit $(jq -r .submission_commit "$staging/$manifest"), not $commit"
+done
 note "IMAGES gateway $(jq -r .image_id "$staging/formal-gateway-build.json" | cut -c1-19) oa-demo $(jq -r .image_id "$staging/oa-demo-build.json" | cut -c1-19)"
 
 # ---- round root and detached start ----
-KB_FORMAL_IMAGES=$staging evaluation/kb-formal/scripts/prepare-round.sh
+KB_FORMAL_IMAGES=$staging KB_FORMAL_COMMIT=$commit evaluation/kb-formal/scripts/prepare-round.sh
 root=$(cd "$KB_FORMAL_ROOT" && pwd)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   install -m 644 "$KB_FORMAL_APPROVAL" "$root/approval.json"
