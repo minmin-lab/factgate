@@ -3568,14 +3568,17 @@ accounting with quantified probe capacity, not extraction resistance.
 This section defines how the task contract, the three set-valued budgets,
 settlement, and delegation conservation apply when the governed source is a
 document repository or knowledge base rather than a reporting Product, and
-reports a pilot-class evaluation of the implementation. The knowledge-product
+reports the evaluation of the implementation. The knowledge-product
 path is implemented: documents, chunks and extracted values are published as
 three sealed relations of one index epoch, retrieval is prepared through the
 same sealed preparation boundary as \code{execute_plan}, and the three
 request forms settle on the same ledger. The evidence in
-Section~\ref{sec:supp-kp-pilot} is pilot class (\KbPilotClass): one synthetic
-publication, independent control stores as deployments, and it is not part
-of the publication campaign the main paper's numbers come from. The purpose
+Section~\ref{sec:supp-kp-eval} comes from a separate formal round (class
+\texttt{\KbEvidenceClass}, campaign \texttt{\KbFormalCampaign}, registration
+\KbFormalRegistrationDigest): fresh deployments of one frozen commit, driven
+through the gateway's public interfaces and sealed before the author approved
+the registered evidence. Its corpus is synthetic, and it is not part of the
+publication campaign the main paper's numbers come from. The purpose
 of the definitional part is to state precisely which results of the main
 paper are representation-independent and carry over unchanged, which carry
 over with additional premises, and which do not carry over at all.
@@ -3815,7 +3818,7 @@ queries with different text. Join-fanout conservation has no analogue.
 \centering
 \caption{Portability of the main paper's results to Knowledge Products.
 ``Carries'' means the statement and proof apply with the identities of this
-section substituted; the pilot evaluation of Section~\ref{sec:supp-kp-pilot}
+section substituted; the evaluation of Section~\ref{sec:supp-kp-eval}
 exercises the settlement rows, not the proofs.}
 \label{tab:supp-kp-portability}
 \scriptsize
@@ -3902,8 +3905,8 @@ exceeds $B_O=10$, and is refused uncharged, and the ledger stays where it
 is. A worker delegated by the analyst replaying the first search charges
 $0/0/0$ against the same ledger.
 
-\subsection{Pilot evaluation}
-\label{sec:supp-kp-pilot}
+\subsection{Evaluation}
+\label{sec:supp-kp-eval}
 
 E-KB1 to E-KB4 were pre-registered with expectations before any run
 (\code{docs/kb_experiment_design.md} in the repository) and are reported
@@ -3913,10 +3916,19 @@ publications of one synthetic corpus embedded with \code{bge-m3}: every
 experiment uses the publication of 10{,}000 documents (10{,}469 versions,
 48{,}183 chunks), the larger E-KB3 tier one of 20{,}000 documents
 (\KbEkbThreeNinetySixKChunks{} chunks), and E-KB5 a second publication of the
-first corpus that differs only in one field's declared scope. Within an
-experiment every deployment runs the same gateway build (the registry names
-the source revision of each report), and a deployment is a fresh control
-store and gateway instance over the same business database. Budgets are in
+first corpus that differs only in one field's declared scope. Every
+experiment ran on three fresh deployments of one formal round. A deployment
+brought up the whole stack (control and business databases, object store,
+approval simulator, embedding service and gateway) from one frozen commit,
+republished its publication and required the frozen files byte for byte,
+ran a gateway image built from that commit whose runtime identity was
+verified, and was removed without residue afterwards. A driver issued every
+request through the gateway's HTTP tool interface, obtained every task
+through the approval workflow, verified every result's receipt against the
+gateway's published keys and checked every delivered chunk text against its
+released digest. Runs of the same experiments in a single process before the
+round gave identical counts, hit sets, charges and refusal codes; only
+latency differs. Budgets are in
 cells, since a chunk releases four cells (\KbEkbOneReleaseBudget{} Release
 cells is roughly 200 chunks). Every number is a macro generated from the
 registered report whose digest the table names.
@@ -3926,7 +3938,7 @@ A scripted agent with a legitimate department grant runs three strategies
 for \KbEkbOneMaxSteps{} steps (S1 vocabulary scan, S2 partition scan over
 role and validity-month buckets, S3 adjacency fetch of hit documents) under
 two arms: per-query access control with no ledger, and FactGate under the
-pilot budget. Table~\ref{tab:supp-kp-ekb1} reports the share of the
+small budget profile. Table~\ref{tab:supp-kp-ekb1} reports the share of the
 department's requestable chunks obtained (\KbEkbOneDeployments{}
 deployments $\times$ \KbEkbOneSeeds{} seeds per cell). Under FactGate
 \KbEkbOneFactGateStopBudgetRuns{} of the \KbEkbOneFactGateRunsTotal{} runs
@@ -3962,7 +3974,7 @@ refusal: the budget sufficed, and the shortfall against the pre-registered
 \scriptsize
 \begin{tabular}{lrr}
 \toprule
-Strategy & Per-query ACL, no ledger & FactGate, pilot budget \\
+Strategy & Per-query ACL, no ledger & FactGate, small budget \\
 \midrule
 S1 vocabulary scan & \KbEkbOneAclSOneLeakMeanPct\% (\KbEkbOneAclSOneLeakMinPct--\KbEkbOneAclSOneLeakMaxPct) & \KbEkbOneFactGateSOneLeakMeanPct\% (\KbEkbOneFactGateSOneLeakMinPct--\KbEkbOneFactGateSOneLeakMaxPct) \\
 S2 partition scan & \KbEkbOneAclSTwoLeakMeanPct\% (\KbEkbOneAclSTwoLeakMinPct--\KbEkbOneAclSTwoLeakMaxPct) & \KbEkbOneFactGateSTwoLeakMeanPct\% (\KbEkbOneFactGateSTwoLeakMinPct--\KbEkbOneFactGateSTwoLeakMaxPct) \\
@@ -3998,11 +4010,17 @@ forms through the gateway with direct execution of the same retrieval on the
 business database, on two publications (\KbEkbThreeFortyEightKChunks{} and
 \KbEkbThreeNinetySixKChunks{} chunks), \KbEkbThreeFortyEightKRounds{} rounds
 per deployment on \KbEkbThreeFortyEightKDeployments{} deployments with the
-machine otherwise idle. Both arms submit the query vector, so the embedding
+machine otherwise idle. The direct arm is timed until its rows are read, the
+gateway arm from the client's HTTP request until the response carrying every
+row arrives (the driver's later receipt verification and artifact download
+are not included). Both arms submit the query vector, so the embedding
 service is outside both measurements, and both deliver chunk text: the
-direct statement selects it, and the gateway reads it after settlement by
-chunk identity and checks it against the released digest, a step included in
-its client time but not in the stage breakdown. Rounds whose normal form
+direct statement selects it, and the gateway adds it to the canonical result
+before settlement, reading it by chunk identity and checking it against the
+released digest (the result-delivery stage,
+\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelResultDelivery{} and
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelResultDelivery{}\,ms for
+search at $k=20$). Rounds whose normal form
 repeats an earlier one are replay rounds. The part of the gateway's cost that
 grows with the collection is its two statements, each running the exact
 nearest-neighbour scan once (for search at $k=20$, the provenance statement
@@ -4021,8 +4039,12 @@ authorization not at all
 pre-registered expectation that the gateway's p95 would stay within twice
 the direct latency does not hold: with a department filter the direct scan
 takes a few milliseconds and the settlement cost, which does not depend on
-the scan, dominates. A replayed search costs roughly a third of a novel one
-and a replayed aggregate roughly half. The pre-registered design also called
+the scan, dominates. A replay charges nothing and costs less than a novel request of the same
+form: at 96k a replayed search at $k=20$ takes
+\KbEkbThreeNinetySixKSearchFactGateKTwentyReplayPFifty{} against
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelPFifty\,ms, a replayed
+aggregate \KbEkbThreeNinetySixKAggregateFactGateReplayPFifty{} against
+\KbEkbThreeNinetySixKAggregateFactGateNovelPFifty\,ms. The pre-registered design also called
 for a tier of $10^6$ chunks, which was not evaluated: the publisher's peak
 resident memory grew with the collection (\KbPublishRssSmallGiB{}\,GiB for
 \KbPublishChunksSmall{} chunks, \KbPublishRssLargeGiB{}\,GiB for
@@ -4118,8 +4140,8 @@ rules is the boundary of unit-3 accounting. Equivalence is syntactic: two
 phrasings of one question are two composites. Relative similarity scores,
 embedding inversion, agent memory, and the content of a model's paraphrase
 after chunks have entered its context are outside the guarantee, as
-inference is outside the guarantee of the main paper. The pilot evaluation
-measures one synthetic publication under scripted agents; retrieval quality
+inference is outside the guarantee of the main paper. The evaluation
+measures publications of one synthetic corpus under scripted agents; retrieval quality
 is reported for completeness and is not a contribution of this work.
 
 \section{Enterprise Integration and Governance Vision}
