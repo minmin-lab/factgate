@@ -288,8 +288,8 @@
   },
   {
    "path": "db/init-kb/30-kb-schema.sh",
-   "sha256": "cb03de458999c1235502b8ec10f53f0c8427dc9dc26ae6017d7a0d7353215ff2",
-   "bytes": 394
+   "sha256": "d79b5eee7ff43d23b39255bec7ff506cdf500a1f5b6738fda858c05b344136d1",
+   "bytes": 512
   },
   {
    "path": "db/init/30-kb-schema.sh",

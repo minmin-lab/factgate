@@ -51,6 +51,11 @@ for spec in "$source"/evaluation/kb-formal/publications/*/spec.json; do
   fi
   [[ "$(sha256sum "$source/$corpus" | cut -d' ' -f1)" == "$want" ]] || die "$corpus differs from $(basename "$(dirname "$spec")")/spec.json"
 done
+# The database entrypoint executes an init script only if it is executable
+# and sources it otherwise, where its exit or exec would end the entrypoint.
+for script in "$source"/db/init/*.sh "$source"/db/init-kb/*.sh; do
+  [[ -x "$script" ]] || die "${script#"$source"/} is not executable in the frozen checkout (record the mode in git)"
+done
 mkdir -p "$root/bin" "$root/images"
 (
   cd "$source"
