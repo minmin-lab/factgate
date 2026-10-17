@@ -2,6 +2,7 @@
  "version": "taskgate-kb-formal-schema-attestations-v1",
  "note": "Reporting-surface digests of the knowledge-product business database, from kb-formal-profile -attest against a fresh formal deployment; every formal deployment's live attestation must equal them.",
  "profiles": {
+  "kb-20k-large": "67cbe85d3850147a192d6dc4990bc77a39ba4310dba052d0d0f4087efc2a2fa7",
   "kb-v2-large": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
   "kb-v2-pilot": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc"
  }

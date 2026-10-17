@@ -188,6 +188,12 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
   摘要，发布清单摘要须等于 Catalog 绑定值）；KB sidecar 安装；正式网关镜像（`GATEWAY_SNAPSHOT_ARTIFACT_DIR` 与
   `GATEWAY_KB_ARTIFACT_DIR` 分开挂载）。
 - 业务库 schema 摘要在冻结前由一次参考部署测得并写入 profile Catalog；此后每次部署的实时 attestation 须等于它。
+  参考部署即 pilot 类部署加 `KB_FORMAL_RECORD_ATTESTATION=1`：测得后经 `kb-formal-profile -attest -record` 写入
+  profiles/schema-attestations.json，复测须相同，随即拆除，记录 outcome 为 reference；之后重新生成 profile 并入库。
+- 实现说明（2026-10-17，开跑前定，台账 KB1-LOOP-85/86）：KB 装载作业用 `bin/` 里冻结提交构建的 kb-publish 主机二进制执行，
+  不另起容器；装载前核语料摘要等于 publish 规格，装载前后各取一次嵌入缓存内容摘要（全部向量文件按路径排序求 sha256）且须
+  不变，即缓存事实上只读；复现出的发布物文件须与冻结发布物逐字节相同，清单摘要须等于 registry 值。单次部署由
+  `evaluation/kb-formal/scripts/run-deployment.sh` 执行，整轮由 `run-round.sh` 按重复次序（每次重复先走遍四个 profile）执行。
 
 ### 4. 主体与审批
 
@@ -202,6 +208,12 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
 
 - 外部驱动程序用冻结提交构建（-trimpath，带构建清单），经 MCP over HTTP 调用网关。E-KB1–E-KB5 的实验逻辑与进程内 runner
   共用一个包，只换客户端。直连臂用业务库只读账号，凭据在进程内读取；嵌入用部署内的嵌入服务。
+  **实现偏离（2026-10-17，开跑前定，台账 KB1-LOOP-85）**：实验逻辑逐步移植进 `evaluation/kbformal`，已登记的进程内 runner
+  不改；等价性改由对拍证明：正式轮的输入（发布物、种子、查询集、部署序号 1–3）与试点完全相同，§6 对拍覆盖三个部署序号，
+  即覆盖正式轮的全部输入。E-KB3 的 client_ms 保持试点含义（客户端拿到全部行：直连臂为取尽结果，网关臂为带内联行的工具
+  响应），另记 delivered_ms（再加回执验签、制品交付与逐行核对）。
+- 驱动对每次工具调用、OA 动作与制品下载写一行逐请求记录（`-request-log`，JSONL）：主体标签、工具、任务与请求标识、参数
+  摘要、结果与错误码、计费与回执摘要、耗时；不写 token、口令、正文、向量与签名下载地址。
 - 每个 search / fetch 响应都核对：回执验签（query receipt keyring）、回执里的 Catalog 摘要等于 profile 摘要、交付正文的
   sha256 等于结果里的摘要。
 - 驱动 stderr 必须为空；安全诊断写进报告。
@@ -210,12 +222,20 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
 
 - 正式轮之前，在一次非正式部署上用外部驱动跑全部实验，与进程内 runner 在同一发布物上的报告逐项比对：计数、命中集、
   Release / Dependency / Outcome、拒绝码与终止码必须一致；时延不比。
+  实际做法（2026-10-17）：pilot 类彩排跑满 12 次部署，`evaluation/kb-formal/scripts/crosscheck.py` 对每次部署的每份报告与
+  试点报告中同一部署序号的部分逐项比对，任一差异即停。
 
 ### 7. 证据、封存与登记
 
 - 每次部署留：环境采集、正式网关运行时身份、嵌入服务身份、KB 数据身份（发布清单、schema 摘要）、网关诊断里的 Catalog 摘要、
   各实验报告与逐请求记录、清理记录，以及列出每个文件 sha256 与大小的 deployment-record.json。部署结束即镜像 NAS，并在 NAS
   上复算摘要。
+  对应文件：environment.json（内核、Docker、镜像 ID、重启次数、覆盖文件摘要）；gateway-identity.txt（镜像内记录的二进制、
+  源提交、构建上下文与源清单摘要，及运行中二进制的实算摘要，二者须相同）；embedding-model.json 与
+  embedding-venv-identity.json；artifacts.sha256、schema-attestation.txt、embedding-cache.sha256；
+  gateway-diagnostic-start.json 与 -end.json（admin profile-activation 诊断，Catalog 摘要须等于 profile，前后进程 nonce
+  相同）；reports/<实验>.json 与 .requests.jsonl；cleanup.json；deployment-record.json。部署的签名私钥、口令与 bearer token
+  只在 0600 的 env 与 token 文件里，拆除后即删除，从不镜像。
 - 12 次部署全部通过后，KB finalizer 复核全部部署记录并按实验汇总，create-exclusive 写 campaign-evidence.json；登记到
   `evaluation/kb-formal/kb-publication-evidence-v1.json`（campaign_class `kb-publication`，publication_eligible true）；
   `generate_kb_evidence.py` 增加正式类加载器，只认封存后的证据。作者对登记签署批准记录。
@@ -225,6 +245,8 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
 - 任一部署出现以下情况即失败，整轮记为 incomplete：Catalog、发布清单、schema 或嵌入身份的摘要不符；回执验签失败；交付正文
   摘要不符；驱动 stderr 非空；清理有残留；预登记停止规则以外的异常终止。不续跑，换新 campaign ID 整轮重跑；失败与无效记录
   全部保留。
+  每次运行是一次 attempt（deployments/<profile>/<NNN>/attempt-<n>），失败的 attempt 同样写记录并镜像 NAS、从不覆盖。
+  只有 pilot 类允许同一部署位置的第二次 attempt；正式类的脚本拒绝第二次 attempt。
 
 ### 9. 工作量（读代码估计，未细算）
 

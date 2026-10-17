@@ -9,11 +9,12 @@
     "ekb3-96k"
    ],
    "catalog": "kb-20k-large.catalog.yaml",
-   "catalog_sha256": "e211714d10a21ad3e85f8b61fc020779d6eb3dde228b3244781af925f78b3c5e",
+   "catalog_sha256": "c5c7b40e6b75c514ddf6a79c03f1efb1c1a6e13175cde70a4beffe82a0f0ef22",
    "principal_attributes": "kb-20k-large.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "eda9fe01b4adf477f0cd08ce21413b8aaf2d423140bf83e10ada56dfc72662a0",
-   "schema_digest_attested": false,
+   "schema_digest": "67cbe85d3850147a192d6dc4990bc77a39ba4310dba052d0d0f4087efc2a2fa7",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   },
   {
