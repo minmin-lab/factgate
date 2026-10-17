@@ -483,3 +483,46 @@ func TestBuildArgumentsCarryTheModuleProxyOnlyWhenSet(t *testing.T) {
 		t.Fatal("a module proxy carrying whitespace was accepted")
 	}
 }
+
+func TestBuildArgumentsTargetDefaultsToTheGatewayAndAdmitsOnlyListedAuxiliaries(t *testing.T) {
+	render := func(target string) (string, error) {
+		arguments, err := BuildRequest{Context: buildableContext(), Pins: pinnedPins(), Tag: "t:formal", Target: target}.BuildArguments()
+		return strings.Join(arguments, " "), err
+	}
+	for _, target := range []string{"", GatewayBuildTarget} {
+		rendered, err := render(target)
+		if err != nil || !strings.Contains(rendered, "TARGET="+GatewayBuildTarget+" ") {
+			t.Fatalf("target %q: %v %s", target, err, rendered)
+		}
+	}
+	rendered, err := render("oa-demo")
+	if err != nil || !strings.Contains(rendered, "TARGET=oa-demo ") || strings.Contains(rendered, "TARGET=gateway") {
+		t.Fatalf("oa-demo: %v %s", err, rendered)
+	}
+	for _, refused := range []string{"kb-publish", "gateway oa-demo", "../cmd/gateway", "OA-DEMO"} {
+		if _, err := render(refused); err == nil {
+			t.Errorf("target %q accepted", refused)
+		}
+	}
+}
+
+func TestRequireFormalImageForTargetChecksTheTargetLabel(t *testing.T) {
+	expected := ExpectedSource{Commit: testCommit, ContextSHA256: testContextDigest, SourceManifestSHA256: testManifest}
+	image := func(target string) ImageInspect {
+		var inspect ImageInspect
+		inspect.ID = "sha256:" + testContextDigest
+		inspect.Architecture, inspect.OS = "amd64", "linux"
+		inspect.Config.Labels = map[string]string{LabelFormalBuild: "v1", LabelRevision: testCommit,
+			LabelBuildContext: testContextDigest, LabelSourceManifest: testManifest, LabelBuildTarget: target}
+		return inspect
+	}
+	if err := RequireFormalImageForTarget(image("oa-demo"), expected, "oa-demo"); err != nil {
+		t.Fatalf("oa-demo image refused: %v", err)
+	}
+	if err := RequireFormalImage(image("oa-demo"), expected); err == nil {
+		t.Fatal("an oa-demo image passed as a Gateway image")
+	}
+	if err := RequireFormalImageForTarget(image(GatewayBuildTarget), expected, "oa-demo"); err == nil {
+		t.Fatal("a Gateway image passed as an oa-demo image")
+	}
+}

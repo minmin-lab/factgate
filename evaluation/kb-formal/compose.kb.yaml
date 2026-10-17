@@ -1,0 +1,89 @@
+# Knowledge-product formal round overlay (docs/kb_experiment_design.md,
+# 正式轮规程 §3). Compose files, in order:
+#   compose.yaml
+#   compose.debug.yaml                       (loopback ports for host-side tools)
+#   <formal gateway image override>          (final-v5-gateway-build output)
+#   evaluation/kb-formal/compose.kb.yaml     (this file)
+#
+# Host paths come from the environment: KB_EMBED_VENV and KB_EMBED_MODEL (the
+# frozen embedding virtualenv and model, mounted read-only), KB_FORMAL_KB_DIR
+# (the deployment's kb manifest directory), KB_FORMAL_PRINCIPALS (the
+# deployment's principals file), and the base file's TASKGATE_PROFILE_CATALOG,
+# TASKGATE_PRINCIPAL_ATTRIBUTES and TASKGATE_PROFILE_ARTIFACT_DIR.
+services:
+  business-postgres:
+    # PostgreSQL 16 with pgvector, pinned by digest. The knowledge-product init
+    # set replaces db/init (whose V5 scripts create relations a knowledge-product
+    # Catalog never declares); db/init stays mounted read-only for the shared
+    # kb-schema script it calls.
+    image: pgvector/pgvector@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+    pull_policy: never
+    environment:
+      KB_REQUIRE_PGVECTOR: "1"
+    volumes:
+      - ./db/init-kb:/docker-entrypoint-initdb.d:ro
+      - ./db/init:/opt/taskgate/db-init:ro
+
+  kb-embed:
+    # The trusted embedding service: tools/kb-embed/service.py from the frozen
+    # commit, the frozen virtualenv and bge-m3 model mounted read-only on an
+    # Ubuntu 22.04 image (the interpreter the virtualenv was built with),
+    # pinned by digest. No outbound model hub access.
+    image: mcr.microsoft.com/playwright/python@sha256:f3a3d2e0332df4c7b6992db0ad0687df1653efd4671612b8ca1be6ae5fc06448
+    pull_policy: never
+    working_dir: /app
+    command: ["/home/wmm/kb-embed/venv/bin/python", "-m", "uvicorn", "service:app", "--host", "0.0.0.0", "--port", "8090"]
+    environment:
+      KB_EMBED_MODEL_DIR: /models/bge-m3
+      KB_EMBED_DEVICE: cpu
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HOME: /tmp
+    volumes:
+      - ${KB_EMBED_VENV:?set KB_EMBED_VENV to the frozen embedding virtualenv}:/home/wmm/kb-embed/venv:ro
+      - ${KB_EMBED_MODEL:?set KB_EMBED_MODEL to the frozen bge-m3 model directory}:/models/bge-m3:ro
+      - ./tools/kb-embed/service.py:/app/service.py:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "/home/wmm/kb-embed/venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    ports:
+      # Loopback only, for the host-side publisher's model check during load.
+      - 127.0.0.1:${KB_EMBED_PORT:-28090}:8090
+    networks:
+      - kb-embedding
+      - debug-host
+    security_opt:
+      - no-new-privileges:true
+
+  gateway:
+    # A knowledge-product Catalog activates no V5 publication, so the gateway
+    # waits for its own services only, not the V5 snapshot jobs.
+    depends_on: !override
+      control-postgres:
+        condition: service_healthy
+      business-postgres:
+        condition: service_healthy
+      result-object-store-init:
+        condition: service_completed_successfully
+      oa-demo:
+        condition: service_healthy
+      kb-embed:
+        condition: service_healthy
+    environment:
+      KB_EMBEDDING_ENDPOINT: http://kb-embed:8090
+      GATEWAY_KB_ARTIFACT_DIR: /var/lib/taskgate/kb
+      PRINCIPALS_PATH: /etc/taskbound/principals.json
+    volumes:
+      - ${KB_FORMAL_KB_DIR:?set KB_FORMAL_KB_DIR to the deployment's kb manifest directory}:/var/lib/taskgate/kb:ro
+      - ${KB_FORMAL_PRINCIPALS:?set KB_FORMAL_PRINCIPALS to the deployment's principals file}:/etc/taskbound/principals.json:ro
+    networks:
+      - kb-embedding
+
+networks:
+  kb-embedding:
+    internal: true

@@ -25,11 +25,12 @@
     "ekb4"
    ],
    "catalog": "kb-v2-large.catalog.yaml",
-   "catalog_sha256": "01398dee616c00cb7055278680ef4cd0f51ef8167b012c6a4e6474c4960a5249",
+   "catalog_sha256": "3ac8ad92abb4eaa8078a6e84bbc6e40be384032f869295d895cf493a95df5972",
    "principal_attributes": "kb-v2-large.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
-   "schema_digest_attested": false,
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   },
   {
@@ -43,11 +44,12 @@
     "ekb5-document"
    ],
    "catalog": "kb-v2-pilot.catalog.yaml",
-   "catalog_sha256": "5b913784fc00706f636723873eb9dddc3d189345b8f646fe25fe1a211a9d8640",
+   "catalog_sha256": "4579aa62eaf3b8c0c9bc5d818718ee8898ff40ae310ac65fd4da171cc53db409",
    "principal_attributes": "kb-v2-pilot.principal-attributes.yaml",
    "principal_attributes_sha256": "94f27b10797d98a29f109699601dfa5efbd34e80290212d7baa0d3c3b710c73b",
    "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
-   "schema_digest_attested": false,
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
+   "schema_digest_attested": true,
    "eligibility_subjects": 60
   },
   {
