@@ -8,11 +8,13 @@
 # deployment's private keys and tokens, write a deployment record of every kept
 # file, and mirror it to the NAS. A failed deployment is torn down, recorded
 # with its failing step and mirrored the same way; nothing is retried here.
+# Each run is one attempt (deployments/<profile>/<NNN>/attempt-<n>, the next
+# free n), so a failed attempt is never overwritten and a retry is visible.
 #
 # Required environment:
 #   KB_FORMAL_ROOT        campaign root: bin/ holds the sealed host binaries
 #                         (kb-publish, snapshot-sidecar-install, kb-formal-driver,
-#                         kb-formal-profile), images/ the mode-0600 compose
+#                         kb-formal-profile) and their build.json, images/ the mode-0600 compose
 #                         overrides naming the formal gateway and oa-demo images;
 #                         a formal campaign also holds source/, the frozen tree
 #                         whose copy of this script runs
@@ -36,14 +38,19 @@ images=$root/images
 profile=$KB_FORMAL_PROFILE
 rep=$KB_FORMAL_REPETITION
 campaign=$(basename "$root")
-dir=$root/deployments/$profile/$(printf '%03d' "$rep")
+slot=deployments/$profile/$(printf '%03d' "$rep")
+attempt=1
+while [[ -e "$root/$slot/attempt-$attempt" ]]; do attempt=$((attempt + 1)); done
+dir=$root/$slot/attempt-$attempt
 nas_root=${KB_FORMAL_NAS_ROOT:-/mnt/ctg-pto-dev/factgate-evidence}
-target=$nas_root/kb-formal/$campaign/deployments/$profile/$(printf '%03d' "$rep")
+target=$nas_root/kb-formal/$campaign/$slot/attempt-$attempt
 embed_venv=${KB_EMBED_VENV:-/home/wmm/kb-embed/venv}
 embed_model=${KB_EMBED_MODEL:-/home/wmm/kb-embed/models/bge-m3}
 embed_cache=${KB_EMBEDDING_CACHE_DIR:-/home/wmm/kb-embed/cache}
 commit=$(git rev-parse HEAD)
+binaries_commit=$(jq -r .commit "$bin/build.json" 2>/dev/null || true)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
+  [[ "$binaries_commit" == "$commit" ]] || { echo "the sealed binaries were built from ${binaries_commit:-?}, not $commit" >&2; exit 2; }
   [[ "$repo" == "$root/source" ]] || { echo "a formal deployment runs the script of the campaign's frozen source tree" >&2; exit 2; }
   [[ -z "$(git status --porcelain)" ]] || { echo "the frozen source tree is not clean" >&2; exit 2; }
   [[ -z "${KB_FORMAL_EXPERIMENTS:-}" ]] || { echo "a formal deployment runs the profile's full experiment list" >&2; exit 2; }
@@ -59,7 +66,7 @@ stack=""
 error_line=""
 step() { printf '%s %s\n' "$(date -Is)" "$*" | tee -a "$log"; }
 die() { failed_step=$*; step "FAIL $*"; exit 1; }
-project="kbformal-$(printf '%s/%s/%s' "$campaign" "$profile" "$rep" | sha256sum | cut -c1-16)"
+project="kbformal-$(printf '%s/%s/%s/%s' "$campaign" "$profile" "$rep" "$attempt" | sha256sum | cut -c1-16)"
 compose() {
   docker compose -p "$project" --env-file "$dir/env" -f compose.yaml -f compose.debug.yaml \
     -f "$images/compose.formal-gateway.yaml" -f "$images/compose.formal-oa-demo.yaml" -f evaluation/kb-formal/compose.kb.yaml "$@"
@@ -95,9 +102,9 @@ destroy() {
 # It is called in && and || lists, where bash suspends errexit for the whole
 # function body, so every step returns explicitly.
 finish() {
-  python3 - "$dir" "$campaign" "$profile" "$rep" "$KB_FORMAL_CLASS" "$project" "$commit" "$outcome" "$failed_step" "$started_at" "$(date -Is)" <<'PY'
+  python3 - "$dir" "$campaign" "$profile" "$rep" "$attempt" "$KB_FORMAL_CLASS" "$project" "$commit" "$binaries_commit" "$outcome" "$failed_step" "$started_at" "$(date -Is)" <<'PY'
 import hashlib, json, os, sys
-out, campaign, profile, rep, cls, project, commit, outcome, failed_step, started, finished = sys.argv[1:]
+out, campaign, profile, rep, attempt, cls, project, commit, binaries_commit, outcome, failed_step, started, finished = sys.argv[1:]
 files = []
 for root, _, names in os.walk(out):
     for name in names:
@@ -109,7 +116,7 @@ for root, _, names in os.walk(out):
         files.append({"path": relative, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
 files.sort(key=lambda entry: entry["path"])
 record = {"version": "taskgate-kb-formal-deployment-record-v1", "campaign": campaign, "profile": profile, "repetition": int(rep),
-          "class": cls, "publication_eligible": cls == "formal" and outcome == "complete", "outcome": outcome,
+          "attempt": int(attempt), "binaries_commit": binaries_commit, "class": cls, "publication_eligible": cls == "formal" and outcome == "complete", "outcome": outcome,
           "failed_step": failed_step, "project": project, "commit": commit, "started_at": started, "finished_at": finished, "files": files}
 open(os.path.join(out, "deployment-record.json"), "w").write(json.dumps(record, indent=1) + "\n")
 PY
@@ -133,7 +140,7 @@ on_exit() {
 }
 trap 'error_line=$LINENO' ERR
 trap on_exit EXIT
-step "START campaign=$campaign profile=$profile repetition=$rep class=$KB_FORMAL_CLASS project=$project commit=$commit"
+step "START campaign=$campaign profile=$profile repetition=$rep attempt=$attempt class=$KB_FORMAL_CLASS project=$project commit=$commit binaries=${binaries_commit:-?}"
 
 # ---- profile facts (the profile files are source-controlled and regenerate byte for byte) ----
 for binary in kb-publish snapshot-sidecar-install kb-formal-driver kb-formal-profile; do
@@ -195,7 +202,13 @@ export TASKGATE_PROFILE_CATALOG=$catalog TASKGATE_PRINCIPAL_ATTRIBUTES=$attribut
 # ---- phase 1: data services and the embedding service ----
 step "PHASE1 up"
 stack=up
-compose up -d --wait control-postgres business-postgres result-object-store result-object-store-init kb-embed >> "$log" 2>&1 || die "phase 1 did not become healthy"
+# up --wait counts a one-shot container that exits, even with 0, as a failure,
+# so the bucket initialisation runs after the long-running services and must
+# exit 0; the gateway's service_completed_successfully dependency then holds.
+compose up -d --wait control-postgres business-postgres result-object-store kb-embed >> "$log" 2>&1 || die "phase 1 did not become healthy"
+compose up -d result-object-store-init >> "$log" 2>&1 || die "result-object-store-init did not start"
+init_exit=$(timeout 120 docker wait "${project}-result-object-store-init-1") || die "result-object-store-init did not finish"
+[[ "$init_exit" == 0 ]] || die "result-object-store-init exited $init_exit"
 [[ "$(ip route get 192.168.8.233)" == *" dev eth0 "* ]] || die "the stack captured the NAS route"
 curl -fsS -m 10 http://127.0.0.1:28090/model > "$dir/embedding-model.json" || die "embedding service /model failed"
 [[ "$(jq -r .weights_sha256 "$dir/embedding-model.json")" == "$weights" ]] || die "embedding weights differ from the Catalog"
@@ -243,7 +256,11 @@ fi
 step "ATTEST schema_digest=$attested"
 
 # ---- phase 2: gateway and OA ----
-compose up -d --wait gateway oa-demo >> "$log" 2>&1 || die "gateway or OA did not become healthy"
+# --no-deps keeps --wait off the exited initialisation container; every other
+# dependency is already healthy, and the OA (which depends on nothing) starts
+# before the gateway that depends on it.
+compose up -d --wait --no-deps oa-demo >> "$log" 2>&1 || die "OA did not become healthy"
+compose up -d --wait --no-deps gateway >> "$log" 2>&1 || die "gateway did not become healthy"
 docker logs "${project}-gateway-1" > "$dir/logs/gateway-startup.txt" 2>&1
 grep -q "\"knowledge product activated\".*\"epoch\":\"$epoch\"" "$dir/logs/gateway-startup.txt" || die "gateway did not activate $epoch"
 curl -fsS -m 10 http://127.0.0.1:8082/.well-known/taskgate/query-receipt-keyring.json > "$dir/receipt-keyring.json" || die "keyring fetch failed"
