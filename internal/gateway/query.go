@@ -658,6 +658,13 @@ type preparedQueryPlan struct {
 	// the preparation a finalizer reproduces -- so a path that prepares and then
 	// forgets is a path that cannot complete.
 	Prepared physicalquery.PreparedOperation
+	// EnrichResult, when set, completes the canonical result before its
+	// response metadata is applied and before settlement: a retrieval adds the
+	// chunk text after checking it against the released digests. A failure
+	// fails the query unsettled, so nothing is released for a result that
+	// cannot be delivered. The exposure observation is already fixed by then
+	// and covers only the sealed statement's visible columns.
+	EnrichResult func(ctx context.Context, stored *storedQueryResult) error
 }
 
 // operationPrepared reports whether this value carries a real preparation.
@@ -1323,6 +1330,16 @@ func (s *Service) executeSQL(ctx context.Context, principal mcp.Principal, task 
 		Columns: data.Columns, Rows: data.Rows, RowCount: data.RowCount,
 		DatabaseMS: settlement.DBMS, ComponentMS: componentMS,
 		Limited: data.Truncated || data.RowCount == reservation.AllowedRows,
+	}
+	if operation.EnrichResult != nil {
+		deliveryStarted := time.Now()
+		enrichErr := operation.EnrichResult(ctx, &stored)
+		componentMS["result_delivery"] = durationMS(time.Since(deliveryStarted))
+		if enrichErr != nil {
+			settlement.ErrorCode = "RESULT_DELIVERY_REFUSED"
+			s.failQueryBudget(ctx, settlement)
+			return nil, enrichErr
+		}
 	}
 	if err := applyQueryResponseMetadata(&stored, responseMetadata); err != nil {
 		settlement.ErrorCode = resultEncodingFailed

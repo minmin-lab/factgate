@@ -277,11 +277,24 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 				t.Errorf("restore chunk text: %v", err)
 			}
 		}
+		before, ledgerErr := harness.store.GetExposureLedger(ctx, "task-kb-e2e")
+		if ledgerErr != nil {
+			t.Fatal(ledgerErr)
+		}
 		_, err = callGatewayTool(harness.service, harness.alice, "fetch", map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch-drifted", "knowledge_product": product.Name,
 			"chunks": []map[string]any{{"doc_id": hits[0][0], "version": hits[0][1], "chunk_index": hits[0][2]}}})
 		restore()
 		requireToolCode(t, err, apierr.CodeConflict)
-		t.Logf("drifted chunk text refused at delivery: %v", err)
+		after, ledgerErr := harness.store.GetExposureLedger(ctx, "task-kb-e2e")
+		if ledgerErr != nil {
+			t.Fatal(ledgerErr)
+		}
+		// The refusal happens before settlement: a result that cannot be
+		// delivered releases nothing.
+		if after.Used != before.Used {
+			t.Fatalf("refused delivery changed the exposure ledger: before %+v after %+v", before.Used, after.Used)
+		}
+		t.Logf("drifted chunk text refused at delivery before settlement: %v; ledger unchanged %+v", err, after.Used)
 	} else {
 		t.Log("KB_E2E_ADMIN_DSN unset: delivery drift refusal not exercised")
 	}

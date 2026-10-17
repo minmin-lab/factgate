@@ -37,7 +37,12 @@ import (
 
 // retrievalDisplayColumns names the visible projection in order; the compiled
 // statement carries opaque aliases.
-var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retrieval.ChunkTextField}
+var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retrieval.ChunkTextField, chunkTextDeliveryColumn}
+
+// chunkTextDeliveryColumn is the delivered text the result carries after the
+// four sealed columns; its semantic identity marks it as delivery, not a
+// projection of the sealed statement (kb-design §9.8).
+const chunkTextDeliveryColumn = "text"
 
 var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询（文本或向量）做精确最近邻检索，返回至多 k 个分块；命中分块按任务账本的三维结算记账。",
 	InputSchema: objectSchema(map[string]any{
@@ -117,9 +122,6 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 			return nil, err
 		}
 		replayed["tool"] = tool
-		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, replayed); err != nil {
-			return nil, err
-		}
 		return replayed, nil
 	}
 	if !errors.Is(lookupErr, control.ErrNotFound) {
@@ -138,7 +140,8 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 	// preparationFailure follows the query path's rule for a refusal before
 	// any reservation: nothing is persisted, but if a concurrent attempt with
 	// the same request id has meanwhile completed, that durable result is
-	// replayed (with its chunk text delivered) instead of the refusal.
+	// replayed (its stored result already carries the delivered text) instead
+	// of the refusal.
 	preparationFailure := func(cause error) (any, error) {
 		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, envelope.RequestID, digest(requestSummary), requestStarted, cause)
 		if replayErr != nil {
@@ -149,9 +152,6 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 			return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "持久查询重放结果格式无效"}
 		}
 		response["tool"] = tool
-		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, response); err != nil {
-			return nil, err
-		}
 		return response, nil
 	}
 	if tool == retrieval.ToolFetch {
@@ -166,59 +166,48 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 	if err != nil {
 		return preparationFailure(err)
 	}
+	product, _ := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
+	prepared.EnrichResult = func(ctx context.Context, stored *storedQueryResult) error {
+		return s.enrichChunkText(ctx, product, stored)
+	}
 	metadata := &queryResponseMetadata{Plan: plan, OutputFormat: "json",
-		DisplayColumns:  append([]string(nil), retrievalDisplayColumns...),
-		ResultOrder:     identityResultOrder(len(retrievalDisplayColumns)),
-		SemanticColumns: queryPlanSemanticColumns(plan)}
+		DisplayColumns: append([]string(nil), retrievalDisplayColumns...),
+		ResultOrder:    identityResultOrder(len(retrievalDisplayColumns)),
+		SemanticColumns: append(queryPlanSemanticColumns(plan),
+			"delivery:"+product.Products.Chunks+"."+chunkTextDeliveryColumn)}
 	if prepared.Exposure != nil {
 		metadata.PlanDigest = prepared.Exposure.planDigest
 		metadata.PredicateFootprint = predicateFootprintResponseFor(prepared.Exposure)
 	}
-	response, err := s.executeSQL(ctx, principal, task, envelope.RequestID, prepared, requestSummary, metadata, requestStarted)
-	if err != nil {
-		return nil, err
-	}
-	if typed, ok := response.(map[string]any); ok {
-		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, typed); err != nil {
-			return nil, err
-		}
-	}
-	return response, nil
+	return s.executeSQL(ctx, principal, task, envelope.RequestID, prepared, requestSummary, metadata, requestStarted)
 }
 
-// deliverChunkText appends the chunk text to a search/fetch response. The
+// enrichChunkText completes a search or fetch result with the chunk text. The
 // ledger carries a returned chunk's content digest as its Result cell
 // (kb-design §9.8); the text is not a published field. It is read from
-// kb.chunks at delivery time, on fresh results and on replays alike, and a row
-// is admitted only when the SHA-256 of what was read is the digest the sealed
-// statement returned, so a business row that drifted from the publication is
-// refused rather than served. Responses without rows are left as they are.
-func (s *Service) deliverChunkText(ctx context.Context, knowledgeProduct string, timeout time.Duration, response map[string]any) error {
-	rows, ok := response["rows"].([][]any)
-	if !ok || len(rows) == 0 {
+// kb.chunks by (collection, identity) for exactly the rows the sealed statement
+// returned, and a row is admitted only when the SHA-256 of what was read is the
+// digest the statement returned. Any missing or drifted row refuses the whole
+// result before settlement, so nothing is released for a result that cannot be
+// delivered. The text becomes the fifth column of the canonical result, so it
+// is what a replay and a result artifact carry, under the receipt that binds
+// them.
+func (s *Service) enrichChunkText(ctx context.Context, product catalog.KnowledgeProduct, stored *storedQueryResult) error {
+	if len(stored.Columns) != len(retrievalDisplayColumns)-1 {
+		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索结果列数与封印语句不符"}
+	}
+	if len(stored.Rows) == 0 {
+		stored.Columns = append(stored.Columns, dataconnector.Column{Name: chunkTextDeliveryColumn, DataTypeOID: 25})
 		return nil
-	}
-	columns, ok := response["columns"].([]dataconnector.Column)
-	if !ok || len(columns) != len(retrievalDisplayColumns) {
-		return nil
-	}
-	for index, name := range retrievalDisplayColumns {
-		if columns[index].Name != name {
-			return nil
-		}
-	}
-	product, found := s.catalog.LookupKnowledgeProduct(knowledgeProduct)
-	if !found {
-		return &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
 	}
 	type identity struct {
 		doc            string
 		version, chunk int64
 	}
-	keys := make([]identity, len(rows))
-	tuples := make([]string, 0, len(rows))
-	for index, row := range rows {
-		if len(row) != len(retrievalDisplayColumns) {
+	keys := make([]identity, len(stored.Rows))
+	tuples := make([]string, 0, len(stored.Rows))
+	for index, row := range stored.Rows {
+		if len(row) != len(stored.Columns) {
 			return &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索结果行形状无效"}
 		}
 		doc, ok := row[0].(string)
@@ -235,12 +224,12 @@ func (s *Service) deliverChunkText(ctx context.Context, knowledgeProduct string,
 		tuples = append(tuples, fmt.Sprintf("(%s, %d, %d)", literal, version, chunk))
 	}
 	collection, err := pgTextLiteral(product.Collection)
-	if err != nil {
+	if err != nil || product.Collection == "" {
 		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "知识产品集合名无法编码"}
 	}
 	statement := "SELECT doc_id, version, chunk_index, text FROM kb.chunks WHERE collection = " + collection +
 		" AND (doc_id, version, chunk_index) IN (" + strings.Join(tuples, ", ") + ")"
-	result, err := s.connector.Query(ctx, dataconnector.QueryRequest{SQL: statement, StatementTimeout: timeout, MaxRows: int64(len(rows))})
+	result, err := s.connector.Query(ctx, dataconnector.QueryRequest{SQL: statement, StatementTimeout: chunkTextDeliveryTimeout, MaxRows: int64(len(stored.Rows))})
 	if err != nil {
 		return &mcp.ToolError{Code: apierr.CodeDataSourceUnavailable, Message: "读取分块正文失败"}
 	}
@@ -255,17 +244,15 @@ func (s *Service) deliverChunkText(ctx context.Context, knowledgeProduct string,
 		text, _ := row[3].(string)
 		texts[identity{doc, version, chunk}] = text
 	}
-	delivered := make([][]any, len(rows))
-	for index, row := range rows {
+	for index, row := range stored.Rows {
 		text, present := texts[keys[index]]
-		published, _ := row[3].(string)
-		if !present || published == "" || sha256Hex(text) != published {
+		released, _ := row[3].(string)
+		if !present || released == "" || sha256Hex(text) != released {
 			return &mcp.ToolError{Code: apierr.CodeConflict, Message: fmt.Sprintf("块 %s v%d #%d 的正文与发布期摘要不一致，拒绝交付", keys[index].doc, keys[index].version, keys[index].chunk)}
 		}
-		delivered[index] = append(append([]any(nil), row...), text)
+		stored.Rows[index] = append(row, text)
 	}
-	response["rows"] = delivered
-	response["columns"] = append(append([]dataconnector.Column(nil), columns...), dataconnector.Column{Name: "text", DataTypeOID: 25})
+	stored.Columns = append(stored.Columns, dataconnector.Column{Name: chunkTextDeliveryColumn, DataTypeOID: 25})
 	return nil
 }
 
