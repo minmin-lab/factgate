@@ -196,13 +196,31 @@ func main() {
 
 	aliceToken := requiredEnv("TASKBOUND_ALICE_TOKEN")
 	carolToken := requiredEnv("TASKBOUND_CAROL_TOKEN")
-	if err := bootstrapPrincipal(ctx, store, control.Principal{ID: "principal_alice", Subject: "alice", Role: "query", TokenHash: tokenDigest(aliceToken)}); err != nil {
+	alice := control.Principal{ID: "principal_alice", Subject: "alice", Role: "query", TokenHash: tokenDigest(aliceToken)}
+	carol := control.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor", TokenHash: tokenDigest(carolToken)}
+	if err := bootstrapPrincipal(ctx, store, alice); err != nil {
 		logger.Error("bootstrap Alice", "error", err)
 		os.Exit(1)
 	}
-	if err := bootstrapPrincipal(ctx, store, control.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor", TokenHash: tokenDigest(carolToken)}); err != nil {
+	if err := bootstrapPrincipal(ctx, store, carol); err != nil {
 		logger.Error("bootstrap Carol", "error", err)
 		os.Exit(1)
+	}
+	if path := strings.TrimSpace(os.Getenv("PRINCIPALS_PATH")); path != "" {
+		// Additional query principals, for example the subjects an eligibility
+		// experiment needs; the file holds token digests only.
+		extra, err := loadPrincipalsFile(path, []control.Principal{alice, carol})
+		if err != nil {
+			logger.Error("load principals file", "error", err)
+			os.Exit(1)
+		}
+		for _, principal := range extra {
+			if err := bootstrapPrincipal(ctx, store, principal); err != nil {
+				logger.Error("bootstrap file principal", "principal", principal.ID, "error", err)
+				os.Exit(1)
+			}
+		}
+		logger.Info("principals bootstrapped from file", "count", len(extra))
 	}
 	oaClient, err := approval.NewClient(requiredEnv("OA_BASE_URL"), requiredEnv("OA_SERVICE_TOKEN"), nil)
 	if err != nil {

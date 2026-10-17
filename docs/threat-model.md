@@ -112,6 +112,9 @@ dictionary 才保存可恢复 canonical payload。二者及 bitmap 仍是敏感�
   调用方无法影响其谓词。拒绝发生在结算之后，已记的 Release 不回滚（偏保守）。业务表正文相对发布期漂移因此表现为交付失败，
   不会把未发布的字节送出。
 
+- 主体文件（`PRINCIPALS_PATH`）：部署可以增加 query 主体，文件只含 token 的 SHA-256。它与 `TASKBOUND_ALICE_TOKEN` 同属部署
+  配置，能改它的人就能增减可登录的 Agent 身份；文件本身不含秘密，可以作为部署证据留存，明文 token 只应在发放方手里。
+
 ## 需要运营配合的边界
 
 - Catalog 管理员必须保证字段的业务语义正确、`entity_key` 在 snapshot 内稳定唯一、数据更新时提升 snapshot，且 View 不包含未发布敏感列；legacy Attestation 和 semantic View 四摘要只能证明被检查的结构/定义/计划/interface 与已发布 contract 一致，不能证明这些语义本身正确。
