@@ -84,6 +84,35 @@ services:
     networks:
       - kb-embedding
 
+# Every network of the stack gets an explicit private subnet. Left to Docker,
+# a host whose default 172.17-172.31 pools are taken by other projects' bridges
+# falls back to 192.168.x/20 ranges and can swallow the LAN segment of the NAS
+# that evidence is mirrored to (observed 2026-10-17: 192.168.0.0/20 captured the
+# route to the NAS). 10.211.0.0/16 is unused on the execution host; deployments
+# run one at a time, so fixed subnets do not collide between them.
 networks:
+  public-edge:
+    ipam:
+      config:
+        - subnet: 10.211.1.0/24
+  control-plane:
+    ipam:
+      config:
+        - subnet: 10.211.2.0/24
+  business-data:
+    ipam:
+      config:
+        - subnet: 10.211.3.0/24
+  result-storage:
+    ipam:
+      config:
+        - subnet: 10.211.4.0/24
+  debug-host:
+    ipam:
+      config:
+        - subnet: 10.211.5.0/24
   kb-embedding:
     internal: true
+    ipam:
+      config:
+        - subnet: 10.211.6.0/24
