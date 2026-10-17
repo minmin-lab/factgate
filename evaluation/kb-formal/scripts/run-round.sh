@@ -23,7 +23,7 @@ note "ROUND class=$KB_FORMAL_CLASS profiles=[$profiles] repetitions=[$repetition
 for rep in $repetitions; do
   for profile in $profiles; do
     note "DEPLOYMENT $profile repetition $rep"
-    if ! KB_FORMAL_PROFILE=$profile KB_FORMAL_REPETITION=$rep evaluation/kb-formal/scripts/run-deployment.sh > "$root/.deployment.out" 2>&1; then
+    if ! KB_FORMAL_PROFILE=$profile KB_FORMAL_REPETITION=$rep bash evaluation/kb-formal/scripts/run-deployment.sh > "$root/.deployment.out" 2>&1; then
       note "FAILED $profile repetition $rep: $(tail -n 3 "$root/.deployment.out" | tr '\n' ' ')"
       exit 1
     fi

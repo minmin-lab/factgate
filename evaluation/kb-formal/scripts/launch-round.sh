@@ -81,12 +81,12 @@ done
 note "IMAGES gateway $(jq -r .image_id "$staging/formal-gateway-build.json" | cut -c1-19) oa-demo $(jq -r .image_id "$staging/oa-demo-build.json" | cut -c1-19)"
 
 # ---- round root and detached start ----
-KB_FORMAL_IMAGES=$staging KB_FORMAL_COMMIT=$commit evaluation/kb-formal/scripts/prepare-round.sh
+KB_FORMAL_IMAGES=$staging KB_FORMAL_COMMIT=$commit bash evaluation/kb-formal/scripts/prepare-round.sh
 root=$(cd "$KB_FORMAL_ROOT" && pwd)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   install -m 644 "$KB_FORMAL_APPROVAL" "$root/approval.json"
 fi
-(cd "$root/source" && KB_FORMAL_ROOT=$root KB_FORMAL_CLASS=$KB_FORMAL_CLASS setsid nohup evaluation/kb-formal/scripts/run-round.sh > "$root/round.out" 2>&1 < /dev/null &)
+(cd "$root/source" && KB_FORMAL_ROOT=$root KB_FORMAL_CLASS=$KB_FORMAL_CLASS setsid nohup bash evaluation/kb-formal/scripts/run-round.sh > "$root/round.out" 2>&1 < /dev/null &)
 sleep 3
 round_pid=""
 for pid in $(ps -eo pid=,args= | awk '$2 == "bash" && $3 ~ /run-round\.sh$/ {print $1}'); do
