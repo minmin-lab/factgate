@@ -240,21 +240,26 @@ func TestEKB1AdaptiveExtraction(t *testing.T) {
 	}
 
 	type trajectory struct {
-		Arm            string  `json:"arm"`
-		Strategy       string  `json:"strategy"`
-		Seed           int     `json:"seed"`
-		Department     string  `json:"department"`
-		Requestable    int     `json:"requestable_chunks"`
-		Steps          int     `json:"steps"`
-		Distinct       []int   `json:"distinct_after_step"`
-		FinalDistinct  int     `json:"final_distinct"`
-		LeakFraction   float64 `json:"leak_fraction"`
-		FirstRefusal   int     `json:"first_refusal_step,omitempty"`
-		RefusalCode    string  `json:"refusal_code,omitempty"`
-		ChargedRelease int64   `json:"charged_release"`
-		ChargedInflu   int64   `json:"charged_influence"`
-		ChargedOutcome int64   `json:"charged_outcome"`
-		Seconds        float64 `json:"seconds"`
+		Arm           string  `json:"arm"`
+		Strategy      string  `json:"strategy"`
+		Seed          int     `json:"seed"`
+		Department    string  `json:"department"`
+		Requestable   int     `json:"requestable_chunks"`
+		Steps         int     `json:"steps"`
+		Distinct      []int   `json:"distinct_after_step"`
+		FinalDistinct int     `json:"final_distinct"`
+		LeakFraction  float64 `json:"leak_fraction"`
+		FirstRefusal  int     `json:"first_refusal_step,omitempty"`
+		RefusalCode   string  `json:"refusal_code,omitempty"`
+		// StopCode is the code that ended the trajectory before max_steps
+		// (empty when it ran to max_steps or enumerated everything); Refusals
+		// counts every refused step by code, stopping or not.
+		StopCode       string         `json:"stop_code,omitempty"`
+		Refusals       map[string]int `json:"refusals,omitempty"`
+		ChargedRelease int64          `json:"charged_release"`
+		ChargedInflu   int64          `json:"charged_influence"`
+		ChargedOutcome int64          `json:"charged_outcome"`
+		Seconds        float64        `json:"seconds"`
 	}
 	type legit struct {
 		Seed             int     `json:"seed"`
@@ -430,7 +435,12 @@ func TestEKB1AdaptiveExtraction(t *testing.T) {
 							if traj.FirstRefusal == 0 {
 								traj.FirstRefusal, traj.RefusalCode = step, code
 							}
+							if traj.Refusals == nil {
+								traj.Refusals = map[string]int{}
+							}
+							traj.Refusals[code]++
 							if stop {
+								traj.StopCode = code
 								traj.Distinct = append(traj.Distinct, len(seen))
 								break
 							}

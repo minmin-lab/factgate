@@ -135,17 +135,12 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 	if err != nil {
 		return nil, err
 	}
-	if tool == retrieval.ToolFetch {
-		// A fetch names chunks already returned to this root family (kb-design
-		// §4): anything else, including a chunk outside the task's scope, is
-		// refused closed before any reservation.
-		if err := s.requireChunksReturned(ctx, task, request); err != nil {
-			return nil, err
-		}
-	}
-	prepared, plan, err := s.prepareRetrieval(grant, request)
-	if err != nil {
-		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, envelope.RequestID, digest(requestSummary), requestStarted, err)
+	// preparationFailure follows the query path's rule for a refusal before
+	// any reservation: nothing is persisted, but if a concurrent attempt with
+	// the same request id has meanwhile completed, that durable result is
+	// replayed (with its chunk text delivered) instead of the refusal.
+	preparationFailure := func(cause error) (any, error) {
+		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, envelope.RequestID, digest(requestSummary), requestStarted, cause)
 		if replayErr != nil {
 			return nil, replayErr
 		}
@@ -154,7 +149,22 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 			return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "持久查询重放结果格式无效"}
 		}
 		response["tool"] = tool
+		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, response); err != nil {
+			return nil, err
+		}
 		return response, nil
+	}
+	if tool == retrieval.ToolFetch {
+		// A fetch names chunks already returned to this root family (kb-design
+		// §9.6 a): anything else, including a chunk outside the task's scope,
+		// is refused closed before any reservation.
+		if err := s.requireChunksReturned(ctx, task, request); err != nil {
+			return preparationFailure(err)
+		}
+	}
+	prepared, plan, err := s.prepareRetrieval(grant, request)
+	if err != nil {
+		return preparationFailure(err)
 	}
 	metadata := &queryResponseMetadata{Plan: plan, OutputFormat: "json",
 		DisplayColumns:  append([]string(nil), retrievalDisplayColumns...),
