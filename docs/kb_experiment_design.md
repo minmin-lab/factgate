@@ -69,9 +69,10 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 
 - 问题：search / fetch / aggregate 经网关结算相对直连库的时延开销，在 10^5 与 10^6 块两档。
 - 语料：v1 生成器参数 documents=20,000（≈ 96k 块，10^5 档）与 200,000（≈ 10^6 档）；两档各自冻结 manifest 与 digest。
-  **可行性**：10^6 档依赖 kb-design §9.8（Result 单元格改 text_sha256）——现 text 入 COLD 的发布物按 48k 块 638 MB /
-  编译峰值 2.1 GB 线性外推，10^6 块约 13 GB / 44 GB，超本机 30 GB；§9.8 已于 2026-10-17 定为 text_sha256，发布物体积
-  不再是 10^6 档的障碍；剩余前置是 10^6 块的嵌入（CPU 服务吞吐决定，见台账）。
+  **可行性**：10^6 档原以为取决于 kb-design §9.8（Result 单元格改 text_sha256）。§9.8 已于 2026-10-17 实施，实测发布峰值
+  RSS 只降约 15%（96k 块 4.93 → 4.16 GB，约 43 KB/块），外推 10^6 块约 43 GB，仍超本机 30 GB；10^6 档至今未评估。
+  （2026-10-17 更正：同日早先写在此处的"发布物体积不再是 10^6 档的障碍"是未经实测的错误判断，见台账 KB1-LOOP-75 与
+  kb-design §9.8 实测段。）
 - 臂：直连（gateway_reader 直接执行同一过滤 + 精确最近邻 LIMIT k / 同一 IN 列表取回 / 同一 sum）vs FactGate（search / fetch /
   aggregate）；k ∈ {5, 20}；每臂每档每部署 200 轮，查询文本随机取自语料词表（种子固定）；重放轮（同请求重复）单列。
 - 指标：客户端时延中位数与 p95、网关结算分量（预留/派生/结算）、每轮 R/D/O 计费、重放轮 0/0/0 与时延。
@@ -129,6 +130,20 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 精确臂 p50 时延 56 / 18 / 12 ms（无 / 部门 / 部门+密级），HNSW 臂 1.3–3.2 ms。对照预登记：方向一致；"department 过滤下明显下降"在 v2 上出现
 （v1 未出现），严过滤下更重。报告：~/logs/kb1/k34-hnsw/report-v2.json（NAS kb-k34-hnsw/）。
 
+**修订 2 结果登记（2026-10-17，台账 KB1-LOOP-75）**：同一命令在修订 2 发布物（向量全部取自按内容摘要键控的缓存）上重跑，
+k=20，identity_rate / mean_recall / short（200 条）：
+
+| 过滤 | iterative_scan | ef_search=40 | ef_search=200 |
+|---|---|---|---|
+| 无 | off | 0.964 / 0.997 / 0 | 0.990 / 0.999 / 0 |
+| department | off | 0.572 / 0.787 / 83 | 0.871 / 0.969 / 19 |
+| department | relaxed_order | 0.933 / 0.994 / 0 | 0.959 / 0.997 / 0 |
+| department+classification | off | 0.157 / 0.482 / 166 | 0.599 / 0.827 / 69 |
+| department+classification | relaxed_order | 0.838 / 0.987 / 0 | 0.883 / 0.992 / 0 |
+
+与修订 1 相比 identity 最多差 1.0 个百分点、recall 最多差 0.003；精确臂 p50 59.8 / 18.5 ms（无 / 部门）。报告
+evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb-k34-hnsw/）。
+
 ## 证据与宏
 
 - 每部署目录：config.json（Catalog sha、epoch、kb-publication manifest、预算、种子）、raw/*.jsonl（逐步请求/响应/计费/拒绝码）、
@@ -136,3 +151,8 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 - `evaluation/final-v5-wsl2/kb-pilot-evidence-v1.json` 登记 run id、family（kb_extraction / kb_eligibility / kb_overhead）、
   campaign_evidence_sha256、samples_sha256、submission_commit；`paper/tkde/generate_kb_evidence.py` 严格校验后出宏；
   V5 证据仍以 draft 模式（祖先校验）验证，`make paper-kb-check` 组合两者。
+
+**实施偏差（2026-10-17 登记，台账 KB1-LOOP-75）**：上面的证据布局是运行前的计划，实际未按此实施，照实登记而不改写计划：
+注册表是 `evaluation/kb-pilot/registry.json`（不在封印的 final-v5-wsl2 目录下），每个实验一份报告（各部署明细在报告的
+`deployments_detail` 里），没有逐部署 raw/*.jsonl 目录，也没有 `make paper-kb-check`；宏由 `generate_kb_evidence.py` 只读注册表、
+按 sha256 校验后生成，缺任一条目即失败。

@@ -1,0 +1,94 @@
+{
+ "campaign_class": "kb-pilot",
+ "classification": "internal",
+ "department": "finance",
+ "deployments": 3,
+ "field": "counterparty",
+ "generated_at": "2026-10-17T03:01:56Z",
+ "observations": [
+  {
+   "publication": "document",
+   "deployment": 1,
+   "relation_used": "policy_kb_values",
+   "answer": "116",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 580,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 580
+  },
+  {
+   "publication": "document",
+   "deployment": 2,
+   "relation_used": "policy_kb_values",
+   "answer": "116",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 580,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 580
+  },
+  {
+   "publication": "document",
+   "deployment": 3,
+   "relation_used": "policy_kb_values",
+   "answer": "116",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 580,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 580
+  },
+  {
+   "publication": "collection",
+   "deployment": 1,
+   "relation_used": "policy_kb_collection_values",
+   "answer": "10",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 50,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 50
+  },
+  {
+   "publication": "collection",
+   "deployment": 2,
+   "relation_used": "policy_kb_collection_values",
+   "answer": "10",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 50,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 50
+  },
+  {
+   "publication": "collection",
+   "deployment": 3,
+   "relation_used": "policy_kb_collection_values",
+   "answer": "10",
+   "direct_value_rows": 116,
+   "direct_distinct_values": 10,
+   "actual_release": 1,
+   "actual_influence": 50,
+   "actual_outcome": 4,
+   "replay_charged_total": 0,
+   "dependency_per_answer": 50
+  }
+ ],
+ "publication_eligible": false,
+ "publications": {
+  "collection": "policy-kb-2026-10-bge-v2c",
+  "document": "policy-kb-2026-10-bge-v2"
+ },
+ "version": "taskgate-kb-ekb5-report-v1"
+}

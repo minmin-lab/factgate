@@ -56,3 +56,68 @@ func TestCachingEmbedderResumesAfterInterruption(t *testing.T) {
 		t.Fatal("failed batch must not populate the cache")
 	}
 }
+
+// noisyEmbedder returns a different vector for every (call, position), the
+// way a batched GPU provider's last bits can differ between copies of a text.
+type noisyEmbedder struct {
+	HashEmbedder
+	calls int
+	seen  [][]string
+}
+
+func (n *noisyEmbedder) Embed(texts []string) ([][]float32, error) {
+	n.calls++
+	n.seen = append(n.seen, append([]string(nil), texts...))
+	vectors, err := n.HashEmbedder.Embed(texts)
+	if err != nil {
+		return nil, err
+	}
+	for position := range vectors {
+		vectors[position] = append([]float32(nil), vectors[position]...)
+		vectors[position][0] += float32(n.calls*1000+position) * 1e-6
+	}
+	return vectors, nil
+}
+
+func TestEmbedDistinctGivesEqualTextsBitIdenticalVectors(t *testing.T) {
+	// Positive control: the stub really does return different vectors for
+	// two copies of one text, so equality below is the helper's doing.
+	control := &noisyEmbedder{HashEmbedder: HashEmbedder{Dimension: 8}}
+	raw, err := control.Embed([]string{"a", "a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw[0][0] == raw[1][0] {
+		t.Fatal("stub returned identical vectors for two copies; the test would prove nothing")
+	}
+	noisy := &noisyEmbedder{HashEmbedder: HashEmbedder{Dimension: 8}}
+	memo := map[string][]float32{}
+	first, err := embedDistinct(noisy, []string{"a", "b", "a"}, memo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := embedDistinct(noisy, []string{"b", "c", "a"}, memo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	same := func(x, y []float32) bool {
+		if len(x) != len(y) {
+			return false
+		}
+		for i := range x {
+			if x[i] != y[i] {
+				return false
+			}
+		}
+		return true
+	}
+	if !same(first[0], first[2]) || !same(first[0], second[2]) {
+		t.Fatal("copies of one text within and across batches carry different vectors")
+	}
+	if !same(first[1], second[0]) {
+		t.Fatal("a text embedded in an earlier batch was embedded again")
+	}
+	if noisy.calls != 2 || len(noisy.seen[0]) != 2 || len(noisy.seen[1]) != 1 || noisy.seen[1][0] != "c" {
+		t.Fatalf("provider saw %v, want each distinct text once", noisy.seen)
+	}
+}

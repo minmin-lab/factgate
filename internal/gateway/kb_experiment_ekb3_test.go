@@ -381,7 +381,9 @@ func TestEKB3Overhead(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(reportPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(reportPath, append(encoded, '\n'), 0o644); err != nil {
+	// Hash exactly the bytes written, so the logged digest is the file's sha256.
+	encoded = append(encoded, '\n')
+	if err := os.WriteFile(reportPath, encoded, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(encoded)

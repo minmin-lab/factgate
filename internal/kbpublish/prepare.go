@@ -284,6 +284,7 @@ func PrepareWith(spec Spec, corpus []byte, embedder Embedder) (Prepared, error) 
 		prepared.Labels = append(prepared.Labels, label)
 	}
 	sort.Strings(prepared.Labels)
+	embedded := make(map[string][]float32)
 	for start := 0; start < len(prepared.Chunks); start += embedBatch {
 		end := start + embedBatch
 		if end > len(prepared.Chunks) {
@@ -293,7 +294,7 @@ func PrepareWith(spec Spec, corpus []byte, embedder Embedder) (Prepared, error) 
 		for _, chunk := range prepared.Chunks[start:end] {
 			texts = append(texts, chunk.Text)
 		}
-		vectors, err := embedder.Embed(texts)
+		vectors, err := embedDistinct(embedder, texts, embedded)
 		if err != nil {
 			return Prepared{}, fmt.Errorf("embed chunks %d..%d: %w", start, end, err)
 		}
@@ -304,10 +305,49 @@ func PrepareWith(spec Spec, corpus []byte, embedder Embedder) (Prepared, error) 
 			if len(vector) != spec.Embedding.Dimension {
 				return Prepared{}, fmt.Errorf("embedder returned dimension %d, spec declares %d", len(vector), spec.Embedding.Dimension)
 			}
-			prepared.Chunks[start+offset].Embedding = vector
+			prepared.Chunks[start+offset].Embedding = append([]float32(nil), vector...)
 		}
 	}
 	return prepared, nil
+}
+
+// embedDistinct embeds, once, each text the publication has not embedded
+// yet, and hands every occurrence the same vector. Chunks with the same text
+// therefore carry bit-identical vectors whatever the provider's batch
+// numerics, so an exact tie between them is broken by the chunk-identity
+// total order in every arm (E-KB4 relies on this; with a provider that embeds
+// single and batched inputs slightly differently, two separately embedded
+// copies of one text could otherwise be ordered by noise).
+func embedDistinct(embedder Embedder, texts []string, embedded map[string][]float32) ([][]float32, error) {
+	var pending []string
+	queued := make(map[string]struct{})
+	for _, text := range texts {
+		if _, done := embedded[text]; done {
+			continue
+		}
+		if _, waiting := queued[text]; waiting {
+			continue
+		}
+		queued[text] = struct{}{}
+		pending = append(pending, text)
+	}
+	if len(pending) > 0 {
+		vectors, err := embedder.Embed(pending)
+		if err != nil {
+			return nil, err
+		}
+		if len(vectors) != len(pending) {
+			return nil, fmt.Errorf("embedder returned %d vectors for %d texts", len(vectors), len(pending))
+		}
+		for index, vector := range vectors {
+			embedded[pending[index]] = vector
+		}
+	}
+	out := make([][]float32, len(texts))
+	for index, text := range texts {
+		out[index] = embedded[text]
+	}
+	return out, nil
 }
 
 const embedBatch = 128

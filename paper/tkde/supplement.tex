@@ -3571,7 +3571,7 @@ document repository or knowledge base rather than a reporting Product, and
 reports a pilot-class evaluation of the implementation. The knowledge-product
 path is implemented: documents, chunks and extracted values are published as
 three sealed relations of one index epoch, retrieval is prepared through the
-same sealed preparation boundary as \code{execute\_plan}, and the three
+same sealed preparation boundary as \code{execute_plan}, and the three
 request forms settle on the same ledger. The evidence in
 Section~\ref{sec:supp-kp-pilot} is pilot class (\KbPilotClass): one synthetic
 publication, independent control stores as deployments, and it is not part
@@ -3742,10 +3742,12 @@ exact arm's median latency was \KbExactNoneLatencyMs{}\,ms without a scope,
 \caption{HNSW control arm against exact retrieval on the pilot knowledge
 publication (class \KbPilotClass; $k=20$; \KbHnswQueries{} queries; report
 digest \KbHnswReportDigest). Under pgvector's default
-\code{ef\_search}=40 with mandatory scopes applied after the index walk,
-most queries return short or different hit sets; the iterative scan removes
-the short results but still changes the set for a sizeable share of
-queries. The exact arm is the default; this table is the reason.}
+\code{ef_search}=40 with mandatory scopes applied after the index walk, only
+\KbHnswDepartmentOffEfFortyIdentity\% (department) and
+\KbHnswDepartmentClassificationOffEfFortyIdentity\% (department and
+classification) of the queries return the exact hit set; the iterative scan
+removes the short results, yet identity stays below 100\% at every setting
+measured. The exact arm is the default; this table is the reason.}
 \label{tab:supp-kp-hnsw}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -3903,11 +3905,17 @@ $0/0/0$ against the same ledger.
 \subsection{Pilot evaluation}
 \label{sec:supp-kp-pilot}
 
-The four experiments below were pre-registered with expectations before any
-run (\code{docs/kb\_experiment\_design.md} in the repository) and are reported
-against those expectations. All run on one publication of the synthetic
-corpus (10{,}000 documents, 10{,}469 versions, 48{,}183 chunks embedded with
-\code{bge-m3}), with the same gateway binary; a deployment is a fresh control
+E-KB1 to E-KB4 were pre-registered with expectations before any run
+(\code{docs/kb_experiment_design.md} in the repository) and are reported
+against those expectations; E-KB5 was added when the Catalog gained
+collection-scoped values and has no pre-registered expectation. All run on
+publications of one synthetic corpus embedded with \code{bge-m3}: every
+experiment uses the publication of 10{,}000 documents (10{,}469 versions,
+48{,}183 chunks), the larger E-KB3 tier one of 20{,}000 documents
+(\KbEkbThreeNinetySixKChunks{} chunks), and E-KB5 a second publication of the
+first corpus that differs only in one field's declared scope. Within an
+experiment every deployment runs the same gateway build (the registry names
+the source revision of each report), and a deployment is a fresh control
 store and gateway instance over the same business database. Budgets are in
 cells, since a chunk releases four cells (\KbEkbOneReleaseBudget{} Release
 cells is roughly 200 chunks). Every number is a macro generated from the
@@ -3920,11 +3928,20 @@ role and validity-month buckets, S3 adjacency fetch of hit documents) under
 two arms: per-query access control with no ledger, and FactGate under the
 pilot budget. Table~\ref{tab:supp-kp-ekb1} reports the share of the
 department's requestable chunks obtained (\KbEkbOneDeployments{}
-deployments $\times$ \KbEkbOneSeeds{} seeds per cell). Under FactGate every
-run stopped at \code{EXPOSURE\_BUDGET\_EXHAUSTED} within the budget bound;
-the step of first refusal was at most \KbEkbOneFactGateSOneFirstRefusalMax{}
-(S1), \KbEkbOneFactGateSTwoFirstRefusalMax{} (S2) and
-\KbEkbOneFactGateSThreeFirstRefusalMax{} (S3). The pre-registered table
+deployments $\times$ \KbEkbOneSeeds{} seeds per cell). Under FactGate
+\KbEkbOneFactGateStopBudgetRuns{} of the \KbEkbOneFactGateRunsTotal{} runs
+stopped at \code{EXPOSURE_BUDGET_EXHAUSTED} within the budget bound, S1 and
+S2 at their first refusal (at most step \KbEkbOneFactGateSOneFirstRefusalMax{}
+and \KbEkbOneFactGateSTwoFirstRefusalMax). Under S3 every adjacency fetch was
+refused with \code{CHUNK_NOT_RETURNED}, because a fetch may name only chunks
+already returned to the same task family
+(\KbEkbOneFactGateSThreeChunkRefusals{} refusals,
+\KbEkbOneFactGateSThreeChunkRefusalsMin--\KbEkbOneFactGateSThreeChunkRefusalsMax{}
+per run, the first at step \KbEkbOneFactGateSThreeFirstRefusalMax). A refused
+fetch reserves nothing, so S3 reduces to its searches: it ran to at most step
+\KbEkbOneFactGateSThreeStopStepMax{} and obtained the same number of distinct
+chunks as S1 in \KbEkbOneFactGateSThreeSameAsSOneRuns{} of
+\KbEkbOneFactGateSThreeRuns{} runs. The pre-registered table
 expected the no-ledger arm to reach 90\% under S2 and S3; the scripted
 partition scan reached \KbEkbOneAclSTwoLeakMeanPct\% and the adjacency fetch
 \KbEkbOneAclSThreeLeakMeanPct\%, so those two attacker scripts are weaker
@@ -3964,7 +3981,7 @@ request \KbEkbTwoControllerOtherDeptAdmitted{} of
 \KbEkbTwoControllerOtherDeptRequests{}; requests for another department were
 refused \KbEkbTwoOtherDeptNotEligible{} of \KbEkbTwoOtherDeptRequests{} times
 and requests above the clearance \KbEkbTwoHigherClassificationNotEligible{}
-of \KbEkbTwoHigherClassificationRequests{}, all with \code{NOT\_ELIGIBLE}
+of \KbEkbTwoHigherClassificationRequests{}, all with \code{NOT_ELIGIBLE}
 and no approval draft (report \KbEkbTwoReportDigest). In the misapproval arm
 an approver granted a request inside the envelope but broader than its
 purpose; the partition scan under that grant leaked
@@ -3982,20 +3999,30 @@ business database, on two publications (\KbEkbThreeFortyEightKChunks{} and
 \KbEkbThreeNinetySixKChunks{} chunks), \KbEkbThreeFortyEightKRounds{} rounds
 per deployment on \KbEkbThreeFortyEightKDeployments{} deployments with the
 machine otherwise idle. Both arms submit the query vector, so the embedding
-service is outside both measurements; rounds whose normal form repeats an
-earlier one are replay rounds. The gateway's cost is dominated by its two
-statements: the provenance statement and the visible statement each run the
-exact nearest-neighbour scan once, so the increment grows with the
-collection (median provenance time
-\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms at
-48k and \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms
-at 96k for $k=20$), while settlement persistence
+service is outside both measurements, and both deliver chunk text: the
+direct statement selects it, and the gateway reads it after settlement by
+chunk identity and checks it against the released digest, a step included in
+its client time but not in the stage breakdown. Rounds whose normal form
+repeats an earlier one are replay rounds. The part of the gateway's cost that
+grows with the collection is its two statements, each running the exact
+nearest-neighbour scan once (for search at $k=20$, the provenance statement
+takes \KbEkbThreeFortyEightKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms
+at 48k and
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelProvenancePostgresql{}\,ms at
+96k, the visible statement
+\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelBusinessPostgresql{} and
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelBusinessPostgresql{}\,ms);
+settlement persistence grows less
 (\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelSettlePersist{} and
 \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelSettlePersist{}\,ms) and
-authorization do not. The pre-registered expectation that the gateway's p95
-would stay within twice the direct latency does not hold: with a department
-filter the direct scan takes a few milliseconds and the fixed settlement
-cost dominates. Replays settle in about a third of the novel latency.
+authorization not at all
+(\KbEkbThreeFortyEightKSearchFactGateKTwentyNovelAuthorization{} and
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelAuthorization{}\,ms). The
+pre-registered expectation that the gateway's p95 would stay within twice
+the direct latency does not hold: with a department filter the direct scan
+takes a few milliseconds and the settlement cost, which does not depend on
+the scan, dominates. A replayed search costs roughly a third of a novel one
+and a replayed aggregate roughly half.
 
 \begin{table}[h]
 \centering
@@ -4055,11 +4082,14 @@ identity \KbEkbFourVectorSameOrderKFive, \KbEkbFourVectorSameOrderKTen{} and
 normalized question itself through the trusted embedding service; member
 identity was \KbEkbFourIdentityKFive, \KbEkbFourIdentityKTen{} and
 \KbEkbFourIdentityKTwenty\% and order identity \KbEkbFourSameOrderKFive,
-\KbEkbFourSameOrderKTen{} and \KbEkbFourSameOrderKTwenty\%; every residual
-difference is a tie at the $k$ boundary between the same chunk text in two
-versions of one document, decided by the service returning vectors that
-differ in their last bits for single and batched inputs, which is a property
-of the embedding service rather than of the gateway. The gateway's own hit
+\KbEkbFourSameOrderKTen{} and \KbEkbFourSameOrderKTwenty\%. The two arms' query vectors may still differ
+in their last bits, since the service embeds single and batched inputs
+slightly differently. Such noise can decide a near-tie, and the corpus has
+many chunks whose text repeats across versions of a document; the publisher
+embeds each distinct text once, so repeated texts carry bit-identical vectors
+(none of the \KbEkbFourRepeatedTextGroups{} groups of repeated text in this
+publication, \KbEkbFourRepeatedTextChunks{} chunks, holds two different
+vectors), their ties are exact, and both arms break them by chunk identity. The gateway's own hit
 sets agree across deployments in \KbEkbFourCrossIdentical{} of
 \KbEkbFourCrossTotal{} comparisons. Retrieval
 quality on this synthetic corpus is reported, not claimed: recall of the

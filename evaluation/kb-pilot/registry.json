@@ -1,121 +1,221 @@
 {
-  "version": "taskgate-kb-pilot-evidence-registry-v1",
-  "campaign_class": "kb-pilot",
-  "publication_eligible": false,
-  "note": "Pilot-class knowledge-product evidence (docs/kb_extension_plan.md §0). Each entry binds a file in this directory by sha256; paper/tkde/generate_kb_evidence.py refuses a file whose digest moved. Promotion to publication evidence is an author decision recorded in the ledger.",
-  "entries": [
-    {
-      "id": "k34-hnsw-v2",
-      "path": "k34-hnsw/report-v2.json",
-      "sha256": "15215487017ee68501f53365e819e6644e57d7ff7f822c2ca026aad6f2a168b2",
-      "produced_by": "evaluation/cmd/kb-hnsw-diff -collection policy_bge_v2 -queries 200 -seed kb-hnsw-diff-1",
-      "publication": "policy-kb-2026-10-bge-v2 (corpus v2 sha256 2180645d…, bge-m3 weights b5e0ce34…)",
-      "ledger": "KB1-LOOP-50",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/report-v2.json"
-    },
-    {
-      "id": "ekb2-eligibility-gate-v2",
-      "path": "ekb2/report-v2.json",
-      "sha256": "2618b6e3d59cd7a3bc93807b9d29f8f3733b35cb7bf405f5de22aece3e4299b8",
-      "produced_by": "go test ./internal/gateway -run TestEKB2EligibilityGate (KB_EKB2_DEPLOYMENTS=3)",
-      "publication": "policy-kb-2026-10-bge-v2 catalog fragment with the pre-registered eligibility rule (finance_controller widening)",
-      "ledger": "KB1-LOOP-56",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-v2.json"
-    },
-    {
-      "id": "queryset-v2",
-      "path": "queryset-v2/queries.jsonl",
-      "sha256": "36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec",
-      "produced_by": "evaluation/cmd/kb-queryset -targets 300 -batch 10 (claude-haiku-5-5), frozen before any retrieval run",
-      "publication": "corpus v2 sha256 2180645d… (manifest.json binds corpus_sha256, targets_sha256)",
-      "ledger": "KB1-LOOP-58",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-queryset-v2/queries.jsonl"
-    },
-    {
-      "id": "ekb2-misapproval-v2",
-      "path": "ekb2/report-b-v2.json",
-      "sha256": "65828141892a254a5ff36b094616ae397bb0831060dbf074ee9a13cfc1ae0efd",
-      "produced_by": "go test ./internal/gateway -run TestEKB2MisapprovalArm (KB_EKB2_DEPLOYMENTS=3)",
-      "publication": "policy-kb-2026-10-bge-v2; misapproved grant = own department, clearance {public, internal, confidential}; kb-pilot budget in cells; TTL 2 min on the test clock",
-      "ledger": "KB1-LOOP-59",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-b-v2.json"
-    },
-    {
-      "id": "ekb4-retrieval-quality-v2-run1",
-      "path": "ekb4/report-v2-run1.json",
-      "sha256": "191cd0e67df5b4c73918200a4c435c3be4d26cd9a5ff753ee27acf9d09a4b691",
-      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); runner of commit e8c21ec compared ordered lists",
-      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
-      "note": "identity_by_k in this report is ORDER identity (99.7/99.5/98.8%); member identity recomputed post hoc by analyze_run1_order_differences.py is 5400/5400 (36 observations, 7 queries, same set different order; cause: single-vs-batch embedding differs by ~1e-11 cosine). A rerun with the corrected runner (member identity + order identity) is queued after the E-KB3 chain.",
-      "ledger": "KB1-LOOP-61",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run1.json"
-    },
-    {
-      "id": "ekb1-adaptive-extraction-v2-run1",
-      "path": "ekb1/report-v2-run1.json",
-      "sha256": "19c02cc9749ba18f3d5475b3a8cb9c7e78583582e11c3a5672f803f272156d54",
-      "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); runner of commit 5ccbeb4 (S2 = one generic query per partition)",
-      "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
-      "note": "FactGate bound achieved in all 27 runs (183-200 chunks, 6.6-7.6%); ACL S2 saturated at 8.4% because the partition scan reused one query text; a rerun with rotating texts per partition is queued.",
-      "ledger": "KB1-LOOP-62",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run1.json"
-    },
-    {
-      "id": "ekb3-overhead-48k",
-      "path": "ekb3/report-48k.json",
-      "sha256": "7db4e1f938cf1894e03067e1b3c694d3670bc902002fccc0c516aa588040493f",
-      "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 48k, 3 deployments x 200 rounds, machine otherwise idle 23:59-00:02)",
-      "publication": "policy-kb-2026-10-bge-v2 (48,183 chunks); vector queries on both arms",
-      "ledger": "KB1-LOOP-63",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-48k.json"
-    },
-    {
-      "id": "ekb4-retrieval-quality-v2-run2",
-      "path": "ekb4/report-v2-run2.json",
-      "sha256": "85b21bb8984a5c2e27cf3adaf1c5221e75a945f913064815579d6051da9f01a8",
-      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); embedding service on CPU; runner of commit d2e75a3 (member identity + order identity, text arm only)",
-      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
-      "note": "member identity 100/99.83/99.83% (k 5/10/20); the 6 differing observations (2 queries) are k-boundary ties between chunk 0 of two versions of one document (distance gaps 4e-9 and 2.6e-8) decided by single-vs-batch embedding noise (~1e-7 on CPU). A run with a vector arm (same vector to the gateway) is queued as run 3.",
-      "ledger": "KB1-LOOP-64",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run2.json"
-    },
-    {
-      "id": "ekb1-adaptive-extraction-v2",
-      "path": "ekb1/report-v2-run2.json",
-      "sha256": "16a501a778084bf83656343b69cb8897bce0be76bb59d4c873ee75612c42a072",
-      "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); S2 rotates vocabulary texts per partition pass; embedding service on CPU",
-      "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
-      "note": "canonical E-KB1 run (run 2). FactGate arm identical to run 1: all 27 runs stopped by EXPOSURE_BUDGET_EXHAUSTED at 183-200 chunks; ACL S2 28.5% (run 1: 8.4%).",
-      "ledger": "KB1-LOOP-65",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run2.json"
-    },
-    {
-      "id": "ekb4-retrieval-quality-v2",
-      "path": "ekb4/report-v2-run3.json",
-      "sha256": "c4636e4d28d50ee0ccb54b83e9acf9f6460bc0e0230f6711b1fbe5a98e91d052",
-      "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20, text arm + vector arm); embedding service on CPU",
-      "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
-      "note": "canonical E-KB4 run (run 3). Vector arm: member identity and order identity 100% at every k. Text arm: member identity 100/99.83/99.83%, same order 99.33/99.00/97.83% (embedding single-vs-batch noise on duplicate-content boundary ties). recall@k identical to runs 1 and 2.",
-      "ledger": "KB1-LOOP-67",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run3.json"
-    },
-    {
-      "id": "ekb3-overhead-96k",
-      "path": "ekb3/report-96k.json",
-      "sha256": "8de7d39ba2907cebd4bf6a70b9ae26eeaa7e841b619f5898ec1c7e08e2c55510",
-      "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 96k, 3 deployments x 200 rounds, machine otherwise idle 05:21-05:25)",
-      "publication": "policy-kb-2026-10-bge-20k (96,401 chunks; manifest 081e2274…; vectors GPU/CPU mixed from the resumable cache); vector queries on both arms",
-      "ledger": "KB1-LOOP-68",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-96k.json"
-    },
-    {
-      "id": "ekb5-collection-scope-v2",
-      "path": "ekb5/report-v2.json",
-      "sha256": "ca7c88759fc57623ce4ba2d9fac861642464394d091d394d78067547f7adc9a0",
-      "produced_by": "go test ./internal/gateway -run TestEKB5CollectionScopedValues (3 deployments per publication)",
-      "publication": "document-scoped policy-kb-2026-10-bge-v2 (kbe2e5) vs collection-scoped policy-kb-2026-10-bge-v2c (kbe2e7, manifest cf5c96a9…, counterparty scope=collection, collection_values 438 rows)",
-      "ledger": "KB1-LOOP-72",
-      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb5/report-v2.json"
-    }
-  ]
+ "version": "taskgate-kb-pilot-evidence-registry-v1",
+ "campaign_class": "kb-pilot",
+ "publication_eligible": false,
+ "note": "Pilot-class knowledge-product evidence (docs/kb_extension_plan.md §0). Each entry binds a file in this directory by sha256; paper/tkde/generate_kb_evidence.py refuses a file whose digest moved. Promotion to publication evidence is an author decision recorded in the ledger.",
+ "entries": [
+  {
+   "id": "k34-hnsw-v2",
+   "path": "k34-hnsw/report-v2.json",
+   "sha256": "15215487017ee68501f53365e819e6644e57d7ff7f822c2ca026aad6f2a168b2",
+   "produced_by": "evaluation/cmd/kb-hnsw-diff -collection policy_bge_v2 -queries 200 -seed kb-hnsw-diff-1",
+   "publication": "policy-kb-2026-10-bge-v2 (corpus v2 sha256 2180645d…, bge-m3 weights b5e0ce34…)",
+   "ledger": "KB1-LOOP-50",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/report-v2.json"
+  },
+  {
+   "id": "ekb2-eligibility-gate-v2",
+   "path": "ekb2/report-v2.json",
+   "sha256": "2618b6e3d59cd7a3bc93807b9d29f8f3733b35cb7bf405f5de22aece3e4299b8",
+   "produced_by": "go test ./internal/gateway -run TestEKB2EligibilityGate (KB_EKB2_DEPLOYMENTS=3)",
+   "publication": "policy-kb-2026-10-bge-v2 catalog fragment with the pre-registered eligibility rule (finance_controller widening)",
+   "ledger": "KB1-LOOP-56",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-v2.json"
+  },
+  {
+   "id": "queryset-v2",
+   "path": "queryset-v2/queries.jsonl",
+   "sha256": "36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec",
+   "produced_by": "evaluation/cmd/kb-queryset -targets 300 -batch 10 (claude-haiku-5-5), frozen before any retrieval run",
+   "publication": "corpus v2 sha256 2180645d… (manifest.json binds corpus_sha256, targets_sha256)",
+   "ledger": "KB1-LOOP-58",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-queryset-v2/queries.jsonl"
+  },
+  {
+   "id": "ekb2-misapproval-v2",
+   "path": "ekb2/report-b-v2.json",
+   "sha256": "65828141892a254a5ff36b094616ae397bb0831060dbf074ee9a13cfc1ae0efd",
+   "produced_by": "go test ./internal/gateway -run TestEKB2MisapprovalArm (KB_EKB2_DEPLOYMENTS=3)",
+   "publication": "policy-kb-2026-10-bge-v2; misapproved grant = own department, clearance {public, internal, confidential}; kb-pilot budget in cells; TTL 2 min on the test clock",
+   "ledger": "KB1-LOOP-59",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-b-v2.json"
+  },
+  {
+   "id": "ekb4-retrieval-quality-v2-run1",
+   "path": "ekb4/report-v2-run1.json",
+   "sha256": "191cd0e67df5b4c73918200a4c435c3be4d26cd9a5ff753ee27acf9d09a4b691",
+   "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); runner of commit e8c21ec compared ordered lists",
+   "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+   "note": "identity_by_k in this report is ORDER identity (99.7/99.5/98.8%); member identity recomputed post hoc by analyze_run1_order_differences.py is 5400/5400 (36 observations, 7 queries, same set different order; cause: single-vs-batch embedding differs by ~1e-11 cosine). A rerun with the corrected runner (member identity + order identity) is queued after the E-KB3 chain.",
+   "ledger": "KB1-LOOP-61",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run1.json"
+  },
+  {
+   "id": "ekb1-adaptive-extraction-v2-run1",
+   "path": "ekb1/report-v2-run1.json",
+   "sha256": "19c02cc9749ba18f3d5475b3a8cb9c7e78583582e11c3a5672f803f272156d54",
+   "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); runner of commit 5ccbeb4 (S2 = one generic query per partition)",
+   "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
+   "note": "FactGate bound achieved in all 27 runs (183-200 chunks, 6.6-7.6%); ACL S2 saturated at 8.4% because the partition scan reused one query text; a rerun with rotating texts per partition is queued.",
+   "ledger": "KB1-LOOP-62",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run1.json"
+  },
+  {
+   "id": "ekb3-overhead-48k",
+   "path": "ekb3/report-48k.json",
+   "sha256": "7db4e1f938cf1894e03067e1b3c694d3670bc902002fccc0c516aa588040493f",
+   "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 48k, 3 deployments x 200 rounds, machine otherwise idle 23:59-00:02)",
+   "publication": "policy-kb-2026-10-bge-v2 (48,183 chunks); vector queries on both arms",
+   "ledger": "KB1-LOOP-63",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-48k.json"
+  },
+  {
+   "id": "ekb4-retrieval-quality-v2-run2",
+   "path": "ekb4/report-v2-run2.json",
+   "sha256": "85b21bb8984a5c2e27cf3adaf1c5221e75a945f913064815579d6051da9f01a8",
+   "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20); embedding service on CPU; runner of commit d2e75a3 (member identity + order identity, text arm only)",
+   "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+   "note": "member identity 100/99.83/99.83% (k 5/10/20); the 6 differing observations (2 queries) are k-boundary ties between chunk 0 of two versions of one document (distance gaps 4e-9 and 2.6e-8) decided by single-vs-batch embedding noise (~1e-7 on CPU). A run with a vector arm (same vector to the gateway) is queued as run 3.",
+   "ledger": "KB1-LOOP-64",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run2.json"
+  },
+  {
+   "id": "ekb1-adaptive-extraction-v2",
+   "path": "ekb1/report-v2-run2.json",
+   "sha256": "16a501a778084bf83656343b69cb8897bce0be76bb59d4c873ee75612c42a072",
+   "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 deployments x 3 seeds x S1/S2/S3 x acl/factgate, 400 steps); S2 rotates vocabulary texts per partition pass; embedding service on CPU",
+   "publication": "policy-kb-2026-10-bge-v2; kb-pilot budget in cells (B_Q 256, B_R 800, B_D 2400, B_O 64)",
+   "note": "canonical E-KB1 run (run 2). FactGate arm identical to run 1: all 27 runs stopped by EXPOSURE_BUDGET_EXHAUSTED at 183-200 chunks; ACL S2 28.5% (run 1: 8.4%).",
+   "ledger": "KB1-LOOP-65",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2-run2.json"
+  },
+  {
+   "id": "ekb4-retrieval-quality-v2",
+   "path": "ekb4/report-v2-run3.json",
+   "sha256": "c4636e4d28d50ee0ccb54b83e9acf9f6460bc0e0230f6711b1fbe5a98e91d052",
+   "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20, text arm + vector arm); embedding service on CPU",
+   "publication": "policy-kb-2026-10-bge-v2; queryset-v2 36dade4b…",
+   "note": "canonical E-KB4 run (run 3). Vector arm: member identity and order identity 100% at every k. Text arm: member identity 100/99.83/99.83%, same order 99.33/99.00/97.83% (embedding single-vs-batch noise on duplicate-content boundary ties). recall@k identical to runs 1 and 2.",
+   "ledger": "KB1-LOOP-67",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2-run3.json"
+  },
+  {
+   "id": "ekb3-overhead-96k",
+   "path": "ekb3/report-96k.json",
+   "sha256": "8de7d39ba2907cebd4bf6a70b9ae26eeaa7e841b619f5898ec1c7e08e2c55510",
+   "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 96k, 3 deployments x 200 rounds, machine otherwise idle 05:21-05:25)",
+   "publication": "policy-kb-2026-10-bge-20k (96,401 chunks; manifest 081e2274…; vectors GPU/CPU mixed from the resumable cache); vector queries on both arms",
+   "ledger": "KB1-LOOP-68",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-96k.json"
+  },
+  {
+   "id": "ekb5-collection-scope-v2",
+   "path": "ekb5/report-v2.json",
+   "sha256": "ca7c88759fc57623ce4ba2d9fac861642464394d091d394d78067547f7adc9a0",
+   "produced_by": "go test ./internal/gateway -run TestEKB5CollectionScopedValues (3 deployments per publication)",
+   "publication": "document-scoped policy-kb-2026-10-bge-v2 (kbe2e5) vs collection-scoped policy-kb-2026-10-bge-v2c (kbe2e7, manifest cf5c96a9…, counterparty scope=collection, collection_values 438 rows)",
+   "ledger": "KB1-LOOP-72",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb5/report-v2.json"
+  },
+  {
+   "id": "k34-hnsw-v2r2",
+   "path": "k34-hnsw/report-v2r2.json",
+   "sha256": "f78205454beea49d099ec9239138e5495b7b0ed775b86f1044e9869fe59e4950",
+   "produced_by": "evaluation/cmd/kb-hnsw-diff -collection policy_bge_v2 -queries 200 -seed kb-hnsw-diff-1 (commit c82a5f5)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Rerun of k34-hnsw-v2 on the revision-2 vectors. Every identity changes by at most 1.0 point and every recall by at most 0.003; latencies within 0.4 ms. Revision 2 reuses the revision-1 epoch names; the manifests above distinguish them, and the revision-1 artifacts remain on NAS under their original folders.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/report-v2r2.json"
+  },
+  {
+   "id": "ekb2-eligibility-gate-v2r2",
+   "path": "ekb2/report-v2r2.json",
+   "sha256": "7a0de14c300a5681a4a4a187e1f48de49726e10de7e37e458c0660cff99c6e61",
+   "produced_by": "go test ./internal/gateway -run TestEKB2EligibilityGate (3 deployments; tree of commit e232ae4, chain ~/logs/kb1/rev2-chain.sh)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Every count identical to ekb2-eligibility-gate-v2. Revision 2 reuses the revision-1 epoch names; the manifests above distinguish them, and the revision-1 artifacts remain on NAS under their original folders.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-v2r2.json"
+  },
+  {
+   "id": "ekb2-misapproval-v2r2",
+   "path": "ekb2/report-b-v2r2.json",
+   "sha256": "2be3a494038163605347e4437d4aa1993bac87a6e3639f83f2d252b5e99cd803",
+   "produced_by": "go test ./internal/gateway -run TestEKB2MisapprovalArm (3 deployments; tree of commit e232ae4)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Every count identical to ekb2-misapproval-v2 (leaked 191/200/200, first refusal step 11, EXPOSURE_BUDGET_EXHAUSTED).",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb2/report-b-v2r2.json"
+  },
+  {
+   "id": "ekb5-collection-scope-v2r2",
+   "path": "ekb5/report-v2r2.json",
+   "sha256": "70e0bab94672106fd2fa96e96cac41daab16d915af378bd3b73f1216fdc54cff",
+   "produced_by": "go test ./internal/gateway -run TestEKB5CollectionScopedValues (3 deployments x 2 publications; tree of commit e232ae4)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache); policy-kb-2026-10-bge-v2c revision 2 (kb-publication.json sha256 427e78a1..., chunks manifest aeb7ab65...)",
+   "note": "Every count identical to ekb5-collection-scope-v2 (document 116 answer, R/D/O 1/580/4; collection 10, 1/50/4).",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb5/report-v2r2.json"
+  },
+  {
+   "id": "ekb4-retrieval-quality-v2r2",
+   "path": "ekb4/report-v2r2.json",
+   "sha256": "ebdb74254b896f1e2fb08ed9ef32a72e25dc3cdd376d7112a884c2299c0207c4",
+   "produced_by": "go test ./internal/gateway -run TestEKB4RetrievalQuality (3 deployments, 600 queries, k 5/10/20, text arm + vector arm; tree of commit e232ae4); embedding service on CPU",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache); queryset-v2 36dade4b...",
+   "note": "Member and order identity 100% at every k in both arms; recall@k and MRR identical to ekb4-retrieval-quality-v2. The text-arm residual differences of revision 1 were boundary ties between duplicate-text chunks; in revision 2 all 1,692 duplicate-text groups (3,384 chunks) carry bit-identical vectors (checked in kbe2e5 with a positive control), so those ties are exact and both arms break them by chunk identity.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/report-v2r2.json"
+  },
+  {
+   "id": "ekb1-adaptive-extraction-v2r2",
+   "path": "ekb1/report-v2r2.json",
+   "sha256": "93a317ecde0a33ea90df6639efa41cfe4c70f5cd276269bb1a6b1d077ba51a34",
+   "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 x 3 x S1/S2/S3 x acl/factgate, 400 steps; tree of commit e232ae4)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Superseded by ekb1-adaptive-extraction-v2r3: this runner recorded only the first refusal code, so the stop code of FactGate S3 (first refusal CHUNK_NOT_RETURNED at step 2, stop at steps 151-177) is not in the report. Trajectories identical to v2r3.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2r2.json"
+  },
+  {
+   "id": "ekb1-adaptive-extraction-v2r3",
+   "path": "ekb1/report-v2r3.json",
+   "sha256": "d05fc7f4353a9a5d4028e6279438018802abb658c7736aa429b750873c507132",
+   "produced_by": "go test ./internal/gateway -run TestEKB1AdaptiveExtraction (3 x 3 x S1/S2/S3 x acl/factgate, 400 steps; commit c82a5f5, runner records stop_code and refusals)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Canonical E-KB1 under revision 2 and the returned-chunk rule (kb-design 9.6 a). All 27 FactGate runs stopped at EXPOSURE_BUDGET_EXHAUSTED; S3 adjacency fetches were refused 1,395 times with CHUNK_NOT_RETURNED (140-165 per run, first at step 2), and S3 obtained the same number of distinct chunks as S1 in all 9 runs. ACL arm and legitimate tasks identical to ekb1-adaptive-extraction-v2.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb1/report-v2r3.json"
+  },
+  {
+   "id": "ekb3-overhead-48k-r2",
+   "path": "ekb3/report-48k-r2.json",
+   "sha256": "00de4f7eb9d2e080eb279e4fc637911963709f3818ebd3207b2c6a82bae6fddf",
+   "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 48k, 200 rounds x 3 deployments; tree of commit e232ae4; machine otherwise idle)",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (chunk Result cell text_sha256, kb-design 9.8; kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...; every vector read from the content-keyed embedding cache)",
+   "note": "Gateway client time now includes the delivery read of chunk text (identity lookup on kb.chunks plus digest check), outside the stage breakdown. Against ekb3-overhead-48k the gateway novel medians of search and fetch fell 7.4-10.0 ms and aggregate rose 0.8 ms; the fall sits in the business and provenance database stages; cause not separated by a controlled run (candidates: the statements no longer carry the text column; the freshly rebuilt database).",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-48k-r2.json"
+  },
+  {
+   "id": "ekb3-overhead-96k-r2",
+   "path": "ekb3/report-96k-r2.json",
+   "sha256": "d9c36de4376925ffe35d97ddbb6dc4226cb98b4288a78decba281be2cd03727c",
+   "produced_by": "go test ./internal/gateway -run TestEKB3Overhead (tier 96k, 200 rounds x 3 deployments; tree of commit e232ae4; machine otherwise idle)",
+   "publication": "policy-kb-2026-10-bge-20k revision 2 (kb-publication.json sha256 eda9fe01..., chunks manifest c2b9bfb6...)",
+   "note": "As ekb3-overhead-48k-r2. Against ekb3-overhead-96k the gateway novel medians of search fell 27.9-38.4 ms, of fetch 17.3-17.8 ms, and aggregate rose 1.3 ms.",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-96k-r2.json"
+  },
+  {
+   "id": "ekb4-duplicate-text-vectors-v2r2",
+   "path": "ekb4/duplicate-vectors-v2r2.json",
+   "sha256": "1348f66919528ae585c076ca67aa62ca95e8734784afe651fdbc8f0a8bd625a3",
+   "produced_by": "psql against kbe2e5: per text_sha256 group, count of distinct stored vectors; positive control on two different texts",
+   "publication": "policy-kb-2026-10-bge-v2 revision 2 (kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...)",
+   "note": "1,692 groups of chunks with repeated text (3,384 chunks); no group carries two different vectors; the control query separates two different texts (2 distinct vectors).",
+   "ledger": "KB1-LOOP-75",
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb4/duplicate-vectors-v2r2.json"
+  }
+ ]
 }
