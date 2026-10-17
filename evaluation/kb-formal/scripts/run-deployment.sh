@@ -300,6 +300,15 @@ step "ATTEST schema_digest=$attested"
 # before the gateway that depends on it.
 compose up -d --wait --no-deps oa-demo >> "$log" 2>&1 || die "OA did not become healthy"
 compose up -d --wait --no-deps gateway >> "$log" 2>&1 || die "gateway did not become healthy"
+# The healthcheck proves liveness only (the approved formal definition); readiness
+# (control store, business attestation, activation) is proven here, once, before
+# any experiment, as the V5 formal harness does.
+ready_started=$(date +%s.%N)
+until curl -fsS -m 5 -o /dev/null http://127.0.0.1:8082/health/ready; do
+  (( $(date +%s) - ${ready_started%.*} < 180 )) || die "the gateway did not become ready within 180 s"
+  sleep 1
+done
+step "READY after $(awk -v s="$ready_started" -v e="$(date +%s.%N)" 'BEGIN { printf "%.1f", e - s }') s"
 docker logs "${project}-gateway-1" > "$dir/logs/gateway-startup.txt" 2>&1
 grep -q "\"knowledge product activated\".*\"epoch\":\"$epoch\"" "$dir/logs/gateway-startup.txt" || die "gateway did not activate $epoch"
 curl -fsS -m 10 http://127.0.0.1:8082/.well-known/taskgate/query-receipt-keyring.json > "$dir/receipt-keyring.json" || die "keyring fetch failed"

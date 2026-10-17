@@ -163,7 +163,10 @@
  },
  "images": {
   "business-postgres": "pgvector/pgvector@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
-  "kb-embed": "mcr.microsoft.com/playwright/python@sha256:f3a3d2e0332df4c7b6992db0ad0687df1653efd4671612b8ca1be6ae5fc06448"
+  "control-postgres": "postgres@sha256:92620daddcd947f8d5ab5ba66e848702fe443d87fed30c4cea8e389fd78dfc55",
+  "kb-embed": "mcr.microsoft.com/playwright/python@sha256:f3a3d2e0332df4c7b6992db0ad0687df1653efd4671612b8ca1be6ae5fc06448",
+  "result-object-store": "minio/minio@sha256:a1ea29fa28355559ef137d71fc570e508a214ec84ff8083e39bc5428980b015e",
+  "result-object-store-init": "minio/mc@sha256:aead63c77f9db9107f1696fb08ecb0faeda23729cde94b0f663edf4fe09728e3"
  },
  "query_set": [
   {
@@ -278,8 +281,8 @@
   },
   {
    "path": "evaluation/kb-formal/compose.kb.yaml",
-   "sha256": "8699084dd5299ba37a44a031789cf573cdd0f225a138088a2223fab6bb43634e",
-   "bytes": 4718
+   "sha256": "d0151b5ff07eccda06a7431c59669890435b0373a57d44d3ef02b949d3d9ceff",
+   "bytes": 6125
   },
   {
    "path": "db/init-kb/00-kb-base.sh",

@@ -49,7 +49,7 @@ func TestComposeImagesReadsTheKBOverlayPins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, service := range []string{"business-postgres", "kb-embed"} {
+	for _, service := range []string{"control-postgres", "business-postgres", "result-object-store", "result-object-store-init", "kb-embed"} {
 		if len(images[service]) < len("@sha256:")+64 {
 			t.Fatalf("service %s: pinned image %q", service, images[service])
 		}

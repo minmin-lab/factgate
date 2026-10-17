@@ -5,12 +5,31 @@
 #   <formal gateway image override>          (final-v5-gateway-build output)
 #   evaluation/kb-formal/compose.kb.yaml     (this file)
 #
+# Every image of the stack is pinned by digest here or comes from a formal build
+# override: control-postgres carries the V5 formal pin (PostgreSQL 16.14, the
+# digest evaluation/final-v5-wsl2/compose.observer-v3.yaml sets), the MinIO
+# images their release digests. That V5 overlay itself is not used, because it
+# would also replace the pgvector business database; the gateway healthcheck it
+# installs is repeated below verbatim.
+#
 # Host paths come from the environment: KB_EMBED_VENV and KB_EMBED_MODEL (the
 # frozen embedding virtualenv and model, mounted read-only), KB_FORMAL_KB_DIR
 # (the deployment's kb manifest directory), KB_FORMAL_PRINCIPALS (the
 # deployment's principals file), and the base file's TASKGATE_PROFILE_CATALOG,
 # TASKGATE_PRINCIPAL_ATTRIBUTES and TASKGATE_PROFILE_ARTIFACT_DIR.
 services:
+  control-postgres:
+    image: postgres@sha256:92620daddcd947f8d5ab5ba66e848702fe443d87fed30c4cea8e389fd78dfc55
+    pull_policy: never
+
+  result-object-store:
+    image: minio/minio@sha256:a1ea29fa28355559ef137d71fc570e508a214ec84ff8083e39bc5428980b015e
+    pull_policy: never
+
+  result-object-store-init:
+    image: minio/mc@sha256:aead63c77f9db9107f1696fb08ecb0faeda23729cde94b0f663edf4fe09728e3
+    pull_policy: never
+
   business-postgres:
     # PostgreSQL 16 with pgvector, pinned by digest. The knowledge-product init
     # set replaces db/init (whose V5 scripts create relations a knowledge-product
@@ -61,6 +80,16 @@ services:
       - no-new-privileges:true
 
   gateway:
+    # The approved formal healthcheck (internal/experiment formal_window.go,
+    # checked by final-v5-gateway-build verify): liveness only. The default
+    # /health/ready probe performs a full Business PostgreSQL Attestation every
+    # interval, background load inside every measured sample; readiness is
+    # instead proven once, explicitly, by run-deployment.sh before any experiment.
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8082/health/live"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
     # A knowledge-product Catalog activates no V5 publication, so the gateway
     # waits for its own services only, not the V5 snapshot jobs.
     depends_on: !override

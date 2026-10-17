@@ -341,10 +341,12 @@ func BuildBinding(root string, host BindingHost) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if images["business-postgres"] == "" || images["kb-embed"] == "" {
-		return nil, errors.New("the KB overlay does not pin the business-postgres and kb-embed images by digest")
+	for _, service := range []string{"control-postgres", "business-postgres", "result-object-store", "result-object-store-init", "kb-embed"} {
+		if images[service] == "" {
+			return nil, fmt.Errorf("the KB overlay does not pin the %s image by digest", service)
+		}
 	}
-	binding.Images = map[string]string{"business-postgres": images["business-postgres"], "kb-embed": images["kb-embed"]}
+	binding.Images = images
 
 	for _, name := range []string{"manifest.json", "queries.jsonl", "targets.json"} {
 		file, err := bindingFile(root, filepath.Join("evaluation/kb-pilot/queryset-v2", name))

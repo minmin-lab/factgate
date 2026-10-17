@@ -194,6 +194,7 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
   不另起容器；装载前核语料摘要等于 publish 规格，装载前后各取一次嵌入缓存内容摘要（全部向量文件按路径排序求 sha256）且须
   不变，即缓存事实上只读；复现出的发布物文件须与冻结发布物逐字节相同，清单摘要须等于 registry 值。单次部署由
   `evaluation/kb-formal/scripts/run-deployment.sh` 执行，整轮由 `run-round.sh` 按重复次序（每次重复先走遍四个 profile）执行。
+- 实现说明（续，2026-10-17）：全部镜像按摘要钉住或来自正式构建（控制库沿用 V5 正式钉的 PostgreSQL 16.14，MinIO 按发布摘要），并写入数据绑定；网关周期健康检查用 V5 批准的 `/health/live` 定义（默认的 `/health/ready` 每次做一次业务库全量 attestation，测时延期间会成为背景负载），就绪由脚本在任何实验前显式核一次；每次部署以 `final-v5-gateway-build verify` 对冻结源码树核正式网关运行时身份，整轮从发布过的活动分支 `kb-campaign/<campaign>` 的 worktree 运行。
 
 ### 4. 主体与审批
 
