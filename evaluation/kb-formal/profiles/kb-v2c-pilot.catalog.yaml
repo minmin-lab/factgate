@@ -31,7 +31,7 @@ sources:
     name: travel_demo
     port: 5432
     postgres_major_version: 16
-    schema_digest: f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48
+    schema_digest: 873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8
     secretRef: GATEWAY_DB_PASSWORD
     type: postgres
     user: gateway_reader

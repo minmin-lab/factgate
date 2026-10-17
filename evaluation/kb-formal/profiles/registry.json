@@ -61,11 +61,12 @@
     "ekb5-collection"
    ],
    "catalog": "kb-v2c-pilot.catalog.yaml",
-   "catalog_sha256": "da23460450ab9e77863635117d10cf772990519c67ae1c5550cac4b1f4bcd8b5",
+   "catalog_sha256": "84ea9a07c726a0169b560b270245d9e0998d60833b8246de75145f307ce3103d",
    "principal_attributes": "kb-v2c-pilot.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
-   "schema_digest_attested": false,
+   "schema_digest": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   }
  ]
