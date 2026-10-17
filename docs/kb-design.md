@@ -23,6 +23,7 @@ internal/ordinal 的发布物与字典、internal/catalog 的 snapshot_publicati
 |---|---|---|---|---|---|
 | 文档 | `kb.documents` → `reporting.<kp>_documents` | (doc_id, version) | doc_id, version, title, document_type, department, classification, labels, valid_from, valid_until, content_sha256, chunk_count | f_doc = ⟨ϖ,ν,s,d,v⟩ | `NewBaseRowFactV2(ν_doc, s, C(d,v))` |
 | 分块 | `kb.chunks` → `reporting.<kp>_chunks` | (doc_id, version, chunk_index) | doc_id, version, chunk_index, text_sha256, text, department, classification, labels, valid_until, embedding（不发布） | f_chunk = ⟨ϖ,ν,s,d,v,c,C(text_c)⟩ | 行 Fact `NewBaseRowFactV2(ν_chunk, s, C(d,v,c))` + 单元格 Fact `NewBaseCellFactV2(ν_chunk, s, C(d,v,c), "text_sha256", text, sha256(text))` |
+| 集合级抽取值（可选，2026-10-17 作者定） | `kb.extracted_values` 上 DISTINCT → `reporting.<kp>_collection_values` | (field, canonical_value, kb_department, classification) | 同 values 去掉 doc_id/version/document_type | f_val 的集合级身份：同值同范围只计一次 |
 | 内容事实 | `kb.extracted_values` → `reporting.<kp>_values` | 文档级：(doc_id, version, field)；集合级：(field, canonical_value) | doc_id, version, document_type, field, value_type, canonical_value（exposure 规范编码，身份用）, value_text / value_numeric / value_date（按 value_type 恰一列非空，聚合与类型化单元格用）, department, classification | f_val = ⟨ϖ,ν,s,d,v,a,τ,C_τ(x)⟩ 或集合级 ⟨ϖ,ν,s,a,τ,C_τ(x)⟩ | `NewBaseCellFactV2(ν_val, s, key, field, τ, x)`，τ 用现有 `CanonicalSQLValue` |
 | 派生 | 不落表 | — | — | f_gen = ⟨ϖ,B,H(answer),CW(W)⟩ | `NewDerivedFactV2(bundle, outputRowKey, expr, τ, value, witnessCommitment)`（aggregate 由现有聚合路径产生；生成回答 KB-1 **不实现**） |
 

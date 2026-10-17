@@ -3652,7 +3652,12 @@ Content facts are deduplicated by value: the same amount extracted from
 three documents in one collection is three $f_{val}$ identities (they differ
 in $d$) but, if the collection declares the field as collection-scoped, a
 single identity $\langle\varpi,\nu,s,a,\tau,C_\tau(x)\rangle$. Which rule
-applies is a Catalog declaration, not a runtime choice.
+applies is a Catalog declaration, not a runtime choice. The implementation
+publishes collection-scoped values as a fourth sealed relation holding one
+row per distinct value within the mandatory scope attributes (department and
+classification), so the identity carries the scope the policy must still
+bound but no document identifier; an aggregate over a collection-scoped
+field settles on that relation (E-KB5 below).
 
 Outcome Facts keep the main paper's two kinds. A predicate atom is a
 metadata filter condition
@@ -4014,6 +4019,23 @@ aggregate & direct & \KbEkbThreeFortyEightKAggregateDirectNovelPFifty & \KbEkbTh
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{E-KB5: document-scoped versus collection-scoped values.}
+The same request, the count of \code{counterparty} values over the finance
+department's internal contracts, was settled on two publications of the same
+corpus that differ only in the scope the Catalog declares for that field, on
+\KbEkbFiveDeployments{} deployments each (report \KbEkbFiveReportDigest).
+Document-scoped, the relation holds one row per contract: the answer is
+\KbEkbFiveDocumentAnswer{} (the \KbEkbFiveDirectRows{} contracts), with
+\KbEkbFiveDocumentRelease{} Release, \KbEkbFiveDocumentInfluence{}
+Dependency and \KbEkbFiveDocumentOutcome{} Outcome Facts. Collection-scoped,
+the relation holds one row per distinct counterparty within the scope: the
+answer is \KbEkbFiveCollectionAnswer{} (the \KbEkbFiveDirectDistinct{}
+distinct counterparties), with \KbEkbFiveCollectionRelease{} Release,
+\KbEkbFiveCollectionInfluence{} Dependency and
+\KbEkbFiveCollectionOutcome{} Outcome Facts. The declaration therefore
+changes both what the question means and what a one-number answer costs on
+the ledger; repeating either request charges nothing.
 
 \paragraph{E-KB4: the gateway does not change the hit set.}
 \KbEkbFourQueries{} questions frozen before any run (two per target

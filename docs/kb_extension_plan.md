@@ -37,7 +37,7 @@
 | K2.5 | 合成语料生成器 `evaluation/cmd/kb-corpus`：1 万份文档、12 部门、5 岗位、4 密级、自定义标签、领导层专属章节；文档类型含合同/审批单/制度/报告，带可抽取字段 | 语料冻结并 digest 绑定 | DONE |
 | K2.6 | GPU 嵌入：WSL 装 CUDA 版 torch 与 nvidia-container-toolkit；嵌入提供者 `bge-m3`（权重 sha256 入发布期）接入 kb-publish；嵌入服务（受信边界内，供查询文本嵌入）；hash-projection-v1 留作测试提供者 | GPU 上 48k 块编码完成并记时；同输入两次嵌入余弦差 < 1e-4；发布期清单含模型摘要 | DONE |
 | K2.7 | 真实感语料 v2：LLM 生成（元数据与可抽取字段受控），冻结 manifest + digest，JSONL 镜像 NAS（唯一备份） | 文档数、分布与 v1 口径相同或明写差异；digest 绑定；NAS sha256 核验 | DONE |
-| K2.8 | 集合级抽取值（作者 2026-10-17 定）：Catalog 规则 scope=collection，第四张关系 `collection_values`（按值与强制范围去重）进发布物、片段、激活校验 | kbpublish / catalog 测试通过；v2 重发布带集合级 counterparty | DOING |
+| K2.8 | 集合级抽取值（作者 2026-10-17 定）：Catalog 规则 scope=collection，第四张关系 `collection_values`（按值与强制范围去重）进发布物、片段、激活校验 | kbpublish / catalog 测试通过；v2 重发布带集合级 counterparty | DONE |
 
 ### 阶段 3：检索工具与结算
 
@@ -47,7 +47,7 @@
 | K3.2 | 效果提取：F_R/F_D/F_O 按 kb-design 定义；aggregate 的派生 Fact 带见证集 | 独立 oracle 包逐成员核对 | DONE |
 | K3.3 | 接入现有三维结算、重放、回执、委托；MCP 暴露三个工具 | 现有 TLA+/属性测试对知识 Fact 原样通过；集成测试：重放 0/0/0、拆分不多扣、子任务共账、超限扣留 | DONE |
 | K3.4 | 近似检索对策：精确检索为默认；HNSW 作为可选臂记录命中集差异率 | 差异率进补充材料 | DONE |
-| K3.5 | aggregate 按字段的规则 scope 路由到 values 或 collection_values | 端到端：同一聚合在两种声明下依赖集合不同 | DOING |
+| K3.5 | aggregate 按字段的规则 scope 路由到 values 或 collection_values | 端到端：同一聚合在两种声明下依赖集合不同 | DONE |
 
 ### 阶段 4：实验
 
@@ -58,7 +58,7 @@
 | K4.3 | E-KB2 资格门：非资格申请被拒率 100%、误批止损（预算与 TTL 下的最大外泄） | 表 | DONE |
 | K4.4 | E-KB3 开销：search/fetch/aggregate 的结算时延与直连向量库对比；10 万与 100 万分块两档 | 表 | DONE |
 | K4.6 | E-KB4 检索质量：合法任务 recall@k（真实感语料 v2 + bge-m3）、直连 vs 网关命中集一致率（精确检索下应为 100%）；三部署 | 表 | DONE |
-| K4.7 | E-KB5 集合级口径：同一"列出本部门供应商 / 合同对方"聚合在文档级与集合级两份发布物上的 R/D/O 与预算消耗对比 | 表 + 补充材料一句 | TODO |
+| K4.7 | E-KB5 集合级口径：同一"列出本部门供应商 / 合同对方"聚合在文档级与集合级两份发布物上的 R/D/O 与预算消耗对比 | 表 + 补充材料一句 | DONE |
 | K4.5 | 证据注册与宏：`generate_kb_evidence.py`，注册到 pilot-evidence 同类登记件；论文新节由"定义"改"实现并评估"，补充材料加实验小节 | 构建通过；页数再平衡 | DONE |
 
 ### 阶段 5：投稿前

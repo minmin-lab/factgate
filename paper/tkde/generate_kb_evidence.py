@@ -240,6 +240,33 @@ def ekb3_macros(path: pathlib.Path, tier: str) -> list[str]:
     return lines
 
 
+def ekb5_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    by = {}
+    for obs in report["observations"]:
+        by.setdefault(obs["publication"], []).append(obs)
+    lines = [rf"\newcommand{{\KbEkbFiveReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+             rf"\newcommand{{\KbEkbFiveDeployments}}{{{report['deployments']}}}"]
+    for label, tag in (("document", "Document"), ("collection", "Collection")):
+        obs = by[label]
+        answers = {o["answer"] for o in obs}
+        influence = {o["actual_influence"] for o in obs}
+        release = {o["actual_release"] for o in obs}
+        outcome = {o["actual_outcome"] for o in obs}
+        if len(answers) != 1 or len(influence) != 1 or len(release) != 1 or len(outcome) != 1:
+            sys.exit(f"E-KB5 {label} arm differs across deployments; macros assume one value")
+        lines += [
+            rf"\newcommand{{\KbEkbFive{tag}Answer}}{{{answers.pop()}}}",
+            rf"\newcommand{{\KbEkbFive{tag}Release}}{{{release.pop()}}}",
+            rf"\newcommand{{\KbEkbFive{tag}Influence}}{{{influence.pop()}}}",
+            rf"\newcommand{{\KbEkbFive{tag}Outcome}}{{{outcome.pop()}}}",
+        ]
+    first = report["observations"][0]
+    lines += [rf"\newcommand{{\KbEkbFiveDirectRows}}{{{first['direct_value_rows']}}}",
+              rf"\newcommand{{\KbEkbFiveDirectDistinct}}{{{first['direct_distinct_values']}}}"]
+    return lines
+
+
 def main() -> None:
     registry, paths = load_registry()
     lines = [
@@ -255,6 +282,8 @@ def main() -> None:
         lines += ekb4_macros(paths["ekb4-retrieval-quality-v2"])
     if "ekb1-adaptive-extraction-v2" in paths:
         lines += ekb1_macros(paths["ekb1-adaptive-extraction-v2"])
+    if "ekb5-collection-scope-v2" in paths:
+        lines += ekb5_macros(paths["ekb5-collection-scope-v2"])
     for entry_id, tier in (("ekb3-overhead-48k", "FortyEightK"), ("ekb3-overhead-96k", "NinetySixK")):
         if entry_id in paths:
             lines += ekb3_macros(paths[entry_id], tier)

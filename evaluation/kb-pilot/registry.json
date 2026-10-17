@@ -107,6 +107,15 @@
       "publication": "policy-kb-2026-10-bge-20k (96,401 chunks; manifest 081e2274…; vectors GPU/CPU mixed from the resumable cache); vector queries on both arms",
       "ledger": "KB1-LOOP-68",
       "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb3/report-96k.json"
+    },
+    {
+      "id": "ekb5-collection-scope-v2",
+      "path": "ekb5/report-v2.json",
+      "sha256": "ca7c88759fc57623ce4ba2d9fac861642464394d091d394d78067547f7adc9a0",
+      "produced_by": "go test ./internal/gateway -run TestEKB5CollectionScopedValues (3 deployments per publication)",
+      "publication": "document-scoped policy-kb-2026-10-bge-v2 (kbe2e5) vs collection-scoped policy-kb-2026-10-bge-v2c (kbe2e7, manifest cf5c96a9…, counterparty scope=collection, collection_values 438 rows)",
+      "ledger": "KB1-LOOP-72",
+      "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-ekb5/report-v2.json"
     }
   ]
 }

@@ -491,6 +491,10 @@ kb_publications:
 - `scopes` 非空，只能是 enum Catalog Scope；每个强制 Scope 必须有一个同名 enum 属性绑定它（`attributes[].scope`）。
 - `extraction_rules` 的 `document_type` 必须在 `document_types` 内，类型限 `text/numeric/integer/bigint/date`，目前只支持
   `source: frontmatter`、`scope: document`；`retrieval.aggregates ⊆ {count,sum,min,max}`，`generation_admitted` 必须为 false。
+- 抽取规则的 `scope` 由定义 Catalog 的人按字段业务含义选择：`document`（每份文档版本一个值 Fact，适合金额、日期、编号）或
+  `collection`（同一值在集合内按 (field, canonical_value, kb_department, classification) 去重为一个 Fact，适合对方名称、项目代号等大量重复的
+  枚举值）。有任何 `collection` 规则时，知识产品必须声明第四个关系 `products.collection_values`（kb-publish 会发布它），aggregate 对该字段的
+  请求改在这张关系上结算，依赖与见证集随之变为去重后的值（E-KB5 实测：同一 count 请求，文档级 116 行 / 580 依赖，集合级 10 值 / 50 依赖）。
 - `kb_publications` 的三个声明摘要必须等于对本 Catalog 中 `segmentation` / `embedding` / `extraction_rules` 声明的规范 JSON
   做 SHA-256 的结果（Catalog 内自洽，不读文件）；`manifest_digest` 是 kb-publish 清单的摘要。
 - 启动激活：Gateway 在加载 snapshot 发布物之后读取 `$GATEWAY_SNAPSHOT_ARTIFACT_DIR/kb/<epoch>/kb-publication.json`，核对清单
