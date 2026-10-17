@@ -250,6 +250,11 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
    增加检索质量指标（K4.6：合法任务 recall@k、直连 vs 网关命中集一致率）。
 5. **生成回答 f_gen** 明确不在 KB-1 范围（论文已写"第四层为未来工作"），确认。
 6. **新拒绝码六个**（含 `RETRIEVAL_SCOPE_EXCEEDED`）与 `NOT_ELIGIBLE` 一样进入 apierr 与文档；确认命名。
+   **已定（2026-10-17 作者："1 认可；2 我选 a"）**：六个码按原命名进入 apierr 与文档；`CHUNK_NOT_RETURNED` 按 (a) 实现——
+   `fetch` 只能取本根任务族此前 `search`/`fetch` 已返回过的块：网关在准备之前把每个块引用解析为分块发布物 HOT 索引里的
+   实体，取其 Result 单元格 Fact 的序数，到 Control 库读该根族 V5 根头的 Release 集合判成员（`control.Store.RootReleaseContains`，
+   读事务、不预留、不结算）；任一块不在集合内（含范围外、发布物外、从未返回）即关闭式拒绝。放弃的 (b) 是"范围内任意块皆可取"
+   ——它让 fetch 成为不经检索的枚举通道。后果：E-KB1 的 S3（命中后取同文档其余块）在网关臂下按设计被拒，见实验设计修订。
 7. **检索执行如何接入既有封印准备边界**（2026-10-16 增）：现有 query_sql/execute_plan 全部经 `physicalquery.Prepare` 产生
    带编译器身份与输入绑定的 `PreparedOperation`，执行、预留、派生、结算、回执、重放都以它为锚（"preparePlan 是唯一边界"，
    finalizer 以同一函数复算）。方案 A（推荐）：在 physicalquery 增加同纪律的 `PrepareRetrieval`（检索规范形 + 命中集

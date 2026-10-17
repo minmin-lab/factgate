@@ -503,7 +503,8 @@ kb_publications:
 - `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验；申请其 chunks / documents / values
   任一关系时，Gateway 在建草稿前按该知识产品的包络编译资格（关系继承知识产品的 eligibility），包络外即 `NOT_ELIGIBLE`。
 - 检索语言（`internal/retrieval`）是封闭的：`search`（AND 过滤原子 + 一个文本或向量查询承诺 + `k ≤ k_max`）、`fetch`
-  （本根家族已返回过的块引用）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
+  （只接受本根任务族此前 `search`/`fetch` 已返回过的块引用，网关对照该根族账本的 Release 集合逐块核对，否则
+  `CHUNK_NOT_RETURNED`）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
   `= <> in`；date/numeric: `= <> < <= > >=  in`；text_set: `has`），字面量用 exposure 规范编码；任务强制范围按 `attributes[].scope`
   注入为原子（进入请求承诺 h_N，不计为调用方原子），调用方对该属性的原子必须与范围相交。语言之外一律关闭式拒绝：
   `RETRIEVAL_FILTER_UNSUPPORTED`、`RETRIEVAL_QUERY_UNSUPPORTED`（含任何未知字段，如重排器、more-like-this）、

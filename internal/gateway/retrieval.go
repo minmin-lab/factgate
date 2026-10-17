@@ -14,6 +14,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/exposure"
 	"taskbound.local/agent-data-gateway/internal/kbpublish"
 	"taskbound.local/agent-data-gateway/internal/mcp"
+	"taskbound.local/agent-data-gateway/internal/ordinal"
 	"taskbound.local/agent-data-gateway/internal/physicalquery"
 	"taskbound.local/agent-data-gateway/internal/queryplan"
 	"taskbound.local/agent-data-gateway/internal/retrieval"
@@ -125,6 +126,14 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 	grant, err := s.store.GetGrant(ctx, task.ID)
 	if err != nil {
 		return nil, err
+	}
+	if tool == retrieval.ToolFetch {
+		// A fetch names chunks already returned to this root family (kb-design
+		// §4): anything else, including a chunk outside the task's scope, is
+		// refused closed before any reservation.
+		if err := s.requireChunksReturned(ctx, task, request); err != nil {
+			return nil, err
+		}
 	}
 	prepared, plan, err := s.prepareRetrieval(grant, request)
 	if err != nil {
@@ -550,4 +559,51 @@ func aggregateAtomFilters(form retrieval.NormalForm, columns map[string]bool) ([
 		}
 	}
 	return filters, nil
+}
+
+// requireChunksReturned checks every chunk a fetch names against the root
+// family's settled Release set: the chunk's published text cell must already
+// be released. The lookup goes through the chunks publication's HOT index, so
+// a chunk the publication does not hold is "not returned" as well.
+func (s *Service) requireChunksReturned(ctx context.Context, task control.Task, request retrieval.Request) error {
+	product, found := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
+	if !found {
+		return &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+	}
+	chunksProduct, found := s.catalog.LookupProduct(product.Products.Chunks)
+	if !found || s.snapshotRegistry == nil {
+		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "知识产品的分块发布物未激活"}
+	}
+	index, err := s.snapshotRegistry.Resolve(ordinal.PublicationKey{CatalogDigest: s.catalog.SHA256, PublicationName: chunksProduct.SnapshotPublication})
+	if err != nil {
+		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "知识产品的分块发布物未激活"}
+	}
+	textField := chunksProduct.Name + "." + retrieval.ChunkTextField
+	refs := make([]ordinal.FactRef, 0, len(request.Chunks))
+	for _, ref := range request.Chunks {
+		entityKey, err := retrieval.ChunkEntityKey(product.SourceNamespace, ref.DocID, ref.Version, ref.ChunkIndex)
+		if err != nil {
+			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: "fetch 的块引用无法编码"}
+		}
+		row, ok := index.LookupEntity(entityKey)
+		if !ok {
+			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块", ref.DocID, ref.Version, ref.ChunkIndex)}
+		}
+		cell, ok := row.Cells[textField]
+		if !ok {
+			return &mcp.ToolError{Code: apierr.CodeConflict, Message: "分块发布物不含正文单元格"}
+		}
+		refs = append(refs, cell)
+	}
+	released, err := s.store.RootReleaseContains(ctx, task.ID, refs)
+	if err != nil {
+		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "无法读取任务族的已释放集合"}
+	}
+	for i, ok := range released {
+		if !ok {
+			ref := request.Chunks[i]
+			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块", ref.DocID, ref.Version, ref.ChunkIndex)}
+		}
+	}
+	return nil
 }

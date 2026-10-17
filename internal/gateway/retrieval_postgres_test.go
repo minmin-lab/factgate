@@ -237,11 +237,33 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT doc_id, version, chunk_index FROM kb.chunks WHERE collection = $1 AND department = 'hr' LIMIT 1`, product.Collection).Scan(&hrDoc, &hrVersion, &hrChunk); err != nil {
 		t.Fatal(err)
 	}
+	// A chunk never returned to this root family (here one outside the scope)
+	// is refused closed before any reservation; the fetch of returned chunks
+	// then proceeds.
+	_, err = callGatewayTool(harness.service, harness.alice, "fetch", map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch-unreturned", "knowledge_product": product.Name,
+		"chunks": []map[string]any{{"doc_id": hits[0][0], "version": hits[0][1], "chunk_index": hits[0][2]}, {"doc_id": hrDoc, "version": hrVersion, "chunk_index": hrChunk}}})
+	requireToolCode(t, err, apierr.CodeChunkNotReturned)
+	var neighbourDoc string
+	var neighbourVersion, neighbourChunk int
+	if err := db.QueryRow(ctx, `SELECT doc_id, version, chunk_index FROM kb.chunks WHERE collection = $1 AND department = 'finance' AND classification = 'internal' AND NOT (doc_id = $2 AND version = $3 AND chunk_index = $4) ORDER BY md5('kb-e2e-neighbour:' || text_sha256) LIMIT 1`, product.Collection, seedDoc, seedVersion, seedChunk).Scan(&neighbourDoc, &neighbourVersion, &neighbourChunk); err != nil {
+		t.Fatal(err)
+	}
+	inScopeUnreturned := true
+	for _, hit := range hits {
+		if sameHit(hit, neighbourDoc, neighbourVersion, neighbourChunk) {
+			inScopeUnreturned = false
+		}
+	}
+	t.Logf("in-scope never-returned chunk %s v%d #%d: tested=%v", neighbourDoc, neighbourVersion, neighbourChunk, inScopeUnreturned)
+	if inScopeUnreturned {
+		_, err = callGatewayTool(harness.service, harness.alice, "fetch", map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch-inscope-unreturned", "knowledge_product": product.Name,
+			"chunks": []map[string]any{{"doc_id": neighbourDoc, "version": neighbourVersion, "chunk_index": neighbourChunk}}})
+		requireToolCode(t, err, apierr.CodeChunkNotReturned)
+	}
 	fetchArgs := map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch", "knowledge_product": product.Name,
 		"chunks": []map[string]any{
 			{"doc_id": hits[1][0], "version": hits[1][1], "chunk_index": hits[1][2]},
 			{"doc_id": hits[0][0], "version": hits[0][1], "chunk_index": hits[0][2]},
-			{"doc_id": hrDoc, "version": hrVersion, "chunk_index": hrChunk},
 		}}
 	fetched, err := callGatewayTool(harness.service, harness.alice, "fetch", fetchArgs)
 	if err != nil {
@@ -249,18 +271,13 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 	}
 	fetchedHits := searchHits(t, fetched)
 	if len(fetchedHits) != 2 {
-		t.Fatalf("fetch returned %d rows, want the 2 in-scope chunks: %#v", len(fetchedHits), fetchedHits)
-	}
-	for _, row := range fetchedHits {
-		if fmt.Sprint(row[0]) == hrDoc {
-			t.Fatalf("fetch returned a chunk outside the task scope: %#v", row)
-		}
+		t.Fatalf("fetch returned %d rows, want the 2 returned chunks: %#v", len(fetchedHits), fetchedHits)
 	}
 	fetchCharge := fetched["exposure"].(control.ExposureCharge)
 	if fetchCharge.ChargedReleaseFacts != 0 || fetchCharge.ActualReleaseFacts != 8 || fetchCharge.ChargedOutcomeFacts != 1 || fetchCharge.ActualPredicateAtomCount != 0 {
 		t.Fatalf("fetch charge %+v, want 8 actual / 0 charged release cells, no atoms, one new composite", fetchCharge)
 	}
-	t.Logf("fetch of 2 settled chunks + 1 out-of-scope chunk: rows=%d release actual=%d charged=%d influence actual=%d charged=%d outcome charged=%d",
+	t.Logf("fetch of 2 settled chunks: rows=%d release actual=%d charged=%d influence actual=%d charged=%d outcome charged=%d",
 		len(fetchedHits), fetchCharge.ActualReleaseFacts, fetchCharge.ChargedReleaseFacts, fetchCharge.ActualInfluenceFacts, fetchCharge.ChargedInfluenceFacts, fetchCharge.ChargedOutcomeFacts)
 
 	// Aggregate: count and sum of contract amounts under the task scope equal
