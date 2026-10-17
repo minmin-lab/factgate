@@ -1,12 +1,14 @@
 // Command kb-formal-driver runs the knowledge-product experiments of the
 // formal round against one fresh deployment over its public interfaces
 // (docs/kb_experiment_design.md, 正式轮规程 §5) and writes one per-deployment
-// report. Credentials are read in-process from a deployment env file and a
+// report and, with -request-log, the per-request record of the run (正式轮规程
+// §7). Credentials are read in-process from a deployment env file and a
 // principal token file and never written out; the driver keeps stderr empty
 // on success.
 //
 //	kb-formal-driver -experiment ekb5 -label document -deployment 1 -report out.json \
-//	  -catalog P.catalog.yaml -env-file E -principal-tokens T -business-dsn-env KB_FORMAL_READER_DSN
+//	  -request-log out.requests.jsonl -catalog P.catalog.yaml -env-file E -principal-tokens T \
+//	  -business-dsn-env KB_FORMAL_READER_DSN
 package main
 
 import (
@@ -54,9 +56,12 @@ func readEnvFile(path string) (map[string]string, error) {
 	return values, scanner.Err()
 }
 
-func run() error {
-	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb4 | ekb5")
+func run() (err error) {
+	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb3 | ekb4 | ekb5")
 	label := flag.String("label", "", "ekb5: document | collection")
+	tier := flag.String("tier", "", "ekb3: 48k | 96k")
+	rounds := flag.Int("rounds", 200, "ekb3: rounds per deployment (pre-registered: 200)")
+	requestLogPath := flag.String("request-log", "", "create the per-request JSONL record here")
 	deployment := flag.Int("deployment", 0, "deployment index (1..3)")
 	reportPath := flag.String("report", "", "create the per-deployment report here")
 	catalogPath := flag.String("catalog", "", "the activated profile Catalog")
@@ -75,6 +80,19 @@ func run() error {
 	}
 	if _, err := os.Lstat(*reportPath); err == nil {
 		return fmt.Errorf("report already exists: %s", *reportPath)
+	}
+	var requests *kbformal.RequestLog
+	if *requestLogPath != "" {
+		if requests, err = kbformal.CreateRequestLog(*requestLogPath); err != nil {
+			return err
+		}
+		// Closed on every path, so the record of a failed run is complete up
+		// to its last request.
+		defer func() {
+			if closeErr := requests.Close(); err == nil && closeErr != nil {
+				err = fmt.Errorf("request log: %w", closeErr)
+			}
+		}()
 	}
 	env, err := readEnvFile(*envFile)
 	if err != nil {
@@ -99,10 +117,11 @@ func run() error {
 	}
 	defer business.Close(ctx)
 	alice := kbformal.NewMCPClient(*gateway, env["TASKBOUND_ALICE_TOKEN"], timeout)
+	alice.Label, alice.Log = "alice", requests
 	d := &kbformal.Deployment{Index: *deployment, Catalog: profile, Product: profile.KnowledgeProducts[0], Alice: alice,
 		Provisioner: &kbformal.Provisioner{Requester: alice,
-			Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: "alice", Password: env["OA_ALICE_PASSWORD"], Timeout: timeout},
-			Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout},
+			Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: "alice", Password: env["OA_ALICE_PASSWORD"], Timeout: timeout, Log: requests},
+			Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout, Log: requests},
 			Poll:      200 * time.Millisecond, Deadline: 2 * time.Minute},
 		Principals: map[string]*kbformal.MCPClient{}, Verifier: verifier, Business: business, Timeout: timeout}
 	if *tokensFile != "" {
@@ -115,7 +134,9 @@ func run() error {
 			return err
 		}
 		for subject, token := range tokens {
-			d.Principals[subject] = kbformal.NewMCPClient(*gateway, token, timeout)
+			client := kbformal.NewMCPClient(*gateway, token, timeout)
+			client.Label, client.Log = subject, requests
+			d.Principals[subject] = client
 		}
 	}
 	started := time.Now()
@@ -136,6 +157,15 @@ func run() error {
 			return embedErr
 		}
 		result, err = kbformal.RunEKB1(ctx, d, embedder, *queryset, *seeds, *steps)
+	case "ekb3":
+		if *tier != "48k" && *tier != "96k" {
+			return errors.New("ekb3 needs -tier 48k or 96k")
+		}
+		embedder, embedErr := kbpublish.NewHTTPEmbedder(*embedding)
+		if embedErr != nil {
+			return embedErr
+		}
+		result, err = kbformal.RunEKB3(ctx, d, embedder, *tier, *rounds)
 	case "ekb4":
 		embedder, embedErr := kbpublish.NewHTTPEmbedder(*embedding)
 		if embedErr != nil {
@@ -148,7 +178,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", *experiment, err)
 	}
-	report := map[string]any{"version": "taskgate-kb-formal-deployment-report-v1", "experiment": *experiment, "label": *label,
+	report := map[string]any{"version": "taskgate-kb-formal-deployment-report-v1", "experiment": *experiment, "label": *label, "tier": *tier,
 		"deployment": *deployment, "catalog_sha256": profile.SHA256, "knowledge_product": d.Product.Name, "epoch": d.Product.IndexPublication,
 		"started_at": started.UTC().Format(time.RFC3339Nano), "seconds": time.Since(started).Seconds(), "result": result}
 	encoded, err := json.MarshalIndent(report, "", " ")

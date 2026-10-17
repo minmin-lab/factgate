@@ -2,6 +2,8 @@ package kbformal
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,11 +32,16 @@ type Deployment struct {
 }
 
 // Retrieval is one verified search/fetch/aggregate call: its response, the
-// verified receipt, and the delivered rows of the canonical result.
+// verified receipt, and the delivered rows of the canonical result. CallMS is
+// the client time until the tool response (which carries the rows inline)
+// arrived; DeliveredMS adds receipt verification, the artifact delivery and
+// the row checks.
 type Retrieval struct {
-	Response map[string]any
-	Rows     [][]any
-	Charge   Charge
+	Response    map[string]any
+	Rows        [][]any
+	Charge      Charge
+	CallMS      float64
+	DeliveredMS float64
 }
 
 // Charge is the exposure part of a response.
@@ -67,7 +74,9 @@ func chargeOf(response map[string]any) Charge {
 // the receipt must verify against the keyring and name the profile Catalog,
 // and the rows are those of the delivered canonical artifact.
 func (d *Deployment) Retrieve(ctx context.Context, client *MCPClient, tool string, arguments map[string]any) (Retrieval, error) {
+	started := time.Now()
 	response, err := client.Call(ctx, tool, arguments)
+	callMS := elapsedMS(started)
 	if err != nil {
 		return Retrieval{}, err
 	}
@@ -82,7 +91,32 @@ func (d *Deployment) Retrieve(ctx context.Context, client *MCPClient, tool strin
 	if err != nil {
 		return Retrieval{}, fmt.Errorf("%s delivery: %w", tool, err)
 	}
-	return Retrieval{Response: response, Rows: rows, Charge: chargeOf(response)}, nil
+	if tool == "search" || tool == "fetch" {
+		for index, row := range rows {
+			if err := checkChunkRow(row); err != nil {
+				return Retrieval{}, fmt.Errorf("%s row %d: %w", tool, index, err)
+			}
+		}
+	}
+	return Retrieval{Response: response, Rows: rows, Charge: chargeOf(response), CallMS: callMS, DeliveredMS: elapsedMS(started)}, nil
+}
+
+// checkChunkRow requires the retrieval shape (doc_id, version, chunk_index,
+// text_sha256, text) and that the delivered text hashes to the released
+// digest (正式轮规程 §5).
+func checkChunkRow(row []any) error {
+	if len(row) != 5 {
+		return fmt.Errorf("%d columns, want doc_id, version, chunk_index, text_sha256, text", len(row))
+	}
+	text, ok := row[4].(string)
+	if !ok {
+		return errors.New("delivered text is not a string")
+	}
+	sum := sha256.Sum256([]byte(text))
+	if hex.EncodeToString(sum[:]) != fmt.Sprint(row[3]) {
+		return errors.New("delivered text does not hash to the released text_sha256")
+	}
+	return nil
 }
 
 // ---- E-KB5: document-scoped versus collection-scoped values ----
