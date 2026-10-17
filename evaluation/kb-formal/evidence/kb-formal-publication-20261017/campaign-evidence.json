@@ -1,0 +1,147 @@
+{
+ "approval_sha256": "0535bea51332304af6c51a02d15a54aa18e49973d3df9cd6707b948e40a89b50",
+ "campaign": "kb-formal-publication-20261017",
+ "campaign_class": "kb-publication",
+ "class": "formal",
+ "commit": "35e9a5a8e968e8f09ac768fb56e4d33085ced46f",
+ "dataset_binding_sha256": "7896e2252f919f2e5066d0796138d559ba52d00e9fbf08ad33d9730d4e09ca57",
+ "deployments": [
+  {
+   "profile": "kb-20k-large",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-20k-large/001/attempt-1/deployment-record.json",
+   "record_sha256": "e50a34a95736dfefa14bd3ae4c68244b5955a7883ee9c85c71648842d87caae9",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-20k-large/001/attempt-1"
+  },
+  {
+   "profile": "kb-20k-large",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-20k-large/002/attempt-1/deployment-record.json",
+   "record_sha256": "abe2ab0328a54c8cc3194a045614a1587cebd9ad1ebe7149510ac457f3807111",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-20k-large/002/attempt-1"
+  },
+  {
+   "profile": "kb-20k-large",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-20k-large/003/attempt-1/deployment-record.json",
+   "record_sha256": "a1c5481b814d40dc550b74618f766709adbdab776dcbd0dc74945d0acaedbc10",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-20k-large/003/attempt-1"
+  },
+  {
+   "profile": "kb-v2-large",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-v2-large/001/attempt-1/deployment-record.json",
+   "record_sha256": "cee18282ad7da40f6f7dd8eaac2bd3d17715ca90eeed37019809710e8145a3c8",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-large/001/attempt-1"
+  },
+  {
+   "profile": "kb-v2-large",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-v2-large/002/attempt-1/deployment-record.json",
+   "record_sha256": "90cd39a6d86a8a2ed05d273dd8696827e394033277e4da6759b2edaf9056fc29",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-large/002/attempt-1"
+  },
+  {
+   "profile": "kb-v2-large",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-v2-large/003/attempt-1/deployment-record.json",
+   "record_sha256": "a9dcca6866e6008d4a275ebd58d9f24433916fa51e2fcf43231f93799f801407",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-large/003/attempt-1"
+  },
+  {
+   "profile": "kb-v2-pilot",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-v2-pilot/001/attempt-1/deployment-record.json",
+   "record_sha256": "599e62c2f3b49c858549f4b13aec9203391280e7c3a5874d4363620980ed4ac5",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-pilot/001/attempt-1"
+  },
+  {
+   "profile": "kb-v2-pilot",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-v2-pilot/002/attempt-1/deployment-record.json",
+   "record_sha256": "fc5c42f8f9564fa6a36536af0633b9040dfc5fbe653dc0460d8827a48742f283",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-pilot/002/attempt-1"
+  },
+  {
+   "profile": "kb-v2-pilot",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-v2-pilot/003/attempt-1/deployment-record.json",
+   "record_sha256": "58b430843fbd151bf5268dd37b2a5f39b71d1f7d7cbef3a473826c27101fbb8b",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2-pilot/003/attempt-1"
+  },
+  {
+   "profile": "kb-v2c-pilot",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-v2c-pilot/001/attempt-1/deployment-record.json",
+   "record_sha256": "967fdf95ab9758118e21bde302a74b4c1ca13f244fdffa65a341fc7ec85da699",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2c-pilot/001/attempt-1"
+  },
+  {
+   "profile": "kb-v2c-pilot",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-v2c-pilot/002/attempt-1/deployment-record.json",
+   "record_sha256": "722bb6ec971280541c7a4832cd04b1c1bf2dbb4b1d5c84929214de872d840bb9",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2c-pilot/002/attempt-1"
+  },
+  {
+   "profile": "kb-v2c-pilot",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-v2c-pilot/003/attempt-1/deployment-record.json",
+   "record_sha256": "114fbc8cba932307a971aa59baa96effa69f1746c9834ed2b686be6dcda73435",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/deployments/kb-v2c-pilot/003/attempt-1"
+  }
+ ],
+ "evidence": [
+  {
+   "path": "ekb1.json",
+   "sha256": "204d79f8233c6ed5b5e2d058d333d0f4ce176c7ba6575f6b3894788d506236b3",
+   "bytes": 172597
+  },
+  {
+   "path": "ekb2a.json",
+   "sha256": "a590fa57580aa8cd561d50683bcac8787c691b66a464849517e4b6cfc49c8eeb",
+   "bytes": 87332
+  },
+  {
+   "path": "ekb2b.json",
+   "sha256": "cebdf11c948fd82a304f40271526dd2c58842b7c6263f072702d884bc2f49974",
+   "bytes": 1478
+  },
+  {
+   "path": "ekb3-48k.json",
+   "sha256": "a979e2e36e0d5986b4e40904dc03c5c84922e92d6610b90e955ae957bf676832",
+   "bytes": 1703812
+  },
+  {
+   "path": "ekb3-96k.json",
+   "sha256": "5b029b7965cff3d52833893f6a4463d340cc503977138821c1becfdf11c2b2b2",
+   "bytes": 1705769
+  },
+  {
+   "path": "ekb4.json",
+   "sha256": "201ffc786d2d02246f7a69498d21b7fd35cc6b6296e21e24a936857e6902594e",
+   "bytes": 6368290
+  },
+  {
+   "path": "ekb5.json",
+   "sha256": "63ec9e95344e3f9b79ffe7b482318ccd6906ba5ea5efe94c7642406b403f9e68",
+   "bytes": 2331
+  }
+ ],
+ "generated_at": "2026-10-17T12:58:25Z",
+ "profile_registry_sha256": "7dfd1518ce78ad3f9629e39771d28e71317551193140da5529e2267925da6719",
+ "publication_eligible": true,
+ "version": "taskgate-kb-campaign-evidence-v1"
+}

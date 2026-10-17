@@ -1,0 +1,68 @@
+{
+ "approval_sha256": "0535bea51332304af6c51a02d15a54aa18e49973d3df9cd6707b948e40a89b50",
+ "campaign": "kb-formal-publication-20261017",
+ "campaign_class": "kb-publication",
+ "commit": "35e9a5a8e968e8f09ac768fb56e4d33085ced46f",
+ "dataset_binding_sha256": "7896e2252f919f2e5066d0796138d559ba52d00e9fbf08ad33d9730d4e09ca57",
+ "entries": [
+  {
+   "id": "ekb1",
+   "path": "evidence/kb-formal-publication-20261017/ekb1.json",
+   "sha256": "204d79f8233c6ed5b5e2d058d333d0f4ce176c7ba6575f6b3894788d506236b3",
+   "bytes": 172597,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb1.json"
+  },
+  {
+   "id": "ekb2a",
+   "path": "evidence/kb-formal-publication-20261017/ekb2a.json",
+   "sha256": "a590fa57580aa8cd561d50683bcac8787c691b66a464849517e4b6cfc49c8eeb",
+   "bytes": 87332,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb2a.json"
+  },
+  {
+   "id": "ekb2b",
+   "path": "evidence/kb-formal-publication-20261017/ekb2b.json",
+   "sha256": "cebdf11c948fd82a304f40271526dd2c58842b7c6263f072702d884bc2f49974",
+   "bytes": 1478,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb2b.json"
+  },
+  {
+   "id": "ekb3-48k",
+   "path": "evidence/kb-formal-publication-20261017/ekb3-48k.json",
+   "sha256": "a979e2e36e0d5986b4e40904dc03c5c84922e92d6610b90e955ae957bf676832",
+   "bytes": 1703812,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb3-48k.json"
+  },
+  {
+   "id": "ekb3-96k",
+   "path": "evidence/kb-formal-publication-20261017/ekb3-96k.json",
+   "sha256": "5b029b7965cff3d52833893f6a4463d340cc503977138821c1becfdf11c2b2b2",
+   "bytes": 1705769,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb3-96k.json"
+  },
+  {
+   "id": "ekb4",
+   "path": "evidence/kb-formal-publication-20261017/ekb4.json",
+   "sha256": "201ffc786d2d02246f7a69498d21b7fd35cc6b6296e21e24a936857e6902594e",
+   "bytes": 6368290,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb4.json"
+  },
+  {
+   "id": "ekb5",
+   "path": "evidence/kb-formal-publication-20261017/ekb5.json",
+   "sha256": "63ec9e95344e3f9b79ffe7b482318ccd6906ba5ea5efe94c7642406b403f9e68",
+   "bytes": 2331,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/ekb5.json"
+  },
+  {
+   "id": "campaign-evidence",
+   "path": "evidence/kb-formal-publication-20261017/campaign-evidence.json",
+   "sha256": "ab68ddcab4086efc7eeef637ca286588cf07451b30cfce2d5b311cf8f66ed911",
+   "bytes": 5949,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-formal-publication-20261017/evidence/campaign-evidence.json"
+  }
+ ],
+ "note": "Formal knowledge-product evidence (正式轮规程 §7). The paper generator uses it only together with the author's signed approval naming this file's SHA-256.",
+ "publication_eligible": true,
+ "version": "taskgate-kb-publication-evidence-v1"
+}

@@ -1,0 +1,3717 @@
+{
+ "campaign_class": "kb-publication",
+ "deployments": 3,
+ "deployments_detail": [
+  {
+   "deployment": 1,
+   "by_type": {
+    "controller-other-department": {
+     "Requests": 1,
+     "NotEligible": 0,
+     "Admitted": 1,
+     "Drafts": 2,
+     "OtherErrors": 0
+    },
+    "other-department": {
+     "Requests": 59,
+     "NotEligible": 59,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-higher-classification": {
+     "Requests": 36,
+     "NotEligible": 36,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-own-clearance": {
+     "Requests": 60,
+     "NotEligible": 0,
+     "Admitted": 60,
+     "Drafts": 1,
+     "OtherErrors": 0
+    }
+   },
+   "outcomes": [
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "controller-other-department",
+     "task_created": true,
+     "tasks_after": 2
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    }
+   ],
+   "seconds": 0.439895657
+  },
+  {
+   "deployment": 2,
+   "by_type": {
+    "controller-other-department": {
+     "Requests": 1,
+     "NotEligible": 0,
+     "Admitted": 1,
+     "Drafts": 2,
+     "OtherErrors": 0
+    },
+    "other-department": {
+     "Requests": 59,
+     "NotEligible": 59,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-higher-classification": {
+     "Requests": 36,
+     "NotEligible": 36,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-own-clearance": {
+     "Requests": 60,
+     "NotEligible": 0,
+     "Admitted": 60,
+     "Drafts": 1,
+     "OtherErrors": 0
+    }
+   },
+   "outcomes": [
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "controller-other-department",
+     "task_created": true,
+     "tasks_after": 2
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    }
+   ],
+   "seconds": 0.423766977
+  },
+  {
+   "deployment": 3,
+   "by_type": {
+    "controller-other-department": {
+     "Requests": 1,
+     "NotEligible": 0,
+     "Admitted": 1,
+     "Drafts": 2,
+     "OtherErrors": 0
+    },
+    "other-department": {
+     "Requests": 59,
+     "NotEligible": 59,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-higher-classification": {
+     "Requests": 36,
+     "NotEligible": 36,
+     "Admitted": 0,
+     "Drafts": 1,
+     "OtherErrors": 0
+    },
+    "own-department-own-clearance": {
+     "Requests": 60,
+     "NotEligible": 0,
+     "Admitted": 60,
+     "Drafts": 1,
+     "OtherErrors": 0
+    }
+   },
+   "outcomes": [
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "engineering-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-director",
+     "role": "director",
+     "type": "controller-other-department",
+     "task_created": true,
+     "tasks_after": 2
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "finance-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "hr-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "it-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "legal-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "marketing-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "operations-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "procurement-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "product-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "research-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "sales-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-staff",
+     "role": "staff",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-hr",
+     "role": "hr",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-manager",
+     "role": "manager",
+     "type": "own-department-higher-classification",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-director",
+     "role": "director",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "own-department-own-clearance",
+     "task_created": true,
+     "tasks_after": 1
+    },
+    {
+     "subject": "support-executive",
+     "role": "executive",
+     "type": "other-department",
+     "code": "NOT_ELIGIBLE",
+     "task_created": false,
+     "tasks_after": 1
+    }
+   ],
+   "seconds": 0.40035813
+  }
+ ],
+ "eligibility_rule": "    eligibility:\n      scope_envelope:\n        kb_department:\n          from_attribute: department\n          widen_if:\n            - {attribute: job_family, any_of: [finance_controller]}\n        classification:\n          from_attribute: clearance\n",
+ "generated_at": "2026-10-17T12:58:25Z",
+ "publication_eligible": true,
+ "publication_epoch": "policy-kb-2026-10-bge-v2",
+ "seconds": 1.264044197,
+ "snapshot_sha256": "94f27b10797d98a29f109699601dfa5efbd34e80290212d7baa0d3c3b710c73b",
+ "subjects": 60,
+ "summary": {
+  "controller-other-department": {
+   "admitted": 3,
+   "admitted_rate": 1,
+   "not_eligible": 0,
+   "not_eligible_rate": 0,
+   "other_errors": 0,
+   "requests": 3
+  },
+  "other-department": {
+   "admitted": 0,
+   "admitted_rate": 0,
+   "not_eligible": 177,
+   "not_eligible_rate": 1,
+   "other_errors": 0,
+   "requests": 177
+  },
+  "own-department-higher-classification": {
+   "admitted": 0,
+   "admitted_rate": 0,
+   "not_eligible": 108,
+   "not_eligible_rate": 1,
+   "other_errors": 0,
+   "requests": 108
+  },
+  "own-department-own-clearance": {
+   "admitted": 180,
+   "admitted_rate": 1,
+   "not_eligible": 0,
+   "not_eligible_rate": 0,
+   "other_errors": 0,
+   "requests": 180
+  }
+ },
+ "version": "taskgate-kb-ekb2-report-v1"
+}

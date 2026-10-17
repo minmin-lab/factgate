@@ -87,6 +87,11 @@ func run() error {
 	}
 	nasEvidence := filepath.Join(*nasRoot, "kb-formal", summary.Campaign, "evidence")
 	target := filepath.Join(*repo, "evaluation/kb-formal/evidence", summary.Campaign)
+	// The evidence directory may not exist yet; the campaign directory itself
+	// is created exclusively, so a campaign is never registered twice.
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		return err
+	}
 	if err := os.Mkdir(target, 0o755); err != nil {
 		return err
 	}
