@@ -15,9 +15,11 @@ import (
 const (
 	ContextVersion = "taskgate-retrieval-context-v1"
 	contextDomain  = "TASKGATE-RETRIEVAL-CONTEXT-V1\x00"
-	// ChunkTextField is the bare column whose cell Fact is what a returned
-	// chunk releases; single-source plans bind cells by bare column name.
-	ChunkTextField = "text"
+	// ChunkTextField is the chunk column whose cell Fact is a returned chunk's
+	// Result cell: the content digest (kb-design §9.8, author decision
+	// 2026-10-17). The text itself is not a published field; the gateway reads
+	// it at delivery time and admits it only when its SHA-256 is this cell.
+	ChunkTextField = "text_sha256"
 )
 
 // Hit is one chunk returned to the caller by search or fetch.
@@ -25,7 +27,8 @@ type Hit struct {
 	DocID      string
 	Version    int
 	ChunkIndex int
-	Text       string
+	// TextSHA256 is the chunk's content digest, the value of its Result cell.
+	TextSHA256 string
 	// Attributes holds the chunk's values for the attributes the caller
 	// filtered on, as canonical tokens (enum/text: the token; date:
 	// YYYY-MM-DD; numeric: the decimal). The general algebra counts a chunk
@@ -213,7 +216,7 @@ func BuildEffect(binding Binding, form NormalForm, hits []Hit) (Effect, error) {
 		for _, column := range []struct {
 			name, sqlType string
 			value         any
-		}{{"doc_id", "text", hit.DocID}, {"version", "integer", int64(hit.Version)}, {"chunk_index", "integer", int64(hit.ChunkIndex)}, {ChunkTextField, "text", hit.Text}} {
+		}{{"doc_id", "text", hit.DocID}, {"version", "integer", int64(hit.Version)}, {"chunk_index", "integer", int64(hit.ChunkIndex)}, {ChunkTextField, "text", hit.TextSHA256}} {
 			cell, err := exposure.NewBaseCellFactV2(chunksNS, binding.Epoch, chunkKey, binding.ChunksProduct+"."+column.name, column.sqlType, column.value)
 			if err != nil {
 				return Effect{}, err

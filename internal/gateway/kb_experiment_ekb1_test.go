@@ -299,7 +299,7 @@ func TestEKB1AdaptiveExtraction(t *testing.T) {
 		harness.service.kbEmbedder = embedder
 		chunks, documents, values := product.Products.Chunks, product.Products.Documents, product.Products.Values
 		columns := map[string][]string{
-			chunks:    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+			chunks:    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 			documents: {"doc_id", "version", "title", "document_type", "kb_department", "classification"},
 			values:    {"doc_id", "version", "document_type", "field", "value_type", "canonical_value", "value_numeric", "value_date", "kb_department", "classification"},
 		}

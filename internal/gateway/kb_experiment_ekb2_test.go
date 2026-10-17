@@ -362,7 +362,7 @@ func TestEKB2MisapprovalArm(t *testing.T) {
 		harness.createTaskWithGrantScopeAndExposureProfile(t, taskID, nil,
 			control.ExposureLimits{ReleaseFacts: budgetRelease, InfluenceFacts: budgetInflu, OutcomeFacts: budgetOutcome}, exposure.ProfileV5,
 			[]string{chunks, documents}, map[string][]string{
-				chunks:    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+				chunks:    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 				documents: {"doc_id", "version", "title", "document_type", "kb_department", "classification"},
 			}, domain.SensitivityHigh, map[string]any{"kb_department": []any{department}, "classification": granted})
 		var requestable int

@@ -362,9 +362,10 @@ func retrievalPlan(kp catalog.KnowledgeProduct, nf retrieval.NormalForm) (queryp
 	return plan, nil
 }
 
-// retrievalColumnIDs is the projection, in order: identity then text.
+// retrievalColumnIDs is the projection, in order: identity then the content
+// digest (the chunk Result cell; the text is delivered outside the plan).
 func retrievalColumnIDs(chunks string) []string {
-	return []string{chunks + ".doc_id", chunks + ".version", chunks + ".chunk_index", chunks + ".text"}
+	return []string{chunks + ".doc_id", chunks + ".version", chunks + ".chunk_index", chunks + "." + retrieval.ChunkTextField}
 }
 
 // retrievalPlanFilters folds caller atoms into plan filters. Atoms that the

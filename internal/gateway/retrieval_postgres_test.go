@@ -122,7 +122,7 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 	product := harness.catalog.KnowledgeProducts[0]
 	chunks, documents := product.Products.Chunks, product.Products.Documents
 	columns := map[string][]string{
-		chunks:    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+		chunks:    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 		documents: {"doc_id", "version", "title", "document_type", "kb_department", "classification"},
 	}
 	scope := map[string]any{"kb_department": []any{"finance"}, "classification": []any{"internal", "public"}}
@@ -259,6 +259,31 @@ func TestSearchEndToEndAgainstKnowledgePublication(t *testing.T) {
 		_, err = callGatewayTool(harness.service, harness.alice, "fetch", map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch-inscope-unreturned", "knowledge_product": product.Name,
 			"chunks": []map[string]any{{"doc_id": neighbourDoc, "version": neighbourVersion, "chunk_index": neighbourChunk}}})
 		requireToolCode(t, err, apierr.CodeChunkNotReturned)
+	}
+	// Delivery verifies the text it reads against the published digest: a
+	// business row that drifted from the publication is refused, not served.
+	if adminDSN := strings.TrimSpace(os.Getenv("KB_E2E_ADMIN_DSN")); adminDSN != "" {
+		admin, err := pgx.Connect(ctx, adminDSN)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer admin.Close(ctx)
+		tag, err := admin.Exec(ctx, `UPDATE kb.chunks SET text = text || ' ' WHERE collection = $1 AND doc_id = $2 AND version = $3 AND chunk_index = $4`, product.Collection, hits[0][0], hits[0][1], hits[0][2])
+		if err != nil || tag.RowsAffected() != 1 {
+			t.Fatalf("tamper chunk text: %v (%d rows)", err, tag.RowsAffected())
+		}
+		restore := func() {
+			if _, err := admin.Exec(ctx, `UPDATE kb.chunks SET text = left(text, length(text) - 1) WHERE collection = $1 AND doc_id = $2 AND version = $3 AND chunk_index = $4`, product.Collection, hits[0][0], hits[0][1], hits[0][2]); err != nil {
+				t.Errorf("restore chunk text: %v", err)
+			}
+		}
+		_, err = callGatewayTool(harness.service, harness.alice, "fetch", map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch-drifted", "knowledge_product": product.Name,
+			"chunks": []map[string]any{{"doc_id": hits[0][0], "version": hits[0][1], "chunk_index": hits[0][2]}}})
+		restore()
+		requireToolCode(t, err, apierr.CodeConflict)
+		t.Logf("drifted chunk text refused at delivery: %v", err)
+	} else {
+		t.Log("KB_E2E_ADMIN_DSN unset: delivery drift refusal not exercised")
 	}
 	fetchArgs := map[string]any{"task_id": "task-kb-e2e", "request_id": "kb-e2e-fetch", "knowledge_product": product.Name,
 		"chunks": []map[string]any{
@@ -483,8 +508,12 @@ func searchHits(t *testing.T, result map[string]any) [][3]any {
 	}
 	hits := make([][3]any, 0, len(rows))
 	for _, row := range rows {
-		if len(row) != 4 {
-			t.Fatalf("search row has %d columns, want 4: %#v", len(row), row)
+		// Four visible cells (identity + content digest) plus the delivered text.
+		if len(row) != 5 {
+			t.Fatalf("search row has %d columns, want 5: %#v", len(row), row)
+		}
+		if text, _ := row[4].(string); text == "" || sha256Hex(text) != fmt.Sprint(row[3]) {
+			t.Fatalf("delivered text does not match the published digest: %#v", row)
 		}
 		hits = append(hits, [3]any{row[0], row[1], row[2]})
 	}

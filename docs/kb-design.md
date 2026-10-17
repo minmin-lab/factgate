@@ -177,12 +177,12 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 - **口径来源（2026-10-16 实测后改，台账 KB1-LOOP-47）**：检索按 §10a 以 chunks ⋈ documents 的关系计划准备，F_R / F_D 就是现有
   V5 关系代数对该计划的输出，不另造：可见四列即 Release；溯源见证 = 两源的行 Fact + 连接键单元格（documents.doc_id / version）
   + 外层过滤读到的 chunk 单元格（每个调用方过滤属性一个）；注入的强制范围由策略渲染器施加，不留见证。字段身份带稳定关系角色
-  （`policy_kb_chunks.text` 而非裸列名 `text`，因为是关系计划而非单源计划）。实测（kbe2e5，k=5，过滤 classification）：R=20、
+  （`policy_kb_chunks.text_sha256` 而非裸列名，因为是关系计划而非单源计划；2026-10-17 §9.8 定为内容摘要列）。实测（kbe2e5，k=5，过滤 classification）：R=20、
   D=45=5×(4+1+1)+5×(2+1)，与 kboracle 按定义重算的计数一致；effect.go 与 oracle 已改为此口径并 200 次随机命中集逐成员一致。
   原"仅 text 单元格为 Release"的写法作废（§9.9）。
 - 实现备注（K3.2 已落地：internal/retrieval/effect.go，独立 oracle evaluation/kboracle）：实体键按 snapshot 编译器的构造
-  `ComposeCanonicalKeyV2("base-entity", ν.kind, 逐键字段 name/sqlType/规范值)`；分块 Result 身份 = 裸列名 `text` 的单元格
-  Fact（单源计划的 field id 是裸列名）；原子算子映射到 V5 词表（`=`/`in`/`has` → EQ 逐字面量、`<>` → NE、`<`/`<=`/`>`/`>=` →
+  `ComposeCanonicalKeyV2("base-entity", ν.kind, 逐键字段 name/sqlType/规范值)`；分块 Result 单元格 = `text_sha256`（内容摘要）
+  列的单元格 Fact，正文不是发布字段，由网关交付时读 kb.chunks 并核对 sha256 等于该单元格值（§9.8）；原子算子映射到 V5 词表（`=`/`in`/`has` → EQ 逐字面量、`<>` → NE、`<`/`<=`/`>`/`>=` →
   LT/LE/GT/GE），与 SQL 路径把 IN 逐字面量记为 EQ 的做法一致；原子上下文摘要域 `TASKGATE-RETRIEVAL-CONTEXT-V1`
   （Catalog sha、知识产品、epoch、chunks/documents publication manifest、注入范围摘要）。search/fetch 响应只回
   (doc_id, version, chunk_index, text) 与名次，不回相似度分数与属性列。
@@ -269,6 +269,11 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
    （Result 单元格 = 内容摘要单元格，网关交付正文时直接读 kb.chunks），论文 f_chunk = ⟨…, C(text_c)⟩ 中的 C 取"内容摘要"
    即可，身份仍确定且（抗碰撞意义下）单射，bundle 缩到每块约数百字节。推荐 B：发布 `text_sha256`，`text` 不进发布物；
    代价是 K2.3/K3.2 的字段表与 oracle 各改一行并重发布 epoch。
+   **已定（2026-10-17 作者："同意 text_sha256"）**：发布关系 chunks 去掉 `text`，Result 单元格 = `policy_kb_chunks.text_sha256`；
+   可见语句投影 doc_id, version, chunk_index, text_sha256（作者同时接受 R = 4|y|：三列身份单元格因投影而成为 Release Fact）；
+   正文由网关在交付层读取（`deliverChunkText`：按集合 + 身份三元组 IN 列表读 kb.chunks，首次执行与重放都读），逐行核对
+   sha256(正文) 等于封印语句返回的摘要，不符或缺行即 `CONFLICT` 关闭式拒绝整个响应——账本只记身份，交付的字节由摘要绑定到发布期。
+   放弃的 A（发布 `text`）在 10^6 块档不可行（上文实测外推）。后果：三份发布物重发布、E-KB1–E-KB5 重跑，Fact 个数不变。
 
 ## 9b. 统一框架（2026-10-16 作者定，台账 KB1-LOOP-40）
 
@@ -300,7 +305,7 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
 
 **方案（选定）**：检索 = "编译器产出的等价计划语句，外包一层命中集约束"。
 1. `physicalquery.PrepareRetrieval(RetrievalPreparationInputsV1)`：输入 = Grant、Catalog、知识产品、检索规范形（K3.1 `retrieval.NormalForm`，含注入范围原子）、查询向量（float32 数组，与规范形里的 int16 承诺一并绑定）、chunks/documents 发布物绑定、k。内部：
-   a. 由规范形构造等价 `queryplan.QueryPlan` P：`<kp>_chunks ⋈ <kp>_documents`（doc_id, version），Columns = doc_id, version, chunk_index, text（或 §9.8 的 text_sha256），Filters = 原子（注入范围原子按现有 V5 口径不进入调用方足迹）；经现有 `Prepare` 得到 S_v / S_c、`OrdinalProgram`、谓词足迹、字段表、sidecar grant——全部由现有编译器产出，不手写。
+   a. 由规范形构造等价 `queryplan.QueryPlan` P：`<kp>_chunks ⋈ <kp>_documents`（doc_id, version），Columns = doc_id, version, chunk_index, text_sha256（§9.8 已定），Filters = 原子（注入范围原子按现有 V5 口径不进入调用方足迹）；经现有 `Prepare` 得到 S_v / S_c、`OrdinalProgram`、谓词足迹、字段表、sidecar grant——全部由现有编译器产出，不手写。
    b. 外包：`WITH hits AS (SELECT doc_id, version, chunk_index, row_number() OVER (ORDER BY embedding <=> $vec, doc_id, version, chunk_index) AS rank FROM kb.chunks WHERE collection = $c AND <原子与范围按 kb.chunks 列渲染> LIMIT k)`，可见语句 = `SELECT s.* FROM (S_v) s JOIN hits USING (doc_id, version, chunk_index) ORDER BY hits.rank`，溯源语句同样对 S_c 做半连接。排序键带 (doc_id, version, chunk_index) 作全序，使两条语句在同一可重复读事务里命中同一集合（K3.4 的边界并列问题由此消除）。向量字面量进入语句文本，故被 VisibleTarget/CompanionTarget 摘要覆盖；finalizer 以同一输入重算即得同一字节。
    c. 密封：`NormalFormSHA256` = 检索规范形摘要（域 `TASKGATE-RETRIEVAL-NF-V1`），`PlanSHA256` = P 的摘要，`PreparationInputsSHA256` = 检索输入摘要，其余成员与 SQL 路径同源（编译器身份、Catalog、快照绑定集、序数程序、字典集、谓词足迹、EstimatedBaseFacts = k）。配套 `RequireRetrievalInputs`。
 2. 网关 `executeRetrieval`：把 `executeSQL` 的守卫—预留—执行—结算链抽成可被两种准备共用的函数（只搬不改语义；现有测试原样通过是验收），检索调用它：预留估计 Release = k × 可见字段数、Influence = k 块行 + ≤k 文档行、Outcome = 调用方原子数 + 1；执行走同一 `QueryPairStream`；位图由现有 sink 从溯源行得出（命中块不在发布物中 → sink 查不到实体 → 关闭式失败，对应 `CHUNK_NOT_RETURNED` 的发布期一致性含义）；复合 c_q 的 `ResultObservationSHA256` 由现有 V5 路径按可见行计算。

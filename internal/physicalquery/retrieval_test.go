@@ -96,7 +96,7 @@ func kbTestInputs() RetrievalPreparationInputsV1 {
 	grant := Grant{
 		ApprovedProducts: []string{testKBChunks, testKBDocuments},
 		ApprovedColumns: map[string][]string{
-			testKBChunks:    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+			testKBChunks:    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 			testKBDocuments: {"doc_id", "version", "title", "kb_department", "classification"},
 		},
 		MandatoryScope:  json.RawMessage(`{"classification":["internal","public"],"kb_department":["finance"]}`),

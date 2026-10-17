@@ -30,7 +30,7 @@ type Chunk struct {
 	DocID      string
 	Version    int
 	ChunkIndex int
-	Text       string
+	TextSHA256 string
 	// Attributes are the chunk's values for the caller-filtered attributes,
 	// as canonical tokens (see retrieval.Hit).
 	Attributes map[string]string
@@ -91,7 +91,7 @@ func Compute(binding retrieval.Binding, form retrieval.NormalForm, chunks []Chun
 		for _, column := range []struct {
 			name, sqlType string
 			value         any
-		}{{"doc_id", "text", chunk.DocID}, {"version", "integer", int64(chunk.Version)}, {"chunk_index", "integer", int64(chunk.ChunkIndex)}, {"text", "text", chunk.Text}} {
+		}{{"doc_id", "text", chunk.DocID}, {"version", "integer", int64(chunk.Version)}, {"chunk_index", "integer", int64(chunk.ChunkIndex)}, {"text_sha256", "text", chunk.TextSHA256}} {
 			cell, err := exposure.NewBaseCellFactV2(ns+".chunks", binding.Epoch, chunkKey, binding.ChunksProduct+"."+column.name, column.sqlType, column.value)
 			if err != nil {
 				return Expected{}, err

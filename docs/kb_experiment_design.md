@@ -3,7 +3,7 @@
 状态：草案 v1，2026-10-16。证据政策按 docs/kb_extension_plan.md §0：campaign_class `kb-pilot`、`publication_eligible: false`、
 三部署重复、登记到新文件 `evaluation/final-v5-wsl2/kb-pilot-evidence-v1.json`，宏由 `paper/tkde/generate_kb_evidence.py` 产出
 （封印的 pilot-evidence-v1.json 与 generate_evidence.py 不动）。停止规则与阈值用保守先验，写在执行之前，不以实测拟合。
-前置：K3.3（执行接入，待 kb-design §9.7 裁决）与 §9.8（Result 单元格取 text_sha256）；语料已冻结（manifest-v1.json，
+前置：K3.3（执行接入，§9.7 已定方案 A，已落地）与 §9.8（Result 单元格取 text_sha256，2026-10-17 作者同意，已落地）；语料已冻结（manifest-v1.json，
 documents_sha256 2944399d…，NAS 镜像已核）。
 
 ## 共同设定
@@ -70,7 +70,8 @@ documents_sha256 2944399d…，NAS 镜像已核）。
 - 问题：search / fetch / aggregate 经网关结算相对直连库的时延开销，在 10^5 与 10^6 块两档。
 - 语料：v1 生成器参数 documents=20,000（≈ 96k 块，10^5 档）与 200,000（≈ 10^6 档）；两档各自冻结 manifest 与 digest。
   **可行性**：10^6 档依赖 kb-design §9.8（Result 单元格改 text_sha256）——现 text 入 COLD 的发布物按 48k 块 638 MB /
-  编译峰值 2.1 GB 线性外推，10^6 块约 13 GB / 44 GB，超本机 30 GB；若 §9.8 否决，10^6 档改为"未评估"并在论文明写。
+  编译峰值 2.1 GB 线性外推，10^6 块约 13 GB / 44 GB，超本机 30 GB；§9.8 已于 2026-10-17 定为 text_sha256，发布物体积
+  不再是 10^6 档的障碍；剩余前置是 10^6 块的嵌入（CPU 服务吞吐决定，见台账）。
 - 臂：直连（gateway_reader 直接执行同一过滤 + 精确最近邻 LIMIT k / 同一 IN 列表取回 / 同一 sum）vs FactGate（search / fetch /
   aggregate）；k ∈ {5, 20}；每臂每档每部署 200 轮，查询文本随机取自语料词表（种子固定）；重放轮（同请求重复）单列。
 - 指标：客户端时延中位数与 p95、网关结算分量（预留/派生/结算）、每轮 R/D/O 计费、重放轮 0/0/0 与时延。

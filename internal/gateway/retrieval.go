@@ -2,15 +2,20 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
 	"taskbound.local/agent-data-gateway/internal/apierr"
 	"taskbound.local/agent-data-gateway/internal/catalog"
 	"taskbound.local/agent-data-gateway/internal/control"
+	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	"taskbound.local/agent-data-gateway/internal/exposure"
 	"taskbound.local/agent-data-gateway/internal/kbpublish"
 	"taskbound.local/agent-data-gateway/internal/mcp"
@@ -32,7 +37,7 @@ import (
 
 // retrievalDisplayColumns names the visible projection in order; the compiled
 // statement carries opaque aliases.
-var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", "text"}
+var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retrieval.ChunkTextField}
 
 var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询（文本或向量）做精确最近邻检索，返回至多 k 个分块；命中分块按任务账本的三维结算记账。",
 	InputSchema: objectSchema(map[string]any{
@@ -112,6 +117,9 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 			return nil, err
 		}
 		replayed["tool"] = tool
+		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, replayed); err != nil {
+			return nil, err
+		}
 		return replayed, nil
 	}
 	if !errors.Is(lookupErr, control.ErrNotFound) {
@@ -156,7 +164,145 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 		metadata.PlanDigest = prepared.Exposure.planDigest
 		metadata.PredicateFootprint = predicateFootprintResponseFor(prepared.Exposure)
 	}
-	return s.executeSQL(ctx, principal, task, envelope.RequestID, prepared, requestSummary, metadata, requestStarted)
+	response, err := s.executeSQL(ctx, principal, task, envelope.RequestID, prepared, requestSummary, metadata, requestStarted)
+	if err != nil {
+		return nil, err
+	}
+	if typed, ok := response.(map[string]any); ok {
+		if err := s.deliverChunkText(ctx, request.KnowledgeProduct, chunkTextDeliveryTimeout, typed); err != nil {
+			return nil, err
+		}
+	}
+	return response, nil
+}
+
+// deliverChunkText appends the chunk text to a search/fetch response. The
+// ledger carries a returned chunk's content digest as its Result cell
+// (kb-design §9.8); the text is not a published field. It is read from
+// kb.chunks at delivery time, on fresh results and on replays alike, and a row
+// is admitted only when the SHA-256 of what was read is the digest the sealed
+// statement returned, so a business row that drifted from the publication is
+// refused rather than served. Responses without rows are left as they are.
+func (s *Service) deliverChunkText(ctx context.Context, knowledgeProduct string, timeout time.Duration, response map[string]any) error {
+	rows, ok := response["rows"].([][]any)
+	if !ok || len(rows) == 0 {
+		return nil
+	}
+	columns, ok := response["columns"].([]dataconnector.Column)
+	if !ok || len(columns) != len(retrievalDisplayColumns) {
+		return nil
+	}
+	for index, name := range retrievalDisplayColumns {
+		if columns[index].Name != name {
+			return nil
+		}
+	}
+	product, found := s.catalog.LookupKnowledgeProduct(knowledgeProduct)
+	if !found {
+		return &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+	}
+	type identity struct {
+		doc            string
+		version, chunk int64
+	}
+	keys := make([]identity, len(rows))
+	tuples := make([]string, 0, len(rows))
+	for index, row := range rows {
+		if len(row) != len(retrievalDisplayColumns) {
+			return &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索结果行形状无效"}
+		}
+		doc, ok := row[0].(string)
+		version, okVersion := responseInteger(row[1])
+		chunk, okChunk := responseInteger(row[2])
+		if !ok || !okVersion || !okChunk {
+			return &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索结果身份列无效"}
+		}
+		literal, err := pgTextLiteral(doc)
+		if err != nil {
+			return &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索结果文档号无法编码"}
+		}
+		keys[index] = identity{doc, version, chunk}
+		tuples = append(tuples, fmt.Sprintf("(%s, %d, %d)", literal, version, chunk))
+	}
+	collection, err := pgTextLiteral(product.Collection)
+	if err != nil {
+		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "知识产品集合名无法编码"}
+	}
+	statement := "SELECT doc_id, version, chunk_index, text FROM kb.chunks WHERE collection = " + collection +
+		" AND (doc_id, version, chunk_index) IN (" + strings.Join(tuples, ", ") + ")"
+	result, err := s.connector.Query(ctx, dataconnector.QueryRequest{SQL: statement, StatementTimeout: timeout, MaxRows: int64(len(rows))})
+	if err != nil {
+		return &mcp.ToolError{Code: apierr.CodeDataSourceUnavailable, Message: "读取分块正文失败"}
+	}
+	texts := make(map[identity]string, len(result.Rows))
+	for _, row := range result.Rows {
+		if len(row) != 4 {
+			continue
+		}
+		doc, _ := row[0].(string)
+		version, _ := responseInteger(row[1])
+		chunk, _ := responseInteger(row[2])
+		text, _ := row[3].(string)
+		texts[identity{doc, version, chunk}] = text
+	}
+	delivered := make([][]any, len(rows))
+	for index, row := range rows {
+		text, present := texts[keys[index]]
+		published, _ := row[3].(string)
+		if !present || published == "" || sha256Hex(text) != published {
+			return &mcp.ToolError{Code: apierr.CodeConflict, Message: fmt.Sprintf("块 %s v%d #%d 的正文与发布期摘要不一致，拒绝交付", keys[index].doc, keys[index].version, keys[index].chunk)}
+		}
+		delivered[index] = append(append([]any(nil), row...), text)
+	}
+	response["rows"] = delivered
+	response["columns"] = append(append([]dataconnector.Column(nil), columns...), dataconnector.Column{Name: "text", DataTypeOID: 25})
+	return nil
+}
+
+// chunkTextDeliveryTimeout bounds the delivery read of chunk text; it is a
+// bounded identity lookup on kb.chunks, not a governed query, so it carries
+// its own fixed limit rather than the task's query budget.
+const chunkTextDeliveryTimeout = 5 * time.Second
+
+// responseInteger reads an integer cell however the result or replay path
+// encoded it.
+func responseInteger(value any) (int64, bool) {
+	switch typed := value.(type) {
+	case int64:
+		return typed, true
+	case int32:
+		return int64(typed), true
+	case int:
+		return int64(typed), true
+	case float64:
+		if typed != math.Trunc(typed) {
+			return 0, false
+		}
+		return int64(typed), true
+	case json.Number:
+		parsed, err := typed.Int64()
+		return parsed, err == nil
+	case string:
+		parsed, err := strconv.ParseInt(typed, 10, 64)
+		return parsed, err == nil
+	}
+	return 0, false
+}
+
+// pgTextLiteral renders a standard-conforming single-quoted literal; control
+// characters are refused rather than escaped.
+func pgTextLiteral(value string) (string, error) {
+	for _, r := range value {
+		if r < 0x20 || r == 0x7f {
+			return "", fmt.Errorf("control character in literal")
+		}
+	}
+	return "'" + strings.ReplaceAll(value, "'", "''") + "'", nil
+}
+
+func sha256Hex(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])
 }
 
 // retrievalBody strips the task envelope so the retrieval request can be

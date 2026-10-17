@@ -22,7 +22,7 @@ var kbAggregates = map[string]struct{}{"count": {}, "sum": {}, "min": {}, "max":
 // publish for the knowledge Fact identities of docs/kb-design.md to exist.
 var kbRelationRequiredFields = map[string][]string{
 	"documents":         {"doc_id", "version", "content_sha256", "chunk_count"},
-	"chunks":            {"doc_id", "version", "chunk_index", "text", "text_sha256"},
+	"chunks":            {"doc_id", "version", "chunk_index", "text_sha256"},
 	"values":            {"doc_id", "version", "field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
 	"collection_values": {"field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
 }

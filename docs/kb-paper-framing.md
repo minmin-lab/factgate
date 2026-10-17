@@ -62,5 +62,5 @@ returns exactly the hit set of direct exact retrieval with a measured settlement
 
 - 文档路径证据是否翻为正式（campaign_class / publication_eligible）；若翻，三部署的定义采用"独立控制库 + 独立 Service 实例 + 同一业务库"
   还是三个 compose 栈（后者需重做 E-KB1–E-KB4）。
-- §9.8（text_sha256）与 E-KB3 的 10^6 档。
+- E-KB3 的 10^6 档是否做（§9.8 已定 text_sha256；剩余成本是 10^6 块的 CPU 嵌入时间）。
 - 主稿页数（K5.1）。

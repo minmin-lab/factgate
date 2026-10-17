@@ -47,7 +47,7 @@ func kbSearchHarness(t *testing.T, profile string) (*gatewayHarness, string) {
 		control.ExposureLimits{ReleaseFacts: 400, InfluenceFacts: 2000, OutcomeFacts: 64}, profile,
 		[]string{"policy_kb_chunks", "policy_kb_documents"},
 		map[string][]string{
-			"policy_kb_chunks":    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification", "job_role", "valid_until"},
+			"policy_kb_chunks":    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 			"policy_kb_documents": {"doc_id", "version", "title", "kb_department", "classification"},
 		}, domain.SensitivityHigh,
 		map[string]any{"kb_department": []any{"finance"}, "classification": []any{"internal"}})
@@ -176,7 +176,7 @@ func kbTaskRequest(department string, classification []string) map[string]any {
 		"objective":     "查阅本部门制度与合同",
 		"data_products": []string{"policy_kb_chunks", "policy_kb_documents"},
 		"columns": map[string][]string{
-			"policy_kb_chunks":    {"doc_id", "version", "chunk_index", "text", "kb_department", "classification"},
+			"policy_kb_chunks":    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification"},
 			"policy_kb_documents": {"doc_id", "version", "title", "kb_department", "classification"},
 		},
 		"scopes": map[string]any{"kb_department": []any{department}, "classification": values},

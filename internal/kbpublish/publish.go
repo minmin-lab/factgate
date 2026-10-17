@@ -397,7 +397,7 @@ func relationSelect(kind, collection string, collectionScopedFields []string) st
 			array_to_string(labels, ',') AS labels, valid_from, valid_until, content_sha256, chunk_count
 			FROM kb.documents WHERE collection = ` + literal + ` ORDER BY doc_id, version`
 	case "chunks":
-		return `SELECT doc_id, version, chunk_index, text, text_sha256, department AS kb_department, classification, job_role,
+		return `SELECT doc_id, version, chunk_index, text_sha256, department AS kb_department, classification, job_role,
 			array_to_string(labels, ',') AS labels, valid_until
 			FROM kb.chunks WHERE collection = ` + literal + ` ORDER BY doc_id, version, chunk_index`
 	default:
@@ -412,7 +412,7 @@ var relationFields = map[string][][2]string{
 	"documents": {{"doc_id", "text"}, {"version", "integer"}, {"title", "text"}, {"document_type", "text"}, {"kb_department", "text"},
 		{"classification", "text"}, {"job_role", "text"}, {"labels", "text"}, {"valid_from", "date"}, {"valid_until", "date"},
 		{"content_sha256", "text"}, {"chunk_count", "integer"}},
-	"chunks": {{"doc_id", "text"}, {"version", "integer"}, {"chunk_index", "integer"}, {"text", "text"}, {"text_sha256", "text"},
+	"chunks": {{"doc_id", "text"}, {"version", "integer"}, {"chunk_index", "integer"}, {"text_sha256", "text"},
 		{"kb_department", "text"}, {"classification", "text"}, {"job_role", "text"}, {"labels", "text"}, {"valid_until", "date"}},
 	"values": {{"doc_id", "text"}, {"version", "integer"}, {"document_type", "text"}, {"field", "text"}, {"value_type", "text"},
 		{"canonical_value", "text"}, {"value_text", "text"}, {"value_numeric", "numeric"}, {"value_date", "date"},

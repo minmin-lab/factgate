@@ -3635,7 +3635,11 @@ frozen into the epoch; the online path only looks identities up.
 
 Let $\varpi$ be the exposure-profile version, $s$ the index epoch, $d$ a
 document identifier, $v$ its version, $c$ a chunk index, $C(\cdot)$ the
-canonical encoding of the main paper, and $H$ the domain-separated hash.
+canonical encoding of the main paper (for chunk text the implementation
+takes $C$ to be the SHA-256 content digest, so the published relation carries
+the digest and not the text; the gateway reads the text at delivery time and
+serves it only when its digest is the released cell), and $H$ the
+domain-separated hash.
 \begin{align*}
  f_{doc}   &= \langle\varpi,\nu,s,d,v\rangle,\\
  f_{chunk} &= \langle\varpi,\nu,s,d,v,c,C(\mathrm{text}_c)\rangle,\\
@@ -3694,7 +3698,7 @@ The effect of a successful request is
 \end{align*}
 In the implementation the chunk relation is read through the same relational
 algebra as a report, so for a plain \code{search} a returned chunk releases
-its four visible cells (document identifier, version, chunk index and text),
+its four visible cells (document identifier, version, chunk index and content digest),
 and $\facts_D$ adds the chunk's row Fact, the two key cells and the row Fact
 of its document, and one further chunk cell for every attribute the caller
 filtered on; the task's mandatory scope is applied by the policy renderer and
@@ -3872,7 +3876,7 @@ segmented into four chunks; $d_7$ and $d_8$ carry the label
 \code{department = marketing} and the eligibility envelope excludes the two
 restricted documents, so the mandatory filter already removes them. The
 accounting below is the implemented one: a returned chunk releases its four
-visible cells (document identifier, version, chunk index, text) and depends
+visible cells (document identifier, version, chunk index, content digest) and depends
 in addition on its row Fact and on the two key cells and the row Fact of its
 document; a caller filter adds one chunk cell per attribute filtered on.
 Budgets are stated in cells, $B_R/B_D/B_O = 48/160/10$, so $B_R$ is twelve

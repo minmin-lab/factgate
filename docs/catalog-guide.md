@@ -486,7 +486,7 @@ kb_publications:
 规则：
 
 - 三个产品必须存在、带 `snapshot_publication`，`fact_namespace` = `<source_namespace>.<kind>`，`snapshot` = epoch，并各自发布
-  知识 Fact 身份所需字段（documents: `doc_id/version/content_sha256/chunk_count`；chunks: `+chunk_index/text/text_sha256`；
+  知识 Fact 身份所需字段（documents: `doc_id/version/content_sha256/chunk_count`；chunks: `+chunk_index/text_sha256`，正文 `text` 不是发布字段，网关交付时读业务表并按摘要核对；
   values: `+field/value_type/canonical_value/value_text/value_numeric/value_date`），且都带知识产品的全部强制 Scope。
 - `scopes` 非空，只能是 enum Catalog Scope；每个强制 Scope 必须有一个同名 enum 属性绑定它（`attributes[].scope`）。
 - `extraction_rules` 的 `document_type` 必须在 `document_types` 内，类型限 `text/numeric/integer/bigint/date`，目前只支持

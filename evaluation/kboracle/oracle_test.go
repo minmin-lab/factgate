@@ -61,7 +61,7 @@ func effectHashes(t *testing.T, effect retrieval.Effect) ([]string, []string, []
 
 func TestHandComputedCounts(t *testing.T) {
 	form := normalize(t, retrieval.ToolSearch, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"},{"attribute":"valid_until","op":">=","value":"2026-01-01"}],"query":{"text":"pricing"},"k":4}`)
-	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha", Attributes: testAttributes()}}
+	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, TextSHA256: "alpha", Attributes: testAttributes()}}
 	effect, err := retrieval.BuildEffect(testBinding(), form, hits)
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +70,7 @@ func TestHandComputedCounts(t *testing.T) {
 		t.Fatalf("one chunk: R=%d D=%d atoms=%d O=%d", len(effect.Release), len(effect.Dependency), len(effect.Atoms), len(effect.Outcome()))
 	}
 	// Two chunks of one document share the document row Fact.
-	hits = append(hits, retrieval.Hit{DocID: "D-1", Version: 1, ChunkIndex: 1, Text: "beta", Attributes: testAttributes()})
+	hits = append(hits, retrieval.Hit{DocID: "D-1", Version: 1, ChunkIndex: 1, TextSHA256: "beta", Attributes: testAttributes()})
 	effect, err = retrieval.BuildEffect(testBinding(), form, hits)
 	if err != nil {
 		t.Fatal(err)
@@ -122,14 +122,14 @@ func TestRandomHitSetsMatchOracleMemberByMember(t *testing.T) {
 		var chunks []Chunk
 		seen := map[string]struct{}{}
 		for len(hits) < count {
-			hit := retrieval.Hit{DocID: fmt.Sprintf("D-%d", rng.IntN(6)), Version: 1 + rng.IntN(2), ChunkIndex: rng.IntN(4), Text: fmt.Sprintf("text %d", rng.IntN(1000)), Attributes: map[string]string{"job_role": []string{"staff", "manager"}[rng.IntN(2)], "valid_until": fmt.Sprintf("2026-%02d-01", 1+rng.IntN(12))}}
+			hit := retrieval.Hit{DocID: fmt.Sprintf("D-%d", rng.IntN(6)), Version: 1 + rng.IntN(2), ChunkIndex: rng.IntN(4), TextSHA256: fmt.Sprintf("text %d", rng.IntN(1000)), Attributes: map[string]string{"job_role": []string{"staff", "manager"}[rng.IntN(2)], "valid_until": fmt.Sprintf("2026-%02d-01", 1+rng.IntN(12))}}
 			id := fmt.Sprintf("%s/%d/%d", hit.DocID, hit.Version, hit.ChunkIndex)
 			if _, duplicate := seen[id]; duplicate {
 				continue
 			}
 			seen[id] = struct{}{}
 			hits = append(hits, hit)
-			chunks = append(chunks, Chunk{hit.DocID, hit.Version, hit.ChunkIndex, hit.Text, hit.Attributes})
+			chunks = append(chunks, Chunk{hit.DocID, hit.Version, hit.ChunkIndex, hit.TextSHA256, hit.Attributes})
 		}
 		effect, err := retrieval.BuildEffect(testBinding(), form, hits)
 		if err != nil {
@@ -148,7 +148,7 @@ func TestRandomHitSetsMatchOracleMemberByMember(t *testing.T) {
 
 func TestReplayAndDistinctRequestsOnComposite(t *testing.T) {
 	form := normalize(t, retrieval.ToolSearch, `{"query":{"text":"pricing"},"k":4}`)
-	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, Text: "alpha", Attributes: testAttributes()}, {DocID: "D-2", Version: 1, ChunkIndex: 0, Text: "gamma", Attributes: testAttributes()}}
+	hits := []retrieval.Hit{{DocID: "D-1", Version: 1, ChunkIndex: 0, TextSHA256: "alpha", Attributes: testAttributes()}, {DocID: "D-2", Version: 1, ChunkIndex: 0, TextSHA256: "gamma", Attributes: testAttributes()}}
 	first, _ := retrieval.BuildEffect(testBinding(), form, hits)
 	second, _ := retrieval.BuildEffect(testBinding(), form, []retrieval.Hit{hits[1], hits[0]})
 	firstHash, _ := first.Composite.Hash()
