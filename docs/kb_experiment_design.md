@@ -206,6 +206,73 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
 - 新数据绑定 kb-dataset-binding-v2：钉住新发布物、关键词集、profile 文件、DDL（含 pg_trgm 索引）、镜像摘要。作者签署后才能发射。
 - 先彩排（pilot 类）再正式轮；正式轮的失败规则、封存与登记沿用下文规程，campaign 名另起。已封存的正式轮证据不动。
 
+## 文档下载实验 E-KB9 与 E-KB10（K7.4；2026-10-18 起草，首次运行前冻结）
+
+作者 2026-10-18 定把文档下载任务加进论文（KB1-LOOP-116）；语义见 docs/kb-design.md §12，实现见 KB1-LOOP-117/118。
+本节写定于任何 E-KB9/E-KB10 运行之前。预期取保守先验，不按结果拟合；停止规则固定，不补轮。
+
+### 共同设定
+
+- 发布：沿用关键词轮已冻结的 `policy-kb-2026-10-bge-v2kw`（48,183 块，10,469 份文档），不新发布。
+- 下载集（执行前由确定性工具生成并冻结，摘要进新数据绑定）：
+  - **全可见集 A**：300 份文档。条件是所有分块的密级都等于文档密级（不含混合节）；每部门 25 份，按固定种子抽样。
+  - **混合集 B**：60 份文档，各含一个 leadership 节，所在文档密级 public、internal、confidential 各 20 份，按固定种子抽样。
+  - **审批集 C**：从 A 中按固定种子取 20 组，每组 5 份。审批人按固定位置删去每组第 2、4 份。
+- 主体：alice（finance_controller，全部密级）。每个任务的范围按实验显式给出。预算为 kb-large-v1。
+- 直连参照：gateway_reader 直接读 kb.documents（title、chunk_count）、kb.chunks（chunk_index、text_sha256、text）与 kb.extracted_values（field、value_type、canonical_value）；用同一 kbdownload.Assemble 组装参照文件。
+- 驱动：kb-formal-driver 经 HTTP/MCP 调用 request_download_task、OA 提交与审批、download_document。
+  - 逐部分验回执，并核回执中的 Catalog 摘要；
+  - 经 download_url 取回文件，核字节与 Content-Digest。
+
+### E-KB9 下载的正确性、整份拒绝、审批绑定与种类分离
+
+- **(a) 正确性与账本**：
+  - 做法：A 的 300 份按每任务 20 份分 15 个下载任务，include_values 为 true，范围为全部部门与全部密级。每份下载一次，再用同一请求号与新请求号各重下一次。
+  - 指标：
+    - 文件与直连参照逐字节相同的比例；
+    - 经 download_url 取回与 content 相同的比例；
+    - 各部分 Release 等于 2（文档）、4×块数（分块）、3×抽取值行数（values）的比例；
+    - 两种重下零计费的比例；
+    - 三次部署之间文件摘要相同的比例。
+- **(b) 整份拒绝**：
+  - 做法：B 的 60 份，每份两个任务。
+    - 任务一：范围为该文档部门与 {public, internal, confidential}，不含 leadership。
+    - 任务二：再加 leadership。
+  - 指标：
+    - 任务一 DOCUMENT_NOT_DOWNLOADABLE 的比例；
+    - 任务一每次拒绝的 Release 增量恰为 2（文档行）的比例；
+    - 任务二交付且与直连参照逐字节相同的比例。
+- **(c) 审批绑定**：
+  - 做法：C 的 20 组各建一个下载任务，审批人用 OA 的缩小批准删去两份。
+  - 指标：
+    - 被删两份 DOWNLOAD_NOT_APPROVED 的比例；
+    - 保留三份交付的比例；
+    - 每任务一份清单外文档 DOWNLOAD_NOT_APPROVED 的比例。
+- **(d) 种类分离**：
+  - 做法：每次部署，在一个下载任务中调用 search、fetch、aggregate、query_sql、execute_plan 各一次；在一个检索任务中调用 download_document 一次。
+  - 指标：TASK_KIND_MISMATCH 的比例。
+- **预期**：(a)–(d) 每项均为 100%。任何偏差逐条列出，记为缺陷，照实写入论文。
+- **规模**：上述全部 × 3 次全新部署。固定规模，不补轮。
+
+### E-KB10 下载开销
+
+- 臂：
+  - 直连：gateway_reader 执行与三个部分等价的三条读语句，在客户端组装；
+  - FactGate：download_document。
+- 样本：从 A 按固定种子取 50 份，每臂每部署 200 轮（轮换样本）。重下轮（同一请求号）单列。
+- 指标：客户端时延的中位数与 p95；每轮计费；重下轮 0/0/0。
+- 预期（保守先验）：
+  - 网关做三次准备、执行与结算，所以增量取 E-KB3 单次检索增量的三倍量级；
+  - 网关 p95 不超过直连 p95 加 1.5 秒；
+  - 只报测得值，不报"可忽略"。
+- 停止规则：固定 200 轮/臂/部署。
+
+### Profile、绑定与轮次
+
+- Profile：kb-v2kw-download（目录同 kb-v2kw-large，预算 kb-large-v1，实验 ekb9 与 ekb10），3 次全新部署。
+- 新数据绑定 kb-dataset-binding-v3：钉住下载集、新 profile 文件、DDL、镜像摘要与既有发布物。作者签署后才能发射。
+- 先彩排（pilot 类），再正式轮。正式轮的失败规则、封存与登记沿用下文规程，campaign 名另起。已封存的两轮证据不动。
+
 ## 正式轮（方案 C）规程（K4.8，2026-10-17 起草，开跑前冻结）
 
 本节规定方案 C 的正式轮怎么跑。上文预登记的问题、预期与停止规则不变；本节只规定部署、驱动、审批、证据与签署。开跑前的任何
