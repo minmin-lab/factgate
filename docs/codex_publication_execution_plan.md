@@ -2065,3 +2065,13 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 生成器的存证门禁推广到关键词存证：\KbKeywordRawEvidenceDOI 只在 published 时生成。kb.tex 新增 \KbKeywordRawEvidenceFiles{288} 与 \KbKeywordRawEvidenceMB{20}。
     - 推广时我写了一个参数名遮蔽 bug（与函数内已有的局部变量 prefix 同名），单测当场抓到，已改名修复；12/12 通过，kb.tex 其余部分不变。
   - **待作者**：对 Zenodo 记录 23449501 明示"发布"。
+
+- [2026-10-18 17:08 UTC+8] KB1-LOOP-112 **Zenodo 第 3 版已由作者发布并核实；关键词轮 DOI 进论文；阶段 6 完成**。作者原话"已发布 https://zenodo.org/records/23449501"。
+  - **核实（实跑）**：
+    - 公开 API：记录 open，version 3.0，10 个文件的校验和与上传时一致。
+    - DOI 解析：doi.org 302 到 zenodo.org/records/23449501，HTTP 200。
+    - 下载核对：从公开记录下载 3 个新增文件，sha256 与存证记录相同；归档解出 288 个文件按清单全部通过。
+  - **仓库**：raw-evidence-keyword-deposit.json 改为 status published，写明作者原话与上述核实。生成器随之生成 \KbKeywordRawEvidenceDOI{10.5281/zenodo.23449501}，kb.tex 只增这一行。
+  - **论文**：主稿"可复现边界"改为"knowledge-product rounds and corpora, doi:… and …"；补充材料评估引言给出第二轮的类别、登记摘要与存证（288 个文件，DOI）。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=711 不变，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。从 PDF 抽取核对 DOI 渲染正确。
+  - **阶段 6 小结**：关键词检索从作者决定（11:38）到正式证据与存证进论文（17:08），K6.1–K6.8 全部完成。留待作者：审阅主稿改动，先后移出的四段在补充材料 Passages Moved。

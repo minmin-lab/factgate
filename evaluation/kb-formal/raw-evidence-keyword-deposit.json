@@ -34,9 +34,11 @@
   "doi": "10.5281/zenodo.23444544",
   "carried_files": 7
  },
- "status": "draft",
- "status_note": "2026-10-18: version-3 draft created through the API; the three added files read back with the local md5 and size, the seven version-2 files are carried with their version-2 checksums, the DOI is reserved and becomes resolvable only on publication; publication is the author's act",
+ "status": "published",
+ "status_note": "published by the author on 2026-10-18 (the author's words: \u5df2\u53d1\u5e03 https://zenodo.org/records/23449501); verified the same day through the public API (record open, version 3.0, ten files with the uploaded checksums), by DOI resolution (doi.org redirects to zenodo.org/records/23449501, HTTP 200), and by downloading the three added files from the public record: their sha256 equal the values recorded here, and the 288 files extracted from the downloaded archive all match the manifest",
  "recomputation_check": "2026-10-18: kb-formal-finalize -round keyword -class formal (the round's sealed binary) run on deployments/ of the extracted archive with round/approval.json at the round root produced the four combined reports equal to the registered ones except generated_at",
  "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v3/ (the three deposited files; sha256 verified there 2026-10-18)",
- "license": "CC-BY-4.0"
+ "license": "CC-BY-4.0",
+ "published": "2026-10-18",
+ "url": "https://doi.org/10.5281/zenodo.23449501"
 }
