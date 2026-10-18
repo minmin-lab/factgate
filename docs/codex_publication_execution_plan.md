@@ -2016,3 +2016,14 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 作者原话"发射"。
   - 已核验：记录为 AUTHOR_APPROVED，路径与摘要都对。
   - 即将发射正式轮 kb-keyword-publication-20261018（class formal，round keyword，9 次部署）。运行期间不改任何受控文件，备注先写 ~/logs/pending-registration.md，封存后再登记。
+
+- [2026-10-18 15:04 UTC+8] KB1-LOOP-108 **关键词轮正式轮完成、封存并登记**。运行期备注已从 ~/logs/pending-registration.md 转入本条。
+  - **运行**：kb-keyword-publication-20261018，class formal，round keyword，冻结提交 e085b9e，campaign 分支 kb-campaign/kb-keyword-publication-20261018，14:23:44–15:03:17。9/9 次部署完成（每个槽位只有 attempt-1），无失败。
+  - **封存（实跑）**：kb-formal-finalize -round keyword -class formal，在本地与 NAS 逐文件核对 9 次部署。campaign evidence 7cef116b2b174ad4261c200963b40937eeda25bbb8213fbbeaf67cd56cc36109，绑定绑定 v2（2b444146…）与作者批准记录（065c57d7…）。
+  - **对拍（实跑）**：
+    - compare-combined.py --round keyword 与彩排比较全部确定性字段：E-KB6、E-KB7、E-KB8-48k、E-KB8-96k 都是 0 差异。比较器此前已用蓄意改坏的副本验证能检出差异。
+    - 12 份逐部署报告另跑不变量检查，0 差异。
+    - 因此正式轮的计数、命中列表、计费与停止码都与彩排相同（见 KB1-LOOP-106 的数字）；只有时延另行测得。
+  - **登记**：kb-formal-register 增 -round；登记路径移入 kbformal.Rounds，首轮仍为 kb-publication-evidence-v1.json。登记文件 evaluation/kb-formal/kb-keyword-evidence-v1.json，sha256 71901f5da9e367c052fabade8eacba042d2da84d713c02b3a90cc1d20e9a1624，2194 字节，含 5 个证据文件。
+  - **其他检查**：泄密扫描 0 命中，扫描模式先用已知命中样本验证过。作者批准前，生成器的关键词宏仍取彩排（已实跑确认）。
+  - **待作者**：签署关键词证据批准（~/logs/kb-approvals/approve-keyword-evidence.sh）。

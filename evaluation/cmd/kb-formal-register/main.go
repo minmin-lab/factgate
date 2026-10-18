@@ -49,7 +49,13 @@ func run() error {
 	rootFlag := flag.String("root", "", "finalized round root")
 	repo := flag.String("repo", ".", "repository root")
 	nasRoot := flag.String("nas-root", "/mnt/ctg-pto-dev/factgate-evidence", "NAS evidence root")
+	roundName := flag.String("round", "kb", "round: kb | keyword (kbformal.Rounds); selects the registration file")
 	flag.Parse()
+	round, err := kbformal.LookupRound(*roundName)
+	if err != nil {
+		return err
+	}
+	registrationPath := round.RegistrationPath
 	if *rootFlag == "" {
 		return errors.New("-root is required")
 	}
@@ -144,7 +150,7 @@ func run() error {
 		return err
 	}
 	encoded = append(encoded, '\n')
-	path := filepath.Join(*repo, RegistrationPath)
+	path := filepath.Join(*repo, registrationPath)
 	out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return err
@@ -157,6 +163,6 @@ func run() error {
 		return err
 	}
 	sum := sha256.Sum256(encoded)
-	fmt.Printf("registered campaign %s: %s sha256=%s (%d evidence files in %s)\n", summary.Campaign, RegistrationPath, hex.EncodeToString(sum[:]), len(entries), target)
+	fmt.Printf("registered campaign %s: %s sha256=%s (%d evidence files in %s)\n", summary.Campaign, registrationPath, hex.EncodeToString(sum[:]), len(entries), target)
 	return nil
 }

@@ -1,0 +1,47 @@
+{
+ "approval_sha256": "065c57d79e35ac806eb1063bc0db168186aab8896c9c8a85f58f6aa5229f2003",
+ "campaign": "kb-keyword-publication-20261018",
+ "campaign_class": "kb-publication",
+ "commit": "e085b9efc266afaca010c482ff31d1ddfc6a3289",
+ "dataset_binding_sha256": "2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0",
+ "entries": [
+  {
+   "id": "ekb6",
+   "path": "evidence/kb-keyword-publication-20261018/ekb6.json",
+   "sha256": "6f0e2e758fc6b108c322e0b4ebe50a4a616120c5f820e5e7a48b00d3f5ba9416",
+   "bytes": 2276649,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/evidence/ekb6.json"
+  },
+  {
+   "id": "ekb7",
+   "path": "evidence/kb-keyword-publication-20261018/ekb7.json",
+   "sha256": "5d151109f0756e9c53377e1b70dd646632012609360449d461d68b0f373f81e6",
+   "bytes": 57038,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/evidence/ekb7.json"
+  },
+  {
+   "id": "ekb8-48k",
+   "path": "evidence/kb-keyword-publication-20261018/ekb8-48k.json",
+   "sha256": "7372775a0cae979f0a19ea287b41e15d39888cb0fabe0cb2f09cc92dba8d767a",
+   "bytes": 648500,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/evidence/ekb8-48k.json"
+  },
+  {
+   "id": "ekb8-96k",
+   "path": "evidence/kb-keyword-publication-20261018/ekb8-96k.json",
+   "sha256": "dce6657e456e4023c30f9c3ed6a969b5bb0804ea269add7de4e08206329c8a83",
+   "bytes": 625948,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/evidence/ekb8-96k.json"
+  },
+  {
+   "id": "campaign-evidence",
+   "path": "evidence/kb-keyword-publication-20261018/campaign-evidence.json",
+   "sha256": "7cef116b2b174ad4261c200963b40937eeda25bbb8213fbbeaf67cd56cc36109",
+   "bytes": 4507,
+   "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/evidence/campaign-evidence.json"
+  }
+ ],
+ "note": "Formal knowledge-product evidence (正式轮规程 §7). The paper generator uses it only together with the author's signed approval naming this file's SHA-256.",
+ "publication_eligible": true,
+ "version": "taskgate-kb-publication-evidence-v1"
+}

@@ -1,0 +1,108 @@
+{
+ "approval_sha256": "065c57d79e35ac806eb1063bc0db168186aab8896c9c8a85f58f6aa5229f2003",
+ "campaign": "kb-keyword-publication-20261018",
+ "campaign_class": "kb-publication",
+ "class": "formal",
+ "commit": "e085b9efc266afaca010c482ff31d1ddfc6a3289",
+ "dataset_binding_sha256": "2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0",
+ "deployments": [
+  {
+   "profile": "kb-20kkw-large",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-20kkw-large/001/attempt-1/deployment-record.json",
+   "record_sha256": "499dbffef8736862041a37cdb219ae19e12e62d351077b89a093b2bac42e1b26",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-20kkw-large/001/attempt-1"
+  },
+  {
+   "profile": "kb-20kkw-large",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-20kkw-large/002/attempt-1/deployment-record.json",
+   "record_sha256": "d2eb4a235d9ae660db2513109213017804e4ee3357237ca901352789a60f090e",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-20kkw-large/002/attempt-1"
+  },
+  {
+   "profile": "kb-20kkw-large",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-20kkw-large/003/attempt-1/deployment-record.json",
+   "record_sha256": "9c50f1362c6517fc93ed81842ea80e3f5a5b4b6aa2bd99739078c3f97cd5d247",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-20kkw-large/003/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-large",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-large/001/attempt-1/deployment-record.json",
+   "record_sha256": "bcd9e0a4523f67c12a757cf6337a03772f75ff14da6d18add9fdefa680fdedb3",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-large/001/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-large",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-large/002/attempt-1/deployment-record.json",
+   "record_sha256": "c8c20a763f31cefd7c2e2dd4ff08b010e661df69d829b69124cd462b80eca109",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-large/002/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-large",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-large/003/attempt-1/deployment-record.json",
+   "record_sha256": "6781d52061765189a1c23bbb12fec7524db66d8762961d862c1646f99e028ed0",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-large/003/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-pilot",
+   "repetition": 1,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-pilot/001/attempt-1/deployment-record.json",
+   "record_sha256": "3706b510ee5f8cfcb999eb1b225b41828131aea1c54e7f2d164f063c64222882",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-pilot/001/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-pilot",
+   "repetition": 2,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-pilot/002/attempt-1/deployment-record.json",
+   "record_sha256": "656681468016c3b425fbe7b8b7ed755f8accba0c1cd4e9c6ee55edf39378e3c5",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-pilot/002/attempt-1"
+  },
+  {
+   "profile": "kb-v2kw-pilot",
+   "repetition": 3,
+   "attempt": 1,
+   "record": "deployments/kb-v2kw-pilot/003/attempt-1/deployment-record.json",
+   "record_sha256": "e9e03b66c2fa7c9dabbe992ec53dfbfcecea9394d9959d785b6c3b6a85c98c06",
+   "nas": "/mnt/ctg-pto-dev/factgate-evidence/kb-formal/kb-keyword-publication-20261018/deployments/kb-v2kw-pilot/003/attempt-1"
+  }
+ ],
+ "evidence": [
+  {
+   "path": "ekb6.json",
+   "sha256": "6f0e2e758fc6b108c322e0b4ebe50a4a616120c5f820e5e7a48b00d3f5ba9416",
+   "bytes": 2276649
+  },
+  {
+   "path": "ekb7.json",
+   "sha256": "5d151109f0756e9c53377e1b70dd646632012609360449d461d68b0f373f81e6",
+   "bytes": 57038
+  },
+  {
+   "path": "ekb8-48k.json",
+   "sha256": "7372775a0cae979f0a19ea287b41e15d39888cb0fabe0cb2f09cc92dba8d767a",
+   "bytes": 648500
+  },
+  {
+   "path": "ekb8-96k.json",
+   "sha256": "dce6657e456e4023c30f9c3ed6a969b5bb0804ea269add7de4e08206329c8a83",
+   "bytes": 625948
+  }
+ ],
+ "generated_at": "2026-10-18T07:04:01Z",
+ "profile_registry_sha256": "3512bb8dbf78d4ce720df8f0da6d7144cc7a9db6e8fdeb5d93a81ebbd2c12cf4",
+ "publication_eligible": true,
+ "version": "taskgate-kb-campaign-evidence-v1"
+}

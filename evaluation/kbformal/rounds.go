@@ -13,7 +13,10 @@ type Round struct {
 	Name           string
 	BindingVersion string
 	BindingPath    string
-	Profiles       []string
+	// RegistrationPath is where kb-formal-register writes the round's
+	// formal evidence registration.
+	RegistrationPath string
+	Profiles         []string
 	// KeywordSet binds the frozen keyword set of the keyword experiments.
 	KeywordSet bool
 }
@@ -24,9 +27,11 @@ const KeywordsetDir = "evaluation/kb-formal/keywordset-v1"
 // Rounds are the defined rounds by name.
 var Rounds = map[string]Round{
 	"kb": {Name: "kb", BindingVersion: BindingVersion, BindingPath: BindingPath,
-		Profiles: []string{"kb-v2-pilot", "kb-v2-large", "kb-20k-large", "kb-v2c-pilot"}},
+		RegistrationPath: "evaluation/kb-formal/kb-publication-evidence-v1.json",
+		Profiles:         []string{"kb-v2-pilot", "kb-v2-large", "kb-20k-large", "kb-v2c-pilot"}},
 	"keyword": {Name: "keyword", BindingVersion: "taskgate-kb-dataset-binding-v2", BindingPath: "evaluation/kb-formal/kb-dataset-binding-v2.json",
-		Profiles: []string{"kb-v2kw-pilot", "kb-v2kw-large", "kb-20kkw-large"}, KeywordSet: true},
+		RegistrationPath: "evaluation/kb-formal/kb-keyword-evidence-v1.json",
+		Profiles:         []string{"kb-v2kw-pilot", "kb-v2kw-large", "kb-20kkw-large"}, KeywordSet: true},
 }
 
 // LookupRound returns the named round.
