@@ -1,0 +1,42 @@
+{
+ "version": 1,
+ "purpose": "The keyword round's raw evidence deposited outside the repository, as version 3 of the Zenodo record that holds the V5 and knowledge-product raw evidence: what it contains, the digests of the deposited files, and where it is. raw-evidence-keyword-manifest.sha256 is the deposited KB-KEYWORD-RAW-EVIDENCE-MANIFEST.sha256 and lists the SHA-256 of every file inside the archive.",
+ "campaign": "kb-keyword-publication-20261018",
+ "files": 288,
+ "bytes": 20168438,
+ "manifest_sha256": "09d3c02194508b1e0003cd1b9176f274ac724addbbb03b497a9c971aeeb2cbd1",
+ "archives": [
+  {
+   "name": "factgate-kb-keyword-raw-evidence-v1.tar.gz",
+   "size": 3199983,
+   "md5": "e9487f640da717b436b5041318d09e90",
+   "sha256": "2daff1092a32c3131890c361642f42acdd6ba1c4305f2bcefcd95812a5743bc5"
+  }
+ ],
+ "manifest": {
+  "name": "KB-KEYWORD-RAW-EVIDENCE-MANIFEST.sha256",
+  "size": 45647,
+  "md5": "1e1b889d41f999d4a1166927593f1135",
+  "sha256": "09d3c02194508b1e0003cd1b9176f274ac724addbbb03b497a9c971aeeb2cbd1"
+ },
+ "readme": {
+  "name": "KB-KEYWORD-RAW-EVIDENCE-README.md",
+  "size": 4110,
+  "md5": "388dbd8fab36723eb4d33e2e2e835c6e",
+  "sha256": "2e79c71325542b3051520ef1335a24897a04dfb76f7159375e5e3bb92c9e3e00"
+ },
+ "repository": "zenodo",
+ "record_id": 23449501,
+ "doi": "10.5281/zenodo.23449501",
+ "concept_doi": "10.5281/zenodo.23149436",
+ "previous_version": {
+  "record_id": 23444544,
+  "doi": "10.5281/zenodo.23444544",
+  "carried_files": 7
+ },
+ "status": "draft",
+ "status_note": "2026-10-18: version-3 draft created through the API; the three added files read back with the local md5 and size, the seven version-2 files are carried with their version-2 checksums, the DOI is reserved and becomes resolvable only on publication; publication is the author's act",
+ "recomputation_check": "2026-10-18: kb-formal-finalize -round keyword -class formal (the round's sealed binary) run on deployments/ of the extracted archive with round/approval.json at the round root produced the four combined reports equal to the registered ones except generated_at",
+ "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v3/ (the three deposited files; sha256 verified there 2026-10-18)",
+ "license": "CC-BY-4.0"
+}

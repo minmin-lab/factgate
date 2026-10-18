@@ -2049,3 +2049,19 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - E-KB6、E-KB7 的计数宏与 E-KB8 的计数宏 0 个变化，与正式对彩排的确定性字段 0 差异一致；过滤条件先用已知应命中的摘要宏验证过。
   - **构建（实跑）**：make paper 退出 0，主稿 12 页，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。
   - **下一步**：按作者指示做 Zenodo 第 3 版存证（关键词轮原始证据），草稿上传核对后由作者发布。
+
+- [2026-10-18 17:05 UTC+8] KB1-LOOP-111 **Zenodo 第 3 版草稿就绪（关键词轮原始证据），未发布**。依据：作者原话"存到 Zenodo"。
+  - **打包（实跑）**：沿用第 2 版的目录布局（deployments/、evidence/、round/），存于 ~/logs/kb-keyword/zenodo-v3。
+    - 288 个文件，泄密扫描 0 命中（模式先用已知命中样本验证）。
+    - 归档 factgate-kb-keyword-raw-evidence-v1.tar.gz 共 3,199,983 字节，sha256 2daff109…；按名排序、属主归零、固定 mtime、gzip -n，重打逐字节相同。
+    - 解出后按清单全部通过。
+  - **复算核查（实跑）**：用本轮封存的 kb-formal-finalize 二进制，只在解出的归档上运行，复现四份合并报告，除 generated_at 外与登记一致；蓄意改动的副本被判不等，作阳性对照。
+  - **Zenodo（实跑）**：
+    - 对已发布的第 2 版（23444544）建新版本，得草稿 23449501，预留 DOI 10.5281/zenodo.23449501，concept 10.5281/zenodo.23149436。
+    - 第 2 版的 7 个文件随版沿用，校验和不变；新增 3 个文件回读 md5 与本地一致（归档 53 s 传完）；元数据 version 3.0，标题加"the keyword round"，含 ORCID。
+    - 状态 unsubmitted。上传的 3 个文件已镜像到 NAS kb-zenodo-v3/，sha256 核对通过。
+  - **仓库**：
+    - 新增 evaluation/kb-formal/raw-evidence-keyword-deposit.json（status draft）与 raw-evidence-keyword-manifest.sha256。
+    - 生成器的存证门禁推广到关键词存证：\KbKeywordRawEvidenceDOI 只在 published 时生成。kb.tex 新增 \KbKeywordRawEvidenceFiles{288} 与 \KbKeywordRawEvidenceMB{20}。
+    - 推广时我写了一个参数名遮蔽 bug（与函数内已有的局部变量 prefix 同名），单测当场抓到，已改名修复；12/12 通过，kb.tex 其余部分不变。
+  - **待作者**：对 Zenodo 记录 23449501 明示"发布"。
