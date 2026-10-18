@@ -2010,3 +2010,9 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - compare-combined.py 增 --round keyword：比较全部确定性字段，包括 E-KB6 逐条命中列表、E-KB7 逐轨迹计数与计费、E-KB8 逐样本行数与计费，不比时延；用蓄意改坏的副本验证，三处都检出。
     - generate_kb_evidence.py 新增关键词宏 137 个：在正式登记与作者批准齐备前取彩排数据，并标 \KbKeywordEvidenceClass{kb-pilot}；新增门禁单测，10/10 通过。
   - **待作者**：(1) 签署数据绑定 v2（~/logs/kb-approvals/approve-keyword-launch.sh）；(2) 同意正式轮发射。
+
+- [2026-10-18 14:21 UTC+8] KB1-LOOP-107 **作者签署关键词轮数据绑定并同意发射**。
+  - 作者本人运行 ~/logs/kb-approvals/approve-keyword-launch.sh（我起草、未运行）。提交 c16c05e（14:19:57）只含 evaluation/kb-formal/approvals/launch-approval-keyword-v1.json（sha256 065c57d7…），批准绑定 v2：2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0，9638 字节。
+  - 作者原话"发射"。
+  - 已核验：记录为 AUTHOR_APPROVED，路径与摘要都对。
+  - 即将发射正式轮 kb-keyword-publication-20261018（class formal，round keyword，9 次部署）。运行期间不改任何受控文件，备注先写 ~/logs/pending-registration.md，封存后再登记。
