@@ -320,25 +320,31 @@ func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbf
 	if err != nil {
 		return fmt.Errorf("original file: %w", err)
 	}
-	content, _ := original["content"].(string)
-	sum := sha256.Sum256([]byte(content))
-	if content == "" || original["format"] != "original" || hex.EncodeToString(sum[:]) != original["file_sha256"] {
-		return errors.New("original file: content, format or digest is wrong")
+	// The original is binary (a PDF): it is fetched through its capability and
+	// must have the released media type, size and digest.
+	downloadURL, _ := original["download_url"].(string)
+	fetched, digestHeader, err := fetchFile(ctx, downloadURL, timeout)
+	if err != nil {
+		return fmt.Errorf("original file through its capability: %w", err)
 	}
-	for _, raw := range original["queries"].([]any) {
+	sum := sha256.Sum256(fetched)
+	if original["format"] != "original" || original["media_type"] != "application/pdf" || hex.EncodeToString(sum[:]) != original["file_sha256"] ||
+		fmt.Sprint(original["file_bytes"]) != fmt.Sprint(len(fetched)) || !strings.HasPrefix(string(fetched), "%PDF-") {
+		return fmt.Errorf("original file: format %v, media type %v, %d bytes, digest or PDF header is wrong", original["format"], original["media_type"], len(fetched))
+	}
+	parts := original["queries"].([]any)
+	if len(parts) != 4 {
+		return fmt.Errorf("original file: %d settled parts, want document, chunks, values and files", len(parts))
+	}
+	for _, raw := range parts {
 		part, _ := raw.(map[string]any)
 		if _, err := kbformal.VerifyReceipt(verifier, part["receipt"]); err != nil {
 			return fmt.Errorf("original file part %v receipt: %w", part["part"], err)
 		}
 	}
-	downloadURL, _ := original["download_url"].(string)
-	fetched, _, err := fetchFile(ctx, downloadURL, timeout)
-	if err != nil || string(fetched) != content {
-		return fmt.Errorf("original file through its capability: %v", err)
-	}
 	summary["original_file"] = map[string]any{"doc": fmt.Sprintf("%s@%v", documents[0].DocID, documents[0].Version),
-		"file_sha256": original["file_sha256"], "file_bytes": original["file_bytes"], "parts": len(original["queries"].([]any)),
-		"unapproved_code": "DOWNLOAD_NOT_APPROVED"}
+		"media_type": original["media_type"], "file_sha256": original["file_sha256"], "file_bytes": len(fetched), "parts": len(parts),
+		"content_digest_header": digestHeader != "", "unapproved_code": "DOWNLOAD_NOT_APPROVED"}
 	return nil
 }
 

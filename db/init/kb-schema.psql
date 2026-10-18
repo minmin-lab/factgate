@@ -119,7 +119,7 @@ CREATE TABLE kb.document_files (
     media_type text NOT NULL CHECK (media_type ~ '^[a-z]+/[a-z0-9.+-]+$'),
     byte_size bigint NOT NULL CHECK (byte_size > 0),
     file_sha256 text NOT NULL CHECK (file_sha256 ~ '^[0-9a-f]{64}$'),
-    object_key text NOT NULL CHECK (object_key ~ '^[a-z0-9][A-Za-z0-9._/-]{0,511}$' AND object_key !~ '\.\.'),
+    object_key text NOT NULL CHECK (object_key ~ '^[a-z0-9][A-Za-z0-9._/-]{0,255}$' AND object_key !~ '\.\.'),
     PRIMARY KEY (collection, doc_id, version),
     FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version)
 );
