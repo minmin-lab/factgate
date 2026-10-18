@@ -537,6 +537,29 @@ URL 形态作者选网关地址；进论文。
 - **计费**：原文件 ⊇ 标题、chunk_count、content_sha256 三个文档单元格、全部分块的 4×n 个单元格与抽取值的 3×m 个单元格，所以原文件不会比逐块下载便宜。
   节标题（含其密级标签）与未抽取的前置字段没有自己的单元格，随文件整体释放，以 content_sha256 这一事实计，不做单元格级核算。论文照写这一粒度。
 
+### 12.9 PDF 原件与 files 关系（2026-10-18 作者定，KB1-LOOP-124）
+
+作者原话："企业实际场景 大部分是PDF 文件，有没有PDF 样例可以演示？"；范围选 "Demo and paper (Recommended)"。
+
+- **原件**：语料没有 PDF。由确定性渲染器 `tools/kb-pdf/render.py`（taskgate-kb-pdf-render-v1）为每个文档版本生成 PDF 原件。
+  - 内容：标题、前置字段各行、每节的标题（含密级标签）与正文。
+  - 钉住：fpdf2 2.8.9、fontTools 4.65.0，字体 Noto Sans CJK SC Regular/Bold（SIL OFL，按 sha256 钉住）；创建时间与 producer 固定，不读时钟。
+  - 同一输入重跑逐字节相同，渲染清单（manifest.jsonl：doc_id、version、media_type、byte_size、file_sha256）的摘要进发布规格。
+- **存放**：PDF 放在对象存储的原件桶（演示与正式轮为栈内 MinIO 的独立桶），键为 `<前缀>/<doc_id>-v<version>.pdf`。网关只有该桶的只读权限。
+- **files 关系**：知识产品新增第四个发布关系 `<kp>_files`。
+  - 字段：doc_id、version、media_type、byte_size、file_sha256、kb_department、classification。
+  - 底表：kb.document_files（含不发布的 object_key），发布期由 kb-publish 按渲染清单装载；清单必须恰好覆盖语料全部文档版本，否则拒绝发布。
+  - 与其他关系一样有序数侧表与快照发布，摘要进清单，属新发布期。
+- **原文件权改为批准 files 关系**（取代 §12.8 的 content_sha256 列）。
+  - request_download_task 的 original_file 申请 chunks、documents、values、files 四个关系。审批人在 OA 看到 `<kp>_files` 产品，删去它即不批原件。
+- **下载**：format original 要求授权单批准 files 与 values。
+  - document、chunks、values 三部分照旧；第四部分 files 是计划，取 media_type、byte_size、file_sha256，Release 为 3。
+  - 结算后按身份从 kb.document_files 读 object_key，从原件桶取对象，核字节数与 sha256 等于已释放的单元格后交付。
+  - 交付走网关短期地址，媒体类型取自 files 行。MCP 结果不内嵌二进制，只给地址与摘要。
+- **计费**：原件 ⊇ 标题、chunk_count、全部分块的 4×n 个单元格、抽取值的 3×m 个单元格与 files 行的 3 个单元格。
+  版式、节标题与未抽取前置字段随文件整体释放，以 file_sha256 这一事实计；论文照写这一粒度。
+- **整份拒绝**照旧：任一节超出任务范围，原件不交付。
+
 ### 12.7 实验（预先登记写入 docs/kb_experiment_design.md 后才跑）
 
 E-KB9 下载，候选测量项如下，阈值待登记时按保守先验定：

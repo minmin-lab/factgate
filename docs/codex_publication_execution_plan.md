@@ -2225,3 +2225,16 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **search 不接受 doc_id 过滤是设计边界**：过滤只接受知识产品声明的属性（kb-design §4）。若放开，检索任务里就多出一条按编号取整份文档的通道，绕过下载任务的逐份审批，与作者 2026-10-17 的 fetch 裁决 (a) 及 18:25 的"搜索归搜索，下载归下载"相悖。保持不变。
   - **不构成绕过**：在检索任务里逐块拼出全文，所取的块都在该任务已批准的范围内，并逐次按账本计费。小预算下同类连续检索在第 22 步被拒（KB1-LOOP-115 实测）。下载任务不收窄检索授权已覆盖的内容；论文须写明这一点。
   - **改进（只改文字，语义与计费不变）**：search 与 fetch 的工具描述、CHUNK_NOT_RETURNED 的两处消息，都加"要整份文档请用 request_download_task 与 download_document"。网关单测通过；演示镜像待重建。
+
+- [2026-10-18 23:40 UTC+8] KB1-LOOP-124 **作者定 PDF 原件进演示与论文；设计 files 关系**（kb-design §12.9）。
+  - **作者原话**："企业实际场景 大部分是PDF 文件，有没有PDF 样例可以演示？"；范围选 "Demo and paper (Recommended)"。
+  - **决定**：
+    - 确定性渲染器 tools/kb-pdf/render.py 为每个文档版本生成 PDF 原件：fpdf2 2.8.9、fontTools 4.65.0、Noto Sans CJK SC（OFL，摘要钉住）、固定创建时间。
+    - 原件放对象存储的只读原件桶。
+    - 新发布关系 `<kp>_files`（media_type、byte_size、file_sha256），属新发布期。
+    - 原文件权改为批准 files 关系，取代 KB1-LOOP-120 的 content_sha256 列方案（尚未评估，可改）。
+    - format original 的第四部分读 files 行，结算后从桶取对象，核大小与摘要后经网关地址交付。
+  - **可行性实测**：
+    - D-000595 渲染为 86,928 字节的 PDF，两次渲染逐字节相同（598f8f0c…）；pypdf 抽取文字正常（CJK 字形映射正确）。
+    - 全语料 10,469 份渲染已在后台进行。
+  - **字体来源**：本机另一项目目录中的 Noto Sans CJK SC 发行文件（OFL），以 sha256 钉住，未联网下载。
