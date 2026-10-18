@@ -2080,3 +2080,5 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - main.tex:131 改为"Large enterprises operate warehouses, reporting marts, …"，中文阅读版同步改为"数仓"。
   - make paper 退出 0，主稿 12 页，check-rendered 补充材料 0 项、主稿只有既有两项。
   - 其余三处单独出现的 lake（main.tex:145"never exposes the raw lake"、:1150"surrounding lake, Catalog, …"、补充材料接口表"Lake / warehouse"行）不是重复，未改，已报作者另定。
+
+- [2026-10-18 17:25 UTC+8] KB1-LOOP-114 **更正 KB1-LOOP-113 的时间戳**：该条写作 17:20，实际写入时间是 17:25。根因：我在同一条命令里把时间写死在条目中，`date` 的输出在条目写完之后才看到，违反"先 date 对表再写"。此后先单独运行 date 再写条目。
