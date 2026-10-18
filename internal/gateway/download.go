@@ -19,6 +19,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/apierr"
 	"taskbound.local/agent-data-gateway/internal/catalog"
 	"taskbound.local/agent-data-gateway/internal/control"
+	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	"taskbound.local/agent-data-gateway/internal/kbdownload"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/queryplan"
@@ -50,7 +51,7 @@ const downloadToolName = "download_document"
 const maxDownloadRequestIDLength = 100
 
 var requestDownloadTaskTool = mcp.Tool{Name: "request_download_task",
-	Description: "申请一个文档下载任务：列出要下载的文档（doc_id 与 version，1 到 20 份），审批人在 OA 看到这份清单并可删减。下载任务只能下载清单内的文档，不能检索；检索请另建任务。include_values 为 true 时一并申请抽取值（下载文件带类型化字段）。scopes 缺省为申请人的资格包络。",
+	Description: "申请一个文档下载任务：列出要下载的文档（doc_id 与 version，1 到 20 份），审批人在 OA 看到这份清单并可删减。下载任务只能下载清单内的文档，不能检索；检索请另建任务。include_values 为 true 时一并申请抽取值（下载文件带类型化字段）。original_file 为 true 时申请原文件（源文档原样字节，含前置字段，隐含 include_values），审批人可删去该权限。scopes 缺省为申请人的资格包络。",
 	InputSchema: objectSchema(map[string]any{
 		"objective":         map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
 		"knowledge_product": map[string]any{"type": "string", "minLength": 1},
@@ -59,18 +60,35 @@ var requestDownloadTaskTool = mcp.Tool{Name: "request_download_task",
 			"version": map[string]any{"type": "integer", "minimum": 0},
 		}, "doc_id", "version")},
 		"include_values": map[string]any{"type": "boolean"},
+		"original_file":  map[string]any{"type": "boolean"},
 		"scopes":         map[string]any{"type": "object"},
 	}, "objective", "knowledge_product", "documents")}
 
 var downloadDocumentTool = mcp.Tool{Name: downloadToolName,
-	Description: "在下载任务中下载一份已批准的文档：返回由已发布内容组装的 Markdown 文件（标题、批准时的抽取值、按序的分块正文）、文件 SHA-256、逐块摘要清单与短期下载地址。文档有任务范围外的节时整份拒绝。读取按任务账本结算；同一 request_id 重复下载不重复计费。",
+	Description: "在下载任务中下载一份已批准的文档。format 缺省为 assembled：由已发布内容组装的 Markdown 文件（标题、批准时的抽取值、按序的分块正文）；format 为 original 时交付源文档原样字节（任务须批准原文件），其 SHA-256 等于已发布的 content_sha256。返回文件内容、文件 SHA-256、逐块摘要清单与短期下载地址。文档有任务范围外的节时整份拒绝。读取按任务账本结算；同一 request_id 重复下载不重复计费。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        map[string]any{"type": "string", "minLength": 1, "maxLength": maxDownloadRequestIDLength, "pattern": "^[A-Za-z0-9._:-]+$"},
 		"knowledge_product": map[string]any{"type": "string", "minLength": 1},
 		"doc_id":            map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 		"version":           map[string]any{"type": "integer", "minimum": 0},
+		"format":            map[string]any{"type": "string", "enum": []string{kbdownload.FormatAssembled, kbdownload.FormatOriginal}},
 	}, "task_id", "request_id", "knowledge_product", "doc_id", "version")}
+
+// originalFileColumn is the documents column whose approval is the original-file
+// right: the published SHA-256 of the stored source document.
+const originalFileColumn = "content_sha256"
+
+// downloadPartDigestSource is the idempotency summary of one download part. The
+// format enters only for the original file, whose document part reads one more
+// column, so an assembled download keeps its summary.
+func downloadPartDigestSource(format, part, taskID, knowledgeProduct string, ref kbdownload.Ref) string {
+	source := downloadToolName + "\x00" + part + "\x00" + taskID + "\x00" + knowledgeProduct + "\x00" + ref.String()
+	if format == kbdownload.FormatOriginal {
+		source += "\x00" + format
+	}
+	return source
+}
 
 // downloadTools are listed to query principals alongside the retrieval tools.
 var downloadTools = []mcp.Tool{requestDownloadTaskTool, downloadDocumentTool}
@@ -106,6 +124,7 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 		KnowledgeProduct string           `json:"knowledge_product"`
 		Documents        []kbdownload.Ref `json:"documents"`
 		IncludeValues    bool             `json:"include_values,omitempty"`
+		OriginalFile     bool             `json:"original_file,omitempty"`
 		Scopes           map[string]any   `json:"scopes,omitempty"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
@@ -125,6 +144,13 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 	columns := map[string][]string{
 		product.Products.Chunks:    {"doc_id", "version", "chunk_index", retrieval.ChunkTextField, "kb_department", "classification"},
 		product.Products.Documents: {"doc_id", "version", "title", "chunk_count", "kb_department", "classification"},
+	}
+	if args.OriginalFile {
+		// The original-file right is the document's published digest cell; the
+		// source file carries the front matter, so the values relation comes
+		// with it (docs/kb-design.md §12.8).
+		columns[product.Products.Documents] = append(columns[product.Products.Documents], originalFileColumn)
+		args.IncludeValues = true
 	}
 	if args.IncludeValues {
 		if product.Products.Values == "" {
@@ -150,6 +176,7 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 	}
 	result["task_kind"] = "download"
 	result["documents"] = list
+	result["original_file"] = args.OriginalFile
 	return result, nil
 }
 
@@ -212,9 +239,16 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 		KnowledgeProduct string `json:"knowledge_product"`
 		DocID            string `json:"doc_id"`
 		Version          *int64 `json:"version"`
+		Format           string `json:"format,omitempty"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		return mcp.ToolResult{}, err
+	}
+	if args.Format == "" {
+		args.Format = kbdownload.FormatAssembled
+	}
+	if args.Format != kbdownload.FormatAssembled && args.Format != kbdownload.FormatOriginal {
+		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "format 只能是 assembled 或 original"}
 	}
 	if err := validateRequestID(args.RequestID); err != nil {
 		return mcp.ToolResult{}, err
@@ -258,20 +292,29 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未授权该知识产品的分块与文档关系"}
 	}
 	includeValues := product.Products.Values != "" && contains(grant.ApprovedProducts, product.Products.Values)
+	original := args.Format == kbdownload.FormatOriginal
+	if original && (!includeValues || !contains(grant.ApprovedColumns[product.Products.Documents], originalFileColumn)) {
+		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodeDownloadNotApproved,
+			Message: "本任务未批准原文件：须批准 " + product.Products.Documents + "." + originalFileColumn + " 与抽取值关系"}
+	}
 	summary := func(part string) string {
-		return downloadToolName + "\x00" + part + "\x00" + task.ID + "\x00" + product.Name + "\x00" + ref.String()
+		return downloadPartDigestSource(args.Format, part, task.ID, product.Name, ref)
 	}
 
 	// Plan literals take the types a decoded MCP plan carries (queryplan
 	// sqlLiteral): an integer is a json.Number.
 	versionLiteral := json.Number(strconv.FormatInt(ref.Version, 10))
-	documentPlan := queryplan.QueryPlan{Product: product.Products.Documents, Columns: []string{"title", "chunk_count"},
+	documentColumns := []string{"title", "chunk_count"}
+	if original {
+		documentColumns = append(documentColumns, originalFileColumn)
+	}
+	documentPlan := queryplan.QueryPlan{Product: product.Products.Documents, Columns: documentColumns,
 		Filters: []queryplan.Filter{{Column: "doc_id", Op: "=", Value: ref.DocID}, {Column: "version", Op: "=", Value: versionLiteral}}}
 	documentPart, err := s.runDownloadPlan(ctx, principal, task, grant, args.RequestID+":document", summary("document"), documentPlan, requestStarted)
 	if err != nil {
 		return mcp.ToolResult{}, err
 	}
-	if len(documentPart.rows) != 1 || len(documentPart.rows[0]) != 2 {
+	if len(documentPart.rows) != 1 || len(documentPart.rows[0]) != len(documentColumns) {
 		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodeDocumentNotDownloadable, Message: fmt.Sprintf("文档 %s 不存在或在任务范围外", ref)}
 	}
 	title, _ := documentPart.rows[0][0].(string)
@@ -317,6 +360,16 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 	if err != nil {
 		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "已结算的结果无法组装为文件：" + err.Error()}
 	}
+	if original {
+		// Every published cell the source file contains has now been settled:
+		// the document cells (with the digest), every chunk and every value.
+		// The bytes are read by identity and delivered only if they hash to the
+		// digest the document part released.
+		released, _ := documentPart.rows[0][2].(string)
+		if content, err = s.readOriginalFile(ctx, product, ref, released); err != nil {
+			return mcp.ToolResult{}, err
+		}
+	}
 	fileSHA256 := kbdownload.SHA256(content)
 	manifest := make([]map[string]any, 0, len(file.Chunks))
 	for _, chunk := range file.Chunks {
@@ -336,7 +389,7 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 	structured := map[string]any{
 		"tool": downloadToolName, "task_id": task.ID, "request_id": args.RequestID,
 		"knowledge_product": product.Name, "doc_id": ref.DocID, "version": ref.Version,
-		"file_name": ref.FileName(), "media_type": kbdownload.FileMediaType, "file_format": kbdownload.FileVersion,
+		"file_name": ref.FileName(), "media_type": kbdownload.FileMediaType, "format": args.Format, "file_format": fileFormat(args.Format),
 		"file_sha256": fileSHA256, "file_bytes": len(content), "content": string(content),
 		"chunks": manifest, "values_included": includeValues, "value_count": len(file.Values), "queries": queries,
 	}
@@ -345,7 +398,7 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 		if !grant.ExpiresAt.IsZero() && expiresAt.After(grant.ExpiresAt) {
 			expiresAt = grant.ExpiresAt.UTC()
 		}
-		structured["download_url"] = s.documentDownloadURL(task.ID, args.RequestID, product.Name, ref, fileSHA256, expiresAt.Unix())
+		structured["download_url"] = s.documentDownloadURL(task.ID, args.RequestID, product.Name, ref, args.Format, fileSHA256, expiresAt.Unix())
 		structured["download_url_expires_at"] = expiresAt
 	}
 	return mcp.ToolResult{Structured: structured, Resources: []mcp.EmbeddedResource{{
@@ -545,19 +598,19 @@ func (s *Service) artifactRowsByQuery(ctx context.Context, queryID string) ([][]
 // documentDownloadSignature authenticates a document download capability. The
 // payload is domain-separated from the result delivery signature and binds the
 // file digest, so the handler serves only the file the tool returned.
-func (s *Service) documentDownloadSignature(taskID, requestID, knowledgeProduct string, ref kbdownload.Ref, fileSHA256 string, expires int64) string {
+func (s *Service) documentDownloadSignature(taskID, requestID, knowledgeProduct string, ref kbdownload.Ref, format, fileSHA256 string, expires int64) string {
 	payload := strings.Join([]string{"TASKGATE-KB-DOCUMENT-DOWNLOAD-V1", taskID, requestID, knowledgeProduct,
-		ref.String(), fileSHA256, strconv.FormatInt(expires, 10)}, "\n")
+		ref.String(), format, fileSHA256, strconv.FormatInt(expires, 10)}, "\n")
 	mac := hmac.New(sha256.New, s.deliverySigningKey)
 	_, _ = mac.Write([]byte(payload))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-func (s *Service) documentDownloadURL(taskID, requestID, knowledgeProduct string, ref kbdownload.Ref, fileSHA256 string, expires int64) string {
+func (s *Service) documentDownloadURL(taskID, requestID, knowledgeProduct string, ref kbdownload.Ref, format, fileSHA256 string, expires int64) string {
 	query := url.Values{
 		"task_id": {taskID}, "request_id": {requestID}, "knowledge_product": {knowledgeProduct},
-		"doc": {ref.String()}, "sha256": {fileSHA256}, "expires": {strconv.FormatInt(expires, 10)},
-		"token": {s.documentDownloadSignature(taskID, requestID, knowledgeProduct, ref, fileSHA256, expires)},
+		"doc": {ref.String()}, "format": {format}, "sha256": {fileSHA256}, "expires": {strconv.FormatInt(expires, 10)},
+		"token": {s.documentDownloadSignature(taskID, requestID, knowledgeProduct, ref, format, fileSHA256, expires)},
 	}
 	return s.deliveryBaseURL + "/api/v1/kb/documents/download?" + query.Encode()
 }
@@ -570,11 +623,12 @@ func (s *Service) DocumentDownloadHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		values := r.URL.Query()
 		taskID, requestID, knowledgeProduct := values.Get("task_id"), values.Get("request_id"), values.Get("knowledge_product")
-		fileSHA256 := values.Get("sha256")
+		fileSHA256, format := values.Get("sha256"), values.Get("format")
 		ref, refErr := kbdownload.ParseRef(values.Get("doc"))
 		expires, err := strconv.ParseInt(values.Get("expires"), 10, 64)
 		if err != nil || refErr != nil || expires <= s.clock().UTC().Unix() || taskID == "" || requestID == "" || len(s.deliverySigningKey) == 0 ||
-			!hmac.Equal([]byte(values.Get("token")), []byte(s.documentDownloadSignature(taskID, requestID, knowledgeProduct, ref, fileSHA256, expires))) {
+			(format != kbdownload.FormatAssembled && format != kbdownload.FormatOriginal) ||
+			!hmac.Equal([]byte(values.Get("token")), []byte(s.documentDownloadSignature(taskID, requestID, knowledgeProduct, ref, format, fileSHA256, expires))) {
 			http.Error(w, "download capability is invalid or expired", http.StatusUnauthorized)
 			return
 		}
@@ -586,7 +640,7 @@ func (s *Service) DocumentDownloadHandler() http.Handler {
 			http.Error(w, "result delivery capacity is temporarily exhausted", http.StatusServiceUnavailable)
 			return
 		}
-		content, err := s.reassembleDocument(r.Context(), taskID, requestID, knowledgeProduct, ref)
+		content, err := s.reassembleDocument(r.Context(), taskID, requestID, knowledgeProduct, ref, format)
 		if err != nil || kbdownload.SHA256(content) != fileSHA256 {
 			http.NotFound(w, r)
 			return
@@ -604,7 +658,7 @@ func (s *Service) DocumentDownloadHandler() http.Handler {
 
 // reassembleDocument rebuilds a delivered file from the durable records of its
 // parts. Every part must be a completed query of the task.
-func (s *Service) reassembleDocument(ctx context.Context, taskID, requestID, knowledgeProduct string, ref kbdownload.Ref) ([]byte, error) {
+func (s *Service) reassembleDocument(ctx context.Context, taskID, requestID, knowledgeProduct string, ref kbdownload.Ref, format string) ([]byte, error) {
 	rowsOf := func(part string, required bool) ([][]any, bool, error) {
 		record, err := s.store.GetQueryByRequestID(ctx, taskID, requestID+":"+part)
 		if errors.Is(err, control.ErrNotFound) && !required {
@@ -613,15 +667,35 @@ func (s *Service) reassembleDocument(ctx context.Context, taskID, requestID, kno
 		if err != nil || record.Status != control.QueryCompleted {
 			return nil, false, errors.New("download part is not completed")
 		}
-		if record.RequestDigest != digest(downloadToolName+"\x00"+part+"\x00"+taskID+"\x00"+knowledgeProduct+"\x00"+ref.String()) {
+		if record.RequestDigest != digest(downloadPartDigestSource(format, part, taskID, knowledgeProduct, ref)) {
 			return nil, false, errors.New("download part names another document")
 		}
 		rows, err := s.artifactRowsByQuery(ctx, record.ID)
 		return rows, true, err
 	}
 	documentRows, _, err := rowsOf("document", true)
-	if err != nil || len(documentRows) != 1 || len(documentRows[0]) != 2 {
+	width := 2
+	if format == kbdownload.FormatOriginal {
+		width = 3
+	}
+	if err != nil || len(documentRows) != 1 || len(documentRows[0]) != width {
 		return nil, errors.New("document part unavailable")
+	}
+	if format == kbdownload.FormatOriginal {
+		// The original is served again only as the bytes of the released digest;
+		// the chunk and values parts it presupposes must still be complete.
+		if _, _, err := rowsOf("chunks", true); err != nil {
+			return nil, err
+		}
+		if _, _, err := rowsOf("values", true); err != nil {
+			return nil, err
+		}
+		product, found := s.catalog.LookupKnowledgeProduct(knowledgeProduct)
+		if !found {
+			return nil, errors.New("unknown knowledge product")
+		}
+		released, _ := documentRows[0][2].(string)
+		return s.readOriginalFile(ctx, product, ref, released)
 	}
 	title, _ := documentRows[0][0].(string)
 	chunkRows, _, err := rowsOf("chunks", true)
@@ -652,4 +726,46 @@ func (s *Service) reassembleDocument(ctx context.Context, taskID, requestID, kno
 		}
 	}
 	return kbdownload.Assemble(file)
+}
+
+func fileFormat(format string) string {
+	if format == kbdownload.FormatOriginal {
+		return "original"
+	}
+	return kbdownload.FileVersion
+}
+
+// originalFileReadTimeout bounds the identity read of a source document; like
+// the chunk text delivery read it is not a governed query.
+const originalFileReadTimeout = 5 * time.Second
+
+// readOriginalFile reads the stored source document of ref by identity and
+// returns it only if it hashes to the released content digest.
+func (s *Service) readOriginalFile(ctx context.Context, product catalog.KnowledgeProduct, ref kbdownload.Ref, released string) ([]byte, error) {
+	refused := &mcp.ToolError{Code: apierr.CodeConflict, Message: fmt.Sprintf("文档 %s 的原文件与发布期摘要不一致，拒绝交付", ref)}
+	if len(released) != 64 {
+		return nil, refused
+	}
+	collection, err := pgTextLiteral(product.Collection)
+	if err != nil || product.Collection == "" {
+		return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "知识产品集合名无法编码"}
+	}
+	docID, err := pgTextLiteral(ref.DocID)
+	if err != nil {
+		return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "文档号无法编码"}
+	}
+	statement := "SELECT body FROM kb.documents WHERE collection = " + collection + " AND doc_id = " + docID +
+		" AND version = " + strconv.FormatInt(ref.Version, 10)
+	result, err := s.connector.Query(ctx, dataconnector.QueryRequest{SQL: statement, StatementTimeout: originalFileReadTimeout, MaxRows: 1})
+	if err != nil {
+		return nil, &mcp.ToolError{Code: apierr.CodeDataSourceUnavailable, Message: "读取原文件失败"}
+	}
+	if len(result.Rows) != 1 || len(result.Rows[0]) != 1 {
+		return nil, refused
+	}
+	body, ok := result.Rows[0][0].(string)
+	if !ok || kbdownload.SHA256([]byte(body)) != released {
+		return nil, refused
+	}
+	return []byte(body), nil
 }

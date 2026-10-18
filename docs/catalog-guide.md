@@ -530,6 +530,9 @@ docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块�
   - 全部结算后，由结算行确定性地组装 `taskgate-kb-document-file-v1` Markdown 文件（标题、抽取值、按序正文；不含存储的 body、
     节标题与原始前置字段），返回文件内容、`file_sha256`、逐块 `text_sha256` 清单与短期 `download_url`
     （`/api/v1/kb/documents/download`，HMAC 能力绑定文件摘要）；MCP 结果另附一个嵌入资源。
+- 原文件通道（§12.8）：`request_download_task` 加 `original_file: true` 时，documents 的列加 `content_sha256`（即原文件权，审批人可删去），并隐含 values；
+  `download_document` 加 `format: "original"` 时，三部分照常结算（document 部分多释放 content_sha256），再按身份读出存储的源文档，
+  核其 SHA-256 等于已释放的 content_sha256 后原样交付；未批准原文件即 `DOWNLOAD_NOT_APPROVED`。节标题与未抽取的前置字段随文件整体释放。
 - 拒绝码：`TASK_KIND_MISMATCH`（下载任务中的 search/fetch/aggregate/query_sql/execute_plan，或检索任务中的下载）、
   `DOWNLOAD_NOT_APPROVED`（文档不在批准清单内）、`DOCUMENT_NOT_DOWNLOADABLE`（文档不存在、在范围外或有范围外的节）。
 `aggregate` 直接是 values 关系上的一个计划（`field` 与 `value_type` 过滤 + 白名单聚合），不新写结算。任务必须同时授权 chunks 与

@@ -127,9 +127,12 @@ func TestDownloadEndToEndAgainstKnowledgePublication(t *testing.T) {
 		harness.createTaskWithGrantScopeAndExposureProfile(t, taskID, nil, limits, exposure.ProfileV5, products, taskColumns,
 			domain.SensitivityHigh, map[string]any{"kb_department": []any{"finance"}, "classification": classification, kbdownload.ScopeKey: list})
 	}
-	download := func(taskID, requestID string, ref kbdownload.Ref) (mcp.ToolResult, error) {
+	downloadAs := func(format, taskID, requestID string, ref kbdownload.Ref) (mcp.ToolResult, error) {
 		return harness.service.CallTool(ctx, harness.alice, "download_document", mustJSON(t, map[string]any{"task_id": taskID,
-			"request_id": requestID, "knowledge_product": product.Name, "doc_id": ref.DocID, "version": ref.Version}))
+			"request_id": requestID, "knowledge_product": product.Name, "doc_id": ref.DocID, "version": ref.Version, "format": format}))
+	}
+	download := func(taskID, requestID string, ref kbdownload.Ref) (mcp.ToolResult, error) {
+		return downloadAs(kbdownload.FormatAssembled, taskID, requestID, ref)
 	}
 	released := func(taskID string) int64 {
 		t.Helper()
@@ -206,6 +209,55 @@ func TestDownloadEndToEndAgainstKnowledgePublication(t *testing.T) {
 	}
 	_, err = download("task-kb-download", "dl-unlisted-1", unlisted)
 	requireToolCode(t, err, apierr.CodeDownloadNotApproved)
+
+	// The original file is refused without the original-file right, even with
+	// the values relation approved, and nothing is charged for the refusal.
+	_, err = downloadAs(kbdownload.FormatOriginal, "task-kb-download", "dl-original-unapproved", full)
+	requireToolCode(t, err, apierr.CodeDownloadNotApproved)
+	if got := released("task-kb-download"); got != afterMixed {
+		t.Fatalf("a refused original download charged release %d -> %d", afterMixed, got)
+	}
+	// With the right, the original is the stored source document byte for
+	// byte, its digest is the published content_sha256, and the charge covers
+	// every chunk and value cell besides the three document cells.
+	originalColumns := append(append([]string(nil), columns[documents]...), "content_sha256")
+	harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-original", nil, limits, exposure.ProfileV5,
+		[]string{chunks, documents, values}, map[string][]string{chunks: columns[chunks], documents: originalColumns, values: columns[values]},
+		domain.SensitivityHigh, map[string]any{"kb_department": []any{"finance"}, "classification": []any{"internal", "public"},
+			kbdownload.ScopeKey: []any{full.String(), mixed.String()}})
+	var body, contentSHA256 string
+	if err := db.QueryRow(ctx, `SELECT body, content_sha256 FROM kb.documents WHERE collection = $1 AND doc_id = $2 AND version = $3`,
+		product.Collection, full.DocID, full.Version).Scan(&body, &contentSHA256); err != nil {
+		t.Fatal(err)
+	}
+	result, err = downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-1", full)
+	if err != nil {
+		t.Fatalf("original download: %v", err)
+	}
+	structured = result.Structured.(map[string]any)
+	if structured["content"] != body || structured["file_sha256"] != contentSHA256 || kbdownload.SHA256([]byte(body)) != contentSHA256 {
+		t.Fatalf("original file differs from the stored source or its published digest")
+	}
+	if len(result.Resources) != 1 || result.Resources[0].Text != body {
+		t.Fatal("the embedded resource is not the original file")
+	}
+	var originalRelease int64
+	for _, part := range structured["queries"].([]map[string]any) {
+		charge, _ := part["exposure"].(control.ExposureCharge)
+		originalRelease += charge.ActualReleaseFacts
+		if part["part"] == "document" && charge.ActualReleaseFacts != 3 {
+			t.Fatalf("original document part released %d, want title, chunk_count and content_sha256", charge.ActualReleaseFacts)
+		}
+	}
+	if originalRelease < 3+4*chunkCount {
+		t.Fatalf("original download released %d facts, below the document cells plus every chunk cell (%d)", originalRelease, 3+4*chunkCount)
+	}
+	if got := released("task-kb-original"); got != originalRelease {
+		t.Fatalf("ledger release %d, parts %d", got, originalRelease)
+	}
+	// A section outside the scope refuses the original exactly as the assembled file.
+	_, err = downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-mixed", mixed)
+	requireToolCode(t, err, apierr.CodeDocumentNotDownloadable)
 
 	// The same mixed document is downloadable for a task cleared for its
 	// leadership section; without the values relation the file has no values.

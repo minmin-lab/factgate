@@ -300,6 +300,45 @@ func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbf
 		return fmt.Errorf("download in a search task: want TASK_KIND_MISMATCH, got %v", err)
 	}
 	summary["task_kind_mismatch_code"] = toolErr.Code
+	// The original-file channel (docs/kb-design.md §12.8): refused in a task
+	// without the right, delivered byte for byte in one with it.
+	_, err = alice.Call(ctx, "download_document", map[string]any{"task_id": taskID, "request_id": "smoke-original-unapproved",
+		"knowledge_product": product.Name, "doc_id": documents[0].DocID, "version": documents[0].Version, "format": "original"})
+	if !errors.As(err, &toolErr) || toolErr.Code != "DOWNLOAD_NOT_APPROVED" {
+		return fmt.Errorf("original file without the right: want DOWNLOAD_NOT_APPROVED, got %v", err)
+	}
+	originalTask, originalCreated, err := provisioner.ProvisionDownload(ctx, map[string]any{"objective": "K7.2b smoke: original file",
+		"knowledge_product": product.Name, "documents": documents[:1], "original_file": true})
+	if err != nil {
+		return fmt.Errorf("provision original-file task: %w", err)
+	}
+	if originalCreated["original_file"] != true {
+		return errors.New("request_download_task did not record the original-file right")
+	}
+	original, err := alice.Call(ctx, "download_document", map[string]any{"task_id": originalTask, "request_id": "smoke-original-1",
+		"knowledge_product": product.Name, "doc_id": documents[0].DocID, "version": documents[0].Version, "format": "original"})
+	if err != nil {
+		return fmt.Errorf("original file: %w", err)
+	}
+	content, _ := original["content"].(string)
+	sum := sha256.Sum256([]byte(content))
+	if content == "" || original["format"] != "original" || hex.EncodeToString(sum[:]) != original["file_sha256"] {
+		return errors.New("original file: content, format or digest is wrong")
+	}
+	for _, raw := range original["queries"].([]any) {
+		part, _ := raw.(map[string]any)
+		if _, err := kbformal.VerifyReceipt(verifier, part["receipt"]); err != nil {
+			return fmt.Errorf("original file part %v receipt: %w", part["part"], err)
+		}
+	}
+	downloadURL, _ := original["download_url"].(string)
+	fetched, _, err := fetchFile(ctx, downloadURL, timeout)
+	if err != nil || string(fetched) != content {
+		return fmt.Errorf("original file through its capability: %v", err)
+	}
+	summary["original_file"] = map[string]any{"doc": fmt.Sprintf("%s@%v", documents[0].DocID, documents[0].Version),
+		"file_sha256": original["file_sha256"], "file_bytes": original["file_bytes"], "parts": len(original["queries"].([]any)),
+		"unapproved_code": "DOWNLOAD_NOT_APPROVED"}
 	return nil
 }
 

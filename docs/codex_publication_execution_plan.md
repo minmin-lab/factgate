@@ -2190,3 +2190,22 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 原文件含前置字段，故同时要求批准 values；含高于密级的节仍整份拒绝。
     - 计费：原文件 ⊇ 全部分块单元格、抽取值单元格、标题与 content_sha256 单元格，所以原文件不会比逐块下载便宜。
     - 节标题（含密级标签）与未抽取的前置字段这部分剩余随文件整体释放，以 content_sha256 这一事实计，不做单元格级核算；论文照写。
+
+- [2026-10-18 19:43 UTC+8] KB1-LOOP-121 **K7.2b 原文件通道实现；单测与端到端通过**。
+  - **代码**：
+    - request_download_task 的 original_file：documents 加 content_sha256 列，即原文件权，并隐含 values。
+    - download_document 的 format original：
+      - 前置检查：须批准 documents.content_sha256 与 values，否则 DOWNLOAD_NOT_APPROVED，零计费；
+      - document 部分多释放 content_sha256；chunks 与 values 部分照旧；
+      - 结算后按身份读 kb.documents.body，核 sha256 等于已释放摘要后交付。
+    - 下载地址的签名加入 format；取件时按 format 重组：原文件为重读 body 并核摘要。
+    - 组装模式的幂等摘要不变；原文件模式在摘要中加入 format。
+  - **实跑**（db-test-env 控制库、演示业务库、v2kw 发布物）：
+    - TestDownloadEndToEndAgainstKnowledgePublication 新增段 PASS：
+      - 无原文件权时拒绝且零计费；
+      - 有权时 D-005004 的交付字节与 kb.documents.body 逐字节相同，file_sha256 等于已发布 content_sha256；
+      - document 部分 Release 3，总 Release 不少于 3 + 4×块数；
+      - 含 leadership 节的文档在原文件模式同样整份拒绝。
+    - 网关、kbdownload、mcp、kbformal、cmd/gateway 合计 189 过、6 跳过、0 败。
+  - **登记**：E-KB9 预先登记增 (e) 原文件通道，预期 100%。kb-formal-smoke 增原文件段。
+  - **待办**：部署路径冒烟待新镜像。

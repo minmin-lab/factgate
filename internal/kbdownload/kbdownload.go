@@ -37,8 +37,18 @@ const MaxDocuments = 20
 // FileVersion names the delivered file format.
 const FileVersion = "taskgate-kb-document-file-v1"
 
-// FileMediaType is the delivered file's media type.
+// FileMediaType is the delivered file's media type. The corpus's source files
+// are Markdown with front matter, so the original file has the same type.
 const FileMediaType = "text/markdown; charset=utf-8"
+
+// Download formats (docs/kb-design.md §12.8): the assembled file is built from
+// published cells; the original file is the stored source document, delivered
+// only when its digest cell (documents.content_sha256) and the values relation
+// are approved and only when its bytes hash to the released digest.
+const (
+	FormatAssembled = "assembled"
+	FormatOriginal  = "original"
+)
 
 var docIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 

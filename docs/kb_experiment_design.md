@@ -248,10 +248,16 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
     - 被删两份 DOWNLOAD_NOT_APPROVED 的比例；
     - 保留三份交付的比例；
     - 每任务一份清单外文档 DOWNLOAD_NOT_APPROVED 的比例。
+- **(e) 原文件通道**：
+  - 做法：A 中按固定种子取 100 份，建批准原文件的下载任务（每任务 20 份），以 format original 下载；另在未批准原文件的任务中各试一次。
+  - 指标：
+    - 交付字节与 kb.documents.body 逐字节相同、且摘要等于已发布 content_sha256 的比例；
+    - 文档部分 Release 为 3、总 Release 不少于 3 + 4×块数的比例；
+    - 未批准时 DOWNLOAD_NOT_APPROVED 且零计费的比例。
 - **(d) 种类分离**：
   - 做法：每次部署，在一个下载任务中调用 search、fetch、aggregate、query_sql、execute_plan 各一次；在一个检索任务中调用 download_document 一次。
   - 指标：TASK_KIND_MISMATCH 的比例。
-- **预期**：(a)–(d) 每项均为 100%。任何偏差逐条列出，记为缺陷，照实写入论文。
+- **预期**：(a)–(e) 每项均为 100%。任何偏差逐条列出，记为缺陷，照实写入论文。
 - **规模**：上述全部 × 3 次全新部署。固定规模，不补轮。
 
 ### E-KB10 下载开销
