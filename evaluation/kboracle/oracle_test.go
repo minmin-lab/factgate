@@ -200,3 +200,82 @@ func testAttributes() map[string]string {
 func dependencyCount(chunks, docs, filtered int) int {
 	return chunks*(4+1+filtered) + docs*(2+1)
 }
+
+// normalizeKeyword normalizes a search against the test product with keyword
+// search declared.
+func normalizeKeyword(t *testing.T, body string) retrieval.NormalForm {
+	t.Helper()
+	request, err := retrieval.DecodeRequest(retrieval.ToolSearch, []byte(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := testProduct()
+	product.Retrieval.Keyword = true
+	form, err := retrieval.Normalize(product, map[string][]string{"kb_department": {"sales"}, "classification": {"public", "internal"}}, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return form
+}
+
+// TestKeywordSearchEffectMatchesOracle: a keyword search charges what any
+// search charges for its hit set (kb-design 11.3); the oracle, written from
+// the definition, agrees member by member, and the keyword list reaches the
+// composite through h_N alone.
+func TestKeywordSearchEffectMatchesOracle(t *testing.T) {
+	hits := []retrieval.Hit{
+		{DocID: "D-1", Version: 1, ChunkIndex: 0, TextSHA256: "alpha", Attributes: testAttributes()},
+		{DocID: "D-1", Version: 1, ChunkIndex: 1, TextSHA256: "beta", Attributes: testAttributes()},
+		{DocID: "D-2", Version: 1, ChunkIndex: 0, TextSHA256: "gamma", Attributes: testAttributes()},
+	}
+	chunks := make([]Chunk, 0, len(hits))
+	for _, hit := range hits {
+		chunks = append(chunks, Chunk{hit.DocID, hit.Version, hit.ChunkIndex, hit.TextSHA256, hit.Attributes})
+	}
+	form := normalizeKeyword(t, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"}],"query":{"keywords":["违约金"]},"k":5}`)
+	effect, err := retrieval.BuildEffect(testBinding(), form, hits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := Compute(testBinding(), form, chunks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, dependency, outcome := splitHashes(t, effect)
+	if differences := Compare(expected, release, dependency, outcome); len(differences) != 0 {
+		t.Fatalf("keyword effect differs from the oracle: %+v", differences)
+	}
+	if len(effect.Release) != 4*3 || len(effect.Dependency) != dependencyCount(3, 2, 1) || len(effect.Outcome()) != 2 {
+		t.Fatalf("keyword effect counts R=%d D=%d O=%d, want 12/%d/2", len(effect.Release), len(effect.Dependency), len(effect.Outcome()), dependencyCount(3, 2, 1))
+	}
+	// The same hit set under a text query of the same string: identical Result
+	// and Dependency, a different composite.
+	text := normalize(t, retrieval.ToolSearch, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"}],"query":{"text":"违约金"},"k":5}`)
+	textEffect, err := retrieval.BuildEffect(testBinding(), text, hits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	textRelease, textDependency, _ := splitHashes(t, textEffect)
+	if strings.Join(textRelease, ",") != strings.Join(release, ",") || strings.Join(textDependency, ",") != strings.Join(dependency, ",") {
+		t.Fatal("the same hit set charged different Result or Dependency under a keyword query")
+	}
+	keywordComposite, _ := effect.Composite.Hash()
+	textComposite, _ := textEffect.Composite.Hash()
+	if keywordComposite == textComposite {
+		t.Fatal("keyword and text queries share a composite")
+	}
+	// Reordered and duplicated keywords are one request; another keyword is
+	// another composite.
+	same := normalizeKeyword(t, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"}],"query":{"keywords":["违约金"," 违约金"]},"k":5}`)
+	replay, _ := retrieval.BuildEffect(testBinding(), same, hits)
+	replayComposite, _ := replay.Composite.Hash()
+	if replayComposite != keywordComposite {
+		t.Fatal("an equivalent keyword list produced another composite")
+	}
+	other := normalizeKeyword(t, `{"filters":[{"attribute":"job_role","op":"=","value":"staff"}],"query":{"keywords":["违约责任"]},"k":5}`)
+	otherEffect, _ := retrieval.BuildEffect(testBinding(), other, hits)
+	otherComposite, _ := otherEffect.Composite.Hash()
+	if otherComposite == keywordComposite {
+		t.Fatal("different keywords produced the same composite")
+	}
+}

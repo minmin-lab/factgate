@@ -213,3 +213,80 @@ func TestFetchAndAggregateNormalForms(t *testing.T) {
 		t.Fatalf("NormalizeText = %q", NormalizeText("  Ｑ3  Pricing\tPolicy\n"))
 	}
 }
+
+func keywordProduct() catalog.KnowledgeProduct {
+	kp := product()
+	kp.Retrieval.Keyword = true
+	return kp
+}
+
+func keywordDigest(t *testing.T, body string) (NormalForm, string) {
+	t.Helper()
+	form, err := Normalize(keywordProduct(), scope(), decode(t, ToolSearch, body))
+	if err != nil {
+		t.Fatalf("normalize %s: %v", body, err)
+	}
+	digest, err := form.Digest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return form, digest
+}
+
+func TestKeywordQueriesCommitToTheirCanonicalList(t *testing.T) {
+	form, a := keywordDigest(t, `{"query":{"keywords":["违约金","上限"]},"k":5}`)
+	if form.Query == nil || form.Query.Kind != QueryKindKeyword || form.Query.Dimension != 0 || form.Query.Quantization != "" {
+		t.Fatalf("keyword commitment = %+v", form.Query)
+	}
+	// Order, duplicates, surrounding whitespace and NFC form do not change
+	// which chunks match, so they do not change the commitment.
+	for _, body := range []string{
+		`{"query":{"keywords":["上限","违约金"]},"k":5}`,
+		`{"query":{"keywords":["  违约金 ","上限","违约金"]},"k":5}`,
+	} {
+		if _, b := keywordDigest(t, body); b != a {
+			t.Fatalf("%s committed differently from its canonical list", body)
+		}
+	}
+	_, composed := keywordDigest(t, `{"query":{"keywords":["café"]},"k":5}`)
+	_, decomposed := keywordDigest(t, `{"query":{"keywords":["café"]},"k":5}`)
+	if composed != decomposed {
+		t.Fatal("NFC-equivalent keywords committed differently")
+	}
+	// Matching is case-sensitive and inner whitespace is significant, so these
+	// change the hit set and must change the commitment.
+	_, upper := keywordDigest(t, `{"query":{"keywords":["ABC"]},"k":5}`)
+	_, lower := keywordDigest(t, `{"query":{"keywords":["abc"]},"k":5}`)
+	_, spaced := keywordDigest(t, `{"query":{"keywords":["a bc"]},"k":5}`)
+	if upper == lower || lower == spaced {
+		t.Fatal("keywords with different hit sets committed identically")
+	}
+	// A keyword list never shares a commitment with the same string as text.
+	_, text := digestOf(t, ToolSearch, `{"query":{"text":"违约金"},"k":5}`)
+	_, single := keywordDigest(t, `{"query":{"keywords":["违约金"]},"k":5}`)
+	if text == single {
+		t.Fatal("a keyword query and a text query committed identically")
+	}
+}
+
+func TestKeywordQueriesOutsideTheLanguageAreRefused(t *testing.T) {
+	long := strings.Repeat("长", MaxKeywordRunes+1)
+	for _, body := range []string{
+		`{"query":{"keywords":[]},"k":5}`,
+		`{"query":{"keywords":["   "]},"k":5}`,
+		`{"query":{"keywords":["a","b","c","d","e","f","g","h","i"]},"k":5}`,
+		`{"query":{"keywords":["` + long + `"]},"k":5}`,
+		`{"query":{"keywords":["tab\tinside"]},"k":5}`,
+		`{"query":{"keywords":["违约金"],"text":"违约金"},"k":5}`,
+		`{"query":{"keywords":["违约金"],"vector":[0.1,0.2,0.3,0.4]},"k":5}`,
+	} {
+		_, err := Normalize(keywordProduct(), scope(), decode(t, ToolSearch, body))
+		requireCode(t, err, apierr.CodeRetrievalQueryUnsupported, body)
+	}
+	// A knowledge product that does not declare keyword search refuses it.
+	_, err := Normalize(product(), scope(), decode(t, ToolSearch, `{"query":{"keywords":["违约金"]},"k":5}`))
+	requireCode(t, err, apierr.CodeRetrievalQueryUnsupported, "undeclared keyword search")
+	// k is bounded as for any search.
+	_, err = Normalize(keywordProduct(), scope(), decode(t, ToolSearch, `{"query":{"keywords":["违约金"]},"k":21}`))
+	requireCode(t, err, apierr.CodeRetrievalKExceeded, "k above k_max")
+}

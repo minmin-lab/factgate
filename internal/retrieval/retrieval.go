@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 
@@ -61,11 +62,21 @@ type Filter struct {
 	Values    []any  `json:"values,omitempty"`
 }
 
-// Query is the search commitment input: exactly one of Text or Vector.
+// Query is the search commitment input: exactly one of Text, Vector or
+// Keywords. Keywords select the chunks whose text contains every keyword
+// (docs/kb-design.md section 11).
 type Query struct {
-	Text   string    `json:"text,omitempty"`
-	Vector []float64 `json:"vector,omitempty"`
+	Text     string    `json:"text,omitempty"`
+	Vector   []float64 `json:"vector,omitempty"`
+	Keywords []string  `json:"keywords,omitempty"`
 }
+
+// Keyword-query bounds (docs/kb-design.md section 11.1).
+const (
+	MaxKeywords     = 8
+	MaxKeywordRunes = 64
+	keywordDomain   = "TASKGATE-RETRIEVAL-KEYWORDS-V1"
+)
 
 // ChunkRef names one chunk a fetch asks for.
 type ChunkRef struct {
@@ -112,6 +123,10 @@ type Atom struct {
 	CanonicalLiteral string `json:"literal"`
 	Injected         bool   `json:"injected,omitempty"`
 }
+
+// QueryKindKeyword marks a keyword commitment; text and vector keep their
+// historical kind names.
+const QueryKindKeyword = "keyword"
 
 type QueryCommitment struct {
 	Kind         string `json:"kind"`
@@ -288,7 +303,7 @@ func Normalize(product catalog.KnowledgeProduct, mandatoryScope map[string][]str
 		if request.Query == nil {
 			return NormalForm{}, reject(apierr.CodeRetrievalQueryUnsupported, "search requires a query")
 		}
-		commitment, err := commitQuery(*request.Query, product.Embedding.Dimension)
+		commitment, err := commitQuery(*request.Query, product.Embedding.Dimension, product.Retrieval.Keyword)
 		if err != nil {
 			return NormalForm{}, err
 		}
@@ -411,11 +426,67 @@ func NormalizeText(text string) string {
 	return strings.Join(strings.FieldsFunc(folded, unicode.IsSpace), " ")
 }
 
-func commitQuery(query Query, dimension int) (QueryCommitment, error) {
-	hasText, hasVector := strings.TrimSpace(query.Text) != "", len(query.Vector) != 0
+// CanonicalKeywords is the keyword commitment preimage. Matching is
+// case-sensitive substring containment, so case and inner whitespace are
+// kept: each keyword is NFC-normalized and trimmed, and the list is
+// deduplicated and sorted by bytes.
+func CanonicalKeywords(keywords []string) ([]string, error) {
+	if len(keywords) == 0 || len(keywords) > MaxKeywords {
+		return nil, fmt.Errorf("a keyword query carries 1 to %d keywords", MaxKeywords)
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(keywords))
+	for index, keyword := range keywords {
+		if !utf8.ValidString(keyword) {
+			return nil, fmt.Errorf("keywords[%d] is not valid UTF-8", index)
+		}
+		canonical := strings.TrimSpace(norm.NFC.String(keyword))
+		runes := utf8.RuneCountInString(canonical)
+		if runes == 0 || runes > MaxKeywordRunes {
+			return nil, fmt.Errorf("keywords[%d] must hold 1 to %d characters after normalization", index, MaxKeywordRunes)
+		}
+		for _, r := range canonical {
+			if unicode.IsControl(r) {
+				return nil, fmt.Errorf("keywords[%d] contains a control character", index)
+			}
+		}
+		if _, duplicate := seen[canonical]; duplicate {
+			continue
+		}
+		seen[canonical] = struct{}{}
+		out = append(out, canonical)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// KeywordCommitmentSHA256 is the commitment digest of a canonical keyword list.
+func KeywordCommitmentSHA256(canonical []string) string {
+	encoded, _ := json.Marshal(canonical)
+	sum := sha256.Sum256(append([]byte(keywordDomain+"\x00"), encoded...))
+	return hex.EncodeToString(sum[:])
+}
+
+func commitQuery(query Query, dimension int, keywordAdmitted bool) (QueryCommitment, error) {
+	hasText, hasVector, hasKeywords := strings.TrimSpace(query.Text) != "", len(query.Vector) != 0, len(query.Keywords) != 0
+	forms := 0
+	for _, present := range []bool{hasText, hasVector, hasKeywords} {
+		if present {
+			forms++
+		}
+	}
 	switch {
-	case hasText && hasVector:
-		return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "query must be text or vector, not both")
+	case forms > 1:
+		return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "query must be exactly one of text, vector or keywords")
+	case hasKeywords:
+		if !keywordAdmitted {
+			return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "this knowledge product does not admit keyword search")
+		}
+		canonical, err := CanonicalKeywords(query.Keywords)
+		if err != nil {
+			return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "%v", err)
+		}
+		return QueryCommitment{Kind: QueryKindKeyword, SHA256: KeywordCommitmentSHA256(canonical)}, nil
 	case hasText:
 		normalized := NormalizeText(query.Text)
 		if len(normalized) > 4096 {
@@ -434,7 +505,7 @@ func commitQuery(query Query, dimension int) (QueryCommitment, error) {
 		sum := sha256.Sum256(quantized)
 		return QueryCommitment{Kind: "vector", SHA256: hex.EncodeToString(sum[:]), Dimension: dimension, Quantization: QuantizationV1}, nil
 	default:
-		return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "query must carry text or a vector")
+		return QueryCommitment{}, reject(apierr.CodeRetrievalQueryUnsupported, "query must carry text, a vector or keywords")
 	}
 }
 

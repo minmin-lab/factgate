@@ -1938,3 +1938,25 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **作者亲手项**：新数据绑定签署、正式轮发射（通知）、关键词证据批准签署。
   - **不动**：已封存的 KB 正式轮证据（kb-formal-publication-20261017）。新实验另起一轮，单独登记。
   - **放弃**：外接 ES，原因是同快照保证要重做论证；tsvector 分词路线，原因是需要第三方扩展和自建镜像。
+
+- [2026-10-18 12:07 UTC+8] KB1-LOOP-102 **K6.1 设计完成，K6.2 代码与测试完成（部署路径冒烟待 K6.3）**。
+  - **设计**：docs/kb-design.md §11。
+    - 关键词检索为子串包含、区分大小写、多关键词取交；按命中字符数降序，再按分块键排序。
+    - 关键词进 h_N（QueryCommitment kind=keyword），不做谓词原子。原因：已发布的 chunks 关系只有 text_sha256，没有 text；生产谓词原子来自关系计划的足迹，需要产品列。
+    - 结果与依赖与向量检索相同。发射端与校验端成对列表见 §11.4。
+  - **代码**：
+    - retrieval：Query.Keywords、CanonicalKeywords、KeywordCommitmentSHA256、产品未声明则拒绝。
+    - catalog / kbpublish：retrieval.keyword（omitempty）。
+    - physicalquery：输入 QueryKeywords、向量源 TextColumn（均 omitempty）；Validate 校验关键词与承诺一致；渲染逐个 LIKE（默认转义符转义）加命中字符数排序；仅在关键词形态下放行 text 列与 ~~、+、- 运算符。
+    - gateway：MCP 模式加 keywords；关键词形态不调嵌入服务。
+    - DDL：pg_trgm 装在 kb，加 GIN 三元组索引。
+  - **验证（实跑）**：
+    - 新增单测全部通过：retrieval 2 个；physicalquery 2 个，含 sqlpolicy 引擎实际接受关键词语句；kboracle 1 个，含与独立 oracle 逐成员一致；gateway 2 个新拒绝用例。
+    - **既有向量检索摘要不变**：在 HEAD 与改后分别计算同一夹具，输入摘要 6daed663… 与绑定摘要 3a5e9623… 逐字节相同。
+    - 用 scripts/db-test-env.sh 起测试库全量跑 go test ./...：除下述卫生项外全部通过。kbschema 与 kbpublish 另用钉住的 pgvector 镜像（7b822b0a，自带 pg_trgm）起临时库跑过；gateway 检索测试此前因缺 CONTROL_TEST_POSTGRES_DSN 跳过，这次在测试库上实际通过，不是跳过。
+  - **发现并修复既有缺陷 1**：kbpublish 的 TestPublishIsDeterministicAcrossDatabasesAndVerifies 在 HEAD 上就失败（已在 HEAD 临时 worktree 复现）。
+    - 根因：§9.8 把发布的 chunks 单元格从 text 改为 text_sha256 后，篡改 text 不再改变已发布关系，verify 看不到。这个测试需要 KB_TEST_POSTGRES_DSN，此前一直跳过，没人发现。教训：跳过不等于通过。
+    - 修法：kb-publish verify 增加"每块 sha256(text) = text_sha256"检查。交付侧（retrieval.go enrichChunkText）本来就逐行核对，所以没有错误释放；但关键词匹配读的是 text，篡改可能让块从命中集中消失，必须由 verify 兜住。
+  - **发现环境漂移 2**：817 个在 git 中记为 100644 的受控文件，磁盘上带可执行位（core.fileMode=false，git status 看不到），repohygiene 测试因根目录的 Dockerfile、compose.debug.yaml、go.mod、go.sum 失败。
+    - 只清了这 4 个根目录非脚本文件的可执行位，测试通过。
+    - 其余 813 个未动：其中有 V5 等流程可能以 ./ 直接调用的脚本，贸然清除会破坏它们。留作待办。

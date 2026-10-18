@@ -60,6 +60,9 @@ type Spec struct {
 type Retrieval struct {
 	KMax       int      `json:"k_max"`
 	Aggregates []string `json:"aggregates"`
+	// Keyword admits keyword search; omitted when false so specs and
+	// manifests written before keyword search keep their digests.
+	Keyword bool `json:"keyword,omitempty"`
 }
 
 type CorpusRef struct {

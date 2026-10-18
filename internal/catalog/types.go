@@ -328,6 +328,10 @@ type KBRetrieval struct {
 	Exact              bool     `yaml:"exact" json:"exact"`
 	Aggregates         []string `yaml:"aggregates,omitempty" json:"aggregates,omitempty"`
 	GenerationAdmitted bool     `yaml:"generation_admitted" json:"generation_admitted"`
+	// Keyword admits keyword search (substring containment over chunk text,
+	// docs/kb-design.md section 11). Omitted when false, so declarations
+	// written before keyword search keep their canonical bytes.
+	Keyword bool `yaml:"keyword,omitempty" json:"keyword,omitempty"`
 }
 
 // KBPublication binds an index publication epoch to its kb-publish manifest.

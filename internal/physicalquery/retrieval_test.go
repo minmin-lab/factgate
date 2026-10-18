@@ -333,3 +333,95 @@ func TestPrepareRetrievalFetchNamesItsChunks(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func kbTestKeywordInputs(t *testing.T, keywords ...string) RetrievalPreparationInputsV1 {
+	t.Helper()
+	inputs := kbTestInputs()
+	canonical, err := retrieval.CanonicalKeywords(keywords)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputs.KnowledgeProduct.Retrieval.Keyword = true
+	inputs.NormalForm.Query = &retrieval.QueryCommitment{Kind: retrieval.QueryKindKeyword, SHA256: retrieval.KeywordCommitmentSHA256(canonical)}
+	inputs.QueryVector = nil
+	inputs.QueryKeywords = canonical
+	inputs.VectorSource.TextColumn = "text"
+	return inputs
+}
+
+func TestPrepareRetrievalKeywordSearchRendersContainmentAndRank(t *testing.T) {
+	inputs := kbTestKeywordInputs(t, "违约金", `5%_a\b`)
+	compiler, err := LocalCompilerIdentity()
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared, err := PrepareRetrievalWith(inputs, compiler)
+	if err != nil {
+		t.Fatalf("prepare keyword retrieval: %v", err)
+	}
+	if err := prepared.RequireRetrievalInputs(inputs, compiler); err != nil {
+		t.Fatalf("require inputs: %v", err)
+	}
+	visible, companion, err := prepared.ExecutableStatements()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, statement := range []string{visible, companion} {
+		for _, want := range []string{
+			`"text" LIKE E'%违约金%'`,
+			// %, _ and the backslash are escaped for LIKE, then the backslashes
+			// are doubled inside the E'' literal.
+			`"text" LIKE E'%5\\%\\_a\\\\b%'`,
+			`(length(replace("text", E'5%_a\\b', '')) - length("text"))`,
+			`(length(replace("text", E'违约金', '')) - length("text"))`,
+			"LIMIT 5", `"classification" = E'internal'`,
+		} {
+			if !strings.Contains(statement, want) {
+				t.Fatalf("keyword statement lacks %s:\n%s", want, statement)
+			}
+		}
+		if strings.Contains(statement, "<=>") {
+			t.Fatalf("keyword statement ranks by vector distance:\n%s", statement)
+		}
+	}
+	engine := sqlpolicy.New(sqlpolicy.Config{})
+	for _, statement := range []string{visible, companion} {
+		if _, err := engine.Authorize(sqlpolicy.Request{SQL: statement, Grant: prepared.PolicyGrant(), RowLimit: 5}); err != nil {
+			t.Fatalf("policy rejected the keyword statement: %v\n%s", err, statement)
+		}
+	}
+	// Keywords are part of the sealed inputs: other keywords, another binding.
+	other, err := PrepareRetrievalWith(kbTestKeywordInputs(t, "违约金"), compiler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other.Binding().SHA256 == prepared.Binding().SHA256 {
+		t.Fatal("two keyword lists sealed the same binding")
+	}
+}
+
+func TestKeywordRetrievalInputsRefuseInconsistentShapes(t *testing.T) {
+	cases := map[string]func(*RetrievalPreparationInputsV1){
+		"keywords not canonical":          func(in *RetrievalPreparationInputsV1) { in.QueryKeywords = []string{"违约金", "上限"} },
+		"keywords differ from commitment": func(in *RetrievalPreparationInputsV1) { in.QueryKeywords = []string{"上限"} },
+		"keyword search with a vector":    func(in *RetrievalPreparationInputsV1) { in.QueryVector = []float32{0.1, 0.2, 0.3} },
+		"keyword search without text":     func(in *RetrievalPreparationInputsV1) { in.VectorSource.TextColumn = "" },
+		"unsafe text column":              func(in *RetrievalPreparationInputsV1) { in.VectorSource.TextColumn = `text"; --` },
+	}
+	for name, damage := range cases {
+		t.Run(name, func(t *testing.T) {
+			inputs := kbTestKeywordInputs(t, "上限", "违约金")
+			damage(&inputs)
+			if err := inputs.Validate(); err == nil {
+				t.Fatal("inconsistent keyword inputs validated")
+			}
+		})
+	}
+	t.Run("vector search carrying keywords", func(t *testing.T) {
+		inputs := kbTestInputs()
+		inputs.QueryKeywords = []string{"上限"}
+		if err := inputs.Validate(); err == nil {
+			t.Fatal("a vector search with keywords validated")
+		}
+	})
+}

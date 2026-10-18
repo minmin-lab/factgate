@@ -59,6 +59,10 @@ type RetrievalVectorSource struct {
 	// column name, e.g. kb_department) to the vector relation's column
 	// (department). Attributes absent from the map keep their name.
 	AttributeColumns map[string]string
+	// TextColumn is the chunk text a keyword search matches. It is set only
+	// for keyword searches and omitted otherwise, so vector and text searches
+	// keep their input digests.
+	TextColumn string `json:"TextColumn,omitempty"`
 }
 
 // Validate rejects a source that cannot render a hit-set CTE.
@@ -75,6 +79,9 @@ func (source RetrievalVectorSource) Validate() error {
 	if !safeIdentifier(source.LogicalName) || !safeIdentifier(source.Schema) || !safeIdentifier(source.Relation) ||
 		!safeIdentifier(source.CollectionColumn) || !safeIdentifier(source.EmbeddingColumn) {
 		return errors.New("retrieval vector source names are not safe identifiers")
+	}
+	if source.TextColumn != "" && !safeIdentifier(source.TextColumn) {
+		return errors.New("retrieval vector source text column is not a safe identifier")
 	}
 	if len(source.EntityColumns) != 3 {
 		return errors.New("retrieval vector source must name the three chunk identity columns")
@@ -102,10 +109,13 @@ type RetrievalPreparationInputsV1 struct {
 	KnowledgeProduct catalog.KnowledgeProduct
 	// NormalForm is the K3.1 normal form, injected scope atoms included.
 	NormalForm retrieval.NormalForm
-	// QueryVector ranks the hit set. It is required for search and must be
-	// absent for fetch.
-	QueryVector  []float32
-	VectorSource RetrievalVectorSource
+	// QueryVector ranks the hit set of a text or vector search and must be
+	// absent for keyword search and fetch.
+	QueryVector []float32
+	// QueryKeywords are the canonical keywords of a keyword search
+	// (retrieval.CanonicalKeywords); absent otherwise.
+	QueryKeywords []string
+	VectorSource  RetrievalVectorSource
 }
 
 // Validate rejects inputs that cannot be prepared deterministically.
@@ -135,6 +145,28 @@ func (inputs RetrievalPreparationInputsV1) Validate() error {
 		if nf.K <= 0 || nf.Query == nil {
 			return errors.New("search normal form must carry k and a query commitment")
 		}
+		if nf.Query.Kind == retrieval.QueryKindKeyword {
+			if len(inputs.QueryVector) != 0 {
+				return errors.New("keyword search carries no query vector")
+			}
+			canonical, err := retrieval.CanonicalKeywords(inputs.QueryKeywords)
+			if err != nil {
+				return fmt.Errorf("keyword search keywords: %w", err)
+			}
+			if strings.Join(canonical, "\x00") != strings.Join(inputs.QueryKeywords, "\x00") {
+				return errors.New("keyword search keywords are not in canonical form")
+			}
+			if retrieval.KeywordCommitmentSHA256(canonical) != nf.Query.SHA256 {
+				return errors.New("keyword search keywords do not match the query commitment")
+			}
+			if inputs.VectorSource.TextColumn == "" {
+				return errors.New("keyword search requires the vector source text column")
+			}
+			break
+		}
+		if len(inputs.QueryKeywords) != 0 {
+			return errors.New("text and vector searches carry no keywords")
+		}
 		if len(inputs.QueryVector) == 0 {
 			return errors.New("search requires a query vector")
 		}
@@ -142,7 +174,7 @@ func (inputs RetrievalPreparationInputsV1) Validate() error {
 			return fmt.Errorf("query vector has %d dimensions, the commitment names %d", len(inputs.QueryVector), nf.Query.Dimension)
 		}
 	case retrieval.ToolFetch:
-		if len(nf.Chunks) == 0 || nf.Query != nil || len(inputs.QueryVector) != 0 {
+		if len(nf.Chunks) == 0 || nf.Query != nil || len(inputs.QueryVector) != 0 || len(inputs.QueryKeywords) != 0 {
 			return errors.New("fetch normal form must name chunks and carry no query")
 		}
 		for _, atom := range nf.Atoms {
@@ -222,14 +254,19 @@ func (inputs RetrievalPreparationInputsV1) SHA256() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	keywords := ""
+	if len(inputs.QueryKeywords) != 0 {
+		keywords = retrieval.KeywordCommitmentSHA256(inputs.QueryKeywords)
+	}
 	return domainDigest(retrievalInputsDomain, struct {
 		PlanInputsSHA256     string                `json:"plan_inputs_sha256"`
 		NormalFormSHA256     string                `json:"normal_form_sha256"`
 		QueryVectorSHA256    string                `json:"query_vector_sha256"`
+		QueryKeywordsSHA256  string                `json:"query_keywords_sha256,omitempty"`
 		KnowledgeProductJSON json.RawMessage       `json:"knowledge_product"`
 		VectorSource         RetrievalVectorSource `json:"vector_source"`
 		CatalogContentSHA256 string                `json:"catalog_content_sha256,omitempty"`
-	}{planDigest, normalForm, inputs.QueryVectorSHA256(), kp, canonicalVectorSource(inputs.VectorSource), ""})
+	}{planDigest, normalForm, inputs.QueryVectorSHA256(), keywords, kp, canonicalVectorSource(inputs.VectorSource), ""})
 }
 
 func canonicalVectorSource(source RetrievalVectorSource) RetrievalVectorSource {
@@ -564,7 +601,18 @@ func renderRetrievalHits(inputs RetrievalPreparationInputsV1) (string, error) {
 	// search ranks by exact cosine distance; fetch names its chunks and ranks
 	// them by identity alone, so the distance column is a constant.
 	distance := "0"
-	if inputs.NormalForm.Tool == retrieval.ToolSearch {
+	keywordSearch := inputs.NormalForm.Tool == retrieval.ToolSearch && len(inputs.QueryKeywords) != 0
+	if keywordSearch {
+		// Keyword search ranks by matched characters, highest first, written
+		// as its negation so both wrappers keep one ascending rank column:
+		// sum over keywords of length(replace(text, kw, '')) - length(text).
+		text := quoteIdent(source.TextColumn)
+		terms := make([]string, 0, len(inputs.QueryKeywords))
+		for _, keyword := range inputs.QueryKeywords {
+			terms = append(terms, "(length(replace("+text+", "+sqlStringLiteral(keyword)+", '')) - length("+text+"))")
+		}
+		distance = "(" + strings.Join(terms, " + ") + ")"
+	} else if inputs.NormalForm.Tool == retrieval.ToolSearch {
 		distance = quoteIdent(source.EmbeddingColumn) + " <=> " + sqlStringLiteral(vectorLiteral(inputs.QueryVector))
 	}
 	var b strings.Builder
@@ -607,6 +655,13 @@ func renderRetrievalHits(inputs RetrievalPreparationInputsV1) (string, error) {
 				return "", err
 			}
 			b.WriteString(" AND " + quoteIdent(column) + " " + filter.Op + " " + literal)
+		}
+	}
+	if keywordSearch {
+		// Each keyword must occur as a substring; LIKE's default escape
+		// character makes %, _ and the backslash literal.
+		for _, keyword := range inputs.QueryKeywords {
+			b.WriteString(" AND " + quoteIdent(source.TextColumn) + " LIKE " + sqlStringLiteral("%"+likeEscape(keyword)+"%"))
 		}
 	}
 	if inputs.NormalForm.Tool == retrieval.ToolFetch {
@@ -679,6 +734,11 @@ func retrievalVectorGrant(inputs RetrievalPreparationInputsV1) (sqlpolicy.Produc
 	for _, column := range source.EntityColumns {
 		columns[column] = struct{}{}
 	}
+	operators := []string{"=", "<>", "<", "<=", ">", ">=", "IN", "<=>"}
+	if len(inputs.QueryKeywords) != 0 {
+		columns[source.TextColumn] = struct{}{}
+		operators = append(operators, "~~", "+", "-")
+	}
 	for i := range predicates {
 		// A scope keyed by the scope name applies to the attribute carrying it.
 		column := predicates[i].Column
@@ -708,7 +768,7 @@ func retrievalVectorGrant(inputs RetrievalPreparationInputsV1) (sqlpolicy.Produc
 	return sqlpolicy.ProductGrant{
 		LogicalName: source.LogicalName, PhysicalSchema: source.Schema, PhysicalView: source.Relation,
 		ApprovedColumns:  approved,
-		AllowedOperators: []string{"=", "<>", "<", "<=", ">", ">=", "IN", "<=>"},
+		AllowedOperators: operators,
 		MandatoryScope:   predicates,
 	}, nil
 }
@@ -736,6 +796,14 @@ func retrievalLiteral(value any) (string, error) {
 	default:
 		return "", fmt.Errorf("literal type %T is not supported in a retrieval hit set", value)
 	}
+}
+
+// likeEscape makes every character of a keyword literal under LIKE's default
+// escape character (backslash).
+func likeEscape(keyword string) string {
+	escaped := strings.ReplaceAll(keyword, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, "%", `\%`)
+	return strings.ReplaceAll(escaped, "_", `\_`)
 }
 
 func sqlStringLiteral(text string) string {

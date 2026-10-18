@@ -19,6 +19,12 @@ CREATE EXTENSION IF NOT EXISTS vector SCHEMA pg_catalog;
 CREATE SCHEMA kb;
 REVOKE ALL ON SCHEMA kb FROM PUBLIC;
 
+-- pg_trgm only serves the trigram index behind keyword search (LIKE
+-- '%keyword%' over chunk text, docs/kb-design.md section 11). No governed
+-- statement calls a pg_trgm object, so it lives in kb rather than pg_catalog
+-- and leaves unqualified name resolution unchanged.
+CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA kb;
+
 CREATE TABLE kb.collections (
     collection text PRIMARY KEY CHECK (collection ~ '^[a-z][a-z0-9_]{0,62}$'),
     description text NOT NULL,
@@ -106,6 +112,9 @@ CREATE TABLE kb.extracted_values (
 CREATE INDEX kb_chunks_filter_idx ON kb.chunks (collection, department, classification, job_role);
 CREATE INDEX kb_documents_filter_idx ON kb.documents (collection, department, classification, job_role);
 CREATE INDEX kb_extracted_values_field_idx ON kb.extracted_values (collection, field);
+-- Keyword search: speeds up LIKE '%keyword%' on chunk text. It changes no
+-- result (the hit set has a total order), so it is not part of the epoch.
+CREATE INDEX kb_chunks_text_trgm_idx ON kb.chunks USING gin (text kb.gin_trgm_ops);
 
 -- The gateway reads chunks (including embeddings, for exact retrieval inside
 -- the database) and values; it never writes. Publication writes use the

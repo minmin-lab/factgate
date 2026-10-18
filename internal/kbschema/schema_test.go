@@ -115,8 +115,15 @@ func TestKnowledgeProductSchemaInstallsAndIsReadOnlyForGateway(t *testing.T) {
 		t.Fatalf("kb foreign keys = %d (%v), want 4 (labels, documents, chunks, extracted_values)", foreignKeys, err)
 	}
 	var indexes int
-	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_indexes WHERE schemaname = 'kb' AND indexname LIKE 'kb_%_idx'`).Scan(&indexes); err != nil || indexes != 3 {
-		t.Fatalf("kb filter indexes = %d (%v), want 3", indexes, err)
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_indexes WHERE schemaname = 'kb' AND indexname LIKE 'kb_%_idx'`).Scan(&indexes); err != nil || indexes != 4 {
+		t.Fatalf("kb indexes = %d (%v), want 4 (three filter indexes and the keyword trigram index)", indexes, err)
+	}
+	var trigramSchema, trigramIndex string
+	if err := db.QueryRowContext(ctx, `SELECT n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace WHERE e.extname = 'pg_trgm'`).Scan(&trigramSchema); err != nil || trigramSchema != "kb" {
+		t.Fatalf("pg_trgm schema = %q (%v), want kb", trigramSchema, err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT indexdef FROM pg_indexes WHERE schemaname = 'kb' AND indexname = 'kb_chunks_text_trgm_idx'`).Scan(&trigramIndex); err != nil || !strings.Contains(trigramIndex, "gin_trgm_ops") {
+		t.Fatalf("keyword trigram index = %q (%v)", trigramIndex, err)
 	}
 
 	for _, table := range tables {

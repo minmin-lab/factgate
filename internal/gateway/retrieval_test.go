@@ -71,6 +71,13 @@ func TestSearchToolIsListedAndRejectsClosedForm(t *testing.T) {
 	if !listed["search"] || !listed["fetch"] || !listed["aggregate"] {
 		t.Fatalf("search, fetch and aggregate are not all listed to query principals: %v", listed)
 	}
+	schema, err := json.Marshal(searchTool.InputSchema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(schema), `"keywords"`) {
+		t.Fatalf("search tool schema offers no keywords: %s", schema)
+	}
 	base := func(overrides map[string]any) map[string]any {
 		args := map[string]any{"task_id": taskID, "request_id": "kb-search-1", "knowledge_product": "policy_kb",
 			"query": map[string]any{"vector": kbVector(256)}, "k": 5}
@@ -92,6 +99,10 @@ func TestSearchToolIsListedAndRejectsClosedForm(t *testing.T) {
 		{"text query without embedder", base(map[string]any{"query": map[string]any{"text": "差旅报销政策"}}), apierr.CodeRetrievalQueryUnsupported},
 		{"vector of the wrong dimension", base(map[string]any{"query": map[string]any{"vector": kbVector(3)}}), apierr.CodeRetrievalQueryUnsupported},
 		{"unknown request field", base(map[string]any{"rerank": true}), apierr.CodeRetrievalQueryUnsupported},
+		// The test product declares no keyword search, so keywords are refused
+		// before any preparation; so is a query carrying two forms.
+		{"keywords on a product without keyword search", base(map[string]any{"query": map[string]any{"keywords": []string{"差旅"}}}), apierr.CodeRetrievalQueryUnsupported},
+		{"keywords and a vector together", base(map[string]any{"query": map[string]any{"keywords": []string{"差旅"}, "vector": kbVector(256)}}), apierr.CodeRetrievalQueryUnsupported},
 	}
 	for index, tc := range cases {
 		tc.args["request_id"] = "kb-search-" + strings.ReplaceAll(tc.name, " ", "-")

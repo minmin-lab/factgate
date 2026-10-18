@@ -220,7 +220,35 @@ func Verify(ctx context.Context, outputDir, readerDSN string) (Manifest, error) 
 			return Manifest{}, fmt.Errorf("%s: recompiled publication differs from the published one", kind)
 		}
 	}
+	if err := verifyChunkText(ctx, readerDSN, published.Collection); err != nil {
+		return Manifest{}, err
+	}
 	return published, nil
+}
+
+// verifyChunkText checks that every chunk's text still hashes to its
+// text_sha256. The published chunks relation carries the digest, not the text
+// (kb-design 9.8), so recompiling the publication cannot see a change to the
+// text alone; keyword search matches that text and delivery serves it
+// (kb-design 11), so a drifted text must fail verification.
+func verifyChunkText(ctx context.Context, readerDSN, collection string) error {
+	conn, err := pgx.Connect(ctx, readerDSN)
+	if err != nil {
+		return fmt.Errorf("chunks text check: %w", err)
+	}
+	defer conn.Close(ctx)
+	var total, drifted int64
+	if err := conn.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE text_sha256 <> encode(sha256(convert_to(text, 'UTF8')), 'hex'))
+		FROM kb.chunks WHERE collection = $1`, collection).Scan(&total, &drifted); err != nil {
+		return fmt.Errorf("chunks text check: %w", err)
+	}
+	if total == 0 {
+		return fmt.Errorf("chunks text check: collection %q has no chunks", collection)
+	}
+	if drifted != 0 {
+		return fmt.Errorf("chunks text check: %d of %d chunks no longer match their published text digest", drifted, total)
+	}
+	return nil
 }
 
 func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) error {
@@ -492,7 +520,7 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 		return Result{}, err
 	}
 	manifest.DocumentTypes = append([]string(nil), spec.DocumentTypes...)
-	manifest.Retrieval = Retrieval{KMax: spec.Retrieval.KMax, Aggregates: append([]string{}, spec.Retrieval.Aggregates...)}
+	manifest.Retrieval = Retrieval{KMax: spec.Retrieval.KMax, Aggregates: append([]string{}, spec.Retrieval.Aggregates...), Keyword: spec.Retrieval.Keyword}
 	manifest.Collation = Collation{Name: collation, Version: collationVersion}
 	manifest.Vocabulary = vocabulary(prepared)
 	seen := map[string]struct{}{}
@@ -686,7 +714,11 @@ func CatalogFragment(spec Spec, manifest Manifest) string {
 			fmt.Fprintf(&out, "      - {document_type: %s, field: %s, type: %s, source: %s, scope: %s}\n", rule.DocumentType, rule.Field, rule.Type, rule.Source, rule.Scope)
 		}
 	}
-	fmt.Fprintf(&out, "    retrieval: {k_max: %d, exact: true, aggregates: [%s], generation_admitted: false}\n    scopes: [kb_department, classification]\n", spec.Retrieval.KMax, strings.Join(spec.Retrieval.Aggregates, ", "))
+	keyword := ""
+	if spec.Retrieval.Keyword {
+		keyword = ", keyword: true"
+	}
+	fmt.Fprintf(&out, "    retrieval: {k_max: %d, exact: true, aggregates: [%s], generation_admitted: false%s}\n    scopes: [kb_department, classification]\n", spec.Retrieval.KMax, strings.Join(spec.Retrieval.Aggregates, ", "), keyword)
 	out.WriteString("    eligibility:\n      scope_envelope:\n        kb_department:\n          from_attribute: department\n        classification:\n          from_attribute: clearance\n")
 	fmt.Fprintf(&out, "kb_publications:\n  - epoch: %s\n    knowledge_product: %s\n    manifest_digest: %s\n    segmentation_digest: %s\n    embedding_digest: %s\n    extraction_rules_digest: %s\n",
 		spec.Epoch, spec.KnowledgeProduct, manifest.ManifestDigest, manifest.SegmentationDigest, manifest.EmbeddingDigest, manifest.ExtractionRulesDigest)

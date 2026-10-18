@@ -44,7 +44,7 @@ var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retri
 // projection of the sealed statement (kb-design §9.8).
 const chunkTextDeliveryColumn = "text"
 
-var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询（文本或向量）做精确最近邻检索，返回至多 k 个分块；命中分块按任务账本的三维结算记账。",
+var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询检索，返回至多 k 个分块：文本或向量做精确最近邻检索；关键词（知识产品声明 keyword 时）返回正文同时包含每个关键词的分块，区分大小写，按命中字符数排序。命中分块按任务账本的三维结算记账。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        requestIDSchema(),
@@ -58,6 +58,8 @@ var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过
 		"query": objectSchema(map[string]any{
 			"text":   map[string]any{"type": "string", "minLength": 1, "maxLength": 4096},
 			"vector": map[string]any{"type": "array", "items": map[string]any{"type": "number"}},
+			"keywords": map[string]any{"type": "array", "minItems": 1, "maxItems": retrieval.MaxKeywords,
+				"items": map[string]any{"type": "string", "minLength": 1, "maxLength": retrieval.MaxKeywordRunes}},
 		}),
 		"k": map[string]any{"type": "integer", "minimum": 1},
 	}, "task_id", "request_id", "knowledge_product", "query", "k")}
@@ -368,8 +370,16 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 		return preparedQueryPlan{}, queryplan.QueryPlan{}, retrievalToolError(err)
 	}
 	var vector []float32
+	var keywords []string
+	source := chunkVectorSource(product)
 	if request.Tool == retrieval.ToolSearch {
-		if vector, err = s.retrievalQueryVector(product, request); err != nil {
+		if normalForm.Query != nil && normalForm.Query.Kind == retrieval.QueryKindKeyword {
+			// Keyword search ranks inside the database; no embedding is involved.
+			if keywords, err = retrieval.CanonicalKeywords(request.Query.Keywords); err != nil {
+				return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeRetrievalQueryUnsupported, Message: err.Error()}
+			}
+			source.TextColumn = chunkTextDeliveryColumn
+		} else if vector, err = s.retrievalQueryVector(product, request); err != nil {
 			return preparedQueryPlan{}, queryplan.QueryPlan{}, err
 		}
 	}
@@ -383,8 +393,8 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	}
 	inputs := physicalquery.RetrievalPreparationInputsV1{
 		Grant: preparationGrant(grant), Catalog: view, SnapshotBindings: bindings,
-		KnowledgeProduct: product, NormalForm: normalForm, QueryVector: vector,
-		VectorSource: chunkVectorSource(product),
+		KnowledgeProduct: product, NormalForm: normalForm, QueryVector: vector, QueryKeywords: keywords,
+		VectorSource: source,
 	}
 	prepared, err := physicalquery.PrepareRetrieval(inputs)
 	if err != nil {

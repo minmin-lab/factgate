@@ -343,3 +343,78 @@ T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1
 
 K2.2 表与角色（按 §1/§7，默认不含集合级关系）→ K2.5 语料生成器（独立于裁决）→ K2.3 kb-publish → K2.4 Catalog 块与激活
 → K3。若 §9 决策 1/2/3 改变，受影响的只有 kb-publish 的输出形态与 K3.2 的 oracle 计数，表结构不变。
+
+## 11. 关键词检索（K6.1；2026-10-18 作者定加入论文，台账 KB1-LOOP-101）
+
+依据：KB1-LOOP-100 的小实验——中文子串用内置 LIKE 即可，配随官方镜像发布的 pg_trgm 做 GIN 索引；以及代码落点清单（2026-10-18 全仓梳理）。下文【读代码】处给落点。
+
+### 11.1 语义
+
+- **请求**：`"query": {"keywords": ["违约金", "上限"]}`，与 `text`、`vector` 三选一。
+- **命中**：分块正文同时包含每个关键词，即子串包含。
+  - 比较规则：区分大小写，按 Unicode 码点比较。关键词先做 NFC 规范化；正文按发布时原样，不做规范化。
+  - 关键词中的 `%`、`_`、`\` 按字面匹配：发射端加反斜杠转义，使用 PostgreSQL LIKE 的默认转义符，不写 ESCAPE 子句。原因是 ESCAPE 会给语法树加一个函数节点，要另走函数白名单。
+- **取值限制**：1–8 个关键词，每个 NFC 后 1–64 个码点。去掉首尾空白，内部空白保留。按 UTF-8 字节序排序并去重。越界一律 `RETRIEVAL_QUERY_UNSUPPORTED`，沿用现有错误码，不新增。
+- **排序**：先按命中字符数降序，再按 (doc_id, version, chunk_index) 升序，取前 k，1 ≤ k ≤ k_max。命中字符数为：
+  ```
+  score = Σ_i (length(text) − length(replace(text, kw_i, '')))
+  ```
+  它等于"出现次数 × 关键词长度"之和，在 SQL 内可算且确定。无相关性模型，也不做 BM25。
+- **接纳**：知识产品须在目录 `retrieval` 中声明 `keyword: true`，否则 `RETRIEVAL_QUERY_UNSUPPORTED`。
+- **重放**：同一关键词列表得到同一 h_N，语义重放零新颖量，与向量检索相同。
+
+### 11.2 规范形与承诺：关键词进 h_N，不做谓词原子
+
+- `QueryCommitment{Kind: "keyword", SHA256: sha256(域分隔串 ‖ 排序后关键词列表的规范 JSON)}`，Dimension 为 0，Quantization 为空。它进入 `NormalForm.Query`，即 h_N 的原像【读代码】internal/retrieval/retrieval.go:116-150。
+- **不做原子的原因**：
+  - 发布的 chunks 关系只有 `text_sha256`，没有 `text`（internal/catalog/knowledge.go:25、internal/kbpublish/publish.go:397-399；§9.8 为内存定下）。
+  - 生产中的谓词原子来自关系计划的谓词足迹，`resolvePredicateField` 需要产品列（internal/queryplan/predicate_footprint.go:414）。
+  - 所以关键词只能像文本、向量查询一样，由复合项通过 h_N 承诺。
+- **后果（照实写进论文）**：
+  - 每个不同的成功关键词查询新增一个复合项，所以 B_O 限制不同关键词查询的个数。空结果同样计复合项和调用方原子。
+  - 同一关键词换不同过滤条件时，不会作为"复用同一原子"被识别；查询数不会少计。
+  - 被拒的探测只计 B_Q。
+
+### 11.3 三维效果
+
+- **F_R、F_D 与向量检索完全相同**【读代码】internal/retrieval/effect.go:204-262；生产路径为 chunks ⋈ documents 关系计划。
+  - 命中块：4 个可见单元格。
+  - 依赖再加块行、文档行、文档的 doc_id/version 单元格，以及每个调用方过滤属性对应的块单元格。
+- 关键词谓词读的是正文；正文的发布身份就是 `text_sha256` 单元格，已在 F_R ⊆ F_D 内。
+- 未命中的块，以及排序时读到但未返回的块，都不计费。这与主稿第 10 节"被淘汰的行、只影响排序的输入不计"一致。
+- **F_O** = 调用方过滤原子 ∪ {c_q}。
+
+### 11.4 准备语句：发射端与校验端成对
+
+| 发射端 | 校验端 |
+|---|---|
+| `renderRetrievalHits`（internal/physicalquery/retrieval.go:561-638）加关键词分支：每个关键词一条 `AND "text" LIKE E'%…%'`，select 出 score 列，排序 score DESC 后接实体键 | `retrievalVectorGrant`（:652-714）在关键词形态下：ApprovedColumns 加 `text`，AllowedOperators 加 `~~`、`+`、`-`；sqlpolicy 逐节点校验（ast.go:597-631），函数 length/replace 属默认白名单（policy.go:244-248） |
+| `retrievalHitOrder`（:550-555）按形态给出方向：距离升序或分数降序 | 可见与伴随两条语句共用同一个 hits 字符串（:460），由 `preparedTargetSHA256` 逐字节封印并复算（preparation.go:495-502、568-574） |
+| `RetrievalPreparationInputsV1` 加 `QueryKeywords []string 'json:"query_keywords,omitempty"'`；`SHA256()` 摘要结构同加（omitempty，既有向量检索的摘要不变） | `Validate`（:112-175）：关键词形态必须无向量、有关键词，且关键词承诺等于 NF.Query.SHA256；向量形态必须无关键词。`RequireRetrievalInputs`（:288-337）比较输入时覆盖新字段 |
+
+### 11.5 目录、发布与模式
+
+- `KBRetrieval` 加 `Keyword bool 'json:"keyword,omitempty"'`（internal/catalog/types.go:326-331）。omitempty 保证既有知识产品的规范 JSON 不变，从而准备摘要不变。
+- kbpublish 镜像：spec.go:60-63、清单 publish.go:495、片段生成 publish.go:689 同步加字段。
+- **DDL**（db/init/kb-schema.psql）：加 `CREATE EXTENSION pg_trgm` 与 `kb_chunks_text_trgm_idx ON kb.chunks USING gin (text gin_trgm_ops)`。
+  - 语句不调用 pg_trgm 的任何对象，所以 search_path 钉在 pg_catalog 的性质不受影响。
+  - 索引只影响速度，不影响结果，因为排序是确定的全序，所以不绑进发布期。
+  - 随之要改：internal/kbschema/schema_test.go:117-119 断言的索引数由 3 改为 4；新数据绑定钉住新的 DDL 摘要（binding.go:359-366）。
+  - db/init-kb/00-kb-base.sh 与 V5 逐字节相同，不动。
+
+### 11.6 网关与 MCP
+
+- `searchTool` 的 query 子模式加 `keywords`：字符串数组，1–8 项，每项 maxLength 64；描述改为"文本、向量或关键词"（internal/gateway/retrieval.go:47-63）。
+- `prepareRetrieval`（:348-414）在关键词形态下不调嵌入服务，输入带 QueryKeywords。
+
+### 11.7 参考模型与独立 oracle
+
+effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖。补测试：关键词命中集逐成员与 oracle 一致；同一关键词重放为零；不同关键词各计一个复合项。
+
+### 11.8 放弃的方案
+
+- **关键词做原子**：需要发布 `text` 列，§9.8 已因内存放弃。
+- **ILIKE 或大小写折叠**：依赖数据库 ctype 区域设置，要另绑进环境 Π。
+- **tsvector 中文分词**：需第三方扩展并自建镜像。
+- **外接 ES**：同快照保证要重新论证。
+- **pg_trgm 相似度模糊匹配**：阈值语义另需设计，本轮不做，论文不主张。
