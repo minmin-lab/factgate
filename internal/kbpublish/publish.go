@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ type Counts struct {
 	LeadershipChunks int `json:"leadership_chunks"`
 	Values           int `json:"values"`
 	CollectionValues int `json:"collection_values,omitempty"`
+	Files            int `json:"files,omitempty"`
 	Labels           int `json:"labels"`
 }
 
@@ -70,6 +72,7 @@ type Manifest struct {
 	Collation             Collation                 `json:"collation"`
 	Vocabulary            Vocabulary                `json:"vocabulary"`
 	Counts                Counts                    `json:"counts"`
+	Files                 *FilesDeclaration         `json:"files,omitempty"`
 	Publications          map[string]PublicationRef `json:"publications"`
 	ManifestDigest        string                    `json:"manifest_digest"`
 }
@@ -155,10 +158,70 @@ func Publish(ctx context.Context, spec Spec, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if err := load(ctx, spec, prepared, options.AdminDSN); err != nil {
+	files, err := LoadFileManifest(spec, prepared.Documents)
+	if err != nil {
 		return Result{}, err
 	}
-	return compileAndBind(ctx, spec, prepared, options)
+	if err := load(ctx, spec, prepared, files, options.AdminDSN); err != nil {
+		return Result{}, err
+	}
+	return compileAndBind(ctx, spec, prepared, files, options)
+}
+
+// FileEntry is one line of a render manifest.
+type FileEntry struct {
+	DocID      string `json:"doc_id"`
+	Version    int    `json:"version"`
+	MediaType  string `json:"media_type"`
+	ByteSize   int64  `json:"byte_size"`
+	FileSHA256 string `json:"file_sha256"`
+}
+
+// LoadFileManifest reads the originals' render manifest named by the spec. It
+// must hash to the declared digest and list exactly one admitted file for
+// every document version of the corpus, in any order; anything else refuses
+// the publication. A spec without files yields no entries.
+func LoadFileManifest(spec Spec, documents []kbcorpus.Document) ([]FileEntry, error) {
+	if spec.Files == nil {
+		return nil, nil
+	}
+	data, err := os.ReadFile(spec.Files.Manifest)
+	if err != nil {
+		return nil, fmt.Errorf("read files manifest: %w", err)
+	}
+	if sha256Hex(data) != spec.Files.SHA256 {
+		return nil, errors.New("files manifest differs from the spec's sha256")
+	}
+	wanted := make(map[string]struct{}, len(documents))
+	for _, doc := range documents {
+		wanted[doc.DocID+"@"+strconv.Itoa(doc.Version)] = struct{}{}
+	}
+	var entries []FileEntry
+	seen := make(map[string]struct{}, len(documents))
+	for number, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+		decoder := json.NewDecoder(strings.NewReader(line))
+		decoder.DisallowUnknownFields()
+		var entry FileEntry
+		if err := decoder.Decode(&entry); err != nil {
+			return nil, fmt.Errorf("files manifest line %d: %w", number+1, err)
+		}
+		key := entry.DocID + "@" + strconv.Itoa(entry.Version)
+		if _, ok := FileMediaTypes[entry.MediaType]; !ok || entry.ByteSize <= 0 || !shaPattern.MatchString(entry.FileSHA256) {
+			return nil, fmt.Errorf("files manifest line %d: media type, size or digest is not admitted", number+1)
+		}
+		if _, ok := wanted[key]; !ok {
+			return nil, fmt.Errorf("files manifest line %d: %s is not a document version of the corpus", number+1, key)
+		}
+		if _, duplicate := seen[key]; duplicate {
+			return nil, fmt.Errorf("files manifest line %d: %s is listed twice", number+1, key)
+		}
+		seen[key] = struct{}{}
+		entries = append(entries, entry)
+	}
+	if len(seen) != len(wanted) {
+		return nil, fmt.Errorf("files manifest lists %d of %d document versions", len(seen), len(wanted))
+	}
+	return entries, nil
 }
 
 // Verify rescans and recompiles every publication of an existing output
@@ -251,7 +314,7 @@ func verifyChunkText(ctx context.Context, readerDSN, collection string) error {
 	return nil
 }
 
-func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) error {
+func load(ctx context.Context, spec Spec, prepared Prepared, files []FileEntry, adminDSN string) error {
 	config, err := pgx.ParseConfig(adminDSN)
 	if err != nil {
 		return errors.New("parse admin DSN")
@@ -369,6 +432,14 @@ func load(ctx context.Context, spec Spec, prepared Prepared, adminDSN string) er
 			return err
 		}
 	}
+	for _, file := range files {
+		if err := queue(`INSERT INTO kb.document_files (collection, doc_id, version, media_type, byte_size, file_sha256, object_key)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			spec.Collection, file.DocID, file.Version, file.MediaType, file.ByteSize, file.FileSHA256,
+			spec.Files.ObjectKey(file.DocID, file.Version, file.MediaType)); err != nil {
+			return err
+		}
+	}
 	if err := flush(); err != nil {
 		return err
 	}
@@ -420,6 +491,12 @@ func relationSelect(kind, collection string, collectionScopedFields []string) st
 		return `SELECT DISTINCT field, value_type, canonical_value, value_text, value_numeric, value_date, department AS kb_department, classification
 			FROM kb.extracted_values WHERE collection = ` + literal + ` AND field IN (` + strings.Join(fields, ", ") + `)
 			ORDER BY field, canonical_value, kb_department, classification`
+	case FilesKind:
+		// The originals carry the document's own scope attributes; the object
+		// key is storage detail and is not published.
+		return `SELECT f.doc_id, f.version, f.media_type, f.byte_size, f.file_sha256, d.department AS kb_department, d.classification
+			FROM kb.document_files f JOIN kb.documents d USING (collection, doc_id, version)
+			WHERE f.collection = ` + literal + ` ORDER BY f.doc_id, f.version`
 	case "documents":
 		return `SELECT doc_id, version, title, document_type, department AS kb_department, classification, job_role,
 			array_to_string(labels, ',') AS labels, valid_from, valid_until, content_sha256, chunk_count
@@ -447,6 +524,8 @@ var relationFields = map[string][][2]string{
 		{"kb_department", "text"}, {"classification", "text"}},
 	CollectionValuesKind: {{"field", "text"}, {"value_type", "text"}, {"canonical_value", "text"}, {"value_text", "text"},
 		{"value_numeric", "numeric"}, {"value_date", "date"}, {"kb_department", "text"}, {"classification", "text"}},
+	FilesKind: {{"doc_id", "text"}, {"version", "integer"}, {"media_type", "text"}, {"byte_size", "bigint"},
+		{"file_sha256", "text"}, {"kb_department", "text"}, {"classification", "text"}},
 }
 
 var relationKeys = map[string][]string{
@@ -454,6 +533,7 @@ var relationKeys = map[string][]string{
 	"chunks":             {"doc_id", "version", "chunk_index"},
 	"values":             {"doc_id", "version", "field"},
 	CollectionValuesKind: {"field", "canonical_value", "kb_department", "classification"},
+	FilesKind:            {"doc_id", "version"},
 }
 
 func databaseCollation(ctx context.Context, readerDSN string) (string, string, error) {
@@ -500,7 +580,7 @@ func compilerInput(spec Spec, kind, collation, collationVersion string) snapshot
 	}
 }
 
-func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options Options) (Result, error) {
+func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, files []FileEntry, options Options) (Result, error) {
 	collation, collationVersion, err := databaseCollation(ctx, options.ReaderDSN)
 	if err != nil {
 		return Result{}, err
@@ -536,7 +616,14 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, options O
 	}
 	inputPaths := map[string]string{}
 	manifest.Counts.CollectionValues = countCollectionValues(spec, prepared.Values)
+	manifest.Counts.Files = len(files)
+	if spec.Files != nil {
+		manifest.Files = &FilesDeclaration{Renderer: spec.Files.Renderer, ManifestSHA256: spec.Files.SHA256, ObjectPrefix: spec.Files.ObjectPrefix}
+	}
 	for _, kind := range spec.Kinds() {
+		if kind == FilesKind && len(files) == 0 {
+			return Result{}, errors.New("files declared but the render manifest lists no file")
+		}
 		if kind == "values" && len(prepared.Values) == 0 {
 			return Result{}, errors.New("no extracted values: declare at least one extraction rule that matches the corpus")
 		}

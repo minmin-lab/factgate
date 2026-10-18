@@ -25,6 +25,7 @@ var kbRelationRequiredFields = map[string][]string{
 	"chunks":            {"doc_id", "version", "chunk_index", "text_sha256"},
 	"values":            {"doc_id", "version", "field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
 	"collection_values": {"field", "value_type", "canonical_value", "value_text", "value_numeric", "value_date"},
+	"files":             {"doc_id", "version", "media_type", "byte_size", "file_sha256"},
 }
 
 // CanonicalDeclarationDigest is the SHA-256 of a declaration's canonical JSON;
@@ -119,6 +120,10 @@ func (c *Catalog) validateKnowledgeProducts() ValidationErrors {
 			}
 		} else if collectionScoped {
 			problems = append(problems, fieldError(path+".products.collection_values", "a collection-scoped extraction rule requires the collection_values relation", ErrInvalidCatalog))
+		}
+		if product.Products.Files != "" {
+			relations["files"] = product.Products.Files
+			kinds = append(kinds, "files")
 		}
 		for _, kind := range kinds {
 			relationPath := path + ".products." + kind

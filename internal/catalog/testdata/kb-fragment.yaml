@@ -35,6 +35,14 @@ snapshot_publications:
     sidecar_digest: 7777777777777777777777777777777777777777777777777777777777777777
     dictionary_digest: 8888888888888888888888888888888888888888888888888888888888888888
     manifest_digest: 9999999999999999999999999999999999999999999999999999999999999999
+  - name: policy-kb-test-v1-files
+    source: travel_demo
+    source_namespace: kb.policy.files
+    snapshot: policy-kb-test-v1
+    ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_test_v1_files
+    sidecar_digest: aaaa111111111111111111111111111111111111111111111111111111111111
+    dictionary_digest: aaaa222222222222222222222222222222222222222222222222222222222222
+    manifest_digest: aaaa333333333333333333333333333333333333333333333333333333333333
 products:
   - name: policy_kb_documents
     source: travel_demo
@@ -106,6 +114,25 @@ products:
       - {name: value_date, type: date, description: value_date}
       - {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}
       - {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}
+  - name: policy_kb_files
+    source: travel_demo
+    reporting_view: reporting.kb_policy_kb_policy_kb_test_v1_files
+    description: knowledge product policy_kb files
+    sensitivity: high
+    snapshot: policy-kb-test-v1
+    snapshot_publication: policy-kb-test-v1-files
+    entity_key: [doc_id, version]
+    fact_namespace: kb.policy.files
+    stable_relation_role: policy_kb_files
+    scopes: [kb_department, classification]
+    fields:
+      - {name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}
+      - {name: version, type: integer, description: version}
+      - {name: media_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: media_type}
+      - {name: byte_size, type: bigint, description: byte_size}
+      - {name: file_sha256, type: text, collation: en_US.utf8, collation_version: "2.36", description: file_sha256}
+      - {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}
+      - {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}
 knowledge_products:
   - name: policy_kb
     description: departmental policies, contracts, approvals and reports
@@ -116,6 +143,7 @@ knowledge_products:
       documents: policy_kb_documents
       chunks: policy_kb_chunks
       values: policy_kb_values
+      files: policy_kb_files
     index_publication: policy-kb-test-v1
     document_types: [contract, approval, policy, report]
     attributes:

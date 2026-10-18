@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -210,54 +211,65 @@ func TestDownloadEndToEndAgainstKnowledgePublication(t *testing.T) {
 	_, err = download("task-kb-download", "dl-unlisted-1", unlisted)
 	requireToolCode(t, err, apierr.CodeDownloadNotApproved)
 
-	// The original file is refused without the original-file right, even with
-	// the values relation approved, and nothing is charged for the refusal.
+	// The original file is refused without the files relation in the grant,
+	// even with the values relation approved, and nothing is charged.
 	_, err = downloadAs(kbdownload.FormatOriginal, "task-kb-download", "dl-original-unapproved", full)
 	requireToolCode(t, err, apierr.CodeDownloadNotApproved)
 	if got := released("task-kb-download"); got != afterMixed {
 		t.Fatalf("a refused original download charged release %d -> %d", afterMixed, got)
 	}
-	// With the right, the original is the stored source document byte for
-	// byte, its digest is the published content_sha256, and the charge covers
-	// every chunk and value cell besides the three document cells.
-	originalColumns := append(append([]string(nil), columns[documents]...), "content_sha256")
-	harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-original", nil, limits, exposure.ProfileV5,
-		[]string{chunks, documents, values}, map[string][]string{chunks: columns[chunks], documents: originalColumns, values: columns[values]},
-		domain.SensitivityHigh, map[string]any{"kb_department": []any{"finance"}, "classification": []any{"internal", "public"},
-			kbdownload.ScopeKey: []any{full.String(), mixed.String()}})
-	var body, contentSHA256 string
-	if err := db.QueryRow(ctx, `SELECT body, content_sha256 FROM kb.documents WHERE collection = $1 AND doc_id = $2 AND version = $3`,
-		product.Collection, full.DocID, full.Version).Scan(&body, &contentSHA256); err != nil {
-		t.Fatal(err)
-	}
-	result, err = downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-1", full)
-	if err != nil {
-		t.Fatalf("original download: %v", err)
-	}
-	structured = result.Structured.(map[string]any)
-	if structured["content"] != body || structured["file_sha256"] != contentSHA256 || kbdownload.SHA256([]byte(body)) != contentSHA256 {
-		t.Fatalf("original file differs from the stored source or its published digest")
-	}
-	if len(result.Resources) != 1 || result.Resources[0].Text != body {
-		t.Fatal("the embedded resource is not the original file")
-	}
-	var originalRelease int64
-	for _, part := range structured["queries"].([]map[string]any) {
-		charge, _ := part["exposure"].(control.ExposureCharge)
-		originalRelease += charge.ActualReleaseFacts
-		if part["part"] == "document" && charge.ActualReleaseFacts != 3 {
-			t.Fatalf("original document part released %d, want title, chunk_count and content_sha256", charge.ActualReleaseFacts)
+	originalsDir := os.Getenv("KB_E2E_ORIGINALS_DIR")
+	if product.Products.Files == "" || originalsDir == "" {
+		t.Logf("original-file channel not exercised: files relation %q, KB_E2E_ORIGINALS_DIR %q", product.Products.Files, originalsDir)
+	} else {
+		// With the files relation approved the original is the stored object
+		// byte for byte, its size and digest are the published files row, and
+		// the charge covers every chunk and value cell besides the document,
+		// files and values cells.
+		harness.service.kbOriginals = directoryOriginals(originalsDir)
+		files := product.Products.Files
+		filesColumns := []string{"doc_id", "version", "media_type", "byte_size", "file_sha256", "kb_department", "classification"}
+		harness.createTaskWithGrantScopeAndExposureProfile(t, "task-kb-original", nil, limits, exposure.ProfileV5,
+			[]string{chunks, documents, values, files}, map[string][]string{chunks: columns[chunks], documents: columns[documents], values: columns[values], files: filesColumns},
+			domain.SensitivityHigh, map[string]any{"kb_department": []any{"finance"}, "classification": []any{"internal", "public"},
+				kbdownload.ScopeKey: []any{full.String(), mixed.String()}})
+		var objectKey, mediaType, fileSHA256 string
+		var byteSize int64
+		if err := db.QueryRow(ctx, `SELECT object_key, media_type, byte_size, file_sha256 FROM kb.document_files WHERE collection = $1 AND doc_id = $2 AND version = $3`,
+			product.Collection, full.DocID, full.Version).Scan(&objectKey, &mediaType, &byteSize, &fileSHA256); err != nil {
+			t.Fatal(err)
 		}
+		object, err := os.ReadFile(filepath.Join(originalsDir, filepath.FromSlash(objectKey)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-1", full)
+		if err != nil {
+			t.Fatalf("original download: %v", err)
+		}
+		structured := result.Structured.(map[string]any)
+		if structured["file_sha256"] != fileSHA256 || kbdownload.SHA256(object) != fileSHA256 || structured["media_type"] != mediaType ||
+			structured["file_bytes"] != int(byteSize) || structured["content"] != nil {
+			t.Fatalf("original delivery %v differs from the published files row (%s, %d bytes, %s)", structured, mediaType, byteSize, fileSHA256)
+		}
+		if len(result.Resources) != 1 || string(result.Resources[0].Blob) != string(object) || result.Resources[0].MimeType != mediaType {
+			t.Fatal("the embedded resource is not the original object")
+		}
+		var originalRelease int64
+		for _, part := range structured["queries"].([]map[string]any) {
+			charge, _ := part["exposure"].(control.ExposureCharge)
+			originalRelease += charge.ActualReleaseFacts
+			if part["part"] == "files" && charge.ActualReleaseFacts != 3 {
+				t.Fatalf("files part released %d, want media_type, byte_size and file_sha256", charge.ActualReleaseFacts)
+			}
+		}
+		if originalRelease < 2+4*chunkCount+3 {
+			t.Fatalf("original download released %d facts, below the document and files cells plus every chunk cell (%d)", originalRelease, 2+4*chunkCount+3)
+		}
+		// A section outside the scope refuses the original exactly as the assembled file.
+		_, err = downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-mixed", mixed)
+		requireToolCode(t, err, apierr.CodeDocumentNotDownloadable)
 	}
-	if originalRelease < 3+4*chunkCount {
-		t.Fatalf("original download released %d facts, below the document cells plus every chunk cell (%d)", originalRelease, 3+4*chunkCount)
-	}
-	if got := released("task-kb-original"); got != originalRelease {
-		t.Fatalf("ledger release %d, parts %d", got, originalRelease)
-	}
-	// A section outside the scope refuses the original exactly as the assembled file.
-	_, err = downloadAs(kbdownload.FormatOriginal, "task-kb-original", "dl-original-mixed", mixed)
-	requireToolCode(t, err, apierr.CodeDocumentNotDownloadable)
 
 	// The same mixed document is downloadable for a task cleared for its
 	// leadership section; without the values relation the file has no values.
@@ -331,4 +343,15 @@ func knowledgeE2EHarness(t *testing.T, ctx context.Context, businessDSN, artifac
 	harness.service.connector = connector
 	installKnowledgeRegistry(t, harness, artifactDir)
 	return harness
+}
+
+// directoryOriginals is a test originals store: object keys are paths under a
+// directory, as an object store's keys are paths under a bucket.
+type directoryOriginals string
+
+func (root directoryOriginals) Get(_ context.Context, key string) (io.ReadCloser, error) {
+	if strings.Contains(key, "..") || strings.HasPrefix(key, "/") {
+		return nil, os.ErrNotExist
+	}
+	return os.Open(filepath.Join(string(root), filepath.FromSlash(key)))
 }

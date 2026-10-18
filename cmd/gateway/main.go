@@ -91,6 +91,25 @@ func main() {
 		logger.Error("initialize result object store", "error", err)
 		os.Exit(1)
 	}
+	// The knowledge originals bucket (docs/kb-design.md §12.9) is optional and
+	// read with its own read-only credentials.
+	var kbOriginals gatewayapp.KBOriginalStore
+	if bucket := strings.TrimSpace(os.Getenv("GATEWAY_KB_ORIGINALS_BUCKET")); bucket != "" {
+		originals, err := resultartifact.NewS3Backend(resultartifact.S3Config{
+			Endpoint:       requiredEnv("GATEWAY_OBJECT_STORE_ENDPOINT"),
+			Region:         env("GATEWAY_OBJECT_STORE_REGION", "us-east-1"),
+			Bucket:         bucket,
+			AccessKey:      requiredEnv("GATEWAY_KB_ORIGINALS_ACCESS_KEY"),
+			SecretKey:      requiredEnv("GATEWAY_KB_ORIGINALS_SECRET_KEY"),
+			ForcePathStyle: pathStyle,
+		})
+		if err != nil {
+			logger.Error("initialize knowledge originals store", "error", err)
+			os.Exit(1)
+		}
+		kbOriginals = originals
+		logger.Info("knowledge originals store", "bucket", bucket)
+	}
 	resultArtifacts, err := resultartifact.NewManager(objectBackend, cipher,
 		env("GATEWAY_RESULT_TEMP_DIR", "/tmp/taskgate-result-artifacts"))
 	if err != nil {
@@ -328,7 +347,7 @@ func main() {
 		Connector: connector, CallbackSecret: requiredEnv("OA_CALLBACK_SECRET"), Logger: logger,
 		ReceiptVerifier: oaReceiptVerifier, QueryReceiptSigner: queryReceiptSigner, Background: ctx,
 		SettlementTimeout: settlementTimeout, SnapshotRegistry: snapshotRegistry,
-		ResultArtifacts: resultArtifacts, ResultTTL: retention.ResultTTL,
+		ResultArtifacts: resultArtifacts, ResultTTL: retention.ResultTTL, KBOriginals: kbOriginals,
 		ArtifactOperationTimeout: artifactOperationTimeout,
 		PreviewMaxBytes:          previewMaxBytes, DeliveryBaseURL: deliveryBaseURL,
 		DeliverySigningKey: deliverySigningKey, DeliveryTTL: deliveryTTL,

@@ -38,6 +38,11 @@ func fixtureCatalogAndManifest(t *testing.T, mutateCatalog func(string) string) 
 			SourceRelation: names.SourceRelation, OrdinalSidecar: names.OrdinalSidecar, SourceNamespace: names.SourceNamespace, RowCount: 1,
 			SidecarDigest: strings.Repeat(digits[kind][0], 64), DictionaryDigest: strings.Repeat(digits[kind][1], 64), ManifestDigest: strings.Repeat(digits[kind][2], 64)}
 	}
+	// The fixture's knowledge product declares the files relation as well.
+	files := spec.Relation(FilesKind)
+	manifest.Publications[FilesKind] = PublicationRef{Product: files.Product, PublicationName: files.PublicationName,
+		SourceRelation: files.SourceRelation, OrdinalSidecar: files.OrdinalSidecar, SourceNamespace: files.SourceNamespace, RowCount: 1,
+		SidecarDigest: "aaaa" + strings.Repeat("1", 60), DictionaryDigest: "aaaa" + strings.Repeat("2", 60), ManifestDigest: "aaaa" + strings.Repeat("3", 60)}
 	if manifest.ManifestDigest, err = manifest.Digest(); err != nil {
 		t.Fatal(err)
 	}

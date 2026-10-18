@@ -109,6 +109,21 @@ CREATE TABLE kb.extracted_values (
     )
 );
 
+-- The original file of a document version (docs/kb-design.md §12.9): its
+-- digest, size and media type are published; the object itself sits in the
+-- originals bucket under object_key, which is storage detail and unpublished.
+CREATE TABLE kb.document_files (
+    collection text NOT NULL,
+    doc_id text NOT NULL,
+    version integer NOT NULL,
+    media_type text NOT NULL CHECK (media_type ~ '^[a-z]+/[a-z0-9.+-]+$'),
+    byte_size bigint NOT NULL CHECK (byte_size > 0),
+    file_sha256 text NOT NULL CHECK (file_sha256 ~ '^[0-9a-f]{64}$'),
+    object_key text NOT NULL CHECK (object_key ~ '^[a-z0-9][A-Za-z0-9._/-]{0,511}$' AND object_key !~ '\.\.'),
+    PRIMARY KEY (collection, doc_id, version),
+    FOREIGN KEY (collection, doc_id, version) REFERENCES kb.documents (collection, doc_id, version)
+);
+
 CREATE INDEX kb_chunks_filter_idx ON kb.chunks (collection, department, classification, job_role);
 CREATE INDEX kb_documents_filter_idx ON kb.documents (collection, department, classification, job_role);
 CREATE INDEX kb_extracted_values_field_idx ON kb.extracted_values (collection, field);
@@ -120,6 +135,6 @@ CREATE INDEX kb_chunks_text_trgm_idx ON kb.chunks USING gin (text kb.gin_trgm_op
 -- the database) and values; it never writes. Publication writes use the
 -- administrator connection of cmd/kb-publish.
 GRANT USAGE ON SCHEMA kb TO gateway_reader;
-GRANT SELECT ON kb.collections, kb.labels, kb.documents, kb.chunks, kb.extracted_values TO gateway_reader;
+GRANT SELECT ON kb.collections, kb.labels, kb.documents, kb.chunks, kb.extracted_values, kb.document_files TO gateway_reader;
 
 COMMIT;

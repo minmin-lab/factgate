@@ -16,6 +16,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -55,6 +56,43 @@ type Spec struct {
 	ExtractionRules  []ExtractionRule `json:"extraction_rules"`
 	DocumentTypes    []string         `json:"document_types"`
 	Retrieval        Retrieval        `json:"retrieval"`
+	// Files declares the epoch's document originals (docs/kb-design.md
+	// §12.9). Omitted when the epoch publishes none, so earlier specs and
+	// manifests keep their digests.
+	Files *FilesRef `json:"files,omitempty"`
+}
+
+// FilesRef names the render manifest of the originals: one line per document
+// version (doc_id, version, media_type, byte_size, file_sha256), the objects
+// stored in the originals bucket under ObjectPrefix.
+type FilesRef struct {
+	Renderer     string `json:"renderer"`
+	Manifest     string `json:"manifest"`
+	SHA256       string `json:"sha256"`
+	ObjectPrefix string `json:"object_prefix"`
+}
+
+// FilesDeclaration is what the publication manifest commits to about the
+// originals: everything in FilesRef except the host path of the render
+// manifest.
+type FilesDeclaration struct {
+	Renderer       string `json:"renderer"`
+	ManifestSHA256 string `json:"manifest_sha256"`
+	ObjectPrefix   string `json:"object_prefix"`
+}
+
+// FilesKind names the originals relation.
+const FilesKind = "files"
+
+// FileMediaTypes are the admitted original media types and their object key
+// extensions.
+var FileMediaTypes = map[string]string{"application/pdf": ".pdf"}
+
+var objectPrefixPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,62}(/[a-z0-9][a-z0-9._-]{0,62}){0,3}$`)
+
+// ObjectKey is the originals-bucket key of one document version's file.
+func (f FilesRef) ObjectKey(docID string, version int, mediaType string) string {
+	return f.ObjectPrefix + "/" + docID + "-v" + strconv.Itoa(version) + FileMediaTypes[mediaType]
 }
 
 type Retrieval struct {
@@ -151,6 +189,9 @@ func (s Spec) Validate() error {
 		return errors.New("publish spec: hash-projection-v1 has no weights")
 	case s.Embedding.Dimension < 16 || s.Embedding.Dimension > 4096:
 		return errors.New("publish spec: embedding dimension must be between 16 and 4096")
+	case s.Files != nil && (strings.TrimSpace(s.Files.Renderer) == "" || strings.TrimSpace(s.Files.Manifest) == "" ||
+		!shaPattern.MatchString(s.Files.SHA256) || !objectPrefixPattern.MatchString(s.Files.ObjectPrefix)):
+		return errors.New("publish spec: files needs renderer, manifest, a sha256 and a lowercase object_prefix")
 	}
 	documentTypes := map[string]struct{}{}
 	for _, documentType := range s.DocumentTypes {
@@ -230,13 +271,16 @@ func (s Spec) Kinds() []string {
 	if len(s.CollectionScopedFields()) > 0 {
 		kinds = append(kinds, CollectionValuesKind)
 	}
+	if s.Files != nil {
+		kinds = append(kinds, FilesKind)
+	}
 	return kinds
 }
 
 // ManifestKinds lists the relations a manifest holds, in publication order.
 func ManifestKinds(publications map[string]PublicationRef) []string {
 	kinds := make([]string, 0, len(publications))
-	for _, kind := range append(append([]string(nil), RelationKinds...), CollectionValuesKind) {
+	for _, kind := range append(append([]string(nil), RelationKinds...), CollectionValuesKind, FilesKind) {
 		if _, ok := publications[kind]; ok {
 			kinds = append(kinds, kind)
 		}

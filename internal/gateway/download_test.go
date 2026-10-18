@@ -59,8 +59,8 @@ func TestRequestDownloadTaskCarriesTheApprovedList(t *testing.T) {
 			t.Fatalf("%s produced an OA draft", name)
 		}
 	}
-	// The original-file right is the documents digest column, and it brings
-	// the values relation with it.
+	// The original-file right is the files relation, and it brings the values
+	// relation with it.
 	result = mustCallGatewayTool(t, harness.service, harness.alice, "request_download_task", map[string]any{
 		"objective": "下载原文件", "knowledge_product": "policy_kb", "original_file": true,
 		"documents": []map[string]any{{"doc_id": "D-1", "version": 1}},
@@ -69,9 +69,9 @@ func TestRequestDownloadTaskCarriesTheApprovedList(t *testing.T) {
 		t.Fatalf("original-file request %v, drafts %d", result, len(harness.approval.requests))
 	}
 	manifest = harness.approval.requests[1].Manifest
-	if !reflect.DeepEqual(manifest.Products, []string{"policy_kb_chunks", "policy_kb_documents", "policy_kb_values"}) ||
-		!reflect.DeepEqual(manifest.ApprovedColumns["policy_kb_documents"], []string{"chunk_count", "classification", "content_sha256", "doc_id", "kb_department", "title", "version"}) {
-		t.Fatalf("original-file manifest products %v documents columns %v", manifest.Products, manifest.ApprovedColumns["policy_kb_documents"])
+	if !reflect.DeepEqual(manifest.Products, []string{"policy_kb_chunks", "policy_kb_documents", "policy_kb_files", "policy_kb_values"}) ||
+		!reflect.DeepEqual(manifest.ApprovedColumns["policy_kb_files"], []string{"byte_size", "classification", "doc_id", "file_sha256", "kb_department", "media_type", "version"}) {
+		t.Fatalf("original-file manifest products %v files columns %v", manifest.Products, manifest.ApprovedColumns["policy_kb_files"])
 	}
 	// Explicit scopes pass the same eligibility gate as any request.
 	_, err := callGatewayTool(harness.service, harness.alice, "request_download_task", map[string]any{

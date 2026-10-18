@@ -70,6 +70,10 @@ type Config struct {
 	// ciphertext rows to TaskGate-managed encrypted Parquet objects.
 	ResultArtifacts *resultartifact.Manager
 	ResultTTL       time.Duration
+	// KBOriginals reads document originals for the download task's original
+	// format (docs/kb-design.md §12.9); nil when no originals store is
+	// configured, and an original download is then refused.
+	KBOriginals KBOriginalStore
 	// ArtifactOperationTimeout bounds canonical object promotion independently
 	// from the short Control PostgreSQL settlement timeout.
 	ArtifactOperationTimeout time.Duration
@@ -102,6 +106,7 @@ type Service struct {
 	spoolDirectory           string
 	spoolThreshold           int64
 	resultArtifacts          *resultartifact.Manager
+	kbOriginals              KBOriginalStore
 	resultTTL                time.Duration
 	artifactOperationTimeout time.Duration
 	previewMaxBytes          int64
@@ -224,6 +229,7 @@ func New(config Config) (*Service, error) {
 		spoolDirectory:             config.SpoolDirectory,
 		spoolThreshold:             config.SpoolThresholdBytes,
 		resultArtifacts:            config.ResultArtifacts,
+		kbOriginals:                config.KBOriginals,
 		resultTTL:                  config.ResultTTL,
 		artifactOperationTimeout:   config.ArtifactOperationTimeout,
 		previewMaxBytes:            config.PreviewMaxBytes,

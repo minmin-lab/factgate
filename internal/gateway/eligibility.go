@@ -225,8 +225,12 @@ func (s *Service) knowledgeProductOwning(product string) (catalog.KnowledgeProdu
 		return catalog.KnowledgeProduct{}, false
 	}
 	for _, kp := range s.catalog.KnowledgeProducts {
-		if kp.Products.Chunks == product || kp.Products.Documents == product || kp.Products.Values == product {
-			return kp, true
+		// Every relation inherits: the optional collection_values and files
+		// relations as much as the three every knowledge product declares.
+		for _, relation := range kp.Products.Relations() {
+			if relation == product {
+				return kp, true
+			}
 		}
 	}
 	return catalog.KnowledgeProduct{}, false

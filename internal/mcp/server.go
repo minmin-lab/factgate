@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -94,11 +95,13 @@ type ToolResult struct {
 	Resources []EmbeddedResource
 }
 
-// EmbeddedResource is one text resource of a tool result.
+// EmbeddedResource is one resource of a tool result: Text for a text file,
+// Blob (sent base64-encoded) for a binary one such as a PDF.
 type EmbeddedResource struct {
 	URI      string
 	MimeType string
 	Text     string
+	Blob     []byte
 }
 
 type ToolError struct {
@@ -285,8 +288,13 @@ func (s *Server) dispatch(ctx context.Context, principal Principal, rpcRequest r
 		}
 		content := []any{map[string]any{"type": "text", "text": text}}
 		for _, resource := range toolResult.Resources {
-			content = append(content, map[string]any{"type": "resource", "resource": map[string]any{
-				"uri": resource.URI, "mimeType": resource.MimeType, "text": resource.Text}})
+			body := map[string]any{"uri": resource.URI, "mimeType": resource.MimeType}
+			if resource.Blob != nil {
+				body["blob"] = base64.StdEncoding.EncodeToString(resource.Blob)
+			} else {
+				body["text"] = resource.Text
+			}
+			content = append(content, map[string]any{"type": "resource", "resource": body})
 		}
 		return map[string]any{
 			"content":           content,

@@ -279,6 +279,21 @@ type KnowledgeProductRelations struct {
 	// canonical value, department, classification), so a value shared by many
 	// documents is one Fact within the task's mandatory scope.
 	CollectionValues string `yaml:"collection_values,omitempty" json:"collection_values,omitempty"`
+	// Files is the originals relation (docs/kb-design.md §12.9): one row per
+	// document version with the original file's media type, size and digest.
+	// Approving it is the right to download the original file.
+	Files string `yaml:"files,omitempty" json:"files,omitempty"`
+}
+
+// Relations lists every relation of the knowledge product that is declared.
+func (r KnowledgeProductRelations) Relations() []string {
+	names := []string{r.Documents, r.Chunks, r.Values}
+	for _, optional := range []string{r.CollectionValues, r.Files} {
+		if optional != "" {
+			names = append(names, optional)
+		}
+	}
+	return names
 }
 
 // Extraction rule scopes. A document-scoped value is one Fact per document

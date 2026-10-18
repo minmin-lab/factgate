@@ -86,9 +86,18 @@ func VerifyCatalogBinding(cat *catalog.Catalog, product catalog.KnowledgeProduct
 	if _, published := manifest.Publications[CollectionValuesKind]; published != (product.Products.CollectionValues != "") {
 		return fmt.Errorf("knowledge product %s: manifest and Catalog disagree about the %s relation", product.Name, CollectionValuesKind)
 	}
+	if product.Products.Files != "" {
+		relations[FilesKind] = product.Products.Files
+	}
+	if _, published := manifest.Publications[FilesKind]; published != (product.Products.Files != "") {
+		return fmt.Errorf("knowledge product %s: manifest and Catalog disagree about the %s relation", product.Name, FilesKind)
+	}
 	kinds := append([]string(nil), RelationKinds...)
 	if product.Products.CollectionValues != "" {
 		kinds = append(kinds, CollectionValuesKind)
+	}
+	if product.Products.Files != "" {
+		kinds = append(kinds, FilesKind)
 	}
 	for _, kind := range kinds {
 		reference, ok := manifest.Publications[kind]
