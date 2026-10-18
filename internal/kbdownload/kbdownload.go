@@ -15,6 +15,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"regexp"
 	"sort"
 	"strconv"
@@ -140,6 +141,49 @@ func ApprovedList(scope map[string]any) (refs []string, present bool, err error)
 	return refs, true, nil
 }
 
+// DisplayValue renders an extracted value's canonical encoding (the exposure
+// canonical form the values relation publishes, internal/exposure
+// CanonicalSQLValue) for a reader: the type prefix of text ("s:"), date ("d:")
+// and integer ("i:") values is dropped; an exact numeric ("n:p/q", a reduced
+// fraction) becomes its terminating decimal when q has no prime factor other
+// than 2 and 5, and stays the exact fraction otherwise. Anything else is shown
+// as published. It is a pure function of the published cell, so the file
+// carries no information the cell does not.
+func DisplayValue(canonical string) string {
+	prefix, rest, found := strings.Cut(canonical, ":")
+	if !found {
+		return canonical
+	}
+	switch prefix {
+	case "s", "d", "i":
+		return rest
+	case "n":
+		rational, ok := new(big.Rat).SetString(rest)
+		if !ok {
+			return canonical
+		}
+		if rational.IsInt() {
+			return rational.Num().String()
+		}
+		denominator := new(big.Int).Set(rational.Denom())
+		zero, two, five := big.NewInt(0), big.NewInt(2), big.NewInt(5)
+		twos, fives := 0, 0
+		for new(big.Int).Mod(denominator, two).Cmp(zero) == 0 {
+			denominator.Quo(denominator, two)
+			twos++
+		}
+		for new(big.Int).Mod(denominator, five).Cmp(zero) == 0 {
+			denominator.Quo(denominator, five)
+			fives++
+		}
+		if denominator.Cmp(big.NewInt(1)) != 0 {
+			return rational.RatString()
+		}
+		return rational.FloatString(max(twos, fives))
+	}
+	return canonical
+}
+
 // Value is one extracted typed value of the document.
 type Value struct {
 	Field          string `json:"field"`
@@ -210,7 +254,7 @@ func Assemble(file File) ([]byte, error) {
 			if strings.ContainsAny(value.Field+value.ValueType+value.CanonicalValue, "\r\n") {
 				return nil, errors.New("an extracted value spans lines")
 			}
-			out.WriteString("- " + value.Field + " (" + value.ValueType + "): " + value.CanonicalValue + "\n")
+			out.WriteString("- " + value.Field + " (" + value.ValueType + "): " + DisplayValue(value.CanonicalValue) + "\n")
 		}
 	}
 	out.WriteString("\n## 正文\n")

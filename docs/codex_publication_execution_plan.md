@@ -2146,3 +2146,22 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 网关全包（控制库与 KB 端到端环境就绪）138 过、6 跳过（需报告文件的 KB 实验测试）、0 败。
   - **我的一处错**：初版计划的 version 字面量用了 int64，被 Prepare 拒为 "literal type int64 is not supported"（queryplan/compiler.go:446）。根因是该查没查（计划字面量只收 MCP 解码出的类型）；已改为 json.Number，并以端到端测试为证。
   - **下一步**：K7.3 部署路径冒烟——从该提交构建网关镜像，演示栈换镜像，跑 kb-formal-smoke 下载段。
+
+- [2026-10-18 18:56 UTC+8] KB1-LOOP-118 **K7.3 部署路径冒烟通过；下载文件的字段改为可读显示值**。
+  - **镜像**：
+    - 从 70a5a0a 用 final-v5-gateway-build build + verify-build 构建网关镜像 147af801…，同发射脚本的本地模块代理做法。
+    - 演示栈只重建网关容器；compose、DB 初始化与控制库迁移在 e085b9e..70a5a0a 之间零差异。
+    - 演示栈主体属性改用 kb-v2-pilot 快照（alice 与原快照逐字段相同，另含 60 个文件主体），使冒烟的资格段可跑。
+  - **冒烟实跑**（kb-formal-smoke 新下载段，演示栈，policy_kb 与 policy_kb_small 各一次）：全部通过。
+    - 下载任务经 OA 提交、批准后 ACTIVE；预算分别为 kb-large-v1 与 kb-pilot-v1。
+    - 两份检索命中文档 D-008682（4 块，1788 字节）与 D-003248（6 块，2827 字节）下载成功：各部分回执对已发布密钥环验签，回执中的 Catalog 摘要为演示 Catalog。
+    - 经 HMAC 下载地址取回的文件逐字节相同，并带 Content-Digest 头。
+    - 两个知识产品下同一文档的文件摘要相同。
+    - DOWNLOAD_NOT_APPROVED 与双向 TASK_KIND_MISMATCH 码符合预期。
+    - 原有的 search 回执、fetch 与 CHUNK_NOT_RETURNED、资格段同时通过。
+  - **经 8083 垫片下载 D-000068**（作者原始例子）：MCP 结果为 text 加 resource 两项，resource 为 text/markdown 且与 structuredContent.content 相同。
+  - **发现并改正**：带抽取值时，字段行显示的是内部规范编码（n:180885689/100、s:…、d:…）。
+    - 改为确定性显示值 kbdownload.DisplayValue：去前缀；n:p/q 在 q 只含 2 与 5 时写成有限小数，否则保留分数。
+    - 这是已发布单元格的纯函数，不读额外列，计费不变。
+    - 单测覆盖，kb-design §12 文件格式已补。
+    - 演示栈需再换一次镜像。

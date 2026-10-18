@@ -483,7 +483,7 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
   version: <version>
 
   ## 字段                          （仅当批了 values 且该文档有抽取值）
-  - <field> (<value_type>): <canonical_value>    （按 field 字节序）
+  - <field> (<value_type>): <显示值>    （按 field、value_type、canonical_value 字节序）
 
   ## 正文
 
@@ -493,6 +493,8 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
   …
   ```
   块之间空一行，文件以单个 LF 结尾。文件不等于 body，其摘要不等于 content_sha256；这一点照实写。
+  显示值是已发布 canonical_value 的纯函数（kbdownload.DisplayValue）：去掉文本 `s:`、日期 `d:`、整数 `i:` 前缀；精确数值 `n:p/q`
+  在 q 只含因子 2 与 5 时写成有限小数，否则保留精确分数；其余原样。不读额外列，计费不变。
 
 ### 12.4 三维效果
 

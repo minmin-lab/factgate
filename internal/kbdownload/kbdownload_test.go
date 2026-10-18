@@ -63,7 +63,7 @@ func TestApprovedListDistinguishesAbsentFromMalformed(t *testing.T) {
 func TestAssembleIsDeterministicAndRefusesPartialDocuments(t *testing.T) {
 	file := File{
 		Ref: Ref{"D-000068", 1}, Title: "设备采购合同",
-		Values: []Value{{"signed_on", "date", "2024-04-03"}, {"amount", "numeric", "1808856.89"}},
+		Values: []Value{{"signed_on", "date", "d:2024-04-03"}, {"amount", "numeric", "n:180885689/100"}},
 		Chunks: []Chunk{
 			{Index: 1, Text: "第二段。", TextSHA256: sha256Hex("第二段。")},
 			{Index: 0, Text: "第一段。", TextSHA256: sha256Hex("第一段。")},
@@ -101,5 +101,26 @@ func TestAssembleIsDeterministicAndRefusesPartialDocuments(t *testing.T) {
 	multiline.Title = "a\nb"
 	if _, err := Assemble(multiline); err == nil {
 		t.Fatal("assembled a title that spans lines")
+	}
+}
+
+func TestDisplayValueDecodesTheCanonicalEncodingExactly(t *testing.T) {
+	for canonical, want := range map[string]string{
+		"n:180885689/100":    "1808856.89",
+		"n:-5/2":             "-2.5",
+		"n:1/8":              "0.125",
+		"n:42":               "42",
+		"n:1/3":              "1/3",
+		"s:Borealis Systems": "Borealis Systems",
+		"s:a:b":              "a:b",
+		"d:2024-04-03":       "2024-04-03",
+		"i:7":                "7",
+		"x:00ff":             "x:00ff",
+		"plain":              "plain",
+		"n:not-a-number":     "n:not-a-number",
+	} {
+		if got := DisplayValue(canonical); got != want {
+			t.Fatalf("DisplayValue(%q) = %q, want %q", canonical, got, want)
+		}
 	}
 }
