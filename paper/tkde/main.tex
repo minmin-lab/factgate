@@ -47,6 +47,7 @@
 
 \input{generated/evidence.tex}
 \input{generated/p10.tex}
+\input{generated/kb.tex}
 % Internal evidence macro names preserve artifact compatibility and are not
 % exposed as system module versions in the paper.
 \newcommand{\RQFourVFourDependencyFacts}{\RQFourVFourInfluenceFacts}
@@ -66,8 +67,9 @@ E-mail: \mbox{wuminmin@chinatelecomglobal.com}.}}
 \begin{abstract}
 Per-query authorization does not compose across an adaptive agent's pages,
 retries, rewrites, and delegated subtasks, and row or query counters are
-order-dependent. \system is a release layer for immutable reporting
-publications that turns one approved task into a cumulative contract: three
+order-dependent. \system is a release layer for immutable published data
+products, reporting relations and document collections alike, that turns one
+approved task into a cumulative contract: three
 set-valued budgets over declared identities (result, positive-output
 dependency, and outcome facts) shared by the root task and descendants.
 Exact set novelty against the root-family ledger is settled atomically on one
@@ -88,9 +90,10 @@ its budgets, and costs
 \FinalVFivePublicationOverheadMin{}--\FinalVFivePublicationOverheadMax{}$\times$
 a direct query; settlement takes a median
 \FinalVFivePublicationScaleSettleMillionMS{}~ms against a million-fact
-history at zero overlap. The contract is stated over Fact sets, not SQL,
-and a final section carries it, as a definition, to document and
-knowledge-base access.
+history at zero overlap. Because the contract is stated over Fact sets, not
+SQL, the same gateway governs exact retrieval over a published document
+collection: on fresh deployments its hit sets equal direct exact retrieval
+and every scripted extraction stops at its budget.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -128,7 +131,9 @@ reporting epoch, not freshness over a changing database.
 Large enterprises operate lakes or warehouses, reporting marts, document
 repositories and knowledge bases, Data Catalogs, identity directories, and
 approval workflows, but none turns one approved purpose into an enforceable
-contract across an agent's queries, retries, pages, and delegated subtasks. Marketplace-integrated agents close the discovery-and-request half of this
+contract across an agent's queries, retries, pages, and delegated subtasks;
+an agent allowed to search one department's policy library can copy much of
+it through individually legitimate searches. Marketplace-integrated agents close the discovery-and-request half of this
 gap (Data Product MCP
 \cite{tonnarelli2026dataproductmcp,dietz2025automating,bitol2025odcs}), but
 after approval, per-query checks still do not state how much
@@ -245,7 +250,7 @@ rather than a counter is this article's contribution. It is organized
 around three difficulties: deriving an admitted query's fact sets exactly (1--2);
 deciding which rewrites preserve identity and which create a new Outcome
 (3); and keeping retrievable results tied to settled facts under
-concurrency, failure, replay, and delegation (3--5). The five
+concurrency, failure, replay, and delegation (3--5). The six
 implementation-backed contributions are:
 
 (1) A typed FactID semantics for accounted Result, positive-output
@@ -272,8 +277,12 @@ by the approved tree size. (5) Algebraic
 propositions, a normal-form soundness theorem, an abstract settlement-safety
 property sanity-checked by two-fact TLA+ models, and executable
 Go/PostgreSQL differential, generated-plan, and fault-injection evidence.
-(6) A definition carrying the contract to document and knowledge-base
-access, stating which results transfer (Section~\ref{sec:knowledge}).
+(6) The same machinery for exact retrieval over published document
+collections: a chunk's visible cells are Facts, retrieval is a second
+prepared operation behind the same sealed boundary, and an eligibility
+envelope precedes approval; a formal evaluation finds gateway hit sets equal
+to direct retrieval and extraction bounded by the budget
+(Section~\ref{sec:knowledge}).
 
 \section{Context and Related Work}
 \label{sec:related}
@@ -1055,49 +1064,63 @@ sweep---a toy department, not a realistic-scale calibration.
 \section{Knowledge Products}
 \label{sec:knowledge}
 
-The contract, the three set budgets, settlement, and delegation
-conservation are stated over Fact sets, not over SQL. This section carries
-them to a document repository or knowledge base as definitions (full
-identities, portability table, and worked example in the supplement);
-nothing on this path is implemented or measured.
+Because the contract, settlement, and delegation are stated over Fact sets,
+not SQL, a published document collection maps layer by layer onto data
+product, Fact, prepared operation, and effect, and one gateway governs
+both. A Knowledge
+Product is a governed collection with stable document identifiers, a
+deterministic segmentation function, typed extraction rules, and an
+attribute vocabulary (department, role, classification, validity); an index
+publication epoch freezes the segmentation, the embedding model, every
+chunk's content digest and labels, and the extracted values. A document
+version plays the row, and a chunk's visible cells and each extracted typed
+value play cells. The language is \code{search} (exact nearest-neighbour
+retrieval with $k\le k_{\max}$), \code{fetch} of chunks already returned to
+the root family, and \code{aggregate} over an extracted field; each is
+prepared through the same sealed boundary as \code{execute_plan} and settles
+on the same three ledgers. $\facts_R$ holds the visible cells of each
+returned chunk, $\facts_D$ adds the rows and filter cells the hit set
+depended on, and the Outcome composite commits to the canonical atoms, the
+normalized query, $k$, and the hit set. The mandatory scope is injected as
+atoms, and before any approval route an eligibility envelope, a Catalog
+predicate over the subject's attested attributes, rejects requests outside
+the subject's own scope; inside it an approver may only narrow, so an
+erroneous approval stays bounded by $B$ and the TTL. Root-family safety and
+delegation conservation carry unchanged; the normal-form theorem does not
+(supplement portability table).
 
-\textbf{Products, epochs, identities.} A Knowledge Product is a governed
-document collection with stable document identifiers, a deterministic
-segmentation function, extraction rules for its document types, and an
-attribute vocabulary (department, role, classification, labels, validity
-window). An index publication epoch is one index build: it binds the
-segmentation digest, the embedding or analyzer version, every chunk's
-content digest and labels, the extracted values, and the dictionaries;
-re-indexing creates $P_{e+1}$, and every step that needs a model or a
-person is frozen before publication. A document version plays the row, a
-chunk or extracted typed value plays the cell, and a generated answer is
-the derived identity with witness $W$ over the chunks it used. Atoms are
-metadata filter conditions; the composite commits to the normalized
-request (canonical atoms, normalized query text or quantized query vector,
-$k$) and the returned chunk set. The language is \code{search}, \code{fetch} of chunks already returned
-to the root family, and \code{aggregate} over an extracted field; anything
-else fails closed. The mandatory scope is injected as atoms; $\facts_R$ is
-what the caller receives, $\facts_D$ adds what an aggregate or re-ranker
-read, and an empty result still adds its atoms and a composite.
-
-\textbf{Contract and eligibility.} $T=(P,S,B,C)$ is unchanged, with $S$
-the index epoch and $C$ binding segmentation, normalization, $k_{\max}$,
-and the admitted aggregates. $P$ is refined: before any approval route, the
-request is compiled against an eligibility envelope, the scope values a
-Catalog predicate over the subject's IAM attributes admits; a request
-outside it is rejected before any approver sees it, and inside it the
-approver may only narrow, so an erroneous approval stays bounded by $B$ and
-the TTL.
-
-\textbf{What carries.} Root-family safety, O5, and delegation conservation
-are stated over abstract sets and carry unchanged; Fact-identity
-well-definedness carries if segmentation and canonicalization are
-deterministic and injective; Outcome separation carries syntactically, so
-a paraphrase is a new composite; the normal-form theorem does not carry.
-Detail reading binds $B_R$, corpus summarization $B_D$, probing $B_O$. An
-approximate nearest-neighbour engine may return different hit sets for one
-query, which makes an exact replay a new composite while chunk-keyed
-Result and Dependency novelty are unaffected.
+\textbf{Evaluation.} A formal round (\KbEkbOneDeployments{} fresh
+deployments per experiment from one frozen commit, all requests over HTTP;
+supplement) ran five pre-registered experiments on synthetic
+corpora of \KbEkbThreeFortyEightKChunks{} and \KbEkbThreeNinetySixKChunks{}
+chunks. Under an \KbEkbOneReleaseBudget{}-cell Release budget all
+\KbEkbOneFactGateRunsTotal{} scripted extraction runs stopped at budget
+exhaustion with at most \KbEkbOneFactGateSOneLeakMaxPct\% of their
+department's chunks, where per-query access control without a ledger let a
+vocabulary scan obtain \KbEkbOneAclSOneLeakMeanPct\% on average. Gateway
+retrieval matched direct exact retrieval member for member in
+\KbEkbFourIdentityKTen\% of \KbEkbFourQueries{} questions at $k=10$, as at
+$k=5$ and $20$, and identically across deployments. Retrieval quality is
+reported, not claimed, and missed its pre-registered thresholds (recall@10
+\KbEkbFourRecallVerbatimKTen\% near-verbatim and
+\KbEkbFourRecallParaphraseKTen\% paraphrased, against 80\% and 60\%);
+legitimate questions under the extraction budget met no refusal, but only
+\KbEkbOneLegitCompletionPct\% found their source document within five hits
+(pre-registered 90\%); direct retrieval misses the same. Requests outside the
+eligibility envelope were refused before any approval draft
+(\KbEkbTwoOtherDeptNotEligible{} of \KbEkbTwoOtherDeptRequests{}
+cross-department and \KbEkbTwoHigherClassificationNotEligible{} of
+\KbEkbTwoHigherClassificationRequests{} above-clearance requests), and a
+misapproved grant leaked at most \KbEkbTwoBLeakMax{} chunks against its
+bound of \KbEkbTwoBLeakBound. A search at $k=20$ over
+\KbEkbThreeNinetySixKChunks{} chunks takes
+\KbEkbThreeNinetySixKSearchFactGateKTwentyNovelPFifty{}~ms through the
+gateway against \KbEkbThreeNinetySixKSearchDirectKTwentyNovelPFifty{}~ms
+direct (medians). A count over a collection-scoped value field returns
+\KbEkbFiveCollectionAnswer{} distinct values and charges
+\KbEkbFiveCollectionInfluence{} Dependency Facts, where a document-scoped
+one counts \KbEkbFiveDocumentAnswer{} contracts at
+\KbEkbFiveDocumentInfluence.
 
 \section{System Realization}
 \label{sec:system}
@@ -1111,6 +1134,11 @@ and new approvals to $P_{e+1}$. MCP tools cover discovery, approval,
 execution, delegation, budgets, results, and receipts; direct SQL is
 lowered to the same canonical plan or fails closed, so no path executes
 agent-authored text; results use AES-GCM and audits form a hash chain.
+A text search is embedded inside the trusted boundary by a service that
+sees query and chunk text but no ledger or grant; the commitment digests
+the normalized text, and a missing or mismatched embedding model fails the
+search closed. Governed statements pin \code{search_path} to
+\code{pg_catalog}, so pgvector is installed there.
 \system fronts the governed serving tier and replaces none of the
 surrounding lake, Catalog, IAM, OA/BPM, object-store, RLS/DFC, or audit
 systems (supplement interface table; not a production deployment).
@@ -1247,16 +1275,7 @@ paid: the Scale profile below settles against a million-Fact history in
 single-threaded Go-side ordinal consumption and witness merging.
 Multi-second latency thus suits batch, not interactive, agents.
 The bottleneck is single-threaded implementation, and replay buys database
-silence, zero charge, and audit identity, not time. A retained cost
-ablation (supplement) adds the accounting-off arm the sealed campaign lacks. An executed exposure-free Catalog
-twin (authorization, publication, receipts, no fact accounting) costs
-\BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
-1.7-million-Fact S6 total. Fact derivation is the largest accounted share
-(\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6), and the history-set
-leaves take \BFiveSSixLedger{}~ms. On the sealed Scale Dependency sets a naive one-row-per-fact
-exact ledger (unpaired pilot, supplement) takes
-\NaiveScaleTenKFullRatio{}--\NaiveScaleTenKZeroRatio{}$\times$ \system's settlement time at $10^4$
-facts and \NaiveScaleMillionFullRatio{}--\NaiveScaleMillionZeroRatio{}$\times$ at $10^6$.
+silence, zero charge, and audit identity, not time. A retained cost ablation and a naive-ledger comparison are in the supplement.
 
 \begin{table}[t]
 \centering
@@ -1292,27 +1311,7 @@ at S6/100k-x16. The other four phases (prepare, artifact staging,
 publication, finalize) are the governed floor every response pays,
 replays included; the semantic-replay median of a cell thus bounds that
 floor, and the rest of the novel median is derivation plus settlement.
-Same-root contention is measured separately: rounds of 10 and 50 concurrent
-requests against one root family at its budget boundary. A single request
-drains in \FinalVFivePublicationConcurrencySerialDrainPFiftyMS{}~ms (serial
-control). A round of 50 under natural contention drains in
-\FinalVFivePublicationConcurrencyFiftyNaturalDrainPFiftyMS{}~ms p50 and
-\FinalVFivePublicationConcurrencyFiftyNaturalDrainPNinetyFiveMS{}~ms p95,
-i.e., \FinalVFivePublicationConcurrencyFiftyNaturalRequestsPerSecond{}--\FinalVFivePublicationConcurrencyTenNaturalRequestsPerSecond{}
-contending requests per second across the measured widths and modes through
-one root head, one of which settles novel work per round. Every generated round met the contention condition (30
-per cell and deployment, none discarded), and the supplement tabulates every
-width and mode. Because every descendant settles on one root head, a task
-tree's settlement throughput is bounded by that head; per-dimension or
-batched settlement could relax the bound. With budget to spare, one head
-settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second
-(four roots \ThroughputFourRootFiftyDisjointNPS{}). At fifty contenders on
-one head, \ThroughputOneRootFiftyRefused{} of
-\ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
-sixteen head-CAS retries---uncharged, ledger exact, client resubmits---and
-with up to \RetryK{} resubmissions \RetryOneRootFiftyCompletionPct\% settled
-at an end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
-(supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
+Because every descendant settles on one root head, a task tree's settlement throughput is bounded by that head (same-root contention and throughput: supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
 oracle's union minus history): settlement against a same-size history is
@@ -1385,20 +1384,7 @@ afterwards and ended at \FinalVFivePublicationRLSBoundedLedger{}. A control
 step outside the policy rows and the column grant is refused at the column
 under both (supplement), so \system composes with per-query authorization.
 That RLS admits every query is definitional (no cumulative budget); the
-comparison shows where a set budget binds. The counter comparators are also \emph{executed}, across three fresh
-deployments that each realized the same outcome (retained pilot,
-supplement). The same trace ran under row-, query-, and release-set budgets
-fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit, in
-three orders each (unlike the supplement's campaign-derived counter replay,
-calibrated to the set ledger's stopping point). The counters
-released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
-every order; the exact floors capped release at
-\FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products
-(counters truncate and archive; exposure refuses without archiving).
-Replayed under one refuse-whole, task-alive rule, only the row counter
-moves (\AlignedRowsNaturalExecuted{}$\to$\AlignedRowsNaturalAdmitted{}
-admitted), and the set floors remain the only budget bounding the released
-set (supplement).
+comparison shows where a set budget binds. Executed counter comparators (retained pilot) are in the supplement.
 
 
 
@@ -1502,10 +1488,10 @@ retained pilot ladder settles \FinalVFiveScaleSevenLargestDependency{}
 Dependency facts in one query (supplement). Same-root
 settlement serializes on the head (Section~\ref{sec:evaluation}).
 
-\textbf{Knowledge Products.} Section~\ref{sec:knowledge} is a definition:
-extraction-rule coverage bounds value-level accounting, paraphrases are
-charged separately, ranking leakage is unquantified, and nothing there is
-implemented or evaluated.
+\textbf{Knowledge Products.} The evaluation uses synthetic corpora and
+scripted agents; extraction-rule coverage bounds value-level accounting,
+paraphrases are charged separately, ranking leakage is unquantified, and an
+approximate index would make an exact replay a new composite (supplement).
 \textbf{Governance and deployment scope.} Profile correctness is
 trusted---\system validates bindings, semantics, and settlement, not policy
 appropriateness---and the single database path and demo approval adapter

@@ -78,8 +78,8 @@
 
 | 编号 | 任务 | 状态 |
 |---|---|---|
-| K5.1 | 主稿页数定稿（12 或 13，作者定）、review/ 刷新、投稿包与投稿信更新、arXiv v3 | TODO |
-| K5.2 | 作者签署 catalog 与证据绑定；Zenodo 存证（作者明示后） | PARTIAL：KB 正式证据绑定已由作者签署（evidence-approval-v1，f8d533f）；catalog 签署与 Zenodo 存证待作者 |
+| K5.1 | 主稿页数定稿（12 或 13，作者定）、review/ 刷新、投稿包与投稿信更新、arXiv v3 | PARTIAL（2026-10-18）：作者定 12 页；主稿按统一框架改写，12 页，构建与渲染检查通过，三段评估正文原样移入补充材料（KB1-LOOP-94）；待作者审阅；Zenodo 发布后加 DOI 句；之后 review/ 刷新、投稿包与投稿信、arXiv v3 |
+| K5.2 | 作者签署 catalog 与证据绑定；Zenodo 存证（作者明示后） | PARTIAL：KB 正式证据绑定已由作者签署（evidence-approval-v1，f8d533f）；Zenodo 版本 2 草稿 23444544 已上传并回读核对，预留 DOI 10.5281/zenodo.23444544，存证记录 evaluation/kb-formal/raw-evidence-deposit.json（draft），待作者明示发布（KB1-LOOP-94）；catalog 签署脚本已起草，待作者运行 |
 
 ## 2. 估时（我的估计，未实测）
 

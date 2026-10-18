@@ -25,6 +25,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 REGISTRY = ROOT / "evaluation/kb-pilot/registry.json"
 FORMAL_REGISTRATION = ROOT / "evaluation/kb-formal/kb-publication-evidence-v1.json"
 EVIDENCE_APPROVAL = ROOT / "evaluation/kb-formal/approvals/evidence-approval-v1.json"
+RAW_DEPOSIT = ROOT / "evaluation/kb-formal/raw-evidence-deposit.json"
+RAW_MANIFEST = ROOT / "evaluation/kb-formal/raw-evidence-manifest.sha256"
 FORMAL_IDS = ("ekb1", "ekb2a", "ekb2b", "ekb3-48k", "ekb3-96k", "ekb4", "ekb5")
 OUT = ROOT / "paper/tkde/generated/kb.tex"
 
@@ -98,6 +100,37 @@ def load_formal():
         return registration, formal_paths(registration, FORMAL_REGISTRATION.parent), hashlib.sha256(registration_bytes).hexdigest()
     except EvidenceError as err:
         sys.exit(f"formal evidence: {err}")
+
+
+def deposit_macros(deposit_path: pathlib.Path, manifest_path: pathlib.Path, evidence_dir: pathlib.Path) -> list[str]:
+    """The raw evidence deposited outside the repository, if a deposit record exists.
+
+    The record must describe the tracked manifest, and the combined reports it
+    deposited must be exactly the registered ones. \\KbRawEvidenceDOI is emitted
+    only once the record is published, so a manuscript that cites a draft's DOI
+    fails to build.
+    """
+    if not deposit_path.exists():
+        return []
+    deposit = json.loads(deposit_path.read_text(encoding="utf-8"))
+    manifest = manifest_path.read_bytes()
+    if hashlib.sha256(manifest).hexdigest() != deposit["manifest_sha256"]:
+        raise EvidenceError(f"{deposit_path.name} does not describe the tracked manifest")
+    rows = [line.split("  ", 1) for line in manifest.decode("utf-8").splitlines()]
+    if len(rows) != deposit["files"]:
+        raise EvidenceError("the raw-evidence manifest and the deposit record disagree on the file count")
+    prefix = f"{deposit['campaign']}/evidence/"
+    deposited = {rel[len(prefix):]: digest for digest, rel in rows if rel.startswith(prefix)}
+    registered = {path.name: sha256(path) for path in evidence_dir.iterdir() if path.is_file()}
+    if deposited != registered:
+        raise EvidenceError("the deposited combined reports are not the registered ones")
+    if deposit["status"] not in ("draft", "published"):
+        raise EvidenceError(f"{deposit_path.name}: unknown status {deposit['status']!r}")
+    lines = [rf"\newcommand{{\KbRawEvidenceFiles}}{{{deposit['files']}}}",
+             rf"\newcommand{{\KbRawEvidenceMB}}{{{deposit['bytes'] / 1e6:.0f}}}"]
+    if deposit["status"] == "published":
+        lines.append(rf"\newcommand{{\KbRawEvidenceDOI}}{{{deposit['doi']}}}")
+    return lines
 
 
 def pct(value: float) -> str:
@@ -419,6 +452,10 @@ def main() -> None:
             rf"\newcommand{{\KbFormalCampaign}}{{{registration['campaign']}}}",
             rf"\newcommand{{\KbFormalRegistrationDigest}}{{\texttt{{{registration_sha[:12]}}}}}",
         ]
+        try:
+            lines += deposit_macros(RAW_DEPOSIT, RAW_MANIFEST, FORMAL_REGISTRATION.parent / "evidence" / registration["campaign"])
+        except EvidenceError as err:
+            sys.exit(f"raw-evidence deposit: {err}")
         source = {"ekb1": experiments["ekb1"], "ekb2a": experiments["ekb2a"], "ekb2b": experiments["ekb2b"], "ekb4": experiments["ekb4"],
                   "ekb5": experiments["ekb5"], "ekb3-48k": experiments["ekb3-48k"], "ekb3-96k": experiments["ekb3-96k"]}
     else:

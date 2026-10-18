@@ -1,0 +1,51 @@
+{
+ "version": 1,
+ "purpose": "The knowledge-product raw evidence deposited outside the repository, as version 2 of the Zenodo record that holds the V5 raw evidence: what it contains, the digests of the deposited files, and where it is. raw-evidence-manifest.sha256 is the deposited KB-RAW-EVIDENCE-MANIFEST.sha256 and lists the SHA-256 of every file inside the two archives.",
+ "campaign": "kb-formal-publication-20261017",
+ "files": 418,
+ "bytes": 225843419,
+ "manifest_sha256": "d876a918e45347477e86efd0885ed47d1a2279e3756b80888ddd0ddee5a8930e",
+ "archives": [
+  {
+   "name": "factgate-kb-raw-evidence-v1.tar.gz",
+   "size": 8481536,
+   "md5": "0d216cb7d0dc0593a4bdd463b2cf331a",
+   "sha256": "572b662ab5ee5dd6bfe45997abd3277c5f5365c212b74a429321f63940ba0898"
+  },
+  {
+   "name": "factgate-kb-corpus-v1.tar.gz",
+   "size": 18120844,
+   "md5": "8c1a76eaf12b09d79de07ac324bda656",
+   "sha256": "ec8338673736142aa91a8d311d0a377f72e679122c18f1e46db4689b312bd4c6"
+  }
+ ],
+ "manifest": {
+  "name": "KB-RAW-EVIDENCE-MANIFEST.sha256",
+  "size": 65238,
+  "md5": "f65ab5419eb48a3c7b27be3732bde55c",
+  "sha256": "d876a918e45347477e86efd0885ed47d1a2279e3756b80888ddd0ddee5a8930e"
+ },
+ "readme": {
+  "name": "KB-RAW-EVIDENCE-README.md",
+  "size": 4403,
+  "md5": "562bff5cf755db9c1c8a694e6d8569e0",
+  "sha256": "52e2872ac42d38fe759ffa2f45669151c0077a5879fdf752a1709fba2ff1322b"
+ },
+ "repository": "zenodo",
+ "record_id": 23444544,
+ "doi": "10.5281/zenodo.23444544",
+ "concept_doi": "10.5281/zenodo.23149436",
+ "previous_version": {
+  "record_id": 23149437,
+  "doi": "10.5281/zenodo.23149437",
+  "carried_files": [
+   "RAW-EVIDENCE-MANIFEST.sha256",
+   "RAW-EVIDENCE-README.md",
+   "factgate-raw-evidence-v1.tar.gz"
+  ]
+ },
+ "status": "draft",
+ "status_note": "2026-10-18: version-2 draft created through the API; the four added files read back with the local md5 and size, the three version-1 files are carried with their version-1 checksums, the DOI is reserved and becomes resolvable only on publication; publication is the author's act",
+ "recomputation_check": "2026-10-18 09:08 UTC+8: kb-formal-finalize (class formal) run on deployments/ of the extracted raw-evidence archive with round/approval.json produced seven combined reports equal to the registered ones except generated_at; its campaign-evidence.json differs only in generated_at, the report digests that follow from it, and the deployment locations",
+ "license": "CC-BY-4.0"
+}

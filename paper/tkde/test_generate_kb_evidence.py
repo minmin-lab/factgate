@@ -127,5 +127,52 @@ class LoadFormalTest(unittest.TestCase):
                 self.run_load(root)
 
 
+class DepositMacrosTest(unittest.TestCase):
+    """A synthetic deposit of campaign c1: two combined reports and one deployment file."""
+
+    def fixture(self, base: Path, status: str = "draft") -> tuple[Path, Path, Path]:
+        evidence = base / "registered"
+        evidence.mkdir()
+        rows = []
+        for name in ("campaign-evidence.json", "ekb1.json"):
+            data = name.encode()
+            (evidence / name).write_bytes(data)
+            rows.append(f"{hashlib.sha256(data).hexdigest()}  c1/evidence/{name}")
+        rows.append(f"{hashlib.sha256(b'log').hexdigest()}  c1/deployments/a/log.txt")
+        manifest = base / "manifest.sha256"
+        manifest.write_text("\n".join(rows) + "\n")
+        deposit = base / "deposit.json"
+        deposit.write_text(json.dumps({"campaign": "c1", "files": 3, "bytes": 2_400_000, "status": status, "doi": "10.0000/test.1",
+                                       "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest()}))
+        return deposit, manifest, evidence
+
+    def test_no_deposit_record_emits_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(kb.deposit_macros(Path(tmp) / "absent.json", Path(tmp) / "absent.sha256", Path(tmp)), [])
+
+    def test_the_doi_macro_exists_only_once_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            draft = kb.deposit_macros(*self.fixture(Path(tmp)))
+            self.assertEqual(draft, [r"\newcommand{\KbRawEvidenceFiles}{3}", r"\newcommand{\KbRawEvidenceMB}{2}"])
+        with tempfile.TemporaryDirectory() as tmp:
+            published = kb.deposit_macros(*self.fixture(Path(tmp), status="published"))
+            self.assertEqual(published[-1], r"\newcommand{\KbRawEvidenceDOI}{10.0000/test.1}")
+
+    def test_refusals(self):
+        cases = {
+            "manifest changed": lambda d, m, e: m.write_text(m.read_text() + "x  c1/extra\n"),
+            "file count": lambda d, m, e: d.write_text(json.dumps(dict(json.loads(d.read_text()), files=4))),
+            "registered report changed": lambda d, m, e: (e / "ekb1.json").write_bytes(b"other"),
+            "report not deposited": lambda d, m, e: (e / "ekb2a.json").write_bytes(b"ekb2a.json"),
+            "unknown status": lambda d, m, e: d.write_text(json.dumps(dict(json.loads(d.read_text()), status="submitted"))),
+        }
+        for name, damage in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
+                paths = self.fixture(Path(tmp))
+                damage(*paths)
+                with self.assertRaises(kb.EvidenceError):
+                    kb.deposit_macros(*paths)
+
+
 if __name__ == "__main__":
     unittest.main()

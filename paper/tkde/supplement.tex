@@ -3485,6 +3485,54 @@ Construct & Reason code & Count & Statements \\
 This section holds passages moved from the main text for space; their
 content is unchanged.
 
+\textbf{Same-root contention and throughput.} Same-root contention is measured separately: rounds of 10 and 50 concurrent
+requests against one root family at its budget boundary. A single request
+drains in \FinalVFivePublicationConcurrencySerialDrainPFiftyMS{}~ms (serial
+control). A round of 50 under natural contention drains in
+\FinalVFivePublicationConcurrencyFiftyNaturalDrainPFiftyMS{}~ms p50 and
+\FinalVFivePublicationConcurrencyFiftyNaturalDrainPNinetyFiveMS{}~ms p95,
+i.e., \FinalVFivePublicationConcurrencyFiftyNaturalRequestsPerSecond{}--\FinalVFivePublicationConcurrencyTenNaturalRequestsPerSecond{}
+contending requests per second across the measured widths and modes through
+one root head, one of which settles novel work per round. Every generated round met the contention condition (30
+per cell and deployment, none discarded), and the supplement tabulates every
+width and mode. Because every descendant settles on one root head, a task
+tree's settlement throughput is bounded by that head; per-dimension or
+batched settlement could relax the bound. With budget to spare, one head
+settles \ThroughputOneRootFiftyDisjointNPS{} novel queries per second
+(four roots \ThroughputFourRootFiftyDisjointNPS{}). At fifty contenders on
+one head, \ThroughputOneRootFiftyRefused{} of
+\ThroughputOneRootFiftyRequests{} requests returned \code{CONFLICT} after
+sixteen head-CAS retries---uncharged, ledger exact, client resubmits---and
+with up to \RetryK{} resubmissions \RetryOneRootFiftyCompletionPct\% settled
+at an end-to-end p95 of \RetryOneRootFiftyDisjointEndToEndPNinetyFive{}~ms
+(supplement).
+
+\textbf{Cost ablation and naive ledger.} A retained cost
+ablation (supplement) adds the accounting-off arm the sealed campaign lacks. An executed exposure-free Catalog
+twin (authorization, publication, receipts, no fact accounting) costs
+\BFiveSOneCommonPct\% of the S1/SF1 total and \BFiveSSixCommonPct\% of the
+1.7-million-Fact S6 total. Fact derivation is the largest accounted share
+(\BFiveSSixDerivation{} of \BFiveSSixArmIV{}~ms at S6), and the history-set
+leaves take \BFiveSSixLedger{}~ms. On the sealed Scale Dependency sets a naive one-row-per-fact
+exact ledger (unpaired pilot, supplement) takes
+\NaiveScaleTenKFullRatio{}--\NaiveScaleTenKZeroRatio{}$\times$ FactGate's settlement time at $10^4$
+facts and \NaiveScaleMillionFullRatio{}--\NaiveScaleMillionZeroRatio{}$\times$ at $10^6$.
+
+\textbf{Executed counter comparators.} The counter comparators are also \emph{executed}, across three fresh
+deployments that each realized the same outcome (retained pilot,
+supplement). The same trace ran under row-, query-, and release-set budgets
+fixed a priori by the same $\lfloor 0.7\,U\rfloor$ recipe per unit, in
+three orders each (unlike the supplement's campaign-derived counter replay,
+calibrated to the set ledger's stopping point). The counters
+released the full \FinalVFiveCounterNaiveMinDep{}-fact Dependency union in
+every order; the exact floors capped release at
+\FinalVFiveCounterExactMaxDep{} in every order (supplement table). Executed arms compare default products
+(counters truncate and archive; exposure refuses without archiving).
+Replayed under one refuse-whole, task-alive rule, only the row counter
+moves (\AlignedRowsNaturalExecuted{}$\to$\AlignedRowsNaturalAdmitted{}
+admitted), and the set floors remain the only budget bounding the released
+set (supplement).
+
 \textbf{Excluded constructs and typing judgment of the core syntax.}
 No implicit SQL construct is hidden in $e$: outer joins, difference,
 negation beyond the listed scalar predicates, windows, recursion,
