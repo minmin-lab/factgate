@@ -223,3 +223,20 @@ class KeywordEvidenceGateTest(unittest.TestCase):
             approval_path.write_text(json.dumps(approval))
             with self.assertRaises(SystemExit):
                 self.run_load(root)
+
+
+class KeywordDepositPrefixTest(unittest.TestCase):
+    def test_the_keyword_deposit_uses_its_own_macro_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            evidence = base / "registered"
+            evidence.mkdir()
+            (evidence / "ekb6.json").write_bytes(b"ekb6")
+            manifest = base / "manifest.sha256"
+            manifest.write_text(f"{hashlib.sha256(b'ekb6').hexdigest()}  kw1/evidence/ekb6.json\n")
+            deposit = base / "deposit.json"
+            deposit.write_text(json.dumps({"campaign": "kw1", "files": 1, "bytes": 3_200_000, "status": "published", "doi": "10.0000/test.3",
+                                           "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest()}))
+            self.assertEqual(kb.deposit_macros(deposit, manifest, evidence, "KbKeywordRawEvidence"),
+                             [r"\newcommand{\KbKeywordRawEvidenceFiles}{1}", r"\newcommand{\KbKeywordRawEvidenceMB}{3}",
+                              r"\newcommand{\KbKeywordRawEvidenceDOI}{10.0000/test.3}"])

@@ -27,6 +27,8 @@ FORMAL_REGISTRATION = ROOT / "evaluation/kb-formal/kb-publication-evidence-v1.js
 EVIDENCE_APPROVAL = ROOT / "evaluation/kb-formal/approvals/evidence-approval-v1.json"
 RAW_DEPOSIT = ROOT / "evaluation/kb-formal/raw-evidence-deposit.json"
 RAW_MANIFEST = ROOT / "evaluation/kb-formal/raw-evidence-manifest.sha256"
+KEYWORD_RAW_DEPOSIT = ROOT / "evaluation/kb-formal/raw-evidence-keyword-deposit.json"
+KEYWORD_RAW_MANIFEST = ROOT / "evaluation/kb-formal/raw-evidence-keyword-manifest.sha256"
 FORMAL_IDS = ("ekb1", "ekb2a", "ekb2b", "ekb3-48k", "ekb3-96k", "ekb4", "ekb5")
 # The keyword round (E-KB6..E-KB8, docs/kb_experiment_design.md 关键词检索实验)
 # has its own registration and its own author approval; until both exist the
@@ -110,7 +112,8 @@ def load_formal():
         sys.exit(f"formal evidence: {err}")
 
 
-def deposit_macros(deposit_path: pathlib.Path, manifest_path: pathlib.Path, evidence_dir: pathlib.Path) -> list[str]:
+def deposit_macros(deposit_path: pathlib.Path, manifest_path: pathlib.Path, evidence_dir: pathlib.Path,
+                   macro: str = "KbRawEvidence") -> list[str]:
     """The raw evidence deposited outside the repository, if a deposit record exists.
 
     The record must describe the tracked manifest, and the combined reports it
@@ -134,10 +137,10 @@ def deposit_macros(deposit_path: pathlib.Path, manifest_path: pathlib.Path, evid
         raise EvidenceError("the deposited combined reports are not the registered ones")
     if deposit["status"] not in ("draft", "published"):
         raise EvidenceError(f"{deposit_path.name}: unknown status {deposit['status']!r}")
-    lines = [rf"\newcommand{{\KbRawEvidenceFiles}}{{{deposit['files']}}}",
-             rf"\newcommand{{\KbRawEvidenceMB}}{{{deposit['bytes'] / 1e6:.0f}}}"]
+    lines = [rf"\newcommand{{\{macro}Files}}{{{deposit['files']}}}",
+             rf"\newcommand{{\{macro}MB}}{{{deposit['bytes'] / 1e6:.0f}}}"]
     if deposit["status"] == "published":
-        lines.append(rf"\newcommand{{\KbRawEvidenceDOI}}{{{deposit['doi']}}}")
+        lines.append(rf"\newcommand{{\{macro}DOI}}{{{deposit['doi']}}}")
     return lines
 
 
@@ -602,8 +605,14 @@ def main() -> None:
     keyword = load_keyword_formal()
     if keyword:
         _, keyword_paths, keyword_sha = keyword
+        registration_kw = keyword[0]
         lines += [r"\newcommand{\KbKeywordEvidenceClass}{kb-publication}",
                   rf"\newcommand{{\KbKeywordRegistrationDigest}}{{\texttt{{{keyword_sha[:12]}}}}}"]
+        try:
+            lines += deposit_macros(KEYWORD_RAW_DEPOSIT, KEYWORD_RAW_MANIFEST,
+                                    KEYWORD_REGISTRATION.parent / "evidence" / registration_kw["campaign"], "KbKeywordRawEvidence")
+        except EvidenceError as err:
+            sys.exit(f"keyword raw-evidence deposit: {err}")
         keyword_source = keyword_paths
     else:
         lines.append(r"\newcommand{\KbKeywordEvidenceClass}{kb-pilot}")
