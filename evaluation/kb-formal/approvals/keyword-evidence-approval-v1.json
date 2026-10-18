@@ -1,0 +1,10 @@
+{
+  "version": "taskgate-kb-formal-evidence-approval-v1",
+  "approval_id": "APPROVE-KB-KEYWORD-EVIDENCE-v1",
+  "approval_status": "AUTHOR_APPROVED",
+  "author": {"name": "wuminmin", "approved_on": "2026-10-18"},
+  "approved_registration": {"path": "evaluation/kb-formal/kb-keyword-evidence-v1.json", "sha256": "71901f5da9e367c052fabade8eacba042d2da84d713c02b3a90cc1d20e9a1624", "bytes": 2194},
+  "campaign": "kb-keyword-publication-20261018",
+  "campaign_evidence_sha256": "7cef116b2b174ad4261c200963b40937eeda25bbb8213fbbeaf67cd56cc36109",
+  "scope": {"campaign_class": "kb-publication", "promotes": "E-KB6, E-KB7, E-KB8 keyword macros of the main paper and the supplement"}
+}
