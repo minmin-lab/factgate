@@ -2082,3 +2082,20 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 其余三处单独出现的 lake（main.tex:145"never exposes the raw lake"、:1150"surrounding lake, Catalog, …"、补充材料接口表"Lake / warehouse"行）不是重复，未改，已报作者另定。
 
 - [2026-10-18 17:25 UTC+8] KB1-LOOP-114 **更正 KB1-LOOP-113 的时间戳**：该条写作 17:20，实际写入时间是 17:25。根因：我在同一条命令里把时间写死在条目中，`date` 的输出在条目写完之后才看到，违反"先 date 对表再写"。此后先单独运行 date 再写条目。
+
+- [2026-10-18 17:54 UTC+8] KB1-LOOP-115 **本机常驻知识库演示栈（作者个人使用，不是论文证据）**：作者要在本机用 agent 经 MCP 查文档，令牌沿用其 MCP 配置里的那一个，并要求大、小两种预算可同时测。
+  - **位置**：/home/wmm/kb-demo（仓库外，README.md 说明用法）。
+    - source/ 是提交 e085b9e 的 detached worktree（git worktree add）。
+    - 二进制与镜像只读取用关键词正式轮根目录，未写入该目录。
+    - env 为 0600，alice 的令牌取自作者的 MCP 配置；未打印，未出执行机。
+  - **设计**：一个 Catalog，两个知识产品。
+    - policy_kb：冻结发布物 v2kw，high → kb-large-v1；重发布后 manifest 与冻结件逐字节相同。
+    - policy_kb_small：同一语料的演示发布，medium → kb-pilot-v1。
+    - 放弃了"同一组产品挂两条路由"：catalog 校验禁止，一个产品只能属于一条产品级路由（internal/catalog/validate.go "product is already exclusive"），每个敏感级也只能有一条通用路由。
+    - 预算由路由决定，request_data_task 不能自选。
+  - **实跑验证**（经 8083 垫片，以 alice 身份）：
+    - 两任务同时 ACTIVE，budget_profile 分别为 kb-large-v1 与 kb-pilot-v1。
+    - 关键词检索命中锚点目标 D-003903；文本检索与 aggregate 均返回结果。
+    - 小预算连续关键词检索在第 22 步拒绝（EXPOSURE_BUDGET_EXHAUSTED，release 773/800）。
+    - 第一次统计命中为 0，是我的自检脚本读错了字段（检索结果在 preview_result 里），不是网关的问题；已改用 preview_result 复核。
+  - **约束**：该栈占用正式轮端口 25434/29000/29001/8082/8092/28090；开任何正式轮前必须先运行 /home/wmm/kb-demo/down.sh。
