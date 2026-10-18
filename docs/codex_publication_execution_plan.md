@@ -2209,3 +2209,11 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 网关、kbdownload、mcp、kbformal、cmd/gateway 合计 189 过、6 跳过、0 败。
   - **登记**：E-KB9 预先登记增 (e) 原文件通道，预期 100%。kb-formal-smoke 增原文件段。
   - **待办**：部署路径冒烟待新镜像。
+
+- [2026-10-18 19:45 UTC+8] KB1-LOOP-122 **原文件通道部署路径冒烟通过**。
+  - 演示栈换为 2c716dd 构建的镜像 5b1f9497…；kb-formal-smoke 在 policy_kb（kb-large-v1）与 policy_kb_small（kb-pilot-v1）上各跑一次，全部通过。
+  - 原文件段：
+    - 无原文件权的下载任务中 format original 被拒，码 DOWNLOAD_NOT_APPROVED；
+    - 批准原文件的任务经 OA 提交、审批后，D-008682 原文件 1831 字节下载成功，三部分回执验签；
+    - 经网关下载地址取回的字节相同。
+  - 直连核对：file_sha256 00e41a38… 等于两个集合中该文档已发布的 content_sha256，body 长度 1831 字节一致。
