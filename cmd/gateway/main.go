@@ -392,6 +392,7 @@ func main() {
 	}
 	router.Handle("/api/v1/oa/callback", service.OACallbackHandler())
 	router.Handle("/api/v1/results/{result_id}/download", service.ResultDownloadHandler())
+	router.Handle("/api/v1/kb/documents/download", service.DocumentDownloadHandler())
 	mountRetentionAdmin(router, store, retention, logger, service)
 	mountProfileDiagnostic(router, activatedSnapshotState, retention.AdminToken, service.ReadyError, store.DB())
 

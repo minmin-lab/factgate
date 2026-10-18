@@ -468,6 +468,36 @@ func (p *Provisioner) Provision(ctx context.Context, request TaskRequest) (strin
 	return taskID, created, nil
 }
 
+// ProvisionDownload runs the same path for a document download task
+// (docs/kb-design.md §12): request_download_task names the documents, and the
+// OA draft is submitted and approved as made. It returns the task ID once the
+// task is ACTIVE, and the request_download_task response.
+func (p *Provisioner) ProvisionDownload(ctx context.Context, arguments map[string]any) (string, map[string]any, error) {
+	created, err := p.Requester.Call(ctx, "request_download_task", arguments)
+	if err != nil {
+		return "", nil, err
+	}
+	taskID, _ := created["task_id"].(string)
+	oaURL, _ := created["oa_url"].(string)
+	if taskID == "" || oaURL == "" {
+		return "", created, errors.New("request_download_task omitted task_id or oa_url")
+	}
+	draftID := oaURL[strings.LastIndex(oaURL, "/")+1:]
+	if err := p.Applicant.Act(ctx, draftID, "submit", url.Values{}); err != nil {
+		return "", created, err
+	}
+	if err := p.wait(ctx, taskID, "AWAITING_APPROVAL"); err != nil {
+		return "", created, err
+	}
+	if err := p.Approver.Act(ctx, draftID, "decision", url.Values{"decision": {"approved"}}); err != nil {
+		return "", created, err
+	}
+	if err := p.wait(ctx, taskID, "ACTIVE"); err != nil {
+		return "", created, err
+	}
+	return taskID, created, nil
+}
+
 func (p *Provisioner) wait(ctx context.Context, taskID, want string) error {
 	deadline := time.Now().Add(p.Deadline)
 	last := ""

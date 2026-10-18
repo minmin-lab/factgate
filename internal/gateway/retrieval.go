@@ -139,6 +139,9 @@ func (s *Service) retrieve(ctx context.Context, principal mcp.Principal, raw jso
 	if err != nil {
 		return nil, err
 	}
+	if err := requireOrdinaryTask(grant); err != nil {
+		return nil, err
+	}
 	// preparationFailure follows the query path's rule for a refusal before
 	// any reservation: nothing is persisted, but if a concurrent attempt with
 	// the same request id has meanwhile completed, that durable result is
@@ -571,6 +574,9 @@ func (s *Service) aggregate(ctx context.Context, principal mcp.Principal, raw js
 	}
 	grant, err := s.store.GetGrant(ctx, task.ID)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOrdinaryTask(grant); err != nil {
 		return nil, err
 	}
 	plan, err := s.aggregatePlan(grant, request)

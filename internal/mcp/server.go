@@ -88,6 +88,17 @@ type Tool struct {
 type ToolResult struct {
 	Structured any
 	Text       string
+	// Resources are embedded resources appended to the tool result's content
+	// after its text item, for a tool that delivers a file (MCP
+	// EmbeddedResource with a text body).
+	Resources []EmbeddedResource
+}
+
+// EmbeddedResource is one text resource of a tool result.
+type EmbeddedResource struct {
+	URI      string
+	MimeType string
+	Text     string
 }
 
 type ToolError struct {
@@ -272,8 +283,13 @@ func (s *Server) dispatch(ctx context.Context, principal Principal, rpcRequest r
 			encoded, _ := json.Marshal(structured)
 			text = string(encoded)
 		}
+		content := []any{map[string]any{"type": "text", "text": text}}
+		for _, resource := range toolResult.Resources {
+			content = append(content, map[string]any{"type": "resource", "resource": map[string]any{
+				"uri": resource.URI, "mimeType": resource.MimeType, "text": resource.Text}})
+		}
 		return map[string]any{
-			"content":           []any{map[string]any{"type": "text", "text": text}},
+			"content":           content,
 			"structuredContent": structured,
 			"isError":           false,
 		}, nil

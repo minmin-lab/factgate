@@ -2119,3 +2119,30 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 实验 E-KB9 待预先登记。
   - **计划**：docs/kb_extension_plan.md 阶段 7（K7.1 完成，K7.2 起）。
   - **对论文的影响**：主稿要加第四个工具与一段说明，并要一轮新的正式证据（新绑定、发射、证据批准、Zenodo 新版，均需作者签或发布）。
+
+- [2026-10-18 18:51 UTC+8] KB1-LOOP-117 **K7.2 文档下载任务实现完成（单测与对演示库的端到端测试通过）**。
+  - **代码**：
+    - internal/kbdownload：清单规范形与保留范围键 kb_documents、确定性文件格式 taskgate-kb-document-file-v1；
+    - internal/gateway/download.go：request_download_task、download_document、任务种类分离、HMAC 下载能力与 /api/v1/kb/documents/download；
+    - createTask 从 requestDataTask 拆出，保留范围键在资格闸门之后加入；
+    - 新码三个；MCP 结果支持嵌入资源。
+  - **两端同改**：
+    - 发射端：网关在 search/fetch/aggregate/query_sql/execute_plan 五个入口与 download_document 判任务种类；分块部分的拒绝把 DOCUMENT_NOT_DOWNLOADABLE 写入失败查询的终态记录（query.go）。
+    - 校验端：kb-formal-smoke 新增下载段，核三个码、各部分回执与经能力下载的文件；docs/catalog-guide.md 登记工具与码。
+  - **设计校正**（kb-design §12.3/§12.4 已改）：
+    - 下载复用三个既有准备操作（document 计划、fetch 形 chunks、values 计划），未新增准备形态，所以参考模型与 oracle 不需改【读代码推出】。
+    - F_O：chunks 部分无调用方原子（同 fetch），document 与 values 部分各计 doc_id、version 两个原子。
+    - 拒绝时 document 部分已结算（2 个 Release），chunks 部分记失败查询，只计查询数。
+  - **实跑**：
+    - 环境：db-test-env 控制库 + 演示栈业务库（只读 gateway_reader）+ 演示栈发布物 policy-kb-2026-10-bge-v2kw。
+    - TestDownloadEndToEndAgainstKnowledgePublication PASS：
+      - 文件与直连库独立组装逐字节相同；
+      - D-005004 的三部分 Release 2/24/3、Influence 5/33/6、Outcome 3/1/3；
+      - 同请求号重放与语义重放零计费；
+      - 含 leadership 节的 D-006828 对无 leadership 范围的任务整份拒绝，只释放 2 个文档单元格，重试同码且零计费；
+      - 清单外文档 DOWNLOAD_NOT_APPROVED；
+      - 有 leadership 范围的任务可下 D-006828，不批 values 时无字段块。
+    - 单测：TestRequestDownloadTaskCarriesTheApprovedList、TestDownloadAndSearchTaskKindsAreSeparate、TestDocumentDownloadSignatureIsDomainSeparated PASS。
+    - 网关全包（控制库与 KB 端到端环境就绪）138 过、6 跳过（需报告文件的 KB 实验测试）、0 败。
+  - **我的一处错**：初版计划的 version 字面量用了 int64，被 Prepare 拒为 "literal type int64 is not supported"（queryplan/compiler.go:446）。根因是该查没查（计划字面量只收 MCP 解码出的类型）；已改为 json.Number，并以端到端测试为证。
+  - **下一步**：K7.3 部署路径冒烟——从该提交构建网关镜像，演示栈换镜像，跑 kb-formal-smoke 下载段。

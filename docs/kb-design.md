@@ -459,13 +459,15 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
   - search/fetch/aggregate/query_sql 在下载任务中拒绝；download_document 在非下载任务中拒绝。新码 `TASK_KIND_MISMATCH`。
 - **下载服务**：新 MCP 工具 `download_document(task_id, request_id, knowledge_product, doc_id, version)`。
   1. 成员：`doc_id@version` 必须在授权单的 `kb_documents` 中，否则 `DOWNLOAD_NOT_APPROVED`（关闭式，不读数据）。
-  2. 准备并执行受信关系计划，与检索同走 `PrepareRetrieval` 纪律：
-     - 主计划：该文档的 chunks ⋈ documents，注入任务强制范围；
-     - 任务批了 values 时，再加第二个计划：该文档的 values 行。
-  3. **完整性**：主计划返回的块数必须等于文档行的 `chunk_count`，且文档行可见；否则整份拒绝 `DOCUMENT_NOT_DOWNLOADABLE`，不释放任何块。
+  2. 依次执行三个普通准备操作，各自预留、执行、结算、出回执，子请求号为 `<request_id>:document`、`:chunks`、`:values`（实现：internal/gateway/download.go）：
+     - document：documents 关系上的计划，取 title 与 chunk_count，过滤 doc_id 与 version；
+     - chunks：fetch 形检索，列出该文档 0..chunk_count−1 全部块号，注入任务强制范围，与 fetch 同走 `PrepareRetrieval`；
+     - values：任务批了 values 时，values 关系上的计划，取 field、value_type、canonical_value。
+  3. **完整性**：chunks 部分的结果钩子在结算前核对返回块数等于 chunk_count；不等即整份拒绝 `DOCUMENT_NOT_DOWNLOADABLE`，不释放任何块。
      - 范围外的节已被注入范围滤掉，所以"含高于密级的节"表现为块数少于 chunk_count。
-     - 文档不存在、文档行在范围外，同样给这个码。
-     - 拒绝本身泄露一个比特（"该文档有范围外的节"），按空结果计 F_O；这是作者选"整份拒绝"的代价，论文照写。
+     - 文档不存在或文档行在范围外：document 部分返回 0 行（按空结果结算），同样给这个码。
+     - 拒绝的代价：document 部分已结算，释放 title 与 chunk_count 两个单元格；chunks 部分记为失败查询，只计查询数、不释放，终态记录带 `DOCUMENT_NOT_DOWNLOADABLE`，同一请求号重试给同一拒绝。
+       "该文档有范围外的节"这一比特由已计费的 chunk_count 与拒绝共同透露；这是作者选"整份拒绝"的代价，论文照写。
   4. 交付：结果按既有路径结算、出回执、存规范结果。再由结果行确定性地组装文件 `taskgate-kb-document-file-v1`，存入结果对象存储，返回：
      - result_id 与回执；
      - 文件 sha256；
@@ -494,12 +496,11 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
 
 ### 12.4 三维效果
 
-不另造，取既有 V5 关系代数对两个计划的输出（与 §5、§10a 同口径）：
-- **F_R**：可见单元格。每块 4 个（doc_id、version、chunk_index、text），文档的 title 单元格，以及批准时每个 values 行的 field、value_type、canonical_value 单元格。
-- **F_D**：F_R ∪ 行 Fact ∪ 连接键单元格。
-- **F_O**：A(q) ∪ {c_q}。
-  - A(q) = {doc_id = d, version = v} 两个调用方原子：选哪份文档由调用方决定，按保守口径计。
-  - c_q = sha256("TASKGATE-KB-DOWNLOAD-V1\x00" ‖ 规范 JSON{doc_id, version, include_values})。
+不另造，三个部分各取既有口径（与 §5、§10a 同）：
+- **document**（普通计划）：F_R 为 title 与 chunk_count 两个单元格；F_O = {doc_id = d, version = v} 两个调用方原子 ∪ 计划复合项。
+- **chunks**（fetch 形）：F_R 为每块 4 个单元格（doc_id、version、chunk_index、text）；F_D 加块行、文档行与连接键单元格；F_O = {c_q}，无调用方原子，与 fetch 相同。
+- **values**（普通计划）：F_R 为每行 field、value_type、canonical_value 三个单元格；F_O 同 document。
+- 实测（演示栈 v2kw，D-005004，6 块、1 个抽取值）：三部分 Release 2 / 24 / 3，Influence 5 / 33 / 6，Outcome 3 / 1 / 3；同请求号重放与换请求号的语义重放均零计费（internal/gateway/download_postgres_test.go）。
 - 预算由目录路由给出（与其他任务相同）。
 
 ### 12.5 新拒绝码（发射端与校验端同时登记）

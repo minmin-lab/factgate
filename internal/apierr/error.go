@@ -41,6 +41,12 @@ const (
 	CodeRetrievalScopeExceeded     = "RETRIEVAL_SCOPE_EXCEEDED"
 	CodeChunkNotReturned           = "CHUNK_NOT_RETURNED"
 	CodeAggregateUnsupported       = "AGGREGATE_UNSUPPORTED"
+	// Document download (docs/kb-design.md §12). Searching and downloading are
+	// separate task kinds; a download names a document of the approved list;
+	// a document is delivered whole or not at all.
+	CodeTaskKindMismatch        = "TASK_KIND_MISMATCH"
+	CodeDownloadNotApproved     = "DOWNLOAD_NOT_APPROVED"
+	CodeDocumentNotDownloadable = "DOCUMENT_NOT_DOWNLOADABLE"
 )
 
 // Error contains a stable machine-readable code and a client-safe explanation.

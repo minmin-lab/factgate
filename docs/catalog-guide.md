@@ -518,6 +518,20 @@ kb_publications:
 命中集 CTE（在 `kb.chunks` 上按精确余弦距离排序、同一调用方原子、身份三列全序、`LIMIT k`；`fetch` 按身份枚举、不排序）；密封、预留、
 执行、序数推导、结算、回执、重放全部复用 `execute_plan` 的链条，响应列为 `doc_id, version, chunk_index, text`。效果口径见
 docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块行、文档键单元格与文档行、每个调用方过滤属性一个块单元格）。
+
+文档下载任务（K7；docs/kb-design.md §12）：检索与下载是两种任务。
+- `request_download_task`（`objective`、`knowledge_product`、`documents[]` 为 1–20 个 `{doc_id, version}`、可选 `include_values`、
+  可选 `scopes`，缺省为申请人的资格包络）：产品与列由网关固定——chunks 与 documents，`include_values` 时加 values。
+  清单以排序后的 `"doc_id@version"` 存入授权单的保留范围键 `kb_documents`，审批人在 OA 看到并可删减（沿用子集缩小规则）。
+  普通 `request_data_task` 不能携带该键；下载任务不能委托。
+- `download_document`（`task_id`、`request_id` 最长 100 字符、`knowledge_product`、`doc_id`、`version`）：
+  - 依次以 `<request_id>:document`、`:chunks`、`:values` 三个准备操作读取文档行、全部分块（fetch 形）与批准时的抽取值，各自结算并出回执；
+  - 分块数不等于文档行的 `chunk_count`（例如某节在任务范围外）即整份拒绝，不释放任何分块；
+  - 全部结算后，由结算行确定性地组装 `taskgate-kb-document-file-v1` Markdown 文件（标题、抽取值、按序正文；不含存储的 body、
+    节标题与原始前置字段），返回文件内容、`file_sha256`、逐块 `text_sha256` 清单与短期 `download_url`
+    （`/api/v1/kb/documents/download`，HMAC 能力绑定文件摘要）；MCP 结果另附一个嵌入资源。
+- 拒绝码：`TASK_KIND_MISMATCH`（下载任务中的 search/fetch/aggregate/query_sql/execute_plan，或检索任务中的下载）、
+  `DOWNLOAD_NOT_APPROVED`（文档不在批准清单内）、`DOCUMENT_NOT_DOWNLOADABLE`（文档不存在、在范围外或有范围外的节）。
 `aggregate` 直接是 values 关系上的一个计划（`field` 与 `value_type` 过滤 + 白名单聚合），不新写结算。任务必须同时授权 chunks 与
 documents 两个 Product（aggregate 授权 values），且携带 V5 暴露 profile。文本查询由受信嵌入服务编码：Gateway 读 `KB_EMBEDDING_ENDPOINT`
 （compose 中默认为空），未配置时文本查询以 `RETRIEVAL_QUERY_UNSUPPORTED` 拒绝、向量查询仍可用；嵌入器在使用前按知识产品声明的

@@ -163,7 +163,7 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	}
 	switch principal.Role {
 	case "query":
-		return append(append([]mcp.Tool(nil), queryTools...), retrievalTools...)
+		return append(append(append([]mcp.Tool(nil), queryTools...), retrievalTools...), downloadTools...)
 	case "auditor":
 		return append([]mcp.Tool(nil), auditTools...)
 	default:
@@ -209,6 +209,15 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 			result, err = s.fetch(ctx, principal, raw)
 		case aggregateTool.Name:
 			result, err = s.aggregate(ctx, principal, raw)
+		case requestDownloadTaskTool.Name:
+			result, err = s.requestDownloadTask(ctx, principal, raw)
+		case downloadDocumentTool.Name:
+			// The one tool whose result carries an embedded file resource.
+			toolResult, downloadErr := s.downloadDocument(ctx, principal, raw)
+			if downloadErr != nil {
+				return mcp.ToolResult{}, toolError(downloadErr)
+			}
+			return toolResult, nil
 		case "get_query_result":
 			result, err = s.getQueryResult(ctx, principal, raw)
 		case "preview_result":

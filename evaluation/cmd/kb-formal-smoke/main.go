@@ -2,8 +2,12 @@
 // end to end over its public interfaces (K4.10 acceptance): a real task
 // request approved through the OA, a search whose receipt verifies against the
 // gateway's published keyring and whose delivered text matches the released
-// digests, the returned-chunk rule on fetch, and eligibility for file
-// principals. It prints one JSON summary and exits non-zero on any failure.
+// digests, the returned-chunk rule on fetch, eligibility for file principals,
+// and the document download task (docs/kb-design.md §12): two documents of the
+// search hits requested and approved, downloaded with verified part receipts,
+// fetched again through the download capability, and the refusals across
+// task kinds and outside the approved list. It prints one JSON summary and
+// exits non-zero on any failure.
 //
 // Credentials come from a deployment env file (-env-file) and a principal
 // token file (-principal-tokens), read in-process and never printed.
@@ -18,6 +22,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -60,6 +66,7 @@ func run() error {
 	envFile := flag.String("env-file", "", "deployment env file")
 	tokensFile := flag.String("principal-tokens", "", "JSON map subject -> token for file principals")
 	catalogPath := flag.String("catalog", "", "the activated profile Catalog")
+	knowledgeProduct := flag.String("knowledge-product", "", "the knowledge product to exercise when the Catalog declares several")
 	flag.Parse()
 	env, err := readEnvFile(*envFile)
 	if err != nil {
@@ -75,10 +82,18 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if len(profile.KnowledgeProducts) != 1 {
-		return errors.New("profile catalog must declare one knowledge product")
+	var product catalog.KnowledgeProduct
+	switch {
+	case *knowledgeProduct != "":
+		found := false
+		if product, found = profile.LookupKnowledgeProduct(*knowledgeProduct); !found {
+			return fmt.Errorf("the Catalog declares no knowledge product %q", *knowledgeProduct)
+		}
+	case len(profile.KnowledgeProducts) == 1:
+		product = profile.KnowledgeProducts[0]
+	default:
+		return errors.New("profile catalog must declare one knowledge product, or name one with -knowledge-product")
 	}
-	product := profile.KnowledgeProducts[0]
 	ctx := context.Background()
 	timeout := 60 * time.Second
 	summary := map[string]any{"catalog_sha256": profile.SHA256, "knowledge_product": product.Name, "epoch": product.IndexPublication}
@@ -154,6 +169,9 @@ func run() error {
 		return fmt.Errorf("fetch of an unreturned chunk: want CHUNK_NOT_RETURNED, got %v", err)
 	}
 	summary["fetch_unreturned_code"] = toolErr.Code
+	if err := smokeDownload(ctx, summary, provisioner, alice, verifier, profile, product, taskID, rows, timeout); err != nil {
+		return fmt.Errorf("download task: %w", err)
+	}
 	// Eligibility through file principals: another department is refused before
 	// any draft, the subject's own department is admitted.
 	if token := tokens["sales-staff"]; token != "" {
@@ -196,4 +214,112 @@ func checkRows(rows [][]any) ([][]any, error) {
 		}
 	}
 	return rows, nil
+}
+
+// smokeDownload is the deployed-path check of the document download task.
+func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, alice *kbformal.MCPClient,
+	verifier kbformal.ReceiptVerifier, profile *catalog.Catalog, product catalog.KnowledgeProduct, searchTask string, rows [][]any,
+	timeout time.Duration) error {
+	type ref struct {
+		DocID   string `json:"doc_id"`
+		Version any    `json:"version"`
+	}
+	var documents []ref
+	seen := map[string]bool{}
+	for _, row := range rows {
+		key := fmt.Sprint(row[0]) + "@" + fmt.Sprint(row[1])
+		if !seen[key] && len(documents) < 2 {
+			seen[key] = true
+			documents = append(documents, ref{DocID: fmt.Sprint(row[0]), Version: row[1]})
+		}
+	}
+	taskID, created, err := provisioner.ProvisionDownload(ctx, map[string]any{"objective": "K7.3 smoke: download two search hits",
+		"knowledge_product": product.Name, "documents": documents})
+	if err != nil {
+		return fmt.Errorf("provision: %w", err)
+	}
+	summary["download_task_documents"] = created["documents"]
+	summary["download_budget_profile"] = created["budget_profile"]
+	var files []map[string]any
+	for index, document := range documents {
+		result, err := alice.Call(ctx, "download_document", map[string]any{"task_id": taskID, "request_id": fmt.Sprintf("smoke-download-%d", index),
+			"knowledge_product": product.Name, "doc_id": document.DocID, "version": document.Version})
+		if err != nil {
+			return fmt.Errorf("download %s: %w", document.DocID, err)
+		}
+		content, _ := result["content"].(string)
+		sum := sha256.Sum256([]byte(content))
+		if content == "" || hex.EncodeToString(sum[:]) != result["file_sha256"] {
+			return fmt.Errorf("download %s: the file does not hash to file_sha256", document.DocID)
+		}
+		parts, _ := result["queries"].([]any)
+		if len(parts) < 2 {
+			return fmt.Errorf("download %s: %d settled parts, want document and chunks at least", document.DocID, len(parts))
+		}
+		for _, raw := range parts {
+			part, _ := raw.(map[string]any)
+			receipt, err := kbformal.VerifyReceipt(verifier, part["receipt"])
+			if err != nil {
+				return fmt.Errorf("download %s part %v receipt: %w", document.DocID, part["part"], err)
+			}
+			if receipt.CatalogDigest != profile.SHA256 {
+				return fmt.Errorf("download %s part %v receipt names catalog %s", document.DocID, part["part"], receipt.CatalogDigest)
+			}
+		}
+		downloadURL, _ := result["download_url"].(string)
+		if downloadURL == "" {
+			return fmt.Errorf("download %s: no download_url", document.DocID)
+		}
+		fetched, digestHeader, err := fetchFile(ctx, downloadURL, timeout)
+		if err != nil {
+			return fmt.Errorf("download %s through its capability: %w", document.DocID, err)
+		}
+		if string(fetched) != content {
+			return fmt.Errorf("download %s: the capability served a different file", document.DocID)
+		}
+		chunks, _ := result["chunks"].([]any)
+		files = append(files, map[string]any{"doc": fmt.Sprintf("%s@%v", document.DocID, document.Version), "file_sha256": result["file_sha256"],
+			"file_bytes": result["file_bytes"], "chunks": len(chunks), "parts": len(parts), "content_digest_header": digestHeader != ""})
+	}
+	summary["download_files"] = files
+	var toolErr *kbformal.ToolError
+	_, err = alice.Call(ctx, "download_document", map[string]any{"task_id": taskID, "request_id": "smoke-download-unlisted",
+		"knowledge_product": product.Name, "doc_id": "NOT-LISTED", "version": 1})
+	if !errors.As(err, &toolErr) || toolErr.Code != "DOWNLOAD_NOT_APPROVED" {
+		return fmt.Errorf("download of an unlisted document: want DOWNLOAD_NOT_APPROVED, got %v", err)
+	}
+	summary["download_unlisted_code"] = toolErr.Code
+	_, err = alice.Call(ctx, "search", map[string]any{"task_id": taskID, "request_id": "smoke-download-search",
+		"knowledge_product": product.Name, "query": map[string]any{"text": "差旅"}, "k": 1})
+	if !errors.As(err, &toolErr) || toolErr.Code != "TASK_KIND_MISMATCH" {
+		return fmt.Errorf("search in a download task: want TASK_KIND_MISMATCH, got %v", err)
+	}
+	_, err = alice.Call(ctx, "download_document", map[string]any{"task_id": searchTask, "request_id": "smoke-search-download",
+		"knowledge_product": product.Name, "doc_id": documents[0].DocID, "version": documents[0].Version})
+	if !errors.As(err, &toolErr) || toolErr.Code != "TASK_KIND_MISMATCH" {
+		return fmt.Errorf("download in a search task: want TASK_KIND_MISMATCH, got %v", err)
+	}
+	summary["task_kind_mismatch_code"] = toolErr.Code
+	return nil
+}
+
+// fetchFile GETs a download capability and returns the body and its
+// Content-Digest header.
+func fetchFile(ctx context.Context, target string, timeout time.Duration) ([]byte, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("status %d", response.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+	return body, response.Header.Get("Content-Digest"), err
 }

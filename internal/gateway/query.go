@@ -442,6 +442,9 @@ func (s *Service) querySQL(ctx context.Context, principal mcp.Principal, raw jso
 	if err != nil {
 		return nil, err
 	}
+	if err := requireOrdinaryTask(grant); err != nil {
+		return nil, err
+	}
 	// A task with no exposure grant used to skip everything below and hand the
 	// agent's own SQL straight to the authorizer. That was the last path in the
 	// Gateway that executed a statement nothing had prepared, and it is why a
@@ -600,6 +603,9 @@ func (s *Service) executePlan(ctx context.Context, principal mcp.Principal, raw 
 	}
 	grant, err := s.store.GetGrant(ctx, task.ID)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOrdinaryTask(grant); err != nil {
 		return nil, err
 	}
 	prepared, err := s.prepareTaskPlan(ctx, task, grant, args.Plan)
@@ -1337,6 +1343,13 @@ func (s *Service) executeSQL(ctx context.Context, principal mcp.Principal, task 
 		componentMS["result_delivery"] = durationMS(time.Since(deliveryStarted))
 		if enrichErr != nil {
 			settlement.ErrorCode = "RESULT_DELIVERY_REFUSED"
+			// A download's whole-document refusal keeps its own code in the
+			// terminal record, so a retry under the same request id answers
+			// with the same refusal (docs/kb-design.md §12).
+			var refusal *mcp.ToolError
+			if errors.As(enrichErr, &refusal) && refusal.Code == apierr.CodeDocumentNotDownloadable {
+				settlement.ErrorCode = refusal.Code
+			}
 			s.failQueryBudget(ctx, settlement)
 			return nil, enrichErr
 		}

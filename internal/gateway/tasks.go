@@ -39,18 +39,32 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 	}, nil
 }
 
+// taskRequestArgs is request_data_task's input.
+type taskRequestArgs struct {
+	Objective           string              `json:"objective"`
+	ParentTaskID        string              `json:"parent_task_id,omitempty"`
+	DelegatePrincipalID string              `json:"delegate_principal_id,omitempty"`
+	DataProducts        []string            `json:"data_products"`
+	Columns             map[string][]string `json:"columns"`
+	Scopes              map[string]any      `json:"scopes"`
+}
+
 func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
-	var args struct {
-		Objective           string              `json:"objective"`
-		ParentTaskID        string              `json:"parent_task_id,omitempty"`
-		DelegatePrincipalID string              `json:"delegate_principal_id,omitempty"`
-		DataProducts        []string            `json:"data_products"`
-		Columns             map[string][]string `json:"columns"`
-		Scopes              map[string]any      `json:"scopes"`
-	}
+	var args taskRequestArgs
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
+	return s.createTask(ctx, principal, args, nil)
+}
+
+// createTask is the task request path shared by request_data_task and
+// request_download_task. reservedScope carries mandatory-scope entries that are
+// not Catalog scopes (the download task's approved document list,
+// docs/kb-design.md §12): they are added after scope normalization and the
+// eligibility gate, which a caller's scopes can never bypass, so they enter the
+// manifest, the approver's view and the grant like any scope and are narrowed
+// by the same subset rule.
+func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args taskRequestArgs, reservedScope map[string]any) (map[string]any, error) {
 	args.Objective = strings.TrimSpace(args.Objective)
 	if args.Objective == "" || len(args.Objective) > 4000 {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "objective 必须为 1 到 4000 个字符"}
@@ -151,6 +165,17 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	eligibility, err := s.compileEligibility(policy.Products, humanSubject, scope, now)
 	if err != nil {
 		return nil, err
+	}
+	if len(reservedScope) > 0 {
+		if args.ParentTaskID != "" {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "下载任务不能是委托任务"}
+		}
+		for name, value := range reservedScope {
+			if _, collides := scope[name]; collides {
+				return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "保留范围键与目录范围同名"}
+			}
+			scope[name] = value
+		}
 	}
 	evidence, err := s.datasourceEvidence(ctx, args.DataProducts)
 	if err != nil {
