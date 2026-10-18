@@ -1637,7 +1637,7 @@ laptop-class host with everything colocated, and the pilot does not vary
 the retry limit or the settlement batching the main text names as the ways
 to relax the head bound.
 
-\paragraph{With client resubmission.}
+\paragraph{With client resubmission}
 A follow-up pilot (\RetryCampaign{}; design frozen before execution in
 \filepath{docs/p10_r2_c4b_throughput_retry_design.md}, results digest
 \RetryResultsDigest{}) reruns the fifty-contender cells on three fresh
@@ -2098,7 +2098,7 @@ Both used one word, footprint, for three different quantities (below), and
 the bits-per-refusal figures both reported rested on that confusion; they
 are withdrawn.
 
-\paragraph{Two sites.}
+\paragraph{Two sites}
 The Gateway refuses on budget at two places. The pre-execution guards
 (\code{DeriveLimits} and the reservation checks in
 \filepath{internal/gateway/query.go}) refuse before any business SQL runs;
@@ -2121,7 +2121,7 @@ what matters is the rows of every step, refused ones included: the whole
 trace more than \TimingAdversaryMaxRows{}, against a row budget of
 \TimingRowBudget{}, and no exposure limit is below \TimingMinExposureLimit{}.
 
-\paragraph{Three quantities.}
+\paragraph{Three quantities}
 A refused statement $q$ is described by three numbers that must be kept
 apart: its \emph{result rows}, what it returns when admitted; its
 \emph{full Dependency footprint} $|F_D(q)|$; and its \emph{novel part}
@@ -2142,7 +2142,7 @@ frozen corpora exactly before they are used: the novelty and row count of
 \TimingCounterChecked{} accepted steps in the exact and release counter arms,
 and the novelty of all \TimingAdversaryChecked{} adversary steps.
 
-\paragraph{Post-execution refusals.}
+\paragraph{Post-execution refusals}
 The retained runs contain \TimingRefusals{} such refusals under
 \TimingDistinctStatements{} distinct step identifiers (campaign and step id;
 the SQL texts are not normalized for equivalence): the counter-comparator traces
@@ -2221,7 +2221,7 @@ neither establish a dependence of refusal latency on what was refused nor
 exclude one; they say nothing about larger footprints, and nothing about
 what a receiver who repeats and averages refusals could distinguish.
 
-\paragraph{Accepted scans.}
+\paragraph{Accepted scans}
 Execution time does grow with the footprint where footprints are large. Over
 the unlimited ladder's twelve accepted rungs (a fresh root per rung, so the
 charge is the full footprint; \TimingLadderFactsMin{} to
@@ -2234,7 +2234,7 @@ per Fact of the sub-phase pilot. At that rate a difference of about
 refusals' latency. That is a scale for accepted scans, not a measurement at
 the refusal site and not a limit on what can be resolved.
 
-\paragraph{What is not established.}
+\paragraph{What is not established}
 Under a model in which latency is linear in the footprint with independent
 additive Gaussian noise, the information one refusal carries about the
 footprint is bounded above by
@@ -2252,7 +2252,7 @@ timing channel is not quantified by this paper and lies outside its
 guarantee, as the main text states; padding or batching refusals is the
 deployment control.
 
-\paragraph{Pre-execution site.}
+\paragraph{Pre-execution site}
 The ladder's eleven bounded-arm refusals (one deployment) ran no business
 SQL. Their latency differs between request spans:
 \TimingPreSmallSpanMS{}~ms for spans of $10^2$--$10^4$ rows and
@@ -2591,7 +2591,7 @@ arm~(ii) composed rather than executed, and the S1/S2 cells here are the
 master-Catalog Baseline cells over the deterministic fixture, not the
 TPC-H-derived profiles of the sub-phase pilot.
 
-\paragraph{Same-input Scale replay.}
+\paragraph{Same-input Scale replay}
 The sealed campaign's Scale profile (Section~\ref{sec:scale-publication-supp})
 already contains V5 settlement of fully specified sets on the production
 path: a candidate of $N$ Dependency facts against a root pre-seeded with a
@@ -3218,7 +3218,7 @@ of first-attempt statements, not a task-completion rate; the only graded
 end-to-end evidence in this paper is the two-objective agent pilot of
 Section~\ref{sec:agent-pilot-supp}.
 
-\paragraph{The sheet's share (pilot).}
+\paragraph{The sheet's share (pilot)}
 To compare the two sheets, the same \HeldoutQueries{} questions
 were generated again in two arms that differ only in the sheet: the original
 one, and one with its two false lines corrected (the expense Products lose
@@ -3361,7 +3361,7 @@ probe & FactGate & \AgentFGProbeCorrect/\AgentFGProbeRuns & \AgentFGProbeStepsMe
 \end{tabular}
 \end{table}
 
-\paragraph{Benign.}
+\paragraph{Benign}
 Both arms answer correctly in every run. The agent's first move is the
 same under both controls: count the rows, then list them all sorted by
 amount. RLS-only returns the listing (a median of \AgentRLSBenignCells{}
@@ -3374,7 +3374,7 @@ with the root ledger at \AgentFGBenignLedger{}. The refusal cost one extra
 step and no correctness; the agent never saw the rows the objective did not
 ask for.
 
-\paragraph{Probe.}
+\paragraph{Probe}
 Under RLS-only every run recovers the maximum by threshold bisection on
 \code{count(*)}: nineteen to twenty probes, a final interval of median width
 \AgentRLSProbeWidth{} (exact in the best run), i.e., the aggregate-only rule
@@ -3394,7 +3394,7 @@ $\lfloor B_O/2\rfloor$ bound of the adversary study
 the bound, and the interval it reaches is the one the frozen bisection
 reaches at the same tier.
 
-\paragraph{What this shows and does not.}
+\paragraph{What this shows and does not}
 One agent, one fixture, one tier: the pilot shows that a current agent
 reads refusal codes and re-plans, that a set budget costs a legitimate task a
 step rather than its answer, and that a probing task is stopped at the
@@ -3484,6 +3484,20 @@ Construct & Reason code & Count & Statements \\
 
 This section holds passages moved from the main text for space; their
 content is unchanged.
+
+\textbf{Server phases.} The supplement's phase table shows where that time goes. The Gateway
+reports six non-overlapping server phases per governed response. The
+largest phase of S1/SF1 is \texttt{\FinalVFivePublicationPhaseDominantSOneSFOne{}}
+(\FinalVFivePublicationPhaseDominantSharePctSOneSFOne\% of its server total) and
+of S6/100k-x16 is \texttt{\FinalVFivePublicationPhaseDominantSSixHundredKByteSixteen{}}
+(\FinalVFivePublicationPhaseDominantSharePctSSixHundredKByteSixteen\%).
+The Control settlement transaction that computes exact novelty and advances
+the root head takes \FinalVFivePublicationPhaseSettlementMSSOneSFOne{}~ms at
+S1/SF1 and \FinalVFivePublicationPhaseSettlementMSSSixHundredKByteSixteen{}~ms
+at S6/100k-x16. The other four phases (prepare, artifact staging,
+publication, finalize) are the governed floor every response pays,
+replays included; the semantic-replay median of a cell thus bounds that
+floor, and the rest of the novel median is derivation plus settlement.
 
 \textbf{Same-root contention and throughput.} Same-root contention is measured separately: rounds of 10 and 50 concurrent
 requests against one root family at its budget boundary. A single request
@@ -3743,6 +3757,21 @@ the language and fail closed, exactly as subqueries and \code{OR} do in the
 SQL fragment. The mandatory scope of the task is injected as additional
 filter atoms; a caller's own filter can only intersect it.
 
+The query commitment is the digest of the normalized query text, of the
+quantized query vector, or of a canonical keyword list. Keyword search,
+admitted only where the Catalog declares it for a knowledge product, returns
+the chunks whose text contains every keyword as a case-sensitive substring
+(\code{LIKE}, with its wildcards made literal), ranked by the number of
+characters matched and then by chunk identity; it needs no tokenizer, is not a
+relevance model, and a trigram index only speeds it up. A keyword is not a
+predicate atom, because the published chunk relation carries a content digest
+rather than the text: like a query vector, the keyword list enters the
+composite through the normal form, so every distinct successful keyword query
+adds one composite and $B_O$ bounds their number, while Result and Dependency
+are those of any search returning the same hit set. Because keyword matching
+reads the text, publication verification also checks that every chunk's text
+still hashes to its published digest.
+
 The effect of a successful request is
 \begin{align*}
  \facts_R(q) &= \{f_{chunk}, f_{val} : \text{returned to the caller}\},\\
@@ -3961,7 +3990,11 @@ $0/0/0$ against the same ledger.
 E-KB1 to E-KB4 were pre-registered with expectations before any run
 (\code{docs/kb_experiment_design.md} in the repository) and are reported
 against those expectations; E-KB5 was added when the Catalog gained
-collection-scoped values and has no pre-registered expectation. All run on
+collection-scoped values and has no pre-registered expectation. The keyword
+experiments E-KB6 to E-KB8 were pre-registered later, before any keyword run,
+and ran in a second round of the same kind (class
+\texttt{\KbKeywordEvidenceClass}) on two further publications of the same
+corpora that differ only in declaring keyword search. All run on
 publications of one synthetic corpus embedded with \code{bge-m3}: every
 experiment uses the publication of 10{,}000 documents (10{,}469 versions,
 48{,}183 chunks), the larger E-KB3 tier one of 20{,}000 documents
@@ -3983,7 +4016,7 @@ cells, since a chunk releases four cells (\KbEkbOneReleaseBudget{} Release
 cells is roughly 200 chunks). Every number is a macro generated from the
 registered report whose digest the table names.
 
-\paragraph{E-KB1: adaptive extraction.}
+\paragraph{E-KB1: adaptive extraction}
 A scripted agent with a legitimate department grant runs three strategies
 for \KbEkbOneMaxSteps{} steps (S1 vocabulary scan, S2 partition scan over
 role and validity-month buckets, S3 adjacency fetch of hit documents) under
@@ -4033,7 +4066,7 @@ S3 adjacency fetch & \KbEkbOneAclSThreeLeakMeanPct\% (\KbEkbOneAclSThreeLeakMinP
 \end{tabular}
 \end{table}
 
-\paragraph{E-KB2: the eligibility gate.}
+\paragraph{E-KB2: the eligibility gate}
 \KbEkbTwoSubjects{} synthetic subjects (twelve departments, five roles,
 clearance derived from the role, one finance controller) each filed four
 request types on \KbEkbTwoDeployments{} deployments. Requests inside the
@@ -4054,7 +4087,7 @@ purpose; the partition scan under that grant leaked
 \KbEkbTwoBAfterExpiryCode{} and added \KbEkbTwoBAfterExpiryNew{} chunks
 (\KbEkbTwoBArms{} deployments, report \KbEkbTwoBReportDigest).
 
-\paragraph{E-KB3: settlement overhead.}
+\paragraph{E-KB3: settlement overhead}
 Table~\ref{tab:supp-kp-ekb3} compares client latency of the three request
 forms through the gateway with direct execution of the same retrieval on the
 business database, on two publications (\KbEkbThreeFortyEightKChunks{} and
@@ -4130,7 +4163,7 @@ aggregate & direct & \KbEkbThreeFortyEightKAggregateDirectNovelPFifty & \KbEkbTh
 \end{tabular}
 \end{table}
 
-\paragraph{E-KB5: document-scoped versus collection-scoped values.}
+\paragraph{E-KB5: document-scoped versus collection-scoped values}
 The same request, the count of \code{counterparty} values over the finance
 department's internal contracts, was settled on two publications of the same
 corpus that differ only in the scope the Catalog declares for that field, on
@@ -4147,7 +4180,7 @@ distinct counterparties), with \KbEkbFiveCollectionRelease{} Release,
 changes both what the question means and what a one-number answer costs on
 the ledger; repeating either request charges nothing.
 
-\paragraph{E-KB4: the gateway does not change the hit set.}
+\paragraph{E-KB4: the gateway does not change the hit set}
 \KbEkbFourQueries{} questions frozen before any run (two per target
 document, one close to the document's wording and one paraphrase, query set
 \KbEkbFourQuerysetDigest) were issued at $k\in\{5,10,20\}$ on
@@ -4180,6 +4213,62 @@ for paraphrases (MRR at $k=20$: \KbEkbFourMrrVerbatim{} and
 \KbEkbFourMrrParaphrase), below the pre-registered thresholds of 80\% and
 60\% at $k=10$; the gap is a property of the embedding and segmentation,
 which the gateway neither improves nor degrades (report \KbEkbFourReportDigest).
+
+\paragraph{E-KB6: keyword hit sets}
+\KbEkbSixKeywords{} keywords were frozen before any run (set
+\KbEkbSixKeywordsetDigest): a four-character window from each E-KB4 target
+document, the 100 two-character strings contained in the most chunks, and 50
+strings that occur in no chunk. Each was issued at $k\in\{5,10,20\}$ on
+\KbEkbSixDeployments{} deployments and compared with direct execution of the
+same filter, \code{LIKE}, rank and order. Members and order agreed in
+\KbEkbSixIdentityKFive, \KbEkbSixIdentityKTen{} and \KbEkbSixIdentityKTwenty\%
+of the comparisons (order \KbEkbSixSameOrderKFive, \KbEkbSixSameOrderKTen{} and
+\KbEkbSixSameOrderKTwenty\%), the gateway's hit lists agreed across
+deployments in \KbEkbSixCrossIdentical{} of \KbEkbSixCrossTotal{}, and every
+absent keyword returned an empty set (\KbEkbSixAbsentEmptyKTen{} of
+\KbEkbSixAbsentObservationsKTen{} at each $k$). An anchor's target document
+was among the hits in \KbEkbSixAnchorTargetHitPctKFive,
+\KbEkbSixAnchorTargetHitPctKTen{} and \KbEkbSixAnchorTargetHitPctKTwenty\% of
+the anchor queries at $k=5,10,20$, reported and not claimed: a
+four-character window often recurs in longer chunks, which the
+matched-character rank puts first (report \KbEkbSixReportDigest).
+
+\paragraph{E-KB7: keyword sweep}
+The subjects, departments, seeds and small budget of E-KB1 were reused with
+strategy S4, which issues the 100 frequent strings in a seeded order at
+$k=20$ for at most \KbEkbSevenMaxSteps{} steps, an attacker that knows the
+corpus's frequent terms. Without a ledger it obtained
+\KbEkbSevenAclLeakMeanPct\% of the department's requestable chunks on
+average (\KbEkbSevenAclLeakMinPct--\KbEkbSevenAclLeakMaxPct\%; pre-registered
+at least 30\%). Under FactGate \KbEkbSevenFactGateStopBudgetRuns{} of the
+\KbEkbSevenFactGateRuns{} runs stopped at \code{EXPOSURE_BUDGET_EXHAUSTED}
+with \KbEkbSevenFactGateLeakMinPct--\KbEkbSevenFactGateLeakMaxPct\% (at most
+\KbEkbSevenFactGateChunksMax{} chunks; pre-registered at most 200). The first
+refusal came by step \KbEkbSevenFactGateFirstRefusalMax{}, against a
+pre-registered 11: that prior assumed every step returns only new chunks,
+whereas consecutive keyword results overlap. Ten anchor questions per
+department under the same budget met \KbEkbSevenLegitRefusals{} refusals and
+found their target within five hits in \KbEkbSevenLegitCompleted{} of
+\KbEkbSevenLegitQuestions{} cases (\KbEkbSevenLegitCompletionPct\%,
+pre-registered at least 80\%); only \KbEkbSevenLegitVisible{} targets were
+visible under the task's clearance at all, and of these
+\KbEkbSevenLegitCompletedVisible{} were found, the retrieval-quality limit
+E-KB6 measures for anchors at $k=5$ (report \KbEkbSevenReportDigest).
+
+\paragraph{E-KB8: keyword overhead}
+At $k\in\{5,20\}$, 200 rounds per deployment on \KbEkbEightFortyEightKDeployments{}
+deployments in each tier, a keyword search at $k=20$ took a median
+\KbEkbEightFortyEightKFactGateKTwentyNovelPFifty~ms through the gateway
+against \KbEkbEightFortyEightKDirectKTwentyNovelPFifty~ms direct over
+\KbEkbEightFortyEightKChunks{} chunks, and
+\KbEkbEightNinetySixKFactGateKTwentyNovelPFifty{} against
+\KbEkbEightNinetySixKDirectKTwentyNovelPFifty~ms over
+\KbEkbEightNinetySixKChunks{} (p95 \KbEkbEightFortyEightKFactGateKTwentyNovelPNinetyFive{}
+and \KbEkbEightNinetySixKFactGateKTwentyNovelPNinetyFive~ms through the gateway); replays charged
+nothing. With the trigram index the direct statement takes about a
+millisecond at the median, so preparation, settlement and delivery dominate
+the gateway's time (reports \KbEkbEightFortyEightKReportDigest{} and
+\KbEkbEightNinetySixKReportDigest).
 
 \subsection{Non-claims}
 

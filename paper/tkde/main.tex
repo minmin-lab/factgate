@@ -91,9 +91,9 @@ its budgets, and costs
 a direct query; settlement takes a median
 \FinalVFivePublicationScaleSettleMillionMS{}~ms against a million-fact
 history at zero overlap. Because the contract is stated over Fact sets, not
-SQL, the same gateway governs exact retrieval over a published document
-collection: on fresh deployments its hit sets equal direct exact retrieval
-and every scripted extraction stops at its budget.
+SQL, the same gateway governs exact vector and keyword retrieval over a
+published document collection: on fresh deployments both return the hit
+sets of direct execution and every scripted extraction stops at its budget.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -278,8 +278,8 @@ propositions, a normal-form soundness theorem, an abstract settlement-safety
 property sanity-checked by two-fact TLA+ models, and executable
 Go/PostgreSQL differential, generated-plan, and fault-injection evidence.
 (6) The same machinery for exact retrieval over published document
-collections: a chunk's visible cells are Facts, retrieval is a second
-prepared operation behind the same sealed boundary, and an eligibility
+collections: a chunk's visible cells are Facts, exact nearest-neighbour and
+keyword retrieval are prepared operations behind the same sealed boundary, and an eligibility
 envelope precedes approval; a formal evaluation finds gateway hit sets equal
 to direct retrieval and extraction bounded by the budget
 (Section~\ref{sec:knowledge}).
@@ -1073,7 +1073,8 @@ publication epoch freezes the segmentation, the embedding model, every
 chunk's content digest and labels, and the extracted values. Chunks and
 document versions play rows, and a chunk's visible cells and each extracted
 typed value play cells. The language is \code{search} (exact nearest-neighbour
-retrieval with $k\le k_{\max}$), \code{fetch} of chunks already returned to
+retrieval, or the chunks containing every keyword ranked by matched
+characters; $k\le k_{\max}$), \code{fetch} of chunks already returned to
 the root family, and \code{aggregate} over an extracted field; each is
 prepared through the same sealed boundary as \code{execute_plan} and settles
 on the same three ledgers. $\facts_R$ holds the visible cells of each
@@ -1098,13 +1099,19 @@ department's chunks, where per-query access control without a ledger let a
 vocabulary scan obtain \KbEkbOneAclSOneLeakMeanPct\% on average. Gateway
 retrieval matched direct exact retrieval member for member in
 \KbEkbFourIdentityKTen\% of \KbEkbFourQueries{} questions at $k=10$, as at
-$k=5$ and $20$, and identically across deployments. Retrieval quality is
+$k=5$ and $20$, and identically across deployments; keyword search returned the hit list of
+direct \code{LIKE} execution, members and order, in
+\KbEkbSixIdentityKTen\% of \KbEkbSixObservationsKTen{} queries at each $k$,
+and a sweep over frequent keywords stopped at budget exhaustion with at most
+\KbEkbSevenFactGateLeakMaxPct\% of the department's chunks, against
+\KbEkbSevenAclLeakMeanPct\% without a ledger. Retrieval quality is
 reported, not claimed, and missed its pre-registered thresholds (recall@10
 \KbEkbFourRecallVerbatimKTen\% near-verbatim and
 \KbEkbFourRecallParaphraseKTen\% paraphrased, against 80\% and 60\%);
 legitimate questions under the extraction budget met no refusal, but only
-\KbEkbOneLegitCompletionPct\% found their source document within five hits
-(pre-registered 90\%); direct retrieval misses the same. Requests outside the
+\KbEkbOneLegitCompletionPct\% (vector) and \KbEkbSevenLegitCompletionPct\%
+(keyword) found their source document within five hits (pre-registered 90\%
+and 80\%); direct retrieval misses the same. Requests outside the
 eligibility envelope were refused before any approval draft
 (\KbEkbTwoOtherDeptNotEligible{} of \KbEkbTwoOtherDeptRequests{}
 cross-department and \KbEkbTwoHigherClassificationNotEligible{} of
@@ -1114,7 +1121,9 @@ bound of \KbEkbTwoBLeakBound. A search at $k=20$ over
 \KbEkbThreeNinetySixKChunks{} chunks takes
 \KbEkbThreeNinetySixKSearchFactGateKTwentyNovelPFifty{}~ms through the
 gateway against \KbEkbThreeNinetySixKSearchDirectKTwentyNovelPFifty{}~ms
-direct (medians). A count over a collection-scoped value field returns
+direct, a keyword search
+\KbEkbEightNinetySixKFactGateKTwentyNovelPFifty{} against
+\KbEkbEightNinetySixKDirectKTwentyNovelPFifty{}~ms (medians). A count over a collection-scoped value field returns
 \KbEkbFiveCollectionAnswer{} distinct values and charges
 \KbEkbFiveCollectionInfluence{} Dependency Facts, where a document-scoped
 one counts \KbEkbFiveDocumentAnswer{} contracts at
@@ -1296,19 +1305,7 @@ business SQL and charged no Facts (row budget still consumed). Replay is no
 latency win: semantic replay exceeds direct re-execution in
 every cell; only idempotent replay at S2/SF10 undercuts it.
 
-The supplement's phase table shows where that time goes. The Gateway
-reports six non-overlapping server phases per governed response. The
-largest phase of S1/SF1 is \texttt{\FinalVFivePublicationPhaseDominantSOneSFOne{}}
-(\FinalVFivePublicationPhaseDominantSharePctSOneSFOne\% of its server total) and
-of S6/100k-x16 is \texttt{\FinalVFivePublicationPhaseDominantSSixHundredKByteSixteen{}}
-(\FinalVFivePublicationPhaseDominantSharePctSSixHundredKByteSixteen\%).
-The Control settlement transaction that computes exact novelty and advances
-the root head takes \FinalVFivePublicationPhaseSettlementMSSOneSFOne{}~ms at
-S1/SF1 and \FinalVFivePublicationPhaseSettlementMSSSixHundredKByteSixteen{}~ms
-at S6/100k-x16. The other four phases (prepare, artifact staging,
-publication, finalize) are the governed floor every response pays,
-replays included; the semantic-replay median of a cell thus bounds that
-floor, and the rest of the novel median is derivation plus settlement.
+Server phases per response are decomposed in the supplement.
 Because every descendant settles on one root head, a task tree's settlement throughput is bounded by that head (same-root contention and throughput: supplement). Table~\ref{tab:scale-main} answers RQ4 with the Scale profile
 (\FinalVFivePublicationScaleCells{} cells,
 \FinalVFivePublicationScaleSamples{} samples, every charge equal to the
