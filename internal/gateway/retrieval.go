@@ -44,7 +44,7 @@ var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retri
 // projection of the sealed statement (kb-design §9.8).
 const chunkTextDeliveryColumn = "text"
 
-var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询检索，返回至多 k 个分块：文本或向量做精确最近邻检索；关键词（知识产品声明 keyword 时）返回正文同时包含每个关键词的分块，区分大小写，按命中字符数排序。命中分块按任务账本的三维结算记账。",
+var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询检索，返回至多 k 个分块：文本或向量做精确最近邻检索；关键词（知识产品声明 keyword 时）返回正文同时包含每个关键词的分块，区分大小写，按命中字符数排序。命中分块按任务账本的三维结算记账。过滤只接受知识产品声明的属性，不接受 doc_id：要某份已知文档的全文或原文件，请用 request_download_task 申请下载任务，再用 download_document 一次取回。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        requestIDSchema(),
@@ -64,7 +64,7 @@ var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过
 		"k": map[string]any{"type": "integer", "minimum": 1},
 	}, "task_id", "request_id", "knowledge_product", "query", "k")}
 
-var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chunk_index) 取回先前检索命中的分块正文；取回同样按任务账本结算，已结算过的分块不再重复计费。",
+var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chunk_index) 取回先前检索命中的分块正文；取回同样按任务账本结算，已结算过的分块不再重复计费。只能取本任务族此前检索返回过的块；要整份文档请用 request_download_task 与 download_document。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        requestIDSchema(),
@@ -746,7 +746,7 @@ func (s *Service) requireChunksReturned(ctx context.Context, task control.Task, 
 		}
 		row, ok := index.LookupEntity(entityKey)
 		if !ok {
-			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块", ref.DocID, ref.Version, ref.ChunkIndex)}
+			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块；要整份文档请用 request_download_task 申请下载任务", ref.DocID, ref.Version, ref.ChunkIndex)}
 		}
 		cell, ok := row.Cells[textField]
 		if !ok {
@@ -761,7 +761,7 @@ func (s *Service) requireChunksReturned(ctx context.Context, task control.Task, 
 	for i, ok := range released {
 		if !ok {
 			ref := request.Chunks[i]
-			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块", ref.DocID, ref.Version, ref.ChunkIndex)}
+			return &mcp.ToolError{Code: apierr.CodeChunkNotReturned, Message: fmt.Sprintf("块 %s v%d #%d 不是本任务族此前检索返回的块；要整份文档请用 request_download_task 申请下载任务", ref.DocID, ref.Version, ref.ChunkIndex)}
 		}
 	}
 	return nil
