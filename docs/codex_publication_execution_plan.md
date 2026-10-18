@@ -1922,3 +1922,12 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **改为**："Chunks and document versions play rows, and a chunk's visible cells and each extracted typed value play cells."
   - **根因**：K5.1 改写时只按 framing 草案的提法写，没有对照 effect.go，属"该查没查"。发现于作者阅读中文版时提问。
   - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=739，check-rendered 只剩既有两项。中文阅读版同步改正。
+
+- [2026-10-18 11:35 UTC+8] KB1-LOOP-100 **更正对作者的一句口头答复；补一项关键词检索的小实验（设计证据，非论文证据）**。
+  - **更正**：我对作者说过，中文全文检索"得装分词扩展、自建镜像"。这只对按词分词的 tsvector 路线成立。若只做"包含某词"的子串检索，PostgreSQL 内置 LIKE 加随官方镜像发布的 pg_trgm 扩展即可，不需要分词，也不需要自建镜像。根因：把"全文检索"等同于 tsvector，没先查 pg_trgm 这条路（该查没查）。作者追问后实测更正。
+  - **实测**：在钉住的 PostgreSQL 16.14 镜像（92620dad）中起临时容器，locale en_US.utf8，跑完即删（残留 0）。
+    - CREATE EXTENSION pg_trgm 成功；show_trgm 对中文能产出三元组。
+    - 自造 10 万行短文本，LIKE '%违约金%' 命中数正确（100）。GIN 三元组索引被计划器采用（Bitmap Index Scan），0.33 ms；关掉索引走顺序扫描为 9.9 ms。这些是自造短文本上的数，不代表真实语料。
+    - 子串误命中确认：'中华为人民服务' LIKE '%华为%' 为真。
+    - 模糊：similarity('违约金','违约赔偿金')=0.25，similarity('违约金条款','违约金')=0.43。
+  - **含义**：LIKE 已在论文核心语言的运算符集里（主稿 3.4），所以模式串可以作为谓词原子记账；结果与依赖按分块身份计费，不变；在同一快照、同一事务内执行，正确性论证不需重做。这是加入关键词检索代价最低的路线。是否进入论文，仍待作者裁决。
