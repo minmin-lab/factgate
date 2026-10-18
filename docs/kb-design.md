@@ -431,15 +431,17 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
 - 文档含高于申请人密级的节时："Refuse whole document"——整份拒绝。
 - 前置字段："Include if values approved"——任务批了 values 产品才带类型化字段。
 
-### 12.2 先查清的数据事实（演示栈实查，KB1-LOOP-116）
+### 12.2 先查清的数据事实（演示栈实查，KB1-LOOP-116；KB1-LOOP-120 更正）
 
 - 10469 份文档中 963 份（9.2%）各含一个 leadership 节，所在文档的密级为 public 200、internal 511、confidential 252。
   分块继承所在节的密级（internal/kbpublish/prepare.go:59-86）。所以把存储的正文整份交出会越过节级密级。
 - 存储的 `kb.documents.body` 含前置字段与节标题行；`content_sha256 = sha256(body)`（publish.go:339）。
   - 节标题行带密级标签（`标题 [leadership]`），不进任何发布单元格：分块只取节正文（evaluation/kbcorpus/corpus.go:426-433）。
   - 前置字段里还有未抽取的字段（如 applicant_no、approval_no），不受任何产品治理。
-- 系统不存原始二进制文件；语料就是文本。
-- 结论：下载文件只能由**已发布单元格**组装——文档标题、批准时的抽取值、按序的分块正文。全部经账本结算；不交 body，不交节标题，不交原始前置字段。
+- **更正（KB1-LOOP-120）**：body 就是本语料每份文档的源文件（带前置字段的 Markdown），不存在的只是二进制原件。
+  已发布的 documents 关系带它的摘要 content_sha256，对全部 10469 份文档成立。
+- 结论：缺省下载（组装文件）只由**已发布单元格**组装——文档标题、批准时的抽取值、按序的分块正文。全部经账本结算，不含节标题与原始前置字段。
+  原文件经 §12.8 的原文件通道交付。
 
 ### 12.3 语义
 
@@ -516,6 +518,24 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
 - **fetch 放宽为"同文档任意块"**：作者要求搜索与下载分开。
 - **审批前查标题给审批人看**：审批前读数据。
 - **原始二进制文件**：系统不存。
+
+### 12.8 原文件通道（2026-10-18 作者定，KB1-LOOP-120）
+
+作者原话："factgate 做为 文档的出口网关，就算不直接管理文件，也应该提供一个 访问文件的通道吧？"、"比如提供一个 对象存储 URL？"。
+URL 形态作者选网关地址；进论文。
+
+- **文件留在原处**：发布期只登记摘要。本语料的源文件就是 kb.documents.body，摘要即已发布的 content_sha256。
+  真实部署另登记对象位置、大小与媒体类型。FactGate 不管理文件，只为文件的出口设闸。
+- **申请与审批**：
+  - request_download_task 加 `original_file: true`。documents 的列加 content_sha256，即"原文件"权；审批人可在 OA 缩小批准时删去该列。
+  - 原文件含前置字段，所以 original_file 必须同时申请 values（隐含 include_values）。
+- **下载**：download_document 加 `format: "original"`（缺省为 assembled）。
+  - 前提是授权单仍批准 documents.content_sha256 与 values 关系，否则 `DOWNLOAD_NOT_APPROVED`。
+  - document 部分多取 content_sha256，Release 为 3。chunks 与 values 部分照旧，整份拒绝规则照旧。
+  - 全部结算后，网关按身份读出 body，核 sha256(body) 等于已释放的 content_sha256，再交付这些字节。
+  - 返回 file_sha256，它必然等于 content_sha256；另返回网关短期地址。取件时重新读出并核摘要。
+- **计费**：原文件 ⊇ 标题、chunk_count、content_sha256 三个文档单元格、全部分块的 4×n 个单元格与抽取值的 3×m 个单元格，所以原文件不会比逐块下载便宜。
+  节标题（含其密级标签）与未抽取的前置字段没有自己的单元格，随文件整体释放，以 content_sha256 这一事实计，不做单元格级核算。论文照写这一粒度。
 
 ### 12.7 实验（预先登记写入 docs/kb_experiment_design.md 后才跑）
 
