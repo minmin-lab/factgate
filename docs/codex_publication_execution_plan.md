@@ -1908,3 +1908,10 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     3. internal/catalog/testdata/kb-fragment.yaml：测试夹具，不属部署 catalog，无需签署。
   - 仓库内无代码读取该记录（已用已知命中词验证检索），它是签署凭据本身。
   - **剩余**：K5.1 待作者审阅主稿改动。
+
+- [2026-10-18 11:05 UTC+8] KB1-LOOP-98 **主稿中文阅读版；顺带修一处既有排版缺陷**。
+  - **中文阅读版**：作者要求"写一个中文版的论文，方便我先理解"。已在 claude.ai 文档中按节译出主稿全文：摘要、第 1–11 节、表 1–2、图 1–2 要点，宏展开为渲染值，另附术语对照。仅供阅读，以英文原稿为准；不入仓库。依据为提交 ff1293d 的 main.tex，数字取自同版 main.pdf。
+  - **缺陷（翻译时发现）**：main.tex 第 5.2 节"预算标定"中，"...nor optimization targets:"之后有一个空行，导致 PDF 在"1,000 permits 1,000 declared units"前另起一段，读起来像断句。
+    - 来历（实查 git）：5555b6b（2026-08-02）原句为"optimization targets: 1,000 permits 1,000 declared units, not 'risk 1,000.'"；后续压缩时把表格移出，留下空行。f205dfa 中已存在，不是本次 K5.1 引入。
+    - 同类扫描（实跑）：脚本找"空行后以小写、数字或括号开头的段"，共 2 处候选。一处是贡献列表"(1)"，属有意分段；另一处就是本缺陷。检查本身对已知缺陷命中，作阳性对照。
+    - 修法：只删空行，不改字。构建（实跑）：make paper 退出 0，主稿仍 12 页，末栏底 y=739；PDF 中该句已与上文同段；check-rendered 只剩既有两项 Overfull。
