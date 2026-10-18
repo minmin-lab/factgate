@@ -1915,3 +1915,10 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 来历（实查 git）：5555b6b（2026-08-02）原句为"optimization targets: 1,000 permits 1,000 declared units, not 'risk 1,000.'"；后续压缩时把表格移出，留下空行。f205dfa 中已存在，不是本次 K5.1 引入。
     - 同类扫描（实跑）：脚本找"空行后以小写、数字或括号开头的段"，共 2 处候选。一处是贡献列表"(1)"，属有意分段；另一处就是本缺陷。检查本身对已知缺陷命中，作阳性对照。
     - 修法：只删空行，不改字。构建（实跑）：make paper 退出 0，主稿仍 12 页，末栏底 y=739；PDF 中该句已与上文同段；check-rendered 只剩既有两项 Overfull。
+
+- [2026-10-18 11:18 UTC+8] KB1-LOOP-99 **主稿知识产品一节一句措辞更正**。
+  - **原句**："A document version plays the row, and a chunk's visible cells and each extracted typed value play cells."——只说文档版本是"行"，不准确。
+  - **依据（读代码）**：internal/retrieval/effect.go:204-262 中，每个命中分块记 4 个释放单元格（doc_id、version、chunk_index、text_sha256），并记两种行事实：分块行（chunks 关系，键为 doc_id/version/chunk_index）和文档行（documents 关系，键为 doc_id/version），外加文档的 doc_id、version 单元格和每个调用方过滤属性一个分块单元格。
+  - **改为**："Chunks and document versions play rows, and a chunk's visible cells and each extracted typed value play cells."
+  - **根因**：K5.1 改写时只按 framing 草案的提法写，没有对照 effect.go，属"该查没查"。发现于作者阅读中文版时提问。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=739，check-rendered 只剩既有两项。中文阅读版同步改正。

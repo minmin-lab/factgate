@@ -1070,9 +1070,9 @@ Product is a governed collection with stable document identifiers, a
 deterministic segmentation function, typed extraction rules, and an
 attribute vocabulary (department, role, classification, validity); an index
 publication epoch freezes the segmentation, the embedding model, every
-chunk's content digest and labels, and the extracted values. A document
-version plays the row, and a chunk's visible cells and each extracted typed
-value play cells. The language is \code{search} (exact nearest-neighbour
+chunk's content digest and labels, and the extracted values. Chunks and
+document versions play rows, and a chunk's visible cells and each extracted
+typed value play cells. The language is \code{search} (exact nearest-neighbour
 retrieval with $k\le k_{\max}$), \code{fetch} of chunks already returned to
 the root family, and \code{aggregate} over an extracted field; each is
 prepared through the same sealed boundary as \code{execute_plan} and settles
