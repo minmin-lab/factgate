@@ -47,5 +47,6 @@
  "status": "draft",
  "status_note": "2026-10-18: version-2 draft created through the API; the four added files read back with the local md5 and size, the three version-1 files are carried with their version-1 checksums, the DOI is reserved and becomes resolvable only on publication; publication is the author's act",
  "recomputation_check": "2026-10-18 09:08 UTC+8: kb-formal-finalize (class formal) run on deployments/ of the extracted raw-evidence archive with round/approval.json produced seven combined reports equal to the registered ones except generated_at; its campaign-evidence.json differs only in generated_at, the report digests that follow from it, and the deployment locations",
- "license": "CC-BY-4.0"
+ "license": "CC-BY-4.0",
+ "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/ (the four deposited files; sha256 verified there 2026-10-18 09:42 UTC+8)"
 }

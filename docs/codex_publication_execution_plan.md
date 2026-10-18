@@ -1882,3 +1882,5 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - DOI 句等作者发布后再加入"可复现边界"。门禁做法同 V5 的 RawEvidenceDOI，但改为"宏缺失即构建失败"，拦截点比 V5 生成器内检查更早；放弃发布前预写 DOI。
     - framing §3 建议的"四条贡献"重排未采用，保留六条（第 6 条为文档路径）：12 页限下重排需重写引言与模型节，收益不抵版面。四层对应改为在知识产品一节首句点名，不另设表格（补充材料已有可移植性表）。
   - **待作者**：(1) 运行 catalog 签署脚本；(2) 审阅主稿改动（含移出的三段）；(3) 对 Zenodo 23444544 明示"发布"。之后：加 DOI 句、刷新 review/、投稿包与投稿信、arXiv v3。
+
+- [2026-10-18 09:42 UTC+8] KB1-LOOP-95 **Zenodo 版本 2 的四个上传文件镜像到 NAS**：`/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/`，在 NAS 上 sha256sum -c 4/4 OK（实跑）。依据：证据不得只留在 WSL 的规矩；草稿文件原在会话临时目录。存证记录加 nas_mirror 字段，生成的 kb.tex 不变。
