@@ -226,6 +226,51 @@
    "note": "Peak resident memory of the publisher: 2,093,056 KiB for 48,183 chunks and 4,164,944 KiB for 96,401 (about 43 KiB per chunk); a linear projection gives about 41 GiB for 10^6 chunks against a 29.4 GiB host with no swap, which is why the 10^6-chunk tier of E-KB3 was not evaluated (author decision 2026-10-17, kb-design 9.8 option iii). Context: revision-1 figures and the binary-direct baseline and qualified-ids-only prototype at 96,401 chunks.",
    "ledger": "KB1-LOOP-77",
    "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-publish-memory/publish-memory-v2r2.json"
+  },
+  {
+   "id": "ekb6-keyword-rehearsal",
+   "path": "keyword-rehearsal/ekb6.json",
+   "sha256": "6217604efb1d9dc90f96b8a7aa55314c19ae5eb25a0105fc033279a568a03159",
+   "publication": "policy-kb-2026-10-bge-v2kw",
+   "note": "Keyword hit sets against direct LIKE: 450 keywords x k 5/10/20 x 3 deployments; the reference the formal keyword round is compared against.",
+   "produced_by": "keyword rehearsal round kb-keyword-rehearsal-20261018 (pilot class): launch-round.sh KB_FORMAL_ROUND=keyword at commit 518ac0e, 9 fresh deployments (3 profiles x 3), kb-formal-driver over HTTP/MCP with OA approval, receipt verification and per-row text digests; combined by kb-formal-finalize -round keyword; NAS kb-formal/kb-keyword-rehearsal-20261018/",
+   "ledger": "KB1-LOOP-106"
+  },
+  {
+   "id": "ekb7-keyword-rehearsal",
+   "path": "keyword-rehearsal/ekb7.json",
+   "sha256": "a1f4a99693bee9b8c7d8f4acf0bee153426e7ad317229ff7605283617702949b",
+   "publication": "policy-kb-2026-10-bge-v2kw",
+   "note": "Keyword sweep S4 under kb-pilot-v1 and the legitimate anchor questions; the reference for the formal keyword round.",
+   "produced_by": "keyword rehearsal round kb-keyword-rehearsal-20261018 (pilot class): launch-round.sh KB_FORMAL_ROUND=keyword at commit 518ac0e, 9 fresh deployments (3 profiles x 3), kb-formal-driver over HTTP/MCP with OA approval, receipt verification and per-row text digests; combined by kb-formal-finalize -round keyword; NAS kb-formal/kb-keyword-rehearsal-20261018/",
+   "ledger": "KB1-LOOP-106"
+  },
+  {
+   "id": "ekb8-48k-keyword-rehearsal",
+   "path": "keyword-rehearsal/ekb8-48k.json",
+   "sha256": "f987c37d09828d1c1df0c55a16fe161f40b383a70469ee2fc58a486ead1f4a83",
+   "publication": "policy-kb-2026-10-bge-v2kw",
+   "note": "Keyword search overhead, 48k tier; latency is never compared across rounds.",
+   "produced_by": "keyword rehearsal round kb-keyword-rehearsal-20261018 (pilot class): launch-round.sh KB_FORMAL_ROUND=keyword at commit 518ac0e, 9 fresh deployments (3 profiles x 3), kb-formal-driver over HTTP/MCP with OA approval, receipt verification and per-row text digests; combined by kb-formal-finalize -round keyword; NAS kb-formal/kb-keyword-rehearsal-20261018/",
+   "ledger": "KB1-LOOP-106"
+  },
+  {
+   "id": "ekb8-96k-keyword-rehearsal",
+   "path": "keyword-rehearsal/ekb8-96k.json",
+   "sha256": "2d996e1962e7c7157b50d2405707242bebf69688d343d3410e31cec5ba0b312d",
+   "publication": "policy-kb-2026-10-bge-20kkw",
+   "note": "Keyword search overhead, 96k tier; latency is never compared across rounds.",
+   "produced_by": "keyword rehearsal round kb-keyword-rehearsal-20261018 (pilot class): launch-round.sh KB_FORMAL_ROUND=keyword at commit 518ac0e, 9 fresh deployments (3 profiles x 3), kb-formal-driver over HTTP/MCP with OA approval, receipt verification and per-row text digests; combined by kb-formal-finalize -round keyword; NAS kb-formal/kb-keyword-rehearsal-20261018/",
+   "ledger": "KB1-LOOP-106"
+  },
+  {
+   "id": "keyword-rehearsal-campaign-evidence",
+   "path": "keyword-rehearsal/campaign-evidence.json",
+   "sha256": "d33445c3987a00b6997b8bc6190284bb36f5e9a6724391320ee1987ffdbfa774",
+   "publication": "policy-kb-2026-10-bge-v2kw, -20kkw",
+   "note": "Campaign evidence of the keyword rehearsal: deployment records, commit, binding v2 digest.",
+   "produced_by": "keyword rehearsal round kb-keyword-rehearsal-20261018 (pilot class): launch-round.sh KB_FORMAL_ROUND=keyword at commit 518ac0e, 9 fresh deployments (3 profiles x 3), kb-formal-driver over HTTP/MCP with OA approval, receipt verification and per-row text digests; combined by kb-formal-finalize -round keyword; NAS kb-formal/kb-keyword-rehearsal-20261018/",
+   "ledger": "KB1-LOOP-106"
   }
  ]
 }

@@ -1,6 +1,13 @@
 """Compare a round's combined reports with the registered in-process pilot reports.
 
-Usage: python3 -I evaluation/kb-formal/scripts/compare-combined.py EVIDENCE_DIR
+Usage: python3 -I evaluation/kb-formal/scripts/compare-combined.py [--round keyword] EVIDENCE_DIR
+
+With --round keyword the reports are E-KB6..E-KB8 and the reference is the
+registered keyword rehearsal (evaluation/kb-pilot/keyword-rehearsal): E-KB6
+summary (but its wall time) and every gateway hit list by deployment, keyword
+and k; E-KB7 summary, legitimate totals and every trajectory's counts and
+charges; E-KB8 per-cell sample and error counts and every sample's rows and
+charges (latency is never compared).
 
 EVIDENCE_DIR holds the reports kb-formal-finalize wrote (ekb1.json ... ekb5.json).
 Every field that is a function of the deterministic per-deployment results must
@@ -21,6 +28,14 @@ PILOT = {
     "ekb3-96k": "evaluation/kb-pilot/ekb3/report-96k-r2.json",
     "ekb4": "evaluation/kb-pilot/ekb4/report-v2r2.json",
     "ekb5": "evaluation/kb-pilot/ekb5/report-v2r2.json",
+}
+
+
+PILOT_KEYWORD = {
+    "ekb6": "evaluation/kb-pilot/keyword-rehearsal/ekb6.json",
+    "ekb7": "evaluation/kb-pilot/keyword-rehearsal/ekb7.json",
+    "ekb8-48k": "evaluation/kb-pilot/keyword-rehearsal/ekb8-48k.json",
+    "ekb8-96k": "evaluation/kb-pilot/keyword-rehearsal/ekb8-96k.json",
 }
 
 
@@ -52,6 +67,34 @@ def compare(name, mine, theirs):
         drop = lambda summary: {k: v for k, v in summary.items() if k != "seconds"}
         out += differ("summary", drop(mine["summary"]), drop(theirs["summary"]))
         out += differ("queryset", mine["queryset_manifest"]["queries_sha256"], theirs["queryset_manifest"]["queries_sha256"])
+    elif name == "ekb6":
+        drop = lambda summary: {k: v for k, v in summary.items() if k != "seconds"}
+        out += differ("summary", drop(mine["summary"]), drop(theirs["summary"]))
+        out += differ("keyword set", mine["keywordset_manifest"]["keywords_sha256"], theirs["keywordset_manifest"]["keywords_sha256"])
+        hits = lambda report: {(d["deployment"], o["keyword_id"], o["k"]): (o["gateway"], o["direct"], o.get("error", ""))
+                               for d in report["deployments_detail"] for o in d["observations"]}
+        a, b = hits(mine), hits(theirs)
+        out += differ("observation keys", len(a), len(b))
+        out += [{"at": list(key), "combined": a.get(key), "pilot": b[key]} for key in sorted(b) if a.get(key) != b[key]][:20]
+    elif name == "ekb7":
+        out += differ("summary", mine["summary"], theirs["summary"]) + differ("legitimate", mine["legitimate"], theirs["legitimate"])
+        for key in ("deployments", "seeds", "max_steps"):
+            out += differ(key, mine[key], theirs[key])
+        fields = ("requestable_chunks", "steps", "distinct_after_step", "final_distinct", "first_refusal_step", "refusal_code", "stop_code",
+                  "refusals", "charged_release", "charged_influence", "charged_outcome")
+        keyed = lambda report: {f'{d["deployment"]}/{t["arm"]}/{t["seed"]}': {f: t.get(f) for f in fields}
+                                for d in report["deployments_detail"] for t in d["trajectories"]}
+        out += differ("trajectories", keyed(mine), keyed(theirs))
+        legit = lambda report: [{k: v for k, v in l.items()} for d in report["deployments_detail"] for l in d["legitimate_tasks"]]
+        out += differ("legitimate tasks", legit(mine), legit(theirs))
+    elif name.startswith("ekb8"):
+        for key in ("tier", "chunks", "rounds", "deployments"):
+            out += differ(key, mine[key], theirs[key])
+        counts = lambda summary: {cell: (value["n"], value["errors"]) for cell, value in summary.items()}
+        out += differ("summary n/errors", counts(mine["summary"]), counts(theirs["summary"]))
+        samples = lambda report: [(x["arm"], x.get("k"), x["replay"], x["rows"], x.get("charged_release", 0), x.get("charged_influence", 0),
+                                   x.get("charged_outcome", 0), x.get("error", "")) for x in report["samples"]]
+        out += differ("samples rows/charges", samples(mine), samples(theirs))
     elif name == "ekb5":
         keyed = lambda observations: {(o["publication"], o["deployment"]): o for o in observations}
         a, b = keyed(mine["observations"]), keyed(theirs["observations"])
@@ -63,9 +106,15 @@ def compare(name, mine, theirs):
     return out
 
 
-def main(evidence):
+def main(argv):
+    references = PILOT
+    if argv[:2] == ["--round", "keyword"]:
+        references, argv = PILOT_KEYWORD, argv[2:]
+    if len(argv) != 1:
+        raise SystemExit("usage: compare-combined.py [--round keyword] EVIDENCE_DIR")
+    evidence = argv[0]
     failed = False
-    for name, pilot_path in PILOT.items():
+    for name, pilot_path in references.items():
         mine = json.load(open(f"{evidence}/{name}.json"))
         theirs = json.load(open(pilot_path))
         differences = compare(name, mine, theirs)
@@ -76,4 +125,4 @@ def main(evidence):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(sys.argv[1:]))

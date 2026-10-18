@@ -1992,3 +1992,21 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **数据绑定 v2**：evaluation/kb-formal/kb-dataset-binding-v2.json，sha256 2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0，9638 字节。
     - 钉住三个 profile 及其 schema 摘要、两份发布物、两份语料、关键词集（清单 7fba28f0…，关键词 90eed4d5…）、嵌入缓存（139,354 个向量，5980758d…）、镜像与源文件（含新 DDL a18ea827…）。
     - 正式轮发射前需作者签署；先做彩排。
+
+- [2026-10-18 13:17 UTC+8] KB1-LOOP-106 **关键词轮彩排完成（pilot 类）并登记为对拍基准；K6.3 部署路径验收通过**。
+  - **彩排**：kb-keyword-rehearsal-20261018，launch-round.sh KB_FORMAL_ROUND=keyword，提交 518ac0e，12:35–13:13，9 次全新部署全部成功；每次部署后的不变量检查 0 差异。
+    - 不变量检查器先用三份蓄意改坏的报告验证过：三份都报出差异，退出码 1。
+    - 已 finalize，合并报告镜像到 NAS kb-formal/kb-keyword-rehearsal-20261018/evidence；campaign evidence d33445c3…。
+  - **结果（实跑，pilot 类，非论文证据）**：
+    - **E-KB6**：每个 k 各 1350 次，成员与顺序一致率 100%，0 错误；跨部署 2700/2700；缺席关键词 150/150 返回空集。锚点的目标进入前 k 的比例：k5 58.0%、k10 70.3%、k20 81.3%（只描述）。
+    - **E-KB7**：ACL 对照 S4 平均 43.7%（预期 ≥ 30%，达到）。FactGate 9/9 次以 EXPOSURE_BUDGET_EXHAUSTED 停止，比例 6.7–7.4%，最多 197 块（预期 ≤ 200，达到），释放计费最多 788/800。合法任务 0 次拒绝。
+    - **E-KB8**：k=20 新查询中位数，48k 档网关 95.1 ms、直连 0.5 ms；96k 档网关 63.9 ms、直连 0.3 ms；p95 网关 92–169 ms、直连约 140 ms；重放零计费，0 错误。
+  - **未达预登记（照实报，原因已查）**：
+    - **首次拒绝**：9 次中 2 次在第 12 步，预期 ≤ 11。我的先验按"每步全是新块"推算 800/(20×4) = 10 步，实际各步结果有重叠；先验错了，不是系统问题。
+    - **合法任务完成率**：48/90 = 53.3%，预期 ≥ 80%。其中 12 个目标在 {public, internal} 下本就不可见；可见目标中完成 48/78 = 61.5%。与 E-KB6 锚点在 k5 的 58.0% 一致，说明 4 字锚点在前 5 名里竞争不过同词更多的长块，是检索质量问题，不是账本问题。
+  - **K6.3（部署路径验收）**：关键词检索经 HTTP/MCP、OA 审批、回执验签、Parquet 交付与逐行正文摘要核对，在 9 次全新部署上跑通。
+  - **登记与工具**：
+    - 合并报告复制进 evaluation/kb-pilot/keyword-rehearsal，在 kb-pilot registry 登记 5 条，作正式轮的对拍基准。
+    - compare-combined.py 增 --round keyword：比较全部确定性字段，包括 E-KB6 逐条命中列表、E-KB7 逐轨迹计数与计费、E-KB8 逐样本行数与计费，不比时延；用蓄意改坏的副本验证，三处都检出。
+    - generate_kb_evidence.py 新增关键词宏 137 个：在正式登记与作者批准齐备前取彩排数据，并标 \KbKeywordEvidenceClass{kb-pilot}；新增门禁单测，10/10 通过。
+  - **待作者**：(1) 签署数据绑定 v2（~/logs/kb-approvals/approve-keyword-launch.sh）；(2) 同意正式轮发射。

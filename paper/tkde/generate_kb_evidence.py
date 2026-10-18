@@ -28,6 +28,14 @@ EVIDENCE_APPROVAL = ROOT / "evaluation/kb-formal/approvals/evidence-approval-v1.
 RAW_DEPOSIT = ROOT / "evaluation/kb-formal/raw-evidence-deposit.json"
 RAW_MANIFEST = ROOT / "evaluation/kb-formal/raw-evidence-manifest.sha256"
 FORMAL_IDS = ("ekb1", "ekb2a", "ekb2b", "ekb3-48k", "ekb3-96k", "ekb4", "ekb5")
+# The keyword round (E-KB6..E-KB8, docs/kb_experiment_design.md 关键词检索实验)
+# has its own registration and its own author approval; until both exist the
+# keyword macros come from the pilot rehearsal and are labelled kb-pilot.
+KEYWORD_REGISTRATION = ROOT / "evaluation/kb-formal/kb-keyword-evidence-v1.json"
+KEYWORD_APPROVAL = ROOT / "evaluation/kb-formal/approvals/keyword-evidence-approval-v1.json"
+KEYWORD_IDS = ("ekb6", "ekb7", "ekb8-48k", "ekb8-96k")
+KEYWORD_PILOT_IDS = {"ekb6": "ekb6-keyword-rehearsal", "ekb7": "ekb7-keyword-rehearsal",
+                     "ekb8-48k": "ekb8-48k-keyword-rehearsal", "ekb8-96k": "ekb8-96k-keyword-rehearsal"}
 OUT = ROOT / "paper/tkde/generated/kb.tex"
 
 
@@ -64,7 +72,7 @@ def verify_approval(approval: dict, registration_bytes: bytes, registration_path
         raise EvidenceError("the evidence approval names other registration bytes")
 
 
-def formal_paths(registration: dict, base: pathlib.Path) -> dict[str, pathlib.Path]:
+def formal_paths(registration: dict, base: pathlib.Path, ids: tuple = FORMAL_IDS) -> dict[str, pathlib.Path]:
     """Every registered file at its digest, every experiment present, every report formal."""
     if registration.get("campaign_class") != "kb-publication" or registration.get("publication_eligible") is not True:
         raise EvidenceError("the registration is not kb-publication evidence")
@@ -74,10 +82,10 @@ def formal_paths(registration: dict, base: pathlib.Path) -> dict[str, pathlib.Pa
         if sha256(path) != entry["sha256"]:
             raise EvidenceError(f"{entry['id']}: {path} differs from the registration")
         paths[entry["id"]] = path
-    missing = [name for name in FORMAL_IDS if name not in paths]
+    missing = [name for name in ids if name not in paths]
     if missing:
         raise EvidenceError(f"the registration lacks {', '.join(missing)}")
-    for name in FORMAL_IDS:
+    for name in ids:
         report = json.loads(paths[name].read_text(encoding="utf-8"))
         if report.get("campaign_class") != "kb-publication" or report.get("publication_eligible") is not True:
             raise EvidenceError(f"{name} is not a formal report")
@@ -131,6 +139,24 @@ def deposit_macros(deposit_path: pathlib.Path, manifest_path: pathlib.Path, evid
     if deposit["status"] == "published":
         lines.append(rf"\newcommand{{\KbRawEvidenceDOI}}{{{deposit['doi']}}}")
     return lines
+
+
+def load_keyword_formal():
+    """(registration, paths, registration sha256) of the keyword round with the author's approval, else None."""
+    if not KEYWORD_REGISTRATION.exists():
+        return None
+    if not KEYWORD_APPROVAL.exists():
+        print("formal keyword evidence is registered but not approved by the author; the keyword macros stay on the rehearsal",
+              file=sys.stderr)
+        return None
+    registration_bytes = KEYWORD_REGISTRATION.read_bytes()
+    try:
+        verify_approval(json.loads(KEYWORD_APPROVAL.read_text(encoding="utf-8")), registration_bytes,
+                        str(KEYWORD_REGISTRATION.relative_to(ROOT)))
+        registration = json.loads(registration_bytes)
+        return registration, formal_paths(registration, KEYWORD_REGISTRATION.parent, KEYWORD_IDS), hashlib.sha256(registration_bytes).hexdigest()
+    except EvidenceError as err:
+        sys.exit(f"formal keyword evidence: {err}")
 
 
 def pct(value: float) -> str:
@@ -434,6 +460,105 @@ def ekb5_macros(path: pathlib.Path) -> list[str]:
     return lines
 
 
+K_WORDS = {"5": "Five", "10": "Ten", "20": "Twenty"}
+
+
+def ekb6_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    summary = report["summary"]
+    keywords = report["deployments_detail"][0]["keywords"]
+    lines = [
+        rf"\newcommand{{\KbEkbSixKeywords}}{{{keywords}}}",
+        rf"\newcommand{{\KbEkbSixDeployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbSixReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+        rf"\newcommand{{\KbEkbSixKeywordsetDigest}}{{\texttt{{{report['keywordset_manifest']['keywords_sha256'][:12]}}}}}",
+        rf"\newcommand{{\KbEkbSixCrossIdentical}}{{{summary['cross_deployment_identical']}}}",
+        rf"\newcommand{{\KbEkbSixCrossTotal}}{{{summary['cross_deployment_total']}}}",
+    ]
+    for key, cell in summary["by_k"].items():
+        word = K_WORDS[key[1:]]
+        answered = cell["observations"] - cell["errors"]
+        lines += [
+            rf"\newcommand{{\KbEkbSixObservationsK{word}}}{{{cell['observations']}}}",
+            rf"\newcommand{{\KbEkbSixErrorsK{word}}}{{{cell['errors']}}}",
+            rf"\newcommand{{\KbEkbSixIdentityK{word}}}{{{pct(cell['identical'] / answered) if answered else '0.0'}}}",
+            rf"\newcommand{{\KbEkbSixSameOrderK{word}}}{{{pct(cell['same_order'] / answered) if answered else '0.0'}}}",
+        ]
+    for key, cell in summary["by_class"].items():
+        klass, k = key.split("/")
+        word = K_WORDS[k[1:]]
+        tag = klass.capitalize()
+        lines += [
+            rf"\newcommand{{\KbEkbSix{tag}ObservationsK{word}}}{{{cell['observations']}}}",
+            rf"\newcommand{{\KbEkbSix{tag}EmptyK{word}}}{{{cell['empty']}}}",
+        ]
+        if klass == "anchor":
+            lines.append(rf"\newcommand{{\KbEkbSixAnchorTargetHitPctK{word}}}{{{pct(cell['target_hits'] / cell['observations'])}}}")
+    return lines
+
+
+def ekb7_macros(path: pathlib.Path) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    lines = [
+        rf"\newcommand{{\KbEkbSevenDeployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbSevenSeeds}}{{{report['seeds']}}}",
+        rf"\newcommand{{\KbEkbSevenMaxSteps}}{{{report['max_steps']}}}",
+        rf"\newcommand{{\KbEkbSevenReleaseBudget}}{{{report['budget']['release_cells']}}}",
+        rf"\newcommand{{\KbEkbSevenReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    for key, cell in report["summary"].items():
+        arm, strategy = key.split("/")
+        if strategy != "S4":
+            sys.exit(f"{path}: unexpected strategy {strategy}")
+        tag = "Acl" if arm == "acl" else "FactGate"
+        lines += [
+            rf"\newcommand{{\KbEkbSeven{tag}LeakMeanPct}}{{{pct(cell['leak_mean'])}}}",
+            rf"\newcommand{{\KbEkbSeven{tag}LeakMaxPct}}{{{pct(cell['leak_max'])}}}",
+            rf"\newcommand{{\KbEkbSeven{tag}LeakMinPct}}{{{pct(cell['leak_min'])}}}",
+            rf"\newcommand{{\KbEkbSeven{tag}FirstRefusalMax}}{{{cell['first_refusal_max']}}}",
+            rf"\newcommand{{\KbEkbSeven{tag}Runs}}{{{cell['runs']}}}",
+        ]
+    trajectories = [t for d in report["deployments_detail"] for t in d["trajectories"]]
+    factgate = [t for t in trajectories if t["arm"] == "factgate"]
+    budget_stops = sum(1 for t in factgate if t.get("stop_code") == "EXPOSURE_BUDGET_EXHAUSTED")
+    lines += [
+        rf"\newcommand{{\KbEkbSevenFactGateStopBudgetRuns}}{{{budget_stops}}}",
+        rf"\newcommand{{\KbEkbSevenFactGateChunksMax}}{{{max(t['final_distinct'] for t in factgate)}}}",
+        rf"\newcommand{{\KbEkbSevenFactGateStepsMax}}{{{max(t['steps'] for t in factgate)}}}",
+    ]
+    legit = report["legitimate"]
+    lines += [
+        rf"\newcommand{{\KbEkbSevenLegitQuestions}}{{{legit['questions']}}}",
+        rf"\newcommand{{\KbEkbSevenLegitCompleted}}{{{legit['completed']}}}",
+        rf"\newcommand{{\KbEkbSevenLegitCompletionPct}}{{{pct(legit['completed'] / legit['questions'])}}}",
+        rf"\newcommand{{\KbEkbSevenLegitVisible}}{{{legit['visible_targets']}}}",
+        rf"\newcommand{{\KbEkbSevenLegitCompletedVisible}}{{{legit['completed_visible']}}}",
+        rf"\newcommand{{\KbEkbSevenLegitRefusals}}{{{legit['refusals']}}}",
+        rf"\newcommand{{\KbEkbSevenLegitRuns}}{{{legit['runs']}}}",
+    ]
+    return lines
+
+
+def ekb8_macros(path: pathlib.Path, tier: str) -> list[str]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    lines = [
+        rf"\newcommand{{\KbEkbEight{tier}Chunks}}{{{report['chunks']:,}}}",
+        rf"\newcommand{{\KbEkbEight{tier}Rounds}}{{{report['rounds']}}}",
+        rf"\newcommand{{\KbEkbEight{tier}Deployments}}{{{report['deployments']}}}",
+        rf"\newcommand{{\KbEkbEight{tier}ReportDigest}}{{\texttt{{{sha256(path)[:12]}}}}}",
+    ]
+    for key, cell in report["summary"].items():
+        op, arm, k, novelty = key.split("/")
+        tag = ("Direct" if arm == "direct" else "FactGate") + "K" + K_WORDS[k[1:]] + novelty.capitalize()
+        lines += [
+            rf"\newcommand{{\KbEkbEight{tier}{tag}PFifty}}{{{cell['p50_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbEight{tier}{tag}PNinetyFive}}{{{cell['p95_ms']:.1f}}}",
+            rf"\newcommand{{\KbEkbEight{tier}{tag}Count}}{{{cell['n']}}}",
+            rf"\newcommand{{\KbEkbEight{tier}{tag}Errors}}{{{cell['errors']}}}",
+        ]
+    return lines
+
+
 def main() -> None:
     registry, paths = load_registry()
     lines = [
@@ -474,6 +599,19 @@ def main() -> None:
     for entry_id, tier in (("ekb3-48k", "FortyEightK"), ("ekb3-96k", "NinetySixK")):
         lines += ekb3_macros(source[entry_id], tier)
     lines += publish_memory_macros(paths["kb-publish-memory-v2r2"])
+    keyword = load_keyword_formal()
+    if keyword:
+        _, keyword_paths, keyword_sha = keyword
+        lines += [r"\newcommand{\KbKeywordEvidenceClass}{kb-publication}",
+                  rf"\newcommand{{\KbKeywordRegistrationDigest}}{{\texttt{{{keyword_sha[:12]}}}}}"]
+        keyword_source = keyword_paths
+    else:
+        lines.append(r"\newcommand{\KbKeywordEvidenceClass}{kb-pilot}")
+        keyword_source = {name: paths[entry] for name, entry in KEYWORD_PILOT_IDS.items()}
+    lines += ekb6_macros(keyword_source["ekb6"])
+    lines += ekb7_macros(keyword_source["ekb7"])
+    for entry_id, tier in (("ekb8-48k", "FortyEightK"), ("ekb8-96k", "NinetySixK")):
+        lines += ekb8_macros(keyword_source[entry_id], tier)
     import re
     for line in lines:
         match = re.match(r"\\newcommand\{\\([A-Za-z0-9]+)\}", line)

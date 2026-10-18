@@ -176,3 +176,50 @@ class DepositMacrosTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KeywordEvidenceGateTest(unittest.TestCase):
+    """The keyword round's registration promotes only with the author's approval of its exact bytes."""
+
+    def run_load(self, root: Path):
+        stderr = io.StringIO()
+        with mock.patch.object(kb, "ROOT", root), \
+                mock.patch.object(kb, "KEYWORD_REGISTRATION", root / "evaluation/kb-formal/kb-keyword-evidence-v1.json"), \
+                mock.patch.object(kb, "KEYWORD_APPROVAL", root / "evaluation/kb-formal/approvals/keyword-evidence-approval-v1.json"), \
+                contextlib.redirect_stderr(stderr):
+            return kb.load_keyword_formal(), stderr.getvalue()
+
+    def write_keyword_reports(self, kb_formal: Path) -> list[dict]:
+        entries = []
+        for name in kb.KEYWORD_IDS:
+            path = kb_formal / "evidence" / "kw1" / f"{name}.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            data = json.dumps({"campaign_class": "kb-publication", "publication_eligible": True, "report": name}).encode()
+            path.write_bytes(data)
+            entries.append({"id": name, "path": f"evidence/kw1/{name}.json", "sha256": hashlib.sha256(data).hexdigest()})
+        return entries
+
+    def test_rehearsal_stays_in_force_until_the_approval_names_the_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(self.run_load(root), (None, ""))
+            kb_formal = root / "evaluation/kb-formal"
+            registration = {"campaign_class": "kb-publication", "publication_eligible": True, "campaign": "kw1",
+                            "entries": self.write_keyword_reports(kb_formal)}
+            data = json.dumps(registration).encode()
+            (kb_formal / "kb-keyword-evidence-v1.json").write_bytes(data)
+            result, notice = self.run_load(root)
+            self.assertIsNone(result)
+            self.assertIn("not approved by the author", notice)
+            approval_path = kb_formal / "approvals/keyword-evidence-approval-v1.json"
+            approval_path.parent.mkdir(parents=True)
+            approval = fixture_approval(data)
+            approval["approved_registration"]["path"] = "evaluation/kb-formal/kb-keyword-evidence-v1.json"
+            approval_path.write_text(json.dumps(approval))
+            (loaded, paths, digest), _ = self.run_load(root)
+            self.assertEqual((loaded["campaign"], sorted(paths), digest), ("kw1", sorted(kb.KEYWORD_IDS), hashlib.sha256(data).hexdigest()))
+            # The first round's registration does not satisfy the keyword gate.
+            approval["approved_registration"]["path"] = REGISTRATION
+            approval_path.write_text(json.dumps(approval))
+            with self.assertRaises(SystemExit):
+                self.run_load(root)
