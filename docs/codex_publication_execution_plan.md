@@ -1884,3 +1884,18 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **待作者**：(1) 运行 catalog 签署脚本；(2) 审阅主稿改动（含移出的三段）；(3) 对 Zenodo 23444544 明示"发布"。之后：加 DOI 句、刷新 review/、投稿包与投稿信、arXiv v3。
 
 - [2026-10-18 09:42 UTC+8] KB1-LOOP-95 **Zenodo 版本 2 的四个上传文件镜像到 NAS**：`/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/`，在 NAS 上 sha256sum -c 4/4 OK（实跑）。依据：证据不得只留在 WSL 的规矩；草稿文件原在会话临时目录。存证记录加 nas_mirror 字段，生成的 kb.tex 不变。
+
+- [2026-10-18 10:28 UTC+8] KB1-LOOP-96 **Zenodo 记录 23444544 已发布并核实；DOI 进主稿与补充材料**。依据：作者原话"发布 记录 23444544"，明示针对这条记录。
+  - **发布（实跑）**：发布前再核一遍草稿：7 个文件 md5 全对（4 个 KB 新文件，加 3 个版本 1 文件、与版本 1 记录校验和一致）；version 2.0；预留 DOI 一致。随后经 API 发布，返回 state done、submitted true。
+  - **核实（实跑）**：
+    - 公开 API：记录 open，version 2.0，publication_date 2026-10-18，7 个文件校验和与预期一致。
+    - DOI 解析：doi.org 302 到 zenodo.org/doi/…，最终到 zenodo.org/records/23444544，HTTP 200。
+    - 下载核对：从公开记录下载 4 个 KB 文件，sha256 与大小均与存证记录一致；两个归档解到新目录，共 418 个文件，按清单 sha256sum -c 全部通过。
+  - **存证记录与宏**：raw-evidence-deposit.json 改为 status published，写明作者原话与上述核实；重跑生成器，kb.tex 只新增 \KbRawEvidenceDOI{10.5281/zenodo.23444544}。
+  - **论文**：
+    - 主稿"可复现边界"在 V5 DOI 后加知识产品轮与语料的 DOI。
+    - 补充材料知识产品引言加存证一句（文件数、MB、DOI）。
+    - **同类扫描更正（该查没查，K5.1 改主稿时漏扫补充材料）**：补充材料有两处在主稿不含 KB 证据时写下的句子，现已过期，均已改正。一是"不属于主稿数字所来自的发布轮"，改为"与报表路径发布轮分开"；二是治理单元表标题"主稿证据一个也不覆盖"，改为"定义与正式轮覆盖单元 2 与 3"。README 与威胁模型无此类陈述（检索词先用已知命中样本验证过）。
+  - **构建（实跑）**：make paper 退出 0；主稿 12 页，末栏底 y=739/746，已不足一行余量，后续主稿再加字必须同步删减；补充材料 43 页；check-rendered 只剩既有两项 Overfull。
+  - **事故**：会话临时目录在 10:24 被清空，作者运行 catalog 签署脚本时报"文件不存在"。已在 ~/logs/kb-approvals/approve-catalog.sh 重建：摘要重核与现文件一致，加了"暂存区须为空"检查，bash -n 通过。已记入记忆：作者要运行的脚本不放会话临时目录。Zenodo 上传文件因已镜像到 NAS，未受影响。
+  - **待作者**：(1) 运行 `bash /home/wmm/logs/kb-approvals/approve-catalog.sh`；(2) 审阅主稿改动。

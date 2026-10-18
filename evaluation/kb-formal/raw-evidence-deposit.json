@@ -44,9 +44,11 @@
    "factgate-raw-evidence-v1.tar.gz"
   ]
  },
- "status": "draft",
- "status_note": "2026-10-18: version-2 draft created through the API; the four added files read back with the local md5 and size, the three version-1 files are carried with their version-1 checksums, the DOI is reserved and becomes resolvable only on publication; publication is the author's act",
+ "status": "published",
+ "status_note": "published on the author's explicit instruction of 2026-10-18 for record 23444544 (verbatim: \u53d1\u5e03 \u8bb0\u5f55 23444544), through the API after a pre-publish check that the draft held seven files with the expected md5 (the four added here, the three of version 1 with version 1's checksums); verified the same day through the public API (record open, version 2.0, seven files with those checksums), by DOI resolution (doi.org redirects to zenodo.org/records/23444544, HTTP 200), and by downloading the four added files from the public record: their sha256 and sizes equal the values recorded here, and the 418 files extracted from the two downloaded archives all match the manifest",
  "recomputation_check": "2026-10-18 09:08 UTC+8: kb-formal-finalize (class formal) run on deployments/ of the extracted raw-evidence archive with round/approval.json produced seven combined reports equal to the registered ones except generated_at; its campaign-evidence.json differs only in generated_at, the report digests that follow from it, and the deployment locations",
  "license": "CC-BY-4.0",
- "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/ (the four deposited files; sha256 verified there 2026-10-18 09:42 UTC+8)"
+ "nas_mirror": "/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/ (the four deposited files; sha256 verified there 2026-10-18 09:42 UTC+8)",
+ "published": "2026-10-18",
+ "url": "https://doi.org/10.5281/zenodo.23444544"
 }
