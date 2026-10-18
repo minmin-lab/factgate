@@ -2041,3 +2041,11 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **版面**：为守 12 页，把评估一节"服务端阶段"一段（13 行）原样移入补充材料 Passages Moved，主稿留一句指引。已核对该段逐字节移入、主稿已删除。make paper 退出 0；主稿 12 页，末栏底 y=711；补充材料 44 页；check-rendered 补充材料 0 项，主稿只有既有两项。
   - **顺带修复**：补充材料 20 个 \paragraph 标题都以句号结尾，渲染成".:"。已全部去掉句号，渲染核对正确，属既有排版缺陷。
   - **口径**：关键词宏现取彩排（\KbKeywordEvidenceClass 为 kb-pilot）。正式轮与彩排的确定性字段 0 差异，所以作者批准后只有时延数字会变。
+
+- [2026-10-18 17:01 UTC+8] KB1-LOOP-110 **K6.7 完成：作者批准关键词正式证据，论文换用正式证据**。
+  - **批准**：作者本人运行 ~/logs/kb-approvals/approve-keyword-evidence.sh（我起草、未运行），提交 b245d94（16:59:39）只含 evaluation/kb-formal/approvals/keyword-evidence-approval-v1.json（sha256 ae0a1cbe…）。批准登记 71901f5d…（2194 字节）与 campaign evidence 7cef116b…。作者原话"已批准。存到 Zenodo。"
+  - **宏换源（实跑）**：\KbKeywordEvidenceClass 由 kb-pilot 变为 kb-publication，并新增 \KbKeywordRegistrationDigest。
+    - 变化的只有报告摘要宏与 E-KB8 时延宏，例如 k=20 新查询中位数：48k 档 95.1 → 94.7 ms，96k 档 63.9 → 64.3 ms。
+    - E-KB6、E-KB7 的计数宏与 E-KB8 的计数宏 0 个变化，与正式对彩排的确定性字段 0 差异一致；过滤条件先用已知应命中的摘要宏验证过。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。
+  - **下一步**：按作者指示做 Zenodo 第 3 版存证（关键词轮原始证据），草稿上传核对后由作者发布。
