@@ -168,9 +168,14 @@ func run() error {
 	class := flag.String("class", "", "formal | pilot")
 	nasRoot := flag.String("nas-root", "/mnt/ctg-pto-dev/factgate-evidence", "NAS evidence root")
 	repo := flag.String("repo", ".", "repository root (profiles, publications, query set)")
+	roundName := flag.String("round", "kb", "round: kb | keyword (kbformal.Rounds)")
 	flag.Parse()
 	if *rootFlag == "" || (*class != "formal" && *class != "pilot") {
 		return errors.New("-root and -class formal|pilot are required")
+	}
+	round, err := kbformal.LookupRound(*roundName)
+	if err != nil {
+		return err
 	}
 	root, err := filepath.Abs(*rootFlag)
 	if err != nil {
@@ -192,6 +197,9 @@ func run() error {
 	var deployments []deployment
 	commit := ""
 	for _, entry := range registry.Profiles {
+		if !round.Includes(entry.Name) {
+			continue
+		}
 		entries[entry.Name] = entry
 		for rep := 1; rep <= repetitions; rep++ {
 			slot := filepath.Join(root, "deployments", entry.Name, fmt.Sprintf("%03d", rep))
@@ -246,7 +254,7 @@ func run() error {
 				switch {
 				case rp.Version != "taskgate-kb-formal-deployment-report-v1" || rp.Experiment != name || rp.Deployment != rep:
 					return fmt.Errorf("%s/%s: report is %s deployment %d", dir, experiment, rp.Experiment, rp.Deployment)
-				case name == "ekb5" && rp.Label != qualifier, name == "ekb3" && rp.Tier != qualifier:
+				case name == "ekb5" && rp.Label != qualifier, (name == "ekb3" || name == "ekb8") && rp.Tier != qualifier:
 					return fmt.Errorf("%s/%s: report label %q tier %q", dir, experiment, rp.Label, rp.Tier)
 				case rp.CatalogSHA256 != entry.CatalogSHA256 || rp.Epoch != entry.Epoch:
 					return fmt.Errorf("%s/%s: report names Catalog %s epoch %s", dir, experiment, rp.CatalogSHA256, rp.Epoch)
@@ -287,99 +295,111 @@ func run() error {
 		return err
 	}
 	combined := map[string]any{}
-
-	var ekb1 []kbformal.EKB1Deployment
-	if err := decode("ekb1", func(raw json.RawMessage) error {
-		var detail kbformal.EKB1Deployment
-		if err := json.Unmarshal(raw, &detail); err != nil {
+	if len(entries) != len(round.Profiles) {
+		return fmt.Errorf("the registry holds %d of the %d profiles of round %s", len(entries), len(round.Profiles), round.Name)
+	}
+	if round.Name == "keyword" {
+		if err := combineKeyword(combined, *repo, decode, reports, meta, entries); err != nil {
 			return err
 		}
-		seeds := map[int]bool{}
-		for _, trajectory := range detail.Trajectories {
-			seeds[trajectory.Seed] = true
-			if trajectory.Steps > ekb1Steps {
-				return fmt.Errorf("a trajectory ran %d steps, more than %d", trajectory.Steps, ekb1Steps)
-			}
-		}
-		if len(seeds) != ekb1Seeds {
-			return fmt.Errorf("%d seeds, want %d", len(seeds), ekb1Seeds)
-		}
-		ekb1 = append(ekb1, detail)
-		return nil
-	}); err != nil {
-		return err
-	}
-	combined["ekb1"] = kbformal.CombineEKB1(meta("kb-v2-pilot"), ekb1, querysetManifest, kbformal.PilotBudget, ekb1Seeds, ekb1Steps, seconds("ekb1"))
+	} else if err := func() error {
 
-	var ekb2a []kbformal.EKB2Deployment
-	if err := decode("ekb2a", func(raw json.RawMessage) error {
-		var detail kbformal.EKB2Deployment
-		ekb2a = append(ekb2a, detail)
-		return json.Unmarshal(raw, &ekb2a[len(ekb2a)-1])
-	}); err != nil {
-		return err
-	}
-	catalogText, err := os.ReadFile(filepath.Join(kbformal.ProfilesDir(*repo), entries["kb-v2-pilot"].Catalog))
-	if err != nil {
-		return err
-	}
-	combined["ekb2a"] = kbformal.CombineEKB2a(meta("kb-v2-pilot"), ekb2a, entries["kb-v2-pilot"].AttributesSHA256, kbformal.EligibilityBlock(string(catalogText)), seconds("ekb2a"))
-
-	var arms []kbformal.EKB2bArm
-	if err := decode("ekb2b", func(raw json.RawMessage) error {
-		var arm kbformal.EKB2bArm
-		arms = append(arms, arm)
-		return json.Unmarshal(raw, &arms[len(arms)-1])
-	}); err != nil {
-		return err
-	}
-	combined["ekb2b"] = kbformal.CombineEKB2b(meta("kb-v2-pilot"), arms, kbformal.PilotBudget, ekb2bTTL)
-
-	for _, tier := range []struct{ experiment, profile string }{{"ekb3-48k", "kb-v2-large"}, {"ekb3-96k", "kb-20k-large"}} {
-		var details []kbformal.EKB3Deployment
-		if err := decode(tier.experiment, func(raw json.RawMessage) error {
-			var detail kbformal.EKB3Deployment
+		var ekb1 []kbformal.EKB1Deployment
+		if err := decode("ekb1", func(raw json.RawMessage) error {
+			var detail kbformal.EKB1Deployment
 			if err := json.Unmarshal(raw, &detail); err != nil {
 				return err
 			}
-			if detail.Rounds != ekb3Rounds {
-				return fmt.Errorf("%d rounds, want %d", detail.Rounds, ekb3Rounds)
+			seeds := map[int]bool{}
+			for _, trajectory := range detail.Trajectories {
+				seeds[trajectory.Seed] = true
+				if trajectory.Steps > ekb1Steps {
+					return fmt.Errorf("a trajectory ran %d steps, more than %d", trajectory.Steps, ekb1Steps)
+				}
 			}
-			details = append(details, detail)
+			if len(seeds) != ekb1Seeds {
+				return fmt.Errorf("%d seeds, want %d", len(seeds), ekb1Seeds)
+			}
+			ekb1 = append(ekb1, detail)
 			return nil
 		}); err != nil {
 			return err
 		}
-		report, err := kbformal.CombineEKB3(meta(tier.profile), details, reports[tier.experiment][0].StartedAt)
-		if err != nil {
-			return err
-		}
-		combined[tier.experiment] = report
-	}
+		combined["ekb1"] = kbformal.CombineEKB1(meta("kb-v2-pilot"), ekb1, querysetManifest, kbformal.PilotBudget, ekb1Seeds, ekb1Steps, seconds("ekb1"))
 
-	var ekb4 []kbformal.EKB4Deployment
-	if err := decode("ekb4", func(raw json.RawMessage) error {
-		var detail kbformal.EKB4Deployment
-		ekb4 = append(ekb4, detail)
-		return json.Unmarshal(raw, &ekb4[len(ekb4)-1])
-	}); err != nil {
-		return err
-	}
-	combined["ekb4"] = kbformal.CombineEKB4(meta("kb-v2-large"), ekb4, querysetManifest, len(queries), entries["kb-v2-large"].CatalogSHA256)
-
-	var observations []kbformal.EKB5Observation
-	for _, experiment := range []string{"ekb5-document", "ekb5-collection"} {
-		if err := decode(experiment, func(raw json.RawMessage) error {
-			var observation kbformal.EKB5Observation
-			observations = append(observations, observation)
-			return json.Unmarshal(raw, &observations[len(observations)-1])
+		var ekb2a []kbformal.EKB2Deployment
+		if err := decode("ekb2a", func(raw json.RawMessage) error {
+			var detail kbformal.EKB2Deployment
+			ekb2a = append(ekb2a, detail)
+			return json.Unmarshal(raw, &ekb2a[len(ekb2a)-1])
 		}); err != nil {
 			return err
 		}
-	}
-	combined["ekb5"] = kbformal.CombineEKB5(meta("kb-v2-pilot"), observations, entries["kb-v2-pilot"].Epoch, entries["kb-v2c-pilot"].Epoch, repetitions)
+		catalogText, err := os.ReadFile(filepath.Join(kbformal.ProfilesDir(*repo), entries["kb-v2-pilot"].Catalog))
+		if err != nil {
+			return err
+		}
+		combined["ekb2a"] = kbformal.CombineEKB2a(meta("kb-v2-pilot"), ekb2a, entries["kb-v2-pilot"].AttributesSHA256, kbformal.EligibilityBlock(string(catalogText)), seconds("ekb2a"))
 
-	binding, err := exec.Command("git", "-C", *repo, "show", commit+":"+kbformal.BindingPath).Output()
+		var arms []kbformal.EKB2bArm
+		if err := decode("ekb2b", func(raw json.RawMessage) error {
+			var arm kbformal.EKB2bArm
+			arms = append(arms, arm)
+			return json.Unmarshal(raw, &arms[len(arms)-1])
+		}); err != nil {
+			return err
+		}
+		combined["ekb2b"] = kbformal.CombineEKB2b(meta("kb-v2-pilot"), arms, kbformal.PilotBudget, ekb2bTTL)
+
+		for _, tier := range []struct{ experiment, profile string }{{"ekb3-48k", "kb-v2-large"}, {"ekb3-96k", "kb-20k-large"}} {
+			var details []kbformal.EKB3Deployment
+			if err := decode(tier.experiment, func(raw json.RawMessage) error {
+				var detail kbformal.EKB3Deployment
+				if err := json.Unmarshal(raw, &detail); err != nil {
+					return err
+				}
+				if detail.Rounds != ekb3Rounds {
+					return fmt.Errorf("%d rounds, want %d", detail.Rounds, ekb3Rounds)
+				}
+				details = append(details, detail)
+				return nil
+			}); err != nil {
+				return err
+			}
+			report, err := kbformal.CombineEKB3(meta(tier.profile), details, reports[tier.experiment][0].StartedAt)
+			if err != nil {
+				return err
+			}
+			combined[tier.experiment] = report
+		}
+
+		var ekb4 []kbformal.EKB4Deployment
+		if err := decode("ekb4", func(raw json.RawMessage) error {
+			var detail kbformal.EKB4Deployment
+			ekb4 = append(ekb4, detail)
+			return json.Unmarshal(raw, &ekb4[len(ekb4)-1])
+		}); err != nil {
+			return err
+		}
+		combined["ekb4"] = kbformal.CombineEKB4(meta("kb-v2-large"), ekb4, querysetManifest, len(queries), entries["kb-v2-large"].CatalogSHA256)
+
+		var observations []kbformal.EKB5Observation
+		for _, experiment := range []string{"ekb5-document", "ekb5-collection"} {
+			if err := decode(experiment, func(raw json.RawMessage) error {
+				var observation kbformal.EKB5Observation
+				observations = append(observations, observation)
+				return json.Unmarshal(raw, &observations[len(observations)-1])
+			}); err != nil {
+				return err
+			}
+		}
+		combined["ekb5"] = kbformal.CombineEKB5(meta("kb-v2-pilot"), observations, entries["kb-v2-pilot"].Epoch, entries["kb-v2c-pilot"].Epoch, repetitions)
+		return nil
+	}(); err != nil {
+		return err
+	}
+
+	binding, err := exec.Command("git", "-C", *repo, "show", commit+":"+round.BindingPath).Output()
 	if err != nil {
 		return fmt.Errorf("binding at %s: %w", commit, err)
 	}
@@ -402,7 +422,7 @@ func run() error {
 		if err := json.Unmarshal(approvalBytes, &approval); err != nil {
 			return fmt.Errorf("approval record: %w", err)
 		}
-		if approval.Status != "AUTHOR_APPROVED" || approval.Binding.Path != kbformal.BindingPath || approval.Binding.SHA256 != hex.EncodeToString(bindingSum[:]) {
+		if approval.Status != "AUTHOR_APPROVED" || approval.Binding.Path != round.BindingPath || approval.Binding.SHA256 != hex.EncodeToString(bindingSum[:]) {
 			return errors.New("the approval record does not approve the dataset binding of the round's commit")
 		}
 		approvalSum := sha256.Sum256(approvalBytes)
@@ -460,5 +480,76 @@ func run() error {
 	}
 	fmt.Printf("campaign %s (%s): %d deployments verified locally and on the NAS; evidence %s sha256=%s mirrored to %s\n",
 		campaign, *class, len(deployments), filepath.Join(evidence, "campaign-evidence.json"), summary.SHA256, target)
+	return nil
+}
+
+// combineKeyword builds the combined reports of the keyword round
+// (docs/kb_experiment_design.md, 关键词检索实验): E-KB6 from kb-v2kw-large,
+// E-KB7 from kb-v2kw-pilot, E-KB8 from kb-v2kw-large (48k) and kb-20kkw-large (96k).
+func combineKeyword(combined map[string]any, repo string, decode func(string, func(json.RawMessage) error) error,
+	reports map[string][]report, meta func(string) kbformal.CombineMeta, entries map[string]kbformal.RegistryEntry) error {
+	var keywordsetManifest map[string]any
+	if data, err := os.ReadFile(filepath.Join(repo, kbformal.KeywordsetDir, "manifest.json")); err != nil {
+		return err
+	} else if err := json.Unmarshal(data, &keywordsetManifest); err != nil {
+		return err
+	}
+	var ekb6 []kbformal.EKB6Deployment
+	if err := decode("ekb6", func(raw json.RawMessage) error {
+		var detail kbformal.EKB6Deployment
+		if err := json.Unmarshal(raw, &detail); err != nil {
+			return err
+		}
+		ekb6 = append(ekb6, detail)
+		return nil
+	}); err != nil {
+		return err
+	}
+	combined["ekb6"] = kbformal.CombineEKB6(meta("kb-v2kw-large"), ekb6, keywordsetManifest, entries["kb-v2kw-large"].CatalogSHA256)
+
+	var ekb7 []kbformal.EKB7Deployment
+	if err := decode("ekb7", func(raw json.RawMessage) error {
+		var detail kbformal.EKB7Deployment
+		if err := json.Unmarshal(raw, &detail); err != nil {
+			return err
+		}
+		seeds := map[int]bool{}
+		for _, trajectory := range detail.Trajectories {
+			seeds[trajectory.Seed] = true
+			if trajectory.Steps > ekb1Steps {
+				return fmt.Errorf("a trajectory ran %d steps, more than %d", trajectory.Steps, ekb1Steps)
+			}
+		}
+		if len(seeds) != ekb1Seeds {
+			return fmt.Errorf("%d seeds, want %d", len(seeds), ekb1Seeds)
+		}
+		ekb7 = append(ekb7, detail)
+		return nil
+	}); err != nil {
+		return err
+	}
+	combined["ekb7"] = kbformal.CombineEKB7(meta("kb-v2kw-pilot"), ekb7, keywordsetManifest, kbformal.PilotBudget, ekb1Seeds, ekb1Steps)
+
+	for _, tier := range []struct{ experiment, profile string }{{"ekb8-48k", "kb-v2kw-large"}, {"ekb8-96k", "kb-20kkw-large"}} {
+		var details []kbformal.EKB3Deployment
+		if err := decode(tier.experiment, func(raw json.RawMessage) error {
+			var detail kbformal.EKB3Deployment
+			if err := json.Unmarshal(raw, &detail); err != nil {
+				return err
+			}
+			if detail.Rounds != ekb3Rounds {
+				return fmt.Errorf("%d rounds, want %d", detail.Rounds, ekb3Rounds)
+			}
+			details = append(details, detail)
+			return nil
+		}); err != nil {
+			return err
+		}
+		report, err := kbformal.CombineEKB8(meta(tier.profile), details, reports[tier.experiment][0].StartedAt)
+		if err != nil {
+			return err
+		}
+		combined[tier.experiment] = report
+	}
 	return nil
 }

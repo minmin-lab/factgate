@@ -1,0 +1,81 @@
+approval_routes:
+  - approver: bob
+    budget_profile: kb-large-v1
+    mode: manual
+    sensitivity: high
+budget_profiles:
+  - exposure_profile_version: taskgate-exposure-v5
+    max_db_time: 24h
+    max_influence_facts: 1000000000
+    max_outcome_facts: 10000000
+    max_queries: 100000
+    max_release_facts: 100000000
+    max_rows: 10000000
+    name: kb-large-v1
+    predicate_footprint:
+      max_atom_payload_bytes: 4096
+      max_raw_literals_per_query: 1000
+      max_total_atom_payload_bytes: 36864
+      max_unique_atoms_per_query: 9
+      version: taskgate-predicate-footprint-v1
+    query_timeout: 60s
+    task_ttl: 12h
+catalog_version: kb-formal-kb-20kkw-large-v1
+products: [{name: policy_kb_chunks, source: travel_demo, reporting_view: reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_chunks, description: knowledge product policy_kb chunks, sensitivity: high, snapshot: policy-kb-2026-10-bge-20kkw, snapshot_publication: policy-kb-2026-10-bge-20kkw-chunks, entity_key: [doc_id, version, chunk_index], fact_namespace: kb.policy.chunks, stable_relation_role: policy_kb_chunks, scopes: [kb_department, classification], fields: [{name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}, {name: version, type: integer, description: version}, {name: chunk_index, type: integer, description: chunk_index}, {name: text_sha256, type: text, collation: en_US.utf8, collation_version: "2.36", description: text_sha256}, {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}, {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}, {name: job_role, type: text, collation: en_US.utf8, collation_version: "2.36", description: job_role}, {name: labels, type: text, collation: en_US.utf8, collation_version: "2.36", description: labels}, {name: valid_until, type: date, description: valid_until}]}, {name: policy_kb_documents, source: travel_demo, reporting_view: reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_documents, description: knowledge product policy_kb documents, sensitivity: high, snapshot: policy-kb-2026-10-bge-20kkw, snapshot_publication: policy-kb-2026-10-bge-20kkw-documents, entity_key: [doc_id, version], fact_namespace: kb.policy.documents, stable_relation_role: policy_kb_documents, scopes: [kb_department, classification], fields: [{name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}, {name: version, type: integer, description: version}, {name: title, type: text, collation: en_US.utf8, collation_version: "2.36", description: title}, {name: document_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: document_type}, {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}, {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}, {name: job_role, type: text, collation: en_US.utf8, collation_version: "2.36", description: job_role}, {name: labels, type: text, collation: en_US.utf8, collation_version: "2.36", description: labels}, {name: valid_from, type: date, description: valid_from}, {name: valid_until, type: date, description: valid_until}, {name: content_sha256, type: text, collation: en_US.utf8, collation_version: "2.36", description: content_sha256}, {name: chunk_count, type: integer, description: chunk_count}]}, {name: policy_kb_values, source: travel_demo, reporting_view: reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_values, description: knowledge product policy_kb values, sensitivity: high, snapshot: policy-kb-2026-10-bge-20kkw, snapshot_publication: policy-kb-2026-10-bge-20kkw-values, entity_key: [doc_id, version, field], fact_namespace: kb.policy.values, stable_relation_role: policy_kb_values, scopes: [kb_department, classification], allowed_aggregates: [count, sum, min, max], fields: [{name: doc_id, type: text, collation: en_US.utf8, collation_version: "2.36", description: doc_id}, {name: version, type: integer, description: version}, {name: document_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: document_type}, {name: field, type: text, collation: en_US.utf8, collation_version: "2.36", description: field}, {name: value_type, type: text, collation: en_US.utf8, collation_version: "2.36", description: value_type}, {name: canonical_value, type: text, collation: en_US.utf8, collation_version: "2.36", description: canonical_value}, {name: value_text, type: text, collation: en_US.utf8, collation_version: "2.36", description: value_text}, {name: value_numeric, type: numeric, description: value_numeric}, {name: value_date, type: date, description: value_date}, {name: kb_department, type: text, collation: en_US.utf8, collation_version: "2.36", description: kb_department}, {name: classification, type: text, collation: en_US.utf8, collation_version: "2.36", description: classification}]}]
+scopes: [{name: kb_department, type: enum, description: knowledge product department scope, allowed_values: ["engineering", "finance", "hr", "it", "legal", "marketing", "operations", "procurement", "product", "research", "sales", "support"]}, {name: classification, type: enum, description: knowledge product classification scope, allowed_values: ["confidential", "internal", "leadership", "public"]}]
+snapshot_publications: [{name: policy-kb-2026-10-bge-20kkw-chunks, source: travel_demo, source_namespace: kb.policy.chunks, snapshot: policy-kb-2026-10-bge-20kkw, ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_chunks, sidecar_digest: 8f803f4ca848a1008f20b735c702aacae009da79aacd223645c4f6af691c011b, dictionary_digest: ed65a6e555b95b2c5184ad2a5ccbd08c197e7906a6316102bc3dbedbbe2431a0, manifest_digest: 5eb6bb856d8e7939b3ea8ec35ca8438adad3261a90325971a00b88490ffeeedb}, {name: policy-kb-2026-10-bge-20kkw-documents, source: travel_demo, source_namespace: kb.policy.documents, snapshot: policy-kb-2026-10-bge-20kkw, ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_documents, sidecar_digest: 5985ba0fd38bdcd264a534595fd06ac228601880beac150a1ad880ae56cf3ad9, dictionary_digest: 54dcafb262a2ae709c13f3ab933b46377bce9304d58cec374e3a2366eff466e5, manifest_digest: cb1471356223ecbf19d22262c1000e3c4e5e02eea6f058f2e33224e04c203cf1}, {name: policy-kb-2026-10-bge-20kkw-values, source: travel_demo, source_namespace: kb.policy.values, snapshot: policy-kb-2026-10-bge-20kkw, ordinal_sidecar: taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_values, sidecar_digest: 2f6b61668befa12c911b4d53e4f50ec479af14368214880c5e15f5b65aa49021, dictionary_digest: c728f04737eb28dcf661375f55661e5437925495c5ba408c829f4312688d9f9f, manifest_digest: b4cbcfbfad6535620a9f1ec96d6ade84d55380a888f6b627d6bf6139d9db63e1}]
+sources:
+  - address: business-postgres
+    database: travel_demo
+    datasource_id: taskgate-demo-travel
+    name: travel_demo
+    port: 5432
+    postgres_major_version: 16
+    schema_digest: f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48
+    secretRef: GATEWAY_DB_PASSWORD
+    type: postgres
+    user: gateway_reader
+knowledge_products:
+  - name: policy_kb
+    description: departmental policies, contracts, approvals and reports
+    sensitivity: high
+    collection: policy_v1_20k
+    source_namespace: kb.policy
+    products:
+      chunks: policy_kb_chunks
+      documents: policy_kb_documents
+      values: policy_kb_values
+    index_publication: policy-kb-2026-10-bge-20kkw
+    document_types: ["contract", "approval", "policy", "report"]
+    attributes:
+      - {name: kb_department, type: enum, scope: kb_department}
+      - {name: classification, type: enum, scope: classification}
+      - {name: job_role, type: enum, allowed_values: ["director", "executive", "hr", "manager", "staff"]}
+      - {name: labels, type: text_set}
+      - {name: valid_until, type: date}
+    segmentation: {function: section-window-v1, window_chars: 800}
+    embedding: {model: bge-m3, dimension: 1024, weights_sha256: b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38}
+    extraction_rules:
+      - {document_type: contract, field: amount, type: numeric, source: frontmatter, scope: document}
+      - {document_type: contract, field: counterparty, type: text, source: frontmatter, scope: document}
+      - {document_type: contract, field: signed_on, type: date, source: frontmatter, scope: document}
+      - {document_type: approval, field: approved_amount, type: numeric, source: frontmatter, scope: document}
+      - {document_type: policy, field: effective_on, type: date, source: frontmatter, scope: document}
+      - {document_type: report, field: headline_metric, type: numeric, source: frontmatter, scope: document}
+    retrieval: {k_max: 20, exact: true, aggregates: [count, sum, min, max], generation_admitted: false, keyword: true}
+    scopes: [kb_department, classification]
+    eligibility:
+      scope_envelope:
+        kb_department:
+          from_attribute: department
+          widen_if:
+            - {attribute: job_family, any_of: [finance_controller]}
+        classification:
+          from_attribute: clearance
+kb_publications:
+  - epoch: policy-kb-2026-10-bge-20kkw
+    knowledge_product: policy_kb
+    manifest_digest: 1430b553c677ee3cbd1d299868598d9876c6bd5bf5d256edd03ab0a12268c850
+    segmentation_digest: 5ad3e43e0c87be1604d55c31773ba545b87fc7d9f4edacf01f9418df60fa5e7c
+    embedding_digest: c6272f675e59dd4b2c6d4fd5fbcda22057e928a07ab29a503214e6b446b68d4b
+    extraction_rules_digest: 793ca8f82fa97fb38a546408db9710935402f1f786e6405a6832a22392713c3b

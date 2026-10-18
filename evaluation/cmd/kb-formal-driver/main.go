@@ -57,10 +57,10 @@ func readEnvFile(path string) (map[string]string, error) {
 }
 
 func run() (err error) {
-	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb3 | ekb4 | ekb5")
+	experiment := flag.String("experiment", "", "ekb1 | ekb2a | ekb2b | ekb3 | ekb4 | ekb5 | ekb6 | ekb7 | ekb8")
 	label := flag.String("label", "", "ekb5: document | collection")
-	tier := flag.String("tier", "", "ekb3: 48k | 96k")
-	rounds := flag.Int("rounds", 200, "ekb3: rounds per deployment (pre-registered: 200)")
+	tier := flag.String("tier", "", "ekb3, ekb8: 48k | 96k")
+	rounds := flag.Int("rounds", 200, "ekb3, ekb8: rounds per deployment (pre-registered: 200)")
 	requestLogPath := flag.String("request-log", "", "create the per-request JSONL record here")
 	deployment := flag.Int("deployment", 0, "deployment index (1..3)")
 	reportPath := flag.String("report", "", "create the per-deployment report here")
@@ -72,8 +72,9 @@ func run() (err error) {
 	businessEnv := flag.String("business-dsn-env", "KB_FORMAL_READER_DSN", "environment variable holding the business database's read-only DSN")
 	embedding := flag.String("embedding", "http://127.0.0.1:28090", "the deployment's embedding service (direct-arm query vectors)")
 	queryset := flag.String("queryset", "evaluation/kb-pilot/queryset-v2", "frozen query set directory")
-	seeds := flag.Int("seeds", 3, "ekb1: seeds per deployment")
-	steps := flag.Int("steps", 400, "ekb1: maximum steps per trajectory")
+	keywords := flag.String("keywords", "evaluation/kb-formal/keywordset-v1", "frozen keyword set directory (ekb6, ekb7, ekb8)")
+	seeds := flag.Int("seeds", 3, "ekb1, ekb7: seeds per deployment")
+	steps := flag.Int("steps", 400, "ekb1, ekb7: maximum steps per trajectory")
 	flag.Parse()
 	if *experiment == "" || *deployment < 1 || *reportPath == "" || *catalogPath == "" || *envFile == "" {
 		return errors.New("-experiment, -deployment, -report, -catalog and -env-file are required")
@@ -172,6 +173,15 @@ func run() (err error) {
 			return embedErr
 		}
 		result, err = kbformal.RunEKB4(ctx, d, embedder, *queryset)
+	case "ekb6":
+		result, err = kbformal.RunEKB6(ctx, d, *keywords)
+	case "ekb7":
+		result, err = kbformal.RunEKB7(ctx, d, *keywords, *seeds, *steps)
+	case "ekb8":
+		if *tier != "48k" && *tier != "96k" {
+			return errors.New("ekb8 needs -tier 48k or 96k")
+		}
+		result, err = kbformal.RunEKB8(ctx, d, *keywords, *tier, *rounds)
 	default:
 		return fmt.Errorf("unknown experiment %q", *experiment)
 	}

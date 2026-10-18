@@ -10,6 +10,9 @@
 #   KB_FORMAL_ROOT      the round root to create (its basename is the campaign ID)
 #   KB_FORMAL_CLASS     pilot | formal
 #   KB_FORMAL_APPROVAL  formal only: the author's approval record of the binding
+# Optional:
+#   KB_FORMAL_ROUND     kb (default, the first round) | keyword (kbformal.Rounds):
+#                       selects the round's profiles and its dataset binding
 # Gates (both classes): a clean working tree whose HEAD equals origin/kb-dev, the
 # profile files and the dataset binding regenerating byte for byte from the
 # current inputs, the NAS evidence root mounted, and no knowledge-product
@@ -24,7 +27,9 @@ note() { printf '%s %s\n' "$(date -Is)" "$*"; }
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 cd "$repo"
 campaign=$(basename "$KB_FORMAL_ROOT")
-binding=evaluation/kb-formal/kb-dataset-binding-v1.json
+round=${KB_FORMAL_ROUND:-kb}
+binding=$(go run ./evaluation/cmd/kb-formal-binding -round "$round" -path) || die "unknown round $round"
+round_profiles=$(go run ./evaluation/cmd/kb-formal-binding -round "$round" -profiles) || die "unknown round $round"
 registry=evaluation/kb-formal/profiles/registry.json
 
 # ---- gates ----
@@ -33,7 +38,7 @@ commit=$(git rev-parse HEAD)
 [[ "$commit" == "$(git rev-parse origin/kb-dev)" ]] || die "HEAD $commit is not origin/kb-dev"
 [[ ! -e "$KB_FORMAL_ROOT" ]] || die "$KB_FORMAL_ROOT already exists"
 go run ./evaluation/cmd/kb-formal-profile -verify > /dev/null || die "the profile files do not regenerate"
-go run ./evaluation/cmd/kb-formal-binding -verify > /dev/null || die "the dataset binding does not match the current inputs"
+go run ./evaluation/cmd/kb-formal-binding -round "$round" -verify > /dev/null || die "the dataset binding of round $round does not match the current inputs"
 binding_sha=$(sha256sum "$binding" | cut -d' ' -f1)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   : "${KB_FORMAL_APPROVAL:?a formal round needs the approval record of the author}"
@@ -44,7 +49,7 @@ fi
 timeout 5 ls /mnt/ctg-pto-dev/factgate-evidence > /dev/null || die "the NAS evidence root is not mounted"
 running=$(ps -eo args= | awk '$1 == "bash" && ($2 ~ /run-deployment\.sh$/ || $2 ~ /run-round\.sh$/)' | wc -l)
 [[ "$running" == 0 ]] || die "a knowledge-product deployment or round is running"
-note "GATES pass: commit $commit, binding $binding_sha, class $KB_FORMAL_CLASS"
+note "GATES pass: commit $commit, round $round [$round_profiles], binding $binding_sha, class $KB_FORMAL_CLASS"
 
 # ---- formal image builds from the frozen commit ----
 staging=$(dirname "$KB_FORMAL_ROOT")/.$campaign.images
@@ -102,7 +107,7 @@ root=$(cd "$KB_FORMAL_ROOT" && pwd)
 if [[ "$KB_FORMAL_CLASS" == formal ]]; then
   install -m 644 "$KB_FORMAL_APPROVAL" "$root/approval.json"
 fi
-(cd "$root/source" && KB_FORMAL_ROOT=$root KB_FORMAL_CLASS=$KB_FORMAL_CLASS setsid nohup bash evaluation/kb-formal/scripts/run-round.sh > "$root/round.out" 2>&1 < /dev/null &)
+(cd "$root/source" && KB_FORMAL_ROOT=$root KB_FORMAL_CLASS=$KB_FORMAL_CLASS KB_FORMAL_PROFILES=$round_profiles setsid nohup bash evaluation/kb-formal/scripts/run-round.sh > "$root/round.out" 2>&1 < /dev/null &)
 sleep 3
 round_pid=""
 for pid in $(ps -eo pid=,args= | awk '$2 == "bash" && $3 ~ /run-round\.sh$/ {print $1}'); do
@@ -110,4 +115,4 @@ for pid in $(ps -eo pid=,args= | awk '$2 == "bash" && $3 ~ /run-round\.sh$/ {pri
 done
 [[ -n "$round_pid" ]] || die "the round did not start (see $root/round.out)"
 echo "$round_pid" > "$root/round.pid"
-note "STARTED round $campaign as pid $round_pid from $root/source at $commit; finalize afterwards with $root/bin/kb-formal-finalize -root $root -class $KB_FORMAL_CLASS -repo $root/source"
+note "STARTED round $campaign ($round) as pid $round_pid from $root/source at $commit; finalize afterwards with $root/bin/kb-formal-finalize -round $round -root $root -class $KB_FORMAL_CLASS -repo $root/source"

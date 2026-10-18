@@ -1969,3 +1969,16 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **E-KB8**：开销，两档各 200 轮/格。
   - **规模**：3 个 profile × 3 次 = 9 次部署；需新数据绑定 v2，由作者签署。
   - **阈值依据**：小预算阈值沿用 E-KB1 的单位换算（B_R 800 单元格 ≈ 200 块），ACL 下限取保守值，均不拟合。
+
+- [2026-10-18 12:25 UTC+8] KB1-LOOP-104 **K6.4 实验基础设施完成（驱动、关键词集、两份冻结发布物、三个 profile、轮次化的绑定与收尾）**。
+  - **关键词集**（实跑）：evaluation/kb-formal/keywordset-v1，450 条，含 300 锚点、100 高频（首位"部门"，19,256 块包含）、50 缺席，sha256 90eed4d5…。重跑逐字节相同。规则写进清单，与登记一致：高频与锚点取自 v2 语料，缺席在 v2 与 v1-20k 两份语料中都检查过。
+  - **冻结发布物**（实跑，scripts/freeze-publication.sh）：
+    - 在钉住的 pgvector 镜像与冻结嵌入服务上各发布一次 v2kw（b95be2e5…）与 20kkw（6067be59…）。
+    - 嵌入缓存 5980758d… 前后不变；kb-publish -verify 通过，含 KB1-LOOP-102 新加的正文核对。
+    - 片段与原 v2 的差异只有发布期派生名、摘要与 keyword: true。
+    - 容器跑在默认网桥上，NAS 路由始终走 eth0。
+  - **驱动**：kbformal/ekbkw.go 实现 E-KB6/7/8。直连臂与网关准备的语句同过滤、同 LIKE（默认转义符）、同命中字符数排序、同全序；转义语义在 PostgreSQL 上实测，% 与 _ 只按字面匹配。kb-formal-driver 新增 ekb6、ekb7、ekb8 与 -keywords 参数。
+  - **轮次**：kbformal.Rounds 定义 kb（已封存首轮四个 profile，绑定 v1）与 keyword（三个新 profile 加关键词集，绑定 v2）。kb-formal-binding、kb-formal-finalize 增 -round；launch-round.sh 增 KB_FORMAL_ROUND，并把该轮 profile 列表传给 run-round；run-deployment.sh 映射 ekb8-48k/96k。
+  - **彩排校验**：crosscheck.py 对关键词实验改为检查正确性不变量，因为没有进程内试点可对拍。E-KB6 要求命中集一致且缺席为空；E-KB7 要求计费不超预算；E-KB8 要求无错误且重放零计费。预登记的期望值只在合并报告中报告，不作闸门。
+  - **profile**：kb-v2kw-pilot（ekb7）、kb-v2kw-large（ekb6、ekb8-48k）、kb-20kkw-large（ekb8-96k）已生成，尚未证明，需参考部署记录 schema 摘要。原四个 profile 的文件逐字节不变。
+  - **K6.3 验收方式（决定）**：改用新 profile 的 pilot 部署跑关键词实验，作为部署路径验收。理由：它经 HTTP/MCP、OA 审批、回执验签与 Parquet 交付全路径，强于手动冒烟；原手动冒烟没有脚本化入口。

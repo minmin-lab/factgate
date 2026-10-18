@@ -133,6 +133,53 @@ def ekb5(mine, pilot, index, report):
 COMPARE = {"ekb1": ekb1, "ekb2a": ekb2a, "ekb2b": ekb2b, "ekb3": ekb3, "ekb4": ekb4, "ekb5": ekb5}
 
 
+# The keyword experiments (E-KB6..E-KB8) have no in-process pilot. Their pilot
+# rehearsal checks correctness invariants instead (docs/kb_experiment_design.md,
+# 关键词检索实验): identical, same-order hit sets and empty absent keywords
+# (E-KB6); FactGate charges within the budget (E-KB7); no sample errors and
+# free replays (E-KB8). Pre-registered expectations (step counts, shares,
+# completion) are results, reported by the combined report, never gates here.
+PILOT_BUDGET = {"release": 800, "influence": 2400, "outcome": 64}
+
+
+def ekb6_invariants(result, _report):
+    differences = []
+    for o in result["observations"]:
+        where = [o["keyword_id"], o["k"]]
+        if o.get("error"):
+            differences.append({"at": where, "field": "error", "driver": o["error"], "pilot": None})
+            continue
+        if not o["identical"] or not o["same_order"]:
+            differences.append({"at": where, "field": "hit set", "driver": o["gateway"], "pilot": o["direct"]})
+        if o["class"] == "absent" and o["gateway"]:
+            differences.append({"at": where, "field": "absent keyword hits", "driver": o["gateway"], "pilot": []})
+    return differences, {"observations": len(result["observations"])}
+
+
+def ekb7_invariants(result, _report):
+    differences = []
+    for t in result["trajectories"]:
+        if t["arm"] != "factgate":
+            continue
+        for field, budget in (("charged_release", "release"), ("charged_influence", "influence"), ("charged_outcome", "outcome")):
+            if t[field] > PILOT_BUDGET[budget]:
+                differences.append({"at": [t["arm"], t["seed"]], "field": field, "driver": t[field], "pilot": PILOT_BUDGET[budget]})
+    return differences, {"trajectories": len(result["trajectories"]), "legitimate_tasks": len(result["legitimate_tasks"])}
+
+
+def ekb8_invariants(result, _report):
+    differences = []
+    for index, sample in enumerate(result["samples"]):
+        if sample.get("error"):
+            differences.append({"at": index, "field": "error", "driver": sample["error"], "pilot": None})
+        elif sample["arm"] == "factgate" and sample["replay"] and (sample.get("charged_release") or sample.get("charged_influence") or sample.get("charged_outcome")):
+            differences.append({"at": index, "field": "replay charge", "driver": [sample.get("charged_release"), sample.get("charged_influence"), sample.get("charged_outcome")], "pilot": [0, 0, 0]})
+    return differences, {"samples": len(result["samples"])}
+
+
+INVARIANTS = {"ekb6": ekb6_invariants, "ekb7": ekb7_invariants, "ekb8": ekb8_invariants}
+
+
 def main(paths):
     failed = False
     for path in paths:
@@ -140,8 +187,12 @@ def main(paths):
         if report.get("version") != "taskgate-kb-formal-deployment-report-v1":
             raise SystemExit(f"{path}: not a kb-formal deployment report")
         experiment, index = report["experiment"], report["deployment"]
-        pilot_path = PILOT[experiment].format(tier=report.get("tier", ""))
-        differences, facts = COMPARE[experiment](report["result"], json.load(open(pilot_path)), index, report)
+        if experiment in INVARIANTS:
+            pilot_path = "invariants"
+            differences, facts = INVARIANTS[experiment](report["result"], report)
+        else:
+            pilot_path = PILOT[experiment].format(tier=report.get("tier", ""))
+            differences, facts = COMPARE[experiment](report["result"], json.load(open(pilot_path)), index, report)
         failed = failed or bool(differences)
         print(json.dumps({"report": path, "experiment": experiment, "label": report.get("label", ""), "tier": report.get("tier", ""),
                           "deployment": index, "pilot": pilot_path, "differences": len(differences), "first": differences[:5], "facts": facts},

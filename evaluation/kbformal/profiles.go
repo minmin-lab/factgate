@@ -55,13 +55,19 @@ type Profile struct {
 	EligibilitySubjects bool
 }
 
-// Profiles are the four profiles of the protocol (正式轮规程 §3).
+// Profiles are the four profiles of the protocol (正式轮规程 §3) and the three
+// of the keyword round; kbformal.Rounds says which round deploys which.
 var Profiles = []Profile{
 	{Name: "kb-v2-pilot", Epoch: "policy-kb-2026-10-bge-v2", Budget: PilotBudget,
 		Experiments: []string{"ekb1", "ekb2a", "ekb2b", "ekb5-document"}, EligibilitySubjects: true},
 	{Name: "kb-v2-large", Epoch: "policy-kb-2026-10-bge-v2", Budget: LargeBudget, Experiments: []string{"ekb3-48k", "ekb4"}},
 	{Name: "kb-20k-large", Epoch: "policy-kb-2026-10-bge-20k", Budget: LargeBudget, Experiments: []string{"ekb3-96k"}},
 	{Name: "kb-v2c-pilot", Epoch: "policy-kb-2026-10-bge-v2c", Budget: PilotBudget, Experiments: []string{"ekb5-collection"}},
+	// The keyword round (docs/kb_experiment_design.md, 关键词检索实验):
+	// publications that declare keyword search, same corpora and chunks.
+	{Name: "kb-v2kw-pilot", Epoch: "policy-kb-2026-10-bge-v2kw", Budget: PilotBudget, Experiments: []string{"ekb7"}},
+	{Name: "kb-v2kw-large", Epoch: "policy-kb-2026-10-bge-v2kw", Budget: LargeBudget, Experiments: []string{"ekb6", "ekb8-48k"}},
+	{Name: "kb-20kkw-large", Epoch: "policy-kb-2026-10-bge-20kkw", Budget: LargeBudget, Experiments: []string{"ekb8-96k"}},
 }
 
 // LookupProfile returns the profile with the given name.

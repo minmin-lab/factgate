@@ -9,3 +9,10 @@ Each directory holds one publication epoch of the formal round (docs/kb_experime
   files byte for byte, or the deployment fails.
 
 The profile Catalogs under `../profiles/` are generated from these fragments.
+
+## Keyword round (2026-10-18)
+
+`policy-kb-2026-10-bge-v2kw` and `policy-kb-2026-10-bge-20kkw` are the v2 and 20k publications with `retrieval.keyword: true`
+(docs/kb-design.md §11): same corpora, segmentation, embedding and extraction, so the same chunks; their manifests differ
+because the manifest carries the retrieval declaration. `scripts/freeze-publication.sh <epoch>` produced them once from their
+specs in a fresh database (embedding cache unchanged, `kb-publish -verify` passed); formal deployments republish and compare as above.

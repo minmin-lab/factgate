@@ -1,0 +1,159 @@
+{
+  "version": "taskgate-snapshot-index-input-v1",
+  "publication_name": "policy-kb-2026-10-bge-v2kw-values",
+  "catalog_source": "travel_demo",
+  "source_relation": "reporting.kb_policy_kb_policy_kb_2026_10_bge_v2kw_values",
+  "ordinal_sidecar": "taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_v2kw_values",
+  "entity_key_fields": [
+    "doc_id",
+    "version",
+    "field"
+  ],
+  "snapshot": {
+    "source_id": "taskgate-demo-travel",
+    "source_namespace": "kb.policy.values",
+    "snapshot": "policy-kb-2026-10-bge-v2kw",
+    "schema_digest": "f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48",
+    "fields": [
+      {
+        "name": "doc_id",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "doc_id",
+        "canonical_field_id": "policy_kb_values.doc_id",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "version",
+        "sql_type": "integer"
+      },
+      {
+        "name": "version",
+        "canonical_field_id": "policy_kb_values.version",
+        "sql_type": "integer"
+      },
+      {
+        "name": "document_type",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "document_type",
+        "canonical_field_id": "policy_kb_values.document_type",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "field",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "field",
+        "canonical_field_id": "policy_kb_values.field",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "value_type",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "value_type",
+        "canonical_field_id": "policy_kb_values.value_type",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "canonical_value",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "canonical_value",
+        "canonical_field_id": "policy_kb_values.canonical_value",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "value_text",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "value_text",
+        "canonical_field_id": "policy_kb_values.value_text",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "value_numeric",
+        "sql_type": "numeric"
+      },
+      {
+        "name": "value_numeric",
+        "canonical_field_id": "policy_kb_values.value_numeric",
+        "sql_type": "numeric"
+      },
+      {
+        "name": "value_date",
+        "sql_type": "date"
+      },
+      {
+        "name": "value_date",
+        "canonical_field_id": "policy_kb_values.value_date",
+        "sql_type": "date"
+      },
+      {
+        "name": "kb_department",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "kb_department",
+        "canonical_field_id": "policy_kb_values.kb_department",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "classification",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "classification",
+        "canonical_field_id": "policy_kb_values.classification",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      }
+    ],
+    "rows": null
+  },
+  "expected_digests": {
+    "sidecar_digest": "ad26a4d44d8e858260aefa3fa960eb0dc80170c9bc467c33be76ff243d6bc4a3",
+    "dictionary_digest": "abf0223ea4a7691532c0f59c83cc63768e64909fa4b622fb5c4682aa507654ae",
+    "manifest_digest": "6caa2955896e5b8e29377e84e295b82ade56256dbedc7ba9670c6652404d730c",
+    "cold_payload_digest": "fe1d6966ca9bed1ebfd188e41b01b834855e6aaa2cb3e19d865bac3fc09db21b",
+    "hot_index_digest": "e8f69c8994f9262edf3cfa2596b291989a81da8713c7507b5aeccd2b1540ed06"
+  }
+}

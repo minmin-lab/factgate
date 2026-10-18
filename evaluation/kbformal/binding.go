@@ -58,6 +58,7 @@ type Binding struct {
 	Embedding    BindingEmbedding     `json:"embedding"`
 	Images       map[string]string    `json:"images"`
 	QuerySet     []BindingFile        `json:"query_set"`
+	KeywordSet   []BindingFile        `json:"keyword_set,omitempty"`
 	Profiles     []BindingProfile     `json:"profiles"`
 	ProfileFiles []BindingFile        `json:"profile_files"`
 	SourceFiles  []BindingFile        `json:"source_files"`
@@ -181,13 +182,22 @@ func composeImages(path string) (map[string]string, error) {
 	return images, nil
 }
 
-// BuildBinding reads every input and returns the binding's bytes. It refuses
-// a profile without a schema digest, a corpus or publication file that
-// differs from its publish spec, and an embedding model or Catalog that
-// disagrees with the others.
+// BuildBinding is BuildRoundBinding for the first round (kb).
 func BuildBinding(root string, host BindingHost) ([]byte, error) {
-	binding := Binding{Version: BindingVersion,
-		Note: "Frozen inputs of the knowledge-product formal round (docs/kb_experiment_design.md, 正式轮规程 §2). The author approves the SHA-256 of this file; the formal gateway build seals it as -dataset-binding."}
+	return BuildRoundBinding(root, host, Rounds["kb"])
+}
+
+// BuildRoundBinding reads every input of a round and returns the binding's
+// bytes. It refuses a profile without a schema digest, a corpus or
+// publication file that differs from its publish spec, and an embedding model
+// or Catalog that disagrees with the others. Only the round's profiles and
+// their publications are bound.
+func BuildRoundBinding(root string, host BindingHost, round Round) ([]byte, error) {
+	note := "Frozen inputs of the knowledge-product formal round (docs/kb_experiment_design.md, 正式轮规程 §2). The author approves the SHA-256 of this file; the formal gateway build seals it as -dataset-binding."
+	if round.KeywordSet {
+		note = "Frozen inputs of the keyword round (docs/kb_experiment_design.md, 关键词检索实验, and 正式轮规程 §2): its three profiles, their publications, and the frozen keyword set. The author approves the SHA-256 of this file; the formal gateway build seals it as -dataset-binding."
+	}
+	binding := Binding{Version: round.BindingVersion, Note: note}
 	registry, err := os.ReadFile(filepath.Join(root, ProfilesDir("."), "registry.json"))
 	if err != nil {
 		return nil, err
@@ -201,8 +211,19 @@ func BuildBinding(root string, host BindingHost) ([]byte, error) {
 	if len(entries.Profiles) != len(Profiles) {
 		return nil, fmt.Errorf("registry lists %d profiles, want %d", len(entries.Profiles), len(Profiles))
 	}
-	var embedding *catalog.KBEmbedding
+	epochs := map[string]bool{}
+	var selected []RegistryEntry
 	for _, entry := range entries.Profiles {
+		if round.Includes(entry.Name) {
+			selected = append(selected, entry)
+			epochs[entry.Epoch] = true
+		}
+	}
+	if len(selected) != len(round.Profiles) {
+		return nil, fmt.Errorf("the registry holds %d of the %d profiles of round %s", len(selected), len(round.Profiles), round.Name)
+	}
+	var embedding *catalog.KBEmbedding
+	for _, entry := range selected {
 		if entry.SchemaDigest == "" || !entry.SchemaDigestAttested {
 			return nil, fmt.Errorf("profile %s has no attested schema digest", entry.Name)
 		}
@@ -238,13 +259,13 @@ func BuildBinding(root string, host BindingHost) ([]byte, error) {
 	sort.Slice(binding.ProfileFiles, func(i, j int) bool { return binding.ProfileFiles[i].Path < binding.ProfileFiles[j].Path })
 
 	publicationsDir := "evaluation/kb-formal/publications"
-	epochs, err := os.ReadDir(filepath.Join(root, publicationsDir))
+	publicationDirs, err := os.ReadDir(filepath.Join(root, publicationsDir))
 	if err != nil {
 		return nil, err
 	}
 	corpora := map[string]*BindingCorpus{}
-	for _, epochEntry := range epochs {
-		if !epochEntry.IsDir() {
+	for _, epochEntry := range publicationDirs {
+		if !epochEntry.IsDir() || !epochs[epochEntry.Name()] {
 			continue
 		}
 		publication := BindingPublication{Epoch: epochEntry.Name()}
@@ -354,6 +375,15 @@ func BuildBinding(root string, host BindingHost) ([]byte, error) {
 			return nil, err
 		}
 		binding.QuerySet = append(binding.QuerySet, file)
+	}
+	if round.KeywordSet {
+		for _, name := range []string{"manifest.json", "keywords.jsonl"} {
+			file, err := bindingFile(root, filepath.Join(KeywordsetDir, name))
+			if err != nil {
+				return nil, err
+			}
+			binding.KeywordSet = append(binding.KeywordSet, file)
+		}
 	}
 	for _, relative := range []string{"tools/kb-embed/service.py", "tools/kb-embed/requirements-freeze.txt", "tools/kb-embed/venv-identity.py",
 		"evaluation/kb-formal/compose.kb.yaml", "db/init-kb/00-kb-base.sh", "db/init-kb/30-kb-schema.sh", "db/init/30-kb-schema.sh",

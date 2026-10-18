@@ -330,6 +330,7 @@ for experiment in "${experiments[@]}"; do
   case "$experiment" in
     ekb5-document | ekb5-collection) driver_args=(-experiment ekb5 -label "${experiment#ekb5-}") ;;
     ekb3-48k | ekb3-96k) driver_args=(-experiment ekb3 -tier "${experiment#ekb3-}") ;;
+    ekb8-48k | ekb8-96k) driver_args=(-experiment ekb8 -tier "${experiment#ekb8-}") ;;
     *) driver_args=(-experiment "$experiment") ;;
   esac
   step "EXPERIMENT $experiment"

@@ -18,6 +18,21 @@
    "eligibility_subjects": 0
   },
   {
+   "name": "kb-20kkw-large",
+   "epoch": "policy-kb-2026-10-bge-20kkw",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb8-96k"
+   ],
+   "catalog": "kb-20kkw-large.catalog.yaml",
+   "catalog_sha256": "f62735ee0a4d4b947f8d23db12084448def42b83f66c01790063200db188c4f6",
+   "principal_attributes": "kb-20kkw-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "6067be5902be8bb14245d327ea816c7646ab853d7c72ab86605b86690912830a",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 0
+  },
+  {
    "name": "kb-v2-large",
    "epoch": "policy-kb-2026-10-bge-v2",
    "budget_profile": "kb-large-v1",
@@ -67,6 +82,37 @@
    "kb_publication_sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
    "schema_digest": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8",
    "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2kw-large",
+   "epoch": "policy-kb-2026-10-bge-v2kw",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb6",
+    "ekb8-48k"
+   ],
+   "catalog": "kb-v2kw-large.catalog.yaml",
+   "catalog_sha256": "cc87921b78ae426f1769110438ca4ab72c251baa262ad50d6d4485582b23e8f8",
+   "principal_attributes": "kb-v2kw-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
+   "schema_digest_attested": false,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2kw-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2kw",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb7"
+   ],
+   "catalog": "kb-v2kw-pilot.catalog.yaml",
+   "catalog_sha256": "80d359171bd40db8546eda5e33af502745594b3d3a0d10d887f16a5fda2203e3",
+   "principal_attributes": "kb-v2kw-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
+   "schema_digest_attested": false,
    "eligibility_subjects": 0
   }
  ]

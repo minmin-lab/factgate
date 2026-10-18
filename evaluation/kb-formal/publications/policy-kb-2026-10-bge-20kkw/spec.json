@@ -1,0 +1,85 @@
+{
+ "version": "taskgate-kb-publish-spec-v1",
+ "knowledge_product": "policy_kb",
+ "collection": "policy_v1_20k",
+ "source_id": "taskgate-demo-travel",
+ "catalog_source": "travel_demo",
+ "source_namespace": "kb.policy",
+ "epoch": "policy-kb-2026-10-bge-20kkw",
+ "schema_digest": "f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48",
+ "corpus": {
+  "path": "evaluation/kbcorpus/raw/v1-20k/documents.jsonl",
+  "sha256": "785ed1fdd60988be511a19d827ae7a46de7ba271587c73f1de620a06b2742481"
+ },
+ "segmentation": {
+  "function": "section-window-v1",
+  "window_chars": 800
+ },
+ "embedding": {
+  "model": "bge-m3",
+  "dimension": 1024,
+  "weights_sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38"
+ },
+ "extraction_rules": [
+  {
+   "document_type": "contract",
+   "field": "amount",
+   "type": "numeric",
+   "source": "frontmatter",
+   "scope": "document"
+  },
+  {
+   "document_type": "contract",
+   "field": "counterparty",
+   "type": "text",
+   "source": "frontmatter",
+   "scope": "document"
+  },
+  {
+   "document_type": "contract",
+   "field": "signed_on",
+   "type": "date",
+   "source": "frontmatter",
+   "scope": "document"
+  },
+  {
+   "document_type": "approval",
+   "field": "approved_amount",
+   "type": "numeric",
+   "source": "frontmatter",
+   "scope": "document"
+  },
+  {
+   "document_type": "policy",
+   "field": "effective_on",
+   "type": "date",
+   "source": "frontmatter",
+   "scope": "document"
+  },
+  {
+   "document_type": "report",
+   "field": "headline_metric",
+   "type": "numeric",
+   "source": "frontmatter",
+   "scope": "document"
+  }
+ ],
+ "description": "departmental policies, contracts, approvals and reports",
+ "sensitivity": "high",
+ "document_types": [
+  "contract",
+  "approval",
+  "policy",
+  "report"
+ ],
+ "retrieval": {
+  "k_max": 20,
+  "aggregates": [
+   "count",
+   "sum",
+   "min",
+   "max"
+  ],
+  "keyword": true
+ }
+}
