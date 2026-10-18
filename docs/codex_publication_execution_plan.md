@@ -2099,3 +2099,23 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 小预算连续关键词检索在第 22 步拒绝（EXPOSURE_BUDGET_EXHAUSTED，release 773/800）。
     - 第一次统计命中为 0，是我的自检脚本读错了字段（检索结果在 preview_result 里），不是网关的问题；已改用 preview_result 复核。
   - **约束**：该栈占用正式轮端口 25434/29000/29001/8082/8092/28090；开任何正式轮前必须先运行 /home/wmm/kb-demo/down.sh。
+
+- [2026-10-18 18:25 UTC+8] KB1-LOOP-116 **作者定：文档下载作为独立任务进论文**。
+  - **起因**：作者在演示栈让 agent 下载一份文件，agent 只能逐块检索命中再 fetch。D-000068 用了约 16 次查询、3 分钟。这是作者 2026-10-17 选定的 §9.6 (a)"fetch 只取此前返回过的块"的设计后果（internal/gateway/retrieval.go:743、751），不是故障。
+  - **作者原话**：
+    - "下载文件 可以用 专门的 下载文件任务来执行，mcp要提供下载文件的 服务。 搜索归搜索，下载归下载。 使用场景，用户委托agent 搜索了10个文件，用户看完摘要后，肯能只要求下载其中3个文件。"
+    - 进论文选 "Put it in the paper"。
+    - 含高于密级的节选 "Refuse whole document"。
+    - 前置字段选 "Include if values approved"。
+  - **先查的数据事实（演示栈实查）**：
+    - 963/10469 份文档各含一个 leadership 节，所在文档为 public 200、internal 511、confidential 252。
+    - 存储的 body 含前置字段（含未抽取字段）与带密级标签的节标题行，两者都不在任何发布单元格中。
+    - 所以下载文件只由已发布单元格组装：标题、批准时的抽取值、按序分块正文。不交 body，摘要也不等于 content_sha256。
+  - **设计**：docs/kb-design.md §12。
+    - 下载清单进授权单的保留范围键 kb_documents，沿用既有子集缩小规则，审批协议不改。
+    - 审批前不读业务数据，所以审批人只见 doc_id@version、不见标题。
+    - 完整性用 chunk_count 判整份拒绝。
+    - 新码三个：TASK_KIND_MISMATCH、DOWNLOAD_NOT_APPROVED、DOCUMENT_NOT_DOWNLOADABLE。
+    - 实验 E-KB9 待预先登记。
+  - **计划**：docs/kb_extension_plan.md 阶段 7（K7.1 完成，K7.2 起）。
+  - **对论文的影响**：主稿要加第四个工具与一段说明，并要一轮新的正式证据（新绑定、发射、证据批准、Zenodo 新版，均需作者签或发布）。

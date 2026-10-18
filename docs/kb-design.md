@@ -418,3 +418,118 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
 - **tsvector 中文分词**：需第三方扩展并自建镜像。
 - **外接 ES**：同快照保证要重新论证。
 - **pg_trgm 相似度模糊匹配**：阈值语义另需设计，本轮不做，论文不主张。
+
+## 12. 文档下载任务（K7；2026-10-18 作者定加入论文，台账 KB1-LOOP-116）
+
+起因：作者在本机演示栈让 agent "下载一个文件"，agent 只能逐块检索命中再 fetch，D-000068 的 3 个块用了约 16 次查询、3 分钟（KB1-LOOP-115 的演示栈）。
+这是 §9.6 (a)"fetch 只取此前返回过的块"的设计后果，不是故障。
+
+### 12.1 作者决定（2026-10-18，原话）
+
+- "下载文件 可以用 专门的 下载文件任务来执行，mcp要提供下载文件的 服务。 搜索归搜索，下载归下载。 使用场景，用户委托agent 搜索了10个文件，用户看完摘要后，肯能只要求下载其中3个文件。"
+- 进论文："Put it in the paper"。
+- 文档含高于申请人密级的节时："Refuse whole document"——整份拒绝。
+- 前置字段："Include if values approved"——任务批了 values 产品才带类型化字段。
+
+### 12.2 先查清的数据事实（演示栈实查，KB1-LOOP-116）
+
+- 10469 份文档中 963 份（9.2%）各含一个 leadership 节，所在文档的密级为 public 200、internal 511、confidential 252。
+  分块继承所在节的密级（internal/kbpublish/prepare.go:59-86）。所以把存储的正文整份交出会越过节级密级。
+- 存储的 `kb.documents.body` 含前置字段与节标题行；`content_sha256 = sha256(body)`（publish.go:339）。
+  - 节标题行带密级标签（`标题 [leadership]`），不进任何发布单元格：分块只取节正文（evaluation/kbcorpus/corpus.go:426-433）。
+  - 前置字段里还有未抽取的字段（如 applicant_no、approval_no），不受任何产品治理。
+- 系统不存原始二进制文件；语料就是文本。
+- 结论：下载文件只能由**已发布单元格**组装——文档标题、批准时的抽取值、按序的分块正文。全部经账本结算；不交 body，不交节标题，不交原始前置字段。
+
+### 12.3 语义
+
+- **下载任务**：新 MCP 工具 `request_download_task(objective, knowledge_product, documents, include_values?)`。
+  - `documents`：1–20 个 `{doc_id, version}`。上限 20 与 k_max 取齐，是演示与实验的取值，不是安全参数。
+  - 产品与列固定，不由调用方选：
+    - chunks：doc_id、version、chunk_index、text_sha256，外加正文交付列 text；
+    - documents：doc_id、version、title、chunk_count；
+    - include_values 时加 values：field、value_type、canonical_value。
+  - 范围：缺省为申请人的资格包络（department 与 classification）。调用方可以给更窄的范围。资格先于审批，沿用现有 compileEligibility。
+  - 下载清单进授权单的保留范围键 `kb_documents`：值是排序去重的 `"doc_id@version"` 字符串列表。
+    - OA 原样显示该列表；缩小 = 取非空子集，沿用 `scopeValueNarrower`（internal/domain/authorization.go:526-545）。审批协议不改。
+    - 该键不参与产品范围编译（不是目录 scope），由下载转换器自己判成员。
+  - 不要求清单来自此前的检索："搜索归搜索，下载归下载"。闸门是审批人对明确清单的批准。
+  - **不在审批前读业务数据**：请求时只校验形状，不查文档是否存在、标题或节密级。所以审批人只看到 doc_id@version，看不到标题——标题本身也是数据。论文照实写。
+- **任务种类分离**：授权单含 `kb_documents` 的是下载任务，只能 download_document（以及状态、预算类只读工具）。
+  - search/fetch/aggregate/query_sql 在下载任务中拒绝；download_document 在非下载任务中拒绝。新码 `TASK_KIND_MISMATCH`。
+- **下载服务**：新 MCP 工具 `download_document(task_id, request_id, knowledge_product, doc_id, version)`。
+  1. 成员：`doc_id@version` 必须在授权单的 `kb_documents` 中，否则 `DOWNLOAD_NOT_APPROVED`（关闭式，不读数据）。
+  2. 准备并执行受信关系计划，与检索同走 `PrepareRetrieval` 纪律：
+     - 主计划：该文档的 chunks ⋈ documents，注入任务强制范围；
+     - 任务批了 values 时，再加第二个计划：该文档的 values 行。
+  3. **完整性**：主计划返回的块数必须等于文档行的 `chunk_count`，且文档行可见；否则整份拒绝 `DOCUMENT_NOT_DOWNLOADABLE`，不释放任何块。
+     - 范围外的节已被注入范围滤掉，所以"含高于密级的节"表现为块数少于 chunk_count。
+     - 文档不存在、文档行在范围外，同样给这个码。
+     - 拒绝本身泄露一个比特（"该文档有范围外的节"），按空结果计 F_O；这是作者选"整份拒绝"的代价，论文照写。
+  4. 交付：结果按既有路径结算、出回执、存规范结果。再由结果行确定性地组装文件 `taskgate-kb-document-file-v1`，存入结果对象存储，返回：
+     - result_id 与回执；
+     - 文件 sha256；
+     - 短期 download_url（与 deliver_result 同机制）；
+     - 块清单：每块的 chunk_index 与 text_sha256。
+     客户端可逐块对照已发布的 text_sha256 核验。
+  5. 同一任务内重复下载同一文档 = 语义重放，零新增计费（既有重放语义）。
+- **文件格式 `taskgate-kb-document-file-v1`**：UTF-8，LF，确定性。
+  ```
+  # <title>
+
+  doc_id: <doc_id>
+  version: <version>
+
+  ## 字段                          （仅当批了 values 且该文档有抽取值）
+  - <field> (<value_type>): <canonical_value>    （按 field 字节序）
+
+  ## 正文
+
+  <chunk 0 text>
+
+  <chunk 1 text>
+  …
+  ```
+  块之间空一行，文件以单个 LF 结尾。文件不等于 body，其摘要不等于 content_sha256；这一点照实写。
+
+### 12.4 三维效果
+
+不另造，取既有 V5 关系代数对两个计划的输出（与 §5、§10a 同口径）：
+- **F_R**：可见单元格。每块 4 个（doc_id、version、chunk_index、text），文档的 title 单元格，以及批准时每个 values 行的 field、value_type、canonical_value 单元格。
+- **F_D**：F_R ∪ 行 Fact ∪ 连接键单元格。
+- **F_O**：A(q) ∪ {c_q}。
+  - A(q) = {doc_id = d, version = v} 两个调用方原子：选哪份文档由调用方决定，按保守口径计。
+  - c_q = sha256("TASKGATE-KB-DOWNLOAD-V1\x00" ‖ 规范 JSON{doc_id, version, include_values})。
+- 预算由目录路由给出（与其他任务相同）。
+
+### 12.5 新拒绝码（发射端与校验端同时登记）
+
+`TASK_KIND_MISMATCH`、`DOWNLOAD_NOT_APPROVED`、`DOCUMENT_NOT_DOWNLOADABLE`。进 apierr 与文档。
+
+### 12.6 放弃的方案
+
+- **交存储的 body**：越过节级密级（963 份）并交出未治理的前置字段。
+- **部分交付加占位或不加占位**：作者选整份拒绝。
+- **fetch 放宽为"同文档任意块"**：作者要求搜索与下载分开。
+- **审批前查标题给审批人看**：审批前读数据。
+- **原始二进制文件**：系统不存。
+
+### 12.7 实验（预先登记写入 docs/kb_experiment_design.md 后才跑）
+
+E-KB9 下载，候选测量项如下，阈值待登记时按保守先验定：
+- (a) 正确性：抽样全部可见的文档，文件与直连库独立组装的参考文件逐字节一致，每块摘要与已发布的 text_sha256 一致；
+- (b) 整份拒绝：含 leadership 节的文档对无 leadership 密级的申请人 100% 拒绝，对有该密级的申请人可交付；
+- (c) 审批绑定：清单外的文档拒绝；审批人删去的文档拒绝；
+- (d) 种类分离：下载任务中检索拒绝，检索任务中下载拒绝；
+- (e) 账本：计费等于交付单元格的释放；同文档重下零计费；
+- (f) 代价对照：同一批文档，"下载任务"与"检索加 fetch 拼块"的调用数与时延。
+
+### 12.8 实施顺序
+
+1. apierr 三码与工具模式；
+2. 下载转换器与第二计划；
+3. 完整性检查与文件组装；
+4. request_download_task 与任务种类分离；
+5. 参考模型与 oracle、单元与集成测试；
+6. 部署路径冒烟（kb-formal-smoke）与演示栈；
+7. 预先登记、正式轮、证据、论文。
