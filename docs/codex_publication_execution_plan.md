@@ -1899,3 +1899,12 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **构建（实跑）**：make paper 退出 0；主稿 12 页，末栏底 y=739/746，已不足一行余量，后续主稿再加字必须同步删减；补充材料 43 页；check-rendered 只剩既有两项 Overfull。
   - **事故**：会话临时目录在 10:24 被清空，作者运行 catalog 签署脚本时报"文件不存在"。已在 ~/logs/kb-approvals/approve-catalog.sh 重建：摘要重核与现文件一致，加了"暂存区须为空"检查，bash -n 通过。已记入记忆：作者要运行的脚本不放会话临时目录。Zenodo 上传文件因已镜像到 NAS，未受影响。
   - **待作者**：(1) 运行 `bash /home/wmm/logs/kb-approvals/approve-catalog.sh`；(2) 审阅主稿改动。
+
+- [2026-10-18 10:40 UTC+8] KB1-LOOP-97 **K5.2 完成：作者签署 catalog 变更**。作者本人运行 ~/logs/kb-approvals/approve-catalog.sh（我起草、未运行），提交 b792d442fcb5（10:39:02），只含 `evaluation/kb-formal/approvals/catalog-approval-v1.json`（sha256 b50ea5c59f176b114fbbf995fcda358772a984b9e75eb2c84febdf5a8c7a32b6）。
+  - **核验（实跑）**：记录可解析；AUTHOR_APPROVED；所列两份文件的摘要与字节数与现文件一致（config/catalog.yaml 3543c219…/37343，config/principal-attributes.yaml ae0d2dd9…/1130）。
+  - **覆盖面核查（实跑）**：kb-dev 相对 main 改动的 catalog 类文件分三类，均已覆盖：
+    1. 部署用 catalog 与属性快照：由本次签署覆盖。
+    2. 正式轮的 3 份发布物 catalog 片段与 profile catalog/属性文件：由作者已批准的 KB 数据绑定 7896e225（launch-approval-v1，11488e6）钉住，逐个核摘要，13 个文件 0 个变化。
+    3. internal/catalog/testdata/kb-fragment.yaml：测试夹具，不属部署 catalog，无需签署。
+  - 仓库内无代码读取该记录（已用已知命中词验证检索），它是签署凭据本身。
+  - **剩余**：K5.1 待作者审阅主稿改动。
