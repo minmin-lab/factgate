@@ -2259,3 +2259,19 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 修复：改为遍历全部已声明关系（KnowledgeProductRelations.Relations()，含 files）。新增回归测试 TestOptionalKnowledgeRelationsInheritEligibility，待连库跑。
     - 同类扫描：kbpublish/activate.go 与 catalog/knowledge.go 已覆盖可选关系；gateway 其余处按名取关系，无同类遗漏。
   - **登记**：E-KB9 预先登记改为 PDF 原件与 v2kwf 发布期，(e) 项改写。
+
+- [2026-10-19 00:14 UTC+8] KB1-LOOP-126 **K7.2c 完成：PDF 原件经 files 关系与只读原件桶下载，端到端与部署路径冒烟通过**。
+  - **我的一处错**：kb.document_files 的 object_key CHECK 写成 `{0,511}`，超过 PostgreSQL 正则重复次数上限 255；演示栈装载时报 "invalid repetition count(s)"。
+    - 根因：kbschema 连库测试需要 pgvector 库，我在 KB1-LOOP-125 只跑了不连库测试，把跳过当作没问题（该查没查）。
+    - 已改为 `{0,255}`（c081bd9），kbschema 两个连库测试在演示栈的 pgvector 服务上通过（6 表、5 外键、document_files 约束用例）。
+  - **资格继承回归测试的已知正例验证**：把 knowledgeProductOwning 临时恢复为旧的三关系判断，TestOptionalKnowledgeRelationsInheritEligibility 失败（越权请求被受理）；恢复修复后通过。
+  - **演示栈重建**：
+    - 镜像 4c330ea8…（c081bd9），主机二进制同提交。
+    - 新发布期 policy-kb-2026-10-bge-v2kwf 与 policy-kb-small-2026-10-v2kwf 各带 files 关系，目录共 8 个关系。
+    - 原件桶 taskgate-kb-originals 装入 10,469 个对象；网关只读用户只有 GetObject 权限。
+  - **端到端**（db-test-env 控制库、演示业务库、本地原件目录）：
+    - TestDownloadEndToEndAgainstKnowledgePublication 的 PDF 段实跑：D-005004 原件 application/pdf，85,454 字节，sha256 6c8fdbbe…，与磁盘文件一致；四部分 Release 共 32（2+24+3+3）；无 files 授权时拒绝且零计费；含 leadership 节的文档整份拒绝。
+    - 网关等六包 218 过、7 跳过、0 败。
+  - **冒烟**（policy_kb 与 policy_kb_small 各一次）全部通过：
+    - 原件段 D-008682 经网关地址取回 61,196 字节 PDF（%PDF 头），sha256 ed223420… 等于渲染清单与磁盘文件；四部分回执验签；带 Content-Digest 头。
+    - 组装文件、清单外拒绝、双向种类分离、CHUNK_NOT_RETURNED、NOT_ELIGIBLE 同时通过。

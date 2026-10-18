@@ -263,6 +263,7 @@ func TestDownloadEndToEndAgainstKnowledgePublication(t *testing.T) {
 				t.Fatalf("files part released %d, want media_type, byte_size and file_sha256", charge.ActualReleaseFacts)
 			}
 		}
+		t.Logf("original %s: %s, %d bytes, sha256 %s, release over the four parts %d", full, mediaType, byteSize, fileSHA256[:16], originalRelease)
 		if originalRelease < 2+4*chunkCount+3 {
 			t.Fatalf("original download released %d facts, below the document and files cells plus every chunk cell (%d)", originalRelease, 2+4*chunkCount+3)
 		}

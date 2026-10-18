@@ -102,7 +102,7 @@
 | K7.1 | 设计记录：下载任务、保留范围键 kb_documents、任务种类分离、完整性检查（整份拒绝）、文件格式、三维效果、拒绝码；写入 docs/kb-design.md 新节 | 每条口径给出代码落点；发射端与校验端成对列出 | DONE（2026-10-18）：kb-design §12（KB1-LOOP-116） |
 | K7.2 | 实现：apierr 三码、request_download_task、download_document（转换器、主计划与 values 计划、完整性、文件组装与交付）、任务种类分离、参考模型与 oracle | 单测与 DB 测试；两端同改的 grep 清单 | DONE（2026-10-18）：三部分均复用既有准备与结算，未新增准备形态，故参考模型与 oracle 无需改；单测与对演示库的端到端测试通过，网关全包 138 过 0 败（KB1-LOOP-117） |
 | K7.2b | 原文件通道：original_file 申请、format original 下载、body 读出并核 content_sha256、网关短期地址；单测、端到端、冒烟（作者 19:3x 定，KB1-LOOP-120） | 原文件字节等于已发布摘要；计费包含全部分块单元格 | DONE（2026-10-18）：单测与端到端通过（KB1-LOOP-121）；部署路径冒烟通过（KB1-LOOP-122） |
-| K7.2c | PDF 原件：渲染器与全语料 PDF、kb.document_files 与 files 关系（kb-publish、目录）、原件桶与网关只读读取、format original 改为 files 关系、演示栈新发布期；单测、端到端、冒烟（作者 23:3x 定，KB1-LOOP-124） | PDF 字节等于已发布 file_sha256；计费包含全部分块单元格 | DOING |
+| K7.2c | PDF 原件：渲染器与全语料 PDF、kb.document_files 与 files 关系（kb-publish、目录）、原件桶与网关只读读取、format original 改为 files 关系、演示栈新发布期；单测、端到端、冒烟（作者 23:3x 定，KB1-LOOP-124） | PDF 字节等于已发布 file_sha256；计费包含全部分块单元格 | DONE（2026-10-19）：端到端测试与两知识产品冒烟通过（KB1-LOOP-126） |
 | K7.3 | 部署路径冒烟：kb-formal-smoke 跑下载任务；演示栈换新镜像 | 全新部署上通过（进程内测试不算） | DONE（2026-10-18）：演示栈（新镜像 147af801…）两知识产品各跑一次冒烟全部通过；全新部署的验收并入 K7.5 彩排（KB1-LOOP-118） |
 | K7.4 | 实验设计与预先登记 E-KB9（正确性、整份拒绝、审批绑定、种类分离、账本、代价对照）；驱动增实验 | 预期与停止规则在开跑前冻结 | DOING：登记已起草（E-KB9 与 E-KB10，KB1-LOOP-119）；下载集生成器、profile、驱动实验待做 |
 | K7.5 | 彩排（pilot 类） | 全部部署通过、对拍 0 差异 | TODO |
