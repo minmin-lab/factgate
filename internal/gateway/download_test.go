@@ -153,3 +153,27 @@ func TestDocumentDownloadSignatureIsDomainSeparated(t *testing.T) {
 		}
 	}
 }
+
+// Every relation of a knowledge product inherits its eligibility envelope,
+// the optional files relation as much as chunks and documents: a request
+// naming it alone outside the envelope is refused before any draft.
+func TestOptionalKnowledgeRelationsInheritEligibility(t *testing.T) {
+	harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: kbCatalogRewrite(t),
+		principalAttributes: kbSubjectSnapshot(t, "finance", []string{"public", "internal"}, "")})
+	request := func(department string) map[string]any {
+		return map[string]any{"objective": "只申请原件关系", "data_products": []string{"policy_kb_files"},
+			"columns": map[string][]string{"policy_kb_files": {"doc_id", "version", "media_type", "byte_size", "file_sha256"}},
+			"scopes":  map[string]any{"kb_department": []any{department}, "classification": []any{"internal"}}}
+	}
+	_, err := callGatewayTool(harness.service, harness.alice, "request_data_task", request("hr"))
+	requireToolCode(t, err, apierr.CodeNotEligible)
+	if len(harness.approval.requests) != 0 {
+		t.Fatalf("an ineligible files request produced %d drafts", len(harness.approval.requests))
+	}
+	if _, err := callGatewayTool(harness.service, harness.alice, "request_data_task", request("finance")); err != nil {
+		t.Fatalf("an eligible files request was refused: %v", err)
+	}
+	if len(harness.approval.requests) != 1 {
+		t.Fatalf("drafts = %d, want 1", len(harness.approval.requests))
+	}
+}

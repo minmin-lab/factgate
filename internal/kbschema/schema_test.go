@@ -95,7 +95,7 @@ func TestKnowledgeProductSchemaInstallsAndIsReadOnlyForGateway(t *testing.T) {
 		tables = append(tables, name)
 	}
 	_ = rows.Close()
-	if got := strings.Join(tables, ","); got != "chunks,collections,documents,extracted_values,labels" {
+	if got := strings.Join(tables, ","); got != "chunks,collections,document_files,documents,extracted_values,labels" {
 		t.Fatalf("kb tables = %s", got)
 	}
 
@@ -111,8 +111,8 @@ func TestKnowledgeProductSchemaInstallsAndIsReadOnlyForGateway(t *testing.T) {
 		t.Fatalf("chunks primary key = %q (%v)", chunkKey, err)
 	}
 	var foreignKeys int
-	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND connamespace = 'kb'::regnamespace`).Scan(&foreignKeys); err != nil || foreignKeys != 4 {
-		t.Fatalf("kb foreign keys = %d (%v), want 4 (labels, documents, chunks, extracted_values)", foreignKeys, err)
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND connamespace = 'kb'::regnamespace`).Scan(&foreignKeys); err != nil || foreignKeys != 5 {
+		t.Fatalf("kb foreign keys = %d (%v), want 5 (labels, documents, chunks, extracted_values, document_files)", foreignKeys, err)
 	}
 	var indexes int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM pg_indexes WHERE schemaname = 'kb' AND indexname LIKE 'kb_%_idx'`).Scan(&indexes); err != nil || indexes != 4 {
@@ -173,6 +173,15 @@ func TestKnowledgeProductSchemaRejectsMalformedRows(t *testing.T) {
 		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount', 'numeric', 'n:1250', 1250.00, 'sales', 'internal')`)
 	mustReject(`INSERT INTO kb.extracted_values (collection, doc_id, version, document_type, field, value_type, canonical_value, value_text, department, classification)
 		VALUES ('policy_kb', 'D-0001', 1, 'contract', 'amount3', 'numeric', 'n:1', 'text in numeric slot', 'sales', 'internal')`, "check constraint")
+	// The original file of a document version (docs/kb-design.md §12.9).
+	mustExec(`INSERT INTO kb.document_files (collection, doc_id, version, media_type, byte_size, file_sha256, object_key)
+		VALUES ('policy_kb', 'D-0001', 1, 'application/pdf', 86928, '` + sha + `', 'v2/D-0001-v1.pdf')`)
+	mustReject(`INSERT INTO kb.document_files (collection, doc_id, version, media_type, byte_size, file_sha256, object_key)
+		VALUES ('policy_kb', 'D-9999', 1, 'application/pdf', 1, '`+sha+`', 'v2/x.pdf')`, "foreign key")
+	mustReject(`INSERT INTO kb.document_files (collection, doc_id, version, media_type, byte_size, file_sha256, object_key)
+		VALUES ('policy_kb', 'D-0001', 1, 'application/pdf', 1, '`+sha+`', 'v2/../etc/passwd')`, "check constraint")
+	mustReject(`INSERT INTO kb.document_files (collection, doc_id, version, media_type, byte_size, file_sha256, object_key)
+		VALUES ('policy_kb', 'D-0001', 1, 'application/pdf', 0, '`+sha+`', 'v2/y.pdf')`, "check constraint")
 
 	mustReject(`INSERT INTO kb.chunks (collection, doc_id, version, chunk_index, text, text_sha256, department, classification, job_role)
 		VALUES ('policy_kb', 'D-9999', 1, 0, 'orphan', '`+sha+`', 'sales', 'internal', 'staff')`, "foreign key")

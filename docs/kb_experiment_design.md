@@ -213,7 +213,9 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
 
 ### 共同设定
 
-- 发布：沿用关键词轮已冻结的 `policy-kb-2026-10-bge-v2kw`（48,183 块，10,469 份文档），不新发布。
+- 发布：与关键词轮同一语料、切分、嵌入与关键词声明，另发带 files 关系的发布期 `policy-kb-2026-10-bge-v2kwf`（kb-design §12.9），冻结后用于全部下载实验。
+  - 分块、文档、抽取值与 v2kw 相同；files 关系登记每个文档版本 PDF 原件的媒体类型、大小与 SHA-256。
+  - PDF 原件由渲染器 taskgate-kb-pdf-render-v1 生成；渲染器、字体摘要与渲染清单摘要进新数据绑定。原件在部署时装入栈内对象存储的只读原件桶。
 - 下载集（执行前由确定性工具生成并冻结，摘要进新数据绑定）：
   - **全可见集 A**：300 份文档。条件是所有分块的密级都等于文档密级（不含混合节）；每部门 25 份，按固定种子抽样。
   - **混合集 B**：60 份文档，各含一个 leadership 节，所在文档密级 public、internal、confidential 各 20 份，按固定种子抽样。
@@ -248,12 +250,13 @@ evaluation/kb-pilot/k34-hnsw/report-v2r2.json（注册表 k34-hnsw-v2r2，NAS kb
     - 被删两份 DOWNLOAD_NOT_APPROVED 的比例；
     - 保留三份交付的比例；
     - 每任务一份清单外文档 DOWNLOAD_NOT_APPROVED 的比例。
-- **(e) 原文件通道**：
-  - 做法：A 中按固定种子取 100 份，建批准原文件的下载任务（每任务 20 份），以 format original 下载；另在未批准原文件的任务中各试一次。
+- **(e) PDF 原件通道**：
+  - 做法：A 中按固定种子取 100 份，建批准 files 关系的下载任务（每任务 20 份），以 format original 下载；另在未批准 files 关系的任务中各试一次。
   - 指标：
-    - 交付字节与 kb.documents.body 逐字节相同、且摘要等于已发布 content_sha256 的比例；
-    - 文档部分 Release 为 3、总 Release 不少于 3 + 4×块数的比例；
-    - 未批准时 DOWNLOAD_NOT_APPROVED 且零计费的比例。
+    - 交付字节与原件桶对象逐字节相同、大小与摘要等于已发布 files 行、且等于渲染器重跑结果的比例；
+    - files 部分 Release 为 3、总 Release 不少于 2 + 4×块数 + 3 的比例；
+    - 未批准时 DOWNLOAD_NOT_APPROVED 且零计费的比例；
+    - B 中文档在无 leadership 范围的任务里以 original 下载被整份拒绝的比例。
 - **(d) 种类分离**：
   - 做法：每次部署，在一个下载任务中调用 search、fetch、aggregate、query_sql、execute_plan 各一次；在一个检索任务中调用 download_document 一次。
   - 指标：TASK_KIND_MISMATCH 的比例。

@@ -2238,3 +2238,24 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - D-000595 渲染为 86,928 字节的 PDF，两次渲染逐字节相同（598f8f0c…）；pypdf 抽取文字正常（CJK 字形映射正确）。
     - 全语料 10,469 份渲染已在后台进行。
   - **字体来源**：本机另一项目目录中的 Noto Sans CJK SC 发行文件（OFL），以 sha256 钉住，未联网下载。
+
+- [2026-10-18 23:57 UTC+8] KB1-LOOP-125 **K7.2c 代码就位；全语料 PDF 原件渲染完成；发现并修复一处既有资格继承缺陷**。
+  - **代码**（d017bb0 及本提交）：
+    - kb.document_files（DDL）；kb-publish 的 files 关系：spec.files、渲染清单精确覆盖校验、装载、物化视图、清单与目录片段；
+    - 目录 Products.Files，激活时清单与目录一致性检查；
+    - 网关 format original 改为批准 files 关系：第四部分 files 计划（Release 3），按身份读 object_key，经只读原件存储取对象并核大小与摘要；
+    - 下载地址重组同理；MCP 嵌入资源支持 blob；cmd/gateway 读 GATEWAY_KB_ORIGINALS_*。
+  - **单测**（不连库部分）：catalog、kbpublish（新增渲染清单覆盖、spec、激活双向不一致三个测试）、kbdownload、mcp、gateway、cmd/gateway、kbformal、repohygiene 全过。
+    - 激活测试的不一致用例先把目录绑定改到无 files 的清单摘要，确保拒绝来自 files 检查而非摘要检查；断言错误文本含 "disagree about the files relation"。
+    - 连库测试（kbschema、网关端到端）待演示栈重新发布后跑；kbschema 测试已同步改为 6 表、5 个外键，并加 document_files 约束用例。
+  - **PDF 原件**：
+    - tools/kb-pdf/render.py 渲染全部 10,469 份，清单 sha256 98ae2260…，共 835.4 MB（单份 45,400–122,797 字节，中位 79,679）。
+    - 重现性：按固定种子随机抽 300 份另起一次渲染，300/300 的摘要与大小与主清单相同。
+    - 产物在 /home/wmm/kb-pdf（originals/v2 与 v2-manifest.jsonl，只读），不进 git。
+  - **既有缺陷（我发现并修复）**：
+    - 网关 knowledgeProductOwning 只认 chunks、documents、values（internal/gateway/eligibility.go:228，修复前）。
+    - 后果：只申请 collection_values 关系的请求不继承知识产品的资格包络，可越过 NOT_ELIGIBLE。补充材料 supplement.tex:3862–3868"超出包络的请求在请求时拒绝"的一般性陈述对此路径不成立。
+    - 证据未受影响：E-KB2(a) 只申请 chunks 与 documents；E-KB5-collection 用 alice，在包络内。
+    - 修复：改为遍历全部已声明关系（KnowledgeProductRelations.Relations()，含 files）。新增回归测试 TestOptionalKnowledgeRelationsInheritEligibility，待连库跑。
+    - 同类扫描：kbpublish/activate.go 与 catalog/knowledge.go 已覆盖可选关系；gateway 其余处按名取关系，无同类遗漏。
+  - **登记**：E-KB9 预先登记改为 PDF 原件与 v2kwf 发布期，(e) 项改写。
