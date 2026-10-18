@@ -1982,3 +1982,13 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **彩排校验**：crosscheck.py 对关键词实验改为检查正确性不变量，因为没有进程内试点可对拍。E-KB6 要求命中集一致且缺席为空；E-KB7 要求计费不超预算；E-KB8 要求无错误且重放零计费。预登记的期望值只在合并报告中报告，不作闸门。
   - **profile**：kb-v2kw-pilot（ekb7）、kb-v2kw-large（ekb6、ekb8-48k）、kb-20kkw-large（ekb8-96k）已生成，尚未证明，需参考部署记录 schema 摘要。原四个 profile 的文件逐字节不变。
   - **K6.3 验收方式（决定）**：改用新 profile 的 pilot 部署跑关键词实验，作为部署路径验收。理由：它经 HTTP/MCP、OA 审批、回执验签与 Parquet 交付全路径，强于手动冒烟；原手动冒烟没有脚本化入口。
+
+- [2026-10-18 12:32 UTC+8] KB1-LOOP-105 **关键词轮三个 profile 已证明，数据绑定 v2 写出**。
+  - **参考部署（实跑，pilot 类，KB_FORMAL_RECORD_ATTESTATION=1）**：根目录 /home/wmm/kb-formal/kb-keyword-reference-20261018，二进制由 HEAD d0f5760 构建，链脚本 ~/logs/kb-keyword/reference-chain.sh 逐个执行。
+    - 三次都"逐字节复现冻结发布物"，冻结过程的确定性由此得到确认。
+    - 记录的 schema 摘要：kb-v2kw-pilot 与 kb-v2kw-large 同为 1e4ba27b…，kb-20kkw-large 为 c73cf040…。
+    - 每次之后都重新生成 profile 文件；kb-formal-profile -verify 15 个文件逐字节通过；原四个 profile 文件不变。
+    - 每次都镜像到 NAS kb-formal/kb-keyword-reference-20261018/。
+  - **数据绑定 v2**：evaluation/kb-formal/kb-dataset-binding-v2.json，sha256 2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0，9638 字节。
+    - 钉住三个 profile 及其 schema 摘要、两份发布物、两份语料、关键词集（清单 7fba28f0…，关键词 90eed4d5…）、嵌入缓存（139,354 个向量，5980758d…）、镜像与源文件（含新 DDL a18ea827…）。
+    - 正式轮发射前需作者签署；先做彩排。

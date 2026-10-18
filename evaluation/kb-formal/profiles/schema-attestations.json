@@ -3,8 +3,11 @@
  "note": "Reporting-surface digests of the knowledge-product business database, from kb-formal-profile -attest against a fresh formal deployment; every formal deployment's live attestation must equal them.",
  "profiles": {
   "kb-20k-large": "67cbe85d3850147a192d6dc4990bc77a39ba4310dba052d0d0f4087efc2a2fa7",
+  "kb-20kkw-large": "c73cf04069a61131b905dca313adf3b3f9a0abcddfb16efe29ceb7f5dfb1016f",
   "kb-v2-large": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
   "kb-v2-pilot": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
-  "kb-v2c-pilot": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8"
+  "kb-v2c-pilot": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8",
+  "kb-v2kw-large": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8",
+  "kb-v2kw-pilot": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8"
  }
 }

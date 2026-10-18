@@ -25,11 +25,12 @@
     "ekb8-96k"
    ],
    "catalog": "kb-20kkw-large.catalog.yaml",
-   "catalog_sha256": "f62735ee0a4d4b947f8d23db12084448def42b83f66c01790063200db188c4f6",
+   "catalog_sha256": "0584f19f3754b27aa4bb0e90edf46e2228f9033c601c66253b9beb4cd56f7940",
    "principal_attributes": "kb-20kkw-large.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "6067be5902be8bb14245d327ea816c7646ab853d7c72ab86605b86690912830a",
-   "schema_digest_attested": false,
+   "schema_digest": "c73cf04069a61131b905dca313adf3b3f9a0abcddfb16efe29ceb7f5dfb1016f",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   },
   {
@@ -93,11 +94,12 @@
     "ekb8-48k"
    ],
    "catalog": "kb-v2kw-large.catalog.yaml",
-   "catalog_sha256": "cc87921b78ae426f1769110438ca4ab72c251baa262ad50d6d4485582b23e8f8",
+   "catalog_sha256": "4a6d4e53ad552fa36095b15916f9a0419c564cbaed4dd6ddcdfe5b3abc944e15",
    "principal_attributes": "kb-v2kw-large.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
-   "schema_digest_attested": false,
+   "schema_digest": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   },
   {
@@ -108,11 +110,12 @@
     "ekb7"
    ],
    "catalog": "kb-v2kw-pilot.catalog.yaml",
-   "catalog_sha256": "80d359171bd40db8546eda5e33af502745594b3d3a0d10d887f16a5fda2203e3",
+   "catalog_sha256": "7eb83a64df91878245d6fbe40b39da4c74d23132f7194b104f823ee24d16b87f",
    "principal_attributes": "kb-v2kw-pilot.principal-attributes.yaml",
    "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
    "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
-   "schema_digest_attested": false,
+   "schema_digest": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8",
+   "schema_digest_attested": true,
    "eligibility_subjects": 0
   }
  ]
