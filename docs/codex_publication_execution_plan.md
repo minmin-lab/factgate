@@ -2075,3 +2075,8 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **论文**：主稿"可复现边界"改为"knowledge-product rounds and corpora, doi:… and …"；补充材料评估引言给出第二轮的类别、登记摘要与存证（288 个文件，DOI）。
   - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=711 不变，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。从 PDF 抽取核对 DOI 渲染正确。
   - **阶段 6 小结**：关键词检索从作者决定（11:38）到正式证据与存证进论文（17:08），K6.1–K6.8 全部完成。留待作者：审阅主稿改动，先后移出的四段在补充材料 Passages Moved。
+
+- [2026-10-18 17:20 UTC+8] KB1-LOOP-113 **作者审阅意见：引言"lakes or warehouses"重复，只保留 warehouses**。依据：作者原话"【数据湖或数仓】重复了，只保留数仓就行了"（在中文阅读版上标注）。
+  - main.tex:131 改为"Large enterprises operate warehouses, reporting marts, …"，中文阅读版同步改为"数仓"。
+  - make paper 退出 0，主稿 12 页，check-rendered 补充材料 0 项、主稿只有既有两项。
+  - 其余三处单独出现的 lake（main.tex:145"never exposes the raw lake"、:1150"surrounding lake, Catalog, …"、补充材料接口表"Lake / warehouse"行）不是重复，未改，已报作者另定。
