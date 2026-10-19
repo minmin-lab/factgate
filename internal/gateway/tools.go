@@ -27,8 +27,9 @@ var queryTools = []mcp.Tool{
 		"name": map[string]any{"type": "string", "minLength": 1},
 	}, "name"), Annotations: map[string]any{"readOnlyHint": true}},
 	{Name: "get_sql_capabilities", Description: "读取 TaskGate 报表 SQL profile 及可无损转换为规范 QueryPlan 的受限语法能力。", InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。", InputSchema: objectSchema(map[string]any{
+	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。approver 可选：指定审批人（缺省按目录路由）；无论谁审批，TaskGate 都在签发授权前按数据产品规则核验审批人，无权者批准也不签发。", InputSchema: objectSchema(map[string]any{
 		"objective":             map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+		"approver":              map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 		"parent_task_id":        map[string]any{"type": "string", "minLength": 1},
 		"delegate_principal_id": map[string]any{"type": "string", "minLength": 1},
 		"data_products":         map[string]any{"type": "array", "items": map[string]any{"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},

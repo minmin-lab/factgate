@@ -312,6 +312,10 @@ approval_routes:
   - 路由带 `verify_approver: true` 时，审批人必须在主体属性快照中，并且按与申请人相同的资格包络，对所申请的全部范围都有资格。例如没有 leadership 密级的人不能审批 leadership 任务。不满足即在建 OA 草稿前以 `APPROVER_NOT_AUTHORIZED` 拒绝。
   - 审批人的资格裁决与申请人的一并记入任务的私有记录。
   - 两道门各管一边：申请人的资格包络决定能申请什么，审批人的资格决定谁有权批。
+- 申请人自选审批人（`request_data_task` 与 `request_download_task` 的可选 `approver`）：覆盖目录路由，相当于审批流被手工改派或配错。
+  - 自选的审批人仍不得是申请人本人，否则请求时即以 `APPROVER_NOT_AUTHORIZED` 拒绝；其余情况照常建 OA 草稿，返回值的 `approver_authorized` 预告该审批能否生效。
+  - 审批回调到达时，TaskGate 按数据产品规则（与申请人相同的资格包络）对实际审批人、针对批准后（可能已缩小）的范围再核一次。不通过则不签发授权，任务以终止原因 `approver_not_authorized` 归档。
+  - 走 verify_approver 路由的审批同样在回调时复核。所以即使 OA 流程配错、让无权者批准，也拿不到授权；审批人缩小掉自己无权批的范围后，批准有效。
 
 ```yaml
 approval_routes:

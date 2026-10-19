@@ -323,7 +323,8 @@ func allowedTransition(from, to TaskState, reason TerminalReason) bool {
 			return false
 		}
 		switch reason {
-		case TerminalCompleted, TerminalBudgetExhausted, TerminalRejected, TerminalExpired, TerminalRevoked, TerminalFailed:
+		case TerminalCompleted, TerminalBudgetExhausted, TerminalRejected, TerminalExpired, TerminalRevoked, TerminalFailed,
+			TerminalApproverNotAuthorized:
 		default:
 			return false
 		}

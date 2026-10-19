@@ -2332,3 +2332,18 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - list_data_products 增 approval_routes（敏感级、产品集合、scope_condition、approver、budget_profile、verify_approver）与一句路由规则说明；
     - request_data_task（及 request_download_task）的返回值增 approver 与 approval_route。
   - **测试**：新增 TestRoutingIsPublishedAndTheResolvedApproverReturned；网关全包通过（db-test-env）。
+
+- [2026-10-19 10:32 UTC+8] KB1-LOOP-132 **作者定：申请时自由选审批人，TaskGate 按数据产品规则在签发授权时拦截**。
+  - **作者原话**："让agetn 提交任务，选人的时候自由选择。 但是factgate 会根据 权限做拦截。 这样比较好demo。 demo的场景是 即使OA流程配错了，factgate 也能根据数据产品的规则正确的拦截。"
+  - **实现**：
+    - request_data_task 与 request_download_task 加可选 approver，覆盖目录路由。
+    - 请求时只拦自批（APPROVER_NOT_AUTHORIZED）；其余照常建草稿，返回 approver_chosen_by_requester 与 approver_authorized（预告）。
+    - 审批回调中，对自选审批人与 verify_approver 路由，按数据产品的资格包络、针对批准后（可能已缩小）的范围复核实际审批人。不通过即不签发，任务以新的终止原因 approver_not_authorized 归档；回调返回 granted:false，OA 不再重试。
+    - control.allowedTransition 已登记该终止原因。
+  - **测试**：
+    - TestChosenApproverIsVerifiedWhenTheApprovalArrives：
+      - 选 bob 审批含 leadership 的任务，bob 在 OA 批准后任务归档为 approver_not_authorized，无授权；
+      - 选 dana 获授权；
+      - bob 缩小掉 leadership 后批准有效；
+      - 选自己当场被拒且无草稿。
+    - 回归：网关、control、OA、目录、cmd 合计 284 过、8 跳过、0 败。

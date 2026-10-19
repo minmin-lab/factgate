@@ -159,6 +159,21 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 			writeCallbackError(w, http.StatusConflict, "delegated grant exceeds or outlives its parent")
 			return
 		}
+		// Whoever the approval flow let decide, the data products' rules decide
+		// whether that approval can grant anything: an approver outside the
+		// envelope of the approved scope gets the task archived, no grant.
+		if pending.VerifyApprover && !s.approvalAuthorized(finalGrant.Core.ApprovedProducts, event.Actor, finalGrant.Core.MandatoryScope, s.clock().UTC()) {
+			if s.logger != nil {
+				s.logger.Warn("OA approval by an approver the data products do not allow; no grant issued",
+					"task_id", task.ID, "event_id", event.EventID, "approver", event.Actor)
+			}
+			callback.ExpectedState = control.TaskAwaitingApproval
+			callback.NewState = control.TaskArchived
+			callback.Reason = control.TerminalApproverNotAuthorized
+			callback.Response = []byte(`{"ok":true,"granted":false,"terminal_reason":"approver_not_authorized"}`)
+			response = callback.Response
+			break
+		}
 		scope, err := json.Marshal(finalGrant.Core.MandatoryScope)
 		if err != nil {
 			writeCallbackError(w, http.StatusBadRequest, "approved scope is invalid")

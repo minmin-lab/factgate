@@ -71,6 +71,11 @@ type taskRequestArgs struct {
 	DataProducts        []string            `json:"data_products"`
 	Columns             map[string][]string `json:"columns"`
 	Scopes              map[string]any      `json:"scopes"`
+	// Approver optionally names who approves, overriding the Catalog route
+	// (as a misconfigured or hand-routed approval flow would). The approver is
+	// checked against the data products' rules when the approval arrives, so
+	// a wrong choice yields no grant.
+	Approver string `json:"approver,omitempty"`
 }
 
 func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
@@ -197,10 +202,17 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if err != nil {
 		return nil, err
 	}
-	// The resolved approver must be allowed to approve this task before any
-	// draft exists: never the requester, and, when the route says so, someone
-	// eligible for everything the task requests.
-	approverEligibility, err := s.authorizeApprover(policy, humanSubject, scope, now)
+	// The approver: the Catalog route's, or the requester's choice. A route's
+	// approver must be allowed before any draft exists (never the requester,
+	// and, when the route verifies, eligible for everything requested). A
+	// chosen approver is never the requester either, but is otherwise verified
+	// when the approval arrives: the approval flow runs and the grant is
+	// refused if they may not approve.
+	chosenApprover := strings.ToLower(strings.TrimSpace(args.Approver))
+	if chosenApprover != "" {
+		policy.ApprovalRoute.Approver = chosenApprover
+	}
+	approverEligibility, approverAuthorized, err := s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != "")
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +306,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
+		VerifyApprover: policy.ApprovalRoute.VerifyApprover || chosenApprover != "", ApproverChosen: chosenApprover != "",
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -318,6 +331,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		"task_id": taskID, "state": control.TaskAwaitingSubmission, "oa_url": draft.URL,
 		"approval_mode": string(policy.ApprovalRoute.Mode), "sensitivity": string(policy.Sensitivity),
 		"approver": policy.ApprovalRoute.Approver, "approval_route": publicApprovalRoute(policy.ApprovalRoute),
+		"approver_chosen_by_requester": chosenApprover != "", "approver_authorized": approverAuthorized,
 		"catalog_version": s.catalog.CatalogVersion, "datasource_id": evidence.DatasourceID,
 		"budget_source": budgetSource, "budget_profile": policy.BudgetProfile,
 		"schema_digest": evidence.SchemaDigest, "manifest_digest": snapshotSHA256,

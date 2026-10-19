@@ -64,6 +64,7 @@ var requestDownloadTaskTool = mcp.Tool{Name: "request_download_task",
 		"include_values": map[string]any{"type": "boolean"},
 		"original_file":  map[string]any{"type": "boolean"},
 		"scopes":         map[string]any{"type": "object"},
+		"approver":       map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 	}, "objective", "knowledge_product", "documents")}
 
 var downloadDocumentTool = mcp.Tool{Name: downloadToolName,
@@ -125,6 +126,7 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 		IncludeValues    bool             `json:"include_values,omitempty"`
 		OriginalFile     bool             `json:"original_file,omitempty"`
 		Scopes           map[string]any   `json:"scopes,omitempty"`
+		Approver         string           `json:"approver,omitempty"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
@@ -172,7 +174,7 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 		}
 	}
 	result, err := s.createTask(ctx, principal, taskRequestArgs{Objective: args.Objective, DataProducts: products,
-		Columns: columns, Scopes: scopes}, map[string]any{kbdownload.ScopeKey: list})
+		Columns: columns, Scopes: scopes, Approver: args.Approver}, map[string]any{kbdownload.ScopeKey: list})
 	if err != nil {
 		return nil, err
 	}

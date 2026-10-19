@@ -27,6 +27,10 @@ const (
 	TerminalExpired         TerminalReason = "expired"
 	TerminalRevoked         TerminalReason = "revoked"
 	TerminalFailed          TerminalReason = "failed"
+	// TerminalApproverNotAuthorized archives a task whose approval came from
+	// someone the data products' rules do not allow to approve it: no grant is
+	// issued, whatever the approval flow decided.
+	TerminalApproverNotAuthorized TerminalReason = "approver_not_authorized"
 )
 
 type Principal struct {

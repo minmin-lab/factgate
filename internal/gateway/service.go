@@ -159,6 +159,11 @@ type pendingContext struct {
 	// ApproverEligibility is the same compilation for the route's approver
 	// when the route verifies its approver (catalog ApprovalRoute.VerifyApprover).
 	ApproverEligibility *eligibilityVerdict `json:"approver_eligibility,omitempty"`
+	// VerifyApprover makes the approval callback re-check the actual approver
+	// against the data products' rules before any grant is issued: set by a
+	// verifying route and always for an approver the requester chose.
+	VerifyApprover bool `json:"verify_approver,omitempty"`
+	ApproverChosen bool `json:"approver_chosen,omitempty"`
 }
 
 func New(config Config) (*Service, error) {
