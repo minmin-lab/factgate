@@ -2373,3 +2373,19 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 其"范围覆盖全密级，命中 leadership 路由"的解释正确；"按产品敏感级"一语不准，产品敏感级只选基础路由，dana 是范围条件选出的。
     - 若给最窄范围 {sales, internal}，会路由到 bob，且仍能取回全文。
   - **改动**（只加提示，语义不变）：request_download_task 的描述说明缺省范围的后果，并建议给最窄 scopes；返回值增 scopes_defaulted_to_envelope。网关全包通过（db-test-env）。
+
+- [2026-10-19 18:05 UTC+8] KB1-LOOP-136 **为同事 lzj 准备经 Tailscale 访问演示栈（发布待作者授一次 operator）**。
+  - **作者选择**：lzj 用自己的账号 "Own account for lzj (Recommended)"；审批人口令也给 lzj，选 "lzj also gets bob/dana (Recommended)"；lzj 已是 tailnet 成员，选 "Already a member"。
+  - **事实**：
+    - Tailscale 运行在 WSL 内，节点 wmm-wsl 100.68.97.89，HTTPS 证书可用（wmm-wsl.tail8b36e9.ts.net）。
+    - auth 仓库 nas/tailscale-policy.hujson 的 ACL 为 src * → dst *:*，tailnet 内所有设备都能连 wmm-wsl 任一端口，所以真正的门是令牌与口令。
+    - 未使用 auth 仓库中的 Tailscale API key。
+  - **改动**：
+    - OA 演示支持可配置的额外账号（OA_EXTRA_USERS 与 OA_<NAME>_PASSWORD），登录页动态列出全部账号；新增单测（申请人只能提交自己的单；冲突或缺口令的配置被拒）。提交 2f559a5，OA 镜像 07a941bd…。
+    - 根 .env 追加 LZJ_MCP_TOKEN、OA_LZJ_PASSWORD、OA_EXTRA_USERS=lzj:requester（未打印）；GATEWAY_PUBLIC_BASE_URL 改为 https://wmm-wsl.tail8b36e9.ts.net；演示 overlay 把 OA 公开地址改为 :8443。
+    - 主体文件加 principal_lzj（只存令牌摘要），属性快照加 lzj。
+  - **本机核对**：以 lzj 令牌经 8083 建任务成功，路由到 bob，返回的 oa_url 已是 tailnet 地址；lzj 登录 OA 提交成功；网关载入 61 个文件主体。
+  - **待办**：
+    - tailscale serve 需要 root 或 operator：`sudo tailscale set --operator=$USER` 需作者执行一次（sudo 要口令），随后运行 /home/wmm/kb-demo/tailscale-publish.sh。
+    - 只发布 /mcp、两个签名下载路径和 OA(:8443)；不用 Funnel。撤销用 tailscale-unpublish.sh。
+    - 给 lzj 的说明在 /home/wmm/kb-demo/for-lzj.md，不含机密。
