@@ -302,7 +302,23 @@ approval_routes:
 ```
 
 - 只允许 `mode: manual`；自动任务审批已关闭。
-- 每条路由必须配置非空 `approver`；OA Demo 只接受 `bob`。
+- 每条路由必须配置非空 `approver`。OA Demo 的审批人有 `bob`，以及配置了 `OA_DANA_PASSWORD` 时的 `dana`；每个审批人只能看到并审批点名给自己的草稿。
+- 按范围条件选审批人（可选 `scope_condition`）：例如 `{classification: [leadership]}`，任务强制范围含任一所列值时命中。
+  - 有条件的路由按声明顺序优先于同一敏感级、同一产品集合的无条件路由，并且必须有这样一条无条件兜底路由。
+  - 条件只能写目录的枚举范围及其允许值（排序、去重）。
+  - 条件只决定谁来审批和用哪个预算，不改变授予的内容。
+- 审批人权限：
+  - 审批人永远不能是任务的申请人本人（`APPROVER_NOT_AUTHORIZED`）。
+  - 路由带 `verify_approver: true` 时，审批人必须在主体属性快照中，并且按与申请人相同的资格包络，对所申请的全部范围都有资格。例如没有 leadership 密级的人不能审批 leadership 任务。不满足即在建 OA 草稿前以 `APPROVER_NOT_AUTHORIZED` 拒绝。
+  - 审批人的资格裁决与申请人的一并记入任务的私有记录。
+  - 两道门各管一边：申请人的资格包络决定能申请什么，审批人的资格决定谁有权批。
+
+```yaml
+approval_routes:
+  - {sensitivity: high, mode: manual, approver: bob, budget_profile: kb-large-v1, verify_approver: true}
+  - {sensitivity: high, mode: manual, approver: dana, budget_profile: kb-large-v1, verify_approver: true,
+     scope_condition: {classification: [leadership]}}
+```
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。
 

@@ -167,9 +167,32 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 
 	routes := make(map[domain.Sensitivity]ApprovalRoute, len(c.ApprovalRoutes))
 	scopedRouteSets := make(map[string]struct{}, len(c.ApprovalRoutes))
+	scopeDefinitions := make(map[string]Scope, len(c.Scopes))
+	for _, scope := range c.Scopes {
+		scopeDefinitions[scope.Name] = scope
+	}
+	unconditioned := make(map[string]struct{}, len(c.ApprovalRoutes))
+	conditions := make(map[string]struct{}, len(c.ApprovalRoutes))
+	for _, route := range c.ApprovalRoutes {
+		if len(route.ScopeCondition) == 0 {
+			unconditioned[route.routeKey()] = struct{}{}
+		}
+	}
 	for index, route := range c.ApprovalRoutes {
 		path := fmt.Sprintf("approval_routes[%d]", index)
 		problems = append(problems, validateApprovalRoute(path, route, profiles)...)
+		if len(route.ScopeCondition) > 0 {
+			problems = append(problems, validateScopeCondition(path+".scope_condition", route.ScopeCondition, scopeDefinitions)...)
+			if _, ok := unconditioned[route.routeKey()]; !ok {
+				problems = append(problems, fieldError(path+".scope_condition", "a conditioned route needs an unconditioned route for the same sensitivity and products", ErrInvalidApprovalRoute))
+			}
+			condition, _ := CanonicalDeclarationDigest(route.ScopeCondition)
+			if _, duplicate := conditions[route.routeKey()+"\x00"+condition]; duplicate {
+				problems = append(problems, fieldError(path+".scope_condition", "conditioned approval route is duplicated", ErrInvalidApprovalRoute))
+			}
+			conditions[route.routeKey()+"\x00"+condition] = struct{}{}
+			continue
+		}
 		if route.Sensitivity != "" && len(route.Products) == 0 {
 			if _, exists := routes[route.Sensitivity]; exists {
 				problems = append(problems, fieldError(path+".sensitivity", "approval route is duplicated", ErrInvalidApprovalRoute))
@@ -252,7 +275,9 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 	problems = append(problems, c.validateKnowledgeProducts()...)
 	scopedProducts := make(map[string]string)
 	for index, route := range c.ApprovalRoutes {
-		if len(route.Products) == 0 {
+		// A conditioned route shares its fallback's product set and is
+		// checked through it.
+		if len(route.Products) == 0 || len(route.ScopeCondition) > 0 {
 			continue
 		}
 		path := fmt.Sprintf("approval_routes[%d].products", index)
@@ -396,6 +421,33 @@ func validateBudgetProfile(path string, profile BudgetProfile) ValidationErrors 
 	}
 	if profile.ExposureProfileVersion != "" && profile.ExposureProfileVersion != "taskgate-exposure-v2" && profile.ExposureProfileVersion != "taskgate-exposure-v3" && profile.ExposureProfileVersion != "taskgate-exposure-v4" && profile.ExposureProfileVersion != "taskgate-exposure-v5" {
 		problems = append(problems, fieldError(path+".exposure_profile_version", "catalog profiles must use taskgate-exposure-v2, taskgate-exposure-v3, taskgate-exposure-v4, or taskgate-exposure-v5", ErrInvalidBudgetProfile))
+	}
+	return problems
+}
+
+// validateScopeCondition requires every condition to name a Catalog enum scope
+// and list sorted, distinct values that scope admits.
+func validateScopeCondition(path string, condition map[string][]string, scopes map[string]Scope) ValidationErrors {
+	var problems ValidationErrors
+	for name, values := range condition {
+		scope, ok := scopes[name]
+		if !ok || scope.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(path+"."+name, "a scope condition must name a Catalog enum scope", ErrInvalidApprovalRoute))
+			continue
+		}
+		allowed := make(map[string]struct{}, len(scope.AllowedValues))
+		for _, value := range scope.AllowedValues {
+			allowed[value] = struct{}{}
+		}
+		if len(values) == 0 {
+			problems = append(problems, fieldError(path+"."+name, "a scope condition lists at least one value", ErrInvalidApprovalRoute))
+		}
+		for index, value := range values {
+			if _, ok := allowed[value]; !ok || index > 0 && values[index-1] >= value {
+				problems = append(problems, fieldError(path+"."+name, "scope condition values must be sorted, distinct values of the scope", ErrInvalidApprovalRoute))
+				break
+			}
+		}
 	}
 	return problems
 }

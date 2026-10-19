@@ -2285,3 +2285,30 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - /home/wmm/kb-demo/env 已删除。
   - 核对：OA 中 alice 与 bob 的口令摘要等于根 .env 中的；以 `-env-file .env` 跑冒烟全部通过（含 PDF 原件 61,196 字节、四部分回执）；经 8083 垫片 initialize 与工具列表正常（22 个工具，含两项下载工具）。
   - 这条规则只管本机与演示栈；正式轮的逐部署密钥按规程生成并销毁，不受影响。
+
+- [2026-10-19 08:29 UTC+8] KB1-LOOP-128 **作者定：按密级选审批人并核审批人权限（只做功能，不进论文）**。
+  - **作者原话**："如何演示 bob 无法审批 leadship 密级的文档？ alice 提交任务， bob可以审批 leadship之外的密级， 再增加一个 账号审批 leadship密级？ 这个 密级应该和 审批人身份对应还是和任务发起人对应？ 真实的企业环境，这个人和 人物的 权限该怎么治理？"
+  - **作者选择**：模型选 "Route + approver check (Recommended)"，范围选 "Feature, not paper (Recommended)"。
+  - **实查现状**（代码逐处核对）：
+    - 路由只按产品敏感级与产品集合选，不依 classification 范围（catalog/resolve.go:72-100），且在范围归一化之前解析（gateway/tasks.go:142 先于 :158）。
+    - OA 只有硬编码的 alice 与 bob（oademo/server.go:139-142），建草稿时非 bob 即拒（:212）。
+    - 审批时 OA 与网关都只核审批人名字等于路由所写（server.go:370；callback.go:376-378、:312）；无人核审批人本人的密级；网关不挡自批。
+  - **计划**（/home/wmm/.claude/plans/greedy-booping-robin.md）：
+    - 目录 ApprovalRoute 加 scope_condition；网关在范围之后解析路由，并核审批人 clearance 覆盖所批密级，且审批人不等于申请人（新码 APPROVER_NOT_AUTHORIZED）；
+    - OA 加审批人 dana（口令取自根 .env）；演示栈按 leadership → dana、其余 → bob 路由；三步演示脚本。
+
+- [2026-10-19 08:41 UTC+8] KB1-LOOP-129 **按密级选审批人与审批人权限：代码与测试完成**。
+  - **代码**：
+    - 目录 ApprovalRoute 加 scope_condition 与 verify_approver。有条件路由须有同键兜底，按声明顺序优先；条件只写枚举范围的允许值，且排序去重。新增 ResolveTaskPolicyForScope；ResolveTaskPolicy 语义不变。
+    - 网关 createTask 在范围归一化后按范围重解路由（预算随之）。新增 authorizeApprover：审批人不得是申请人；verify_approver 时审批人须在属性快照中，并按同一资格包络对所申请范围有资格。新码 APPROVER_NOT_AUTHORIZED，审批人资格裁决记入私有记录。
+    - OA：可选审批人 dana（OA_DANA_PASSWORD）；建草稿接受任一已配置审批人；审批人只看到点名给自己的草稿（补既有缺口）。
+    - docs/catalog-guide.md 已登记。
+  - **测试**（db-test-env 控制库）：
+    - 目录：TestConditionedRouteChoosesTheApproverByScope、TestConditionedRouteValidationFailsClosed。
+    - 网关：
+      - 非 leadership 请求路由到 bob、leadership 请求路由到 dana；
+      - 三种拒绝且零草稿：leadership 误路由给 bob、自批、审批人不在快照；
+      - 阳性对照：bob 持 leadership 密级时同一误路由目录被受理，证明拒绝来自审批人资格。
+    - OA（真实登录走 HTTP）：bob 看不到 dana 的草稿，审批 dana 的草稿被拒；dana 审批成功（同一机制作阳性对照）。
+    - 回归：网关、目录、OA、cmd、kbpublish、kbformal、repohygiene 合计 225 过、9 跳过、0 败。
+  - **下一步**：演示栈改路由与属性、换镜像，加三步演示脚本。

@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"strings"
 	"time"
 
 	"taskbound.local/agent-data-gateway/internal/domain"
@@ -185,6 +186,47 @@ type ApprovalRoute struct {
 	Mode          domain.ApprovalMode `yaml:"mode" json:"mode"`
 	Approver      string              `yaml:"approver,omitempty" json:"approver,omitempty"`
 	BudgetProfile string              `yaml:"budget_profile" json:"budget_profile"`
+	// ScopeCondition optionally restricts the route to tasks whose mandatory
+	// scope holds at least one listed value of a Catalog enum scope (for
+	// example classification: [leadership]). A conditioned route needs an
+	// unconditioned route for the same sensitivity or product set, takes
+	// precedence over it in declared order, and decides who approves (and
+	// under which budget), never what is granted.
+	ScopeCondition map[string][]string `yaml:"scope_condition,omitempty" json:"scope_condition,omitempty"`
+	// VerifyApprover requires the approver to be a subject of the attested
+	// attribute snapshot and to be eligible, under the same envelopes as a
+	// requester, for everything the task requests: no one approves data they
+	// could not request themselves. Off by default, so catalogs whose
+	// approvers are not in the snapshot keep their behaviour.
+	VerifyApprover bool `yaml:"verify_approver,omitempty" json:"verify_approver,omitempty"`
+}
+
+// routeKey identifies the routes that compete for one request: the same
+// sensitivity and the same exact product set (empty for sensitivity-wide).
+func (route ApprovalRoute) routeKey() string {
+	return string(route.Sensitivity) + "\x00" + strings.Join(route.Products, "\x00")
+}
+
+// Matches reports whether the route's scope condition holds for a task's
+// mandatory scope; an unconditioned route always matches.
+func (route ApprovalRoute) Matches(scope map[string][]string) bool {
+	for name, values := range route.ScopeCondition {
+		requested := make(map[string]struct{}, len(scope[name]))
+		for _, value := range scope[name] {
+			requested[value] = struct{}{}
+		}
+		matched := false
+		for _, value := range values {
+			if _, ok := requested[value]; ok {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
 }
 
 type BudgetProfile struct {

@@ -30,6 +30,7 @@ func main() {
 		PublicBaseURL:  env("PUBLIC_OA_BASE_URL", "http://127.0.0.1:8092"),
 		AlicePassword:  requiredEnv("OA_ALICE_PASSWORD"),
 		BobPassword:    requiredEnv("OA_BOB_PASSWORD"),
+		DanaPassword:   env("OA_DANA_PASSWORD", ""),
 		ReceiptSigner:  receiptSigner,
 		Logger:         logger,
 	})

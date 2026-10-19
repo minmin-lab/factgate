@@ -47,6 +47,11 @@ const (
 	CodeTaskKindMismatch        = "TASK_KIND_MISMATCH"
 	CodeDownloadNotApproved     = "DOWNLOAD_NOT_APPROVED"
 	CodeDocumentNotDownloadable = "DOCUMENT_NOT_DOWNLOADABLE"
+	// CodeApproverNotAuthorized rejects a task request whose resolved
+	// approver may not approve it: the approver is the requester, or a route
+	// that verifies its approver finds them outside the task's envelope. It
+	// never reaches the OA.
+	CodeApproverNotAuthorized = "APPROVER_NOT_AUTHORIZED"
 )
 
 // Error contains a stable machine-readable code and a client-safe explanation.

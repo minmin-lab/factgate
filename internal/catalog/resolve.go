@@ -58,7 +58,7 @@ func (c *Catalog) ApprovalRouteFor(sensitivity domain.Sensitivity) (ApprovalRout
 		return ApprovalRoute{}, false
 	}
 	for _, route := range c.ApprovalRoutes {
-		if route.Sensitivity == sensitivity && len(route.Products) == 0 {
+		if route.Sensitivity == sensitivity && len(route.Products) == 0 && len(route.ScopeCondition) == 0 {
 			return route, true
 		}
 	}
@@ -80,7 +80,7 @@ func (c *Catalog) ApprovalRouteForProducts(sensitivity domain.Sensitivity, names
 	sort.Strings(normalized)
 	scopedProductRequested := false
 	for _, route := range c.ApprovalRoutes {
-		if len(route.Products) == 0 {
+		if len(route.Products) == 0 || len(route.ScopeCondition) > 0 {
 			continue
 		}
 		if sameCatalogStrings(route.Products, normalized) {
@@ -149,6 +149,15 @@ func (c *Catalog) ResolveProducts(names []string) ([]Product, domain.Sensitivity
 }
 
 func (c *Catalog) ResolveTaskPolicy(names []string) (TaskPolicy, error) {
+	return c.ResolveTaskPolicyForScope(names, nil)
+}
+
+// ResolveTaskPolicyForScope resolves the task policy for a request whose
+// normalized mandatory scope is known: the unconditioned route for the
+// products is found as before, then the first conditioned route for the same
+// sensitivity and product set whose scope condition holds, in declared order,
+// takes its place.
+func (c *Catalog) ResolveTaskPolicyForScope(names []string, scope map[string][]string) (TaskPolicy, error) {
 	products, sensitivity, err := c.ResolveProducts(names)
 	if err != nil {
 		return TaskPolicy{}, err
@@ -160,6 +169,12 @@ func (c *Catalog) ResolveTaskPolicy(names []string) (TaskPolicy, error) {
 	route, found := c.ApprovalRouteForProducts(sensitivity, resolvedNames)
 	if !found {
 		return TaskPolicy{}, fmt.Errorf("%w: no route for sensitivity", ErrInvalidApprovalRoute)
+	}
+	for _, candidate := range c.ApprovalRoutes {
+		if len(candidate.ScopeCondition) > 0 && candidate.routeKey() == route.routeKey() && candidate.Matches(scope) {
+			route = cloneApprovalRoute(candidate)
+			break
+		}
 	}
 	profile, found := c.LookupBudgetProfile(route.BudgetProfile)
 	if !found {
@@ -190,6 +205,13 @@ func cloneProduct(product Product) Product {
 
 func cloneApprovalRoute(route ApprovalRoute) ApprovalRoute {
 	route.Products = append([]string(nil), route.Products...)
+	if route.ScopeCondition != nil {
+		condition := make(map[string][]string, len(route.ScopeCondition))
+		for name, values := range route.ScopeCondition {
+			condition[name] = append([]string(nil), values...)
+		}
+		route.ScopeCondition = condition
+	}
 	return route
 }
 

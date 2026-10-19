@@ -143,14 +143,6 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if err != nil {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
 	}
-	budgetSource := "catalog_profile"
-	if parentCore != nil {
-		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
-		if err != nil {
-			return nil, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "委托任务无法继承父任务的授权预算"}
-		}
-		budgetSource = "catalog_profile_intersect_parent_grant"
-	}
 	columns, err := resolveColumns(policy.Products, args.Columns)
 	if err != nil {
 		return nil, err
@@ -159,10 +151,32 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if err != nil {
 		return nil, err
 	}
+	// The approval route may depend on the requested scope (a conditioned
+	// route sends, for example, leadership classification to a leadership
+	// approver), so it is resolved again once the scope is normalized; its
+	// budget replaces the scope-blind one.
+	if policy, err = s.catalog.ResolveTaskPolicyForScope(args.DataProducts, scopeValueSets(scope)); err != nil {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
+	}
+	budgetSource := "catalog_profile"
+	if parentCore != nil {
+		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
+		if err != nil {
+			return nil, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "委托任务无法继承父任务的授权预算"}
+		}
+		budgetSource = "catalog_profile_intersect_parent_grant"
+	}
 	// Eligibility precedes approval: a request outside the envelope compiled
 	// from the human subject's attested attributes is rejected here and never
 	// becomes an OA draft. An approver can only narrow what passes this gate.
 	eligibility, err := s.compileEligibility(policy.Products, humanSubject, scope, now)
+	if err != nil {
+		return nil, err
+	}
+	// The resolved approver must be allowed to approve this task before any
+	// draft exists: never the requester, and, when the route says so, someone
+	// eligible for everything the task requests.
+	approverEligibility, err := s.authorizeApprover(policy, humanSubject, scope, now)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +269,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		ApprovalMode: policy.ApprovalRoute.Mode,
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
-		Eligibility: eligibility,
+		Eligibility: eligibility, ApproverEligibility: approverEligibility,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,

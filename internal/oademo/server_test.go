@@ -192,7 +192,7 @@ func TestValidateDraftRequestRejectsAutomaticApproval(t *testing.T) {
 	request := testDraftRequest(t)
 	request.ApprovalMode = "auto"
 	request.Approver = ""
-	if err := validateDraftRequest(request); err == nil {
+	if err := (&Server{users: map[string]user{}}).validateDraftRequest(request); err == nil {
 		t.Fatal("OA accepted an automatic approval draft")
 	}
 }

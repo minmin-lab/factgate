@@ -156,6 +156,9 @@ type pendingContext struct {
 	// admitted this request before any approver saw it. It is absent on
 	// requests whose Products declare no eligibility and on legacy records.
 	Eligibility *eligibilityVerdict `json:"eligibility,omitempty"`
+	// ApproverEligibility is the same compilation for the route's approver
+	// when the route verifies its approver (catalog ApprovalRoute.VerifyApprover).
+	ApproverEligibility *eligibilityVerdict `json:"approver_eligibility,omitempty"`
 }
 
 func New(config Config) (*Service, error) {
