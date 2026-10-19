@@ -49,11 +49,21 @@ type Config struct {
 	// DanaPassword, when set, adds dana as a second approver (for example the
 	// approver a Catalog routes leadership-classified requests to). Each
 	// approver sees and decides only the drafts that name them.
-	DanaPassword  string
+	DanaPassword string
+	// ExtraUsers adds further demo accounts (for example a colleague's own
+	// requester account); names must not collide with the built-in users.
+	ExtraUsers    []ExtraUser
 	HTTPClient    *http.Client
 	Logger        *slog.Logger
 	Clock         func() time.Time
 	ReceiptSigner approval.ReceiptSigner
+}
+
+// ExtraUser is one configured demo account.
+type ExtraUser struct {
+	Name     string
+	Role     string // requester or approver
+	Password string
 }
 
 type Server struct {
@@ -147,6 +157,18 @@ func New(config Config) (*Server, error) {
 		}
 		users["dana"] = user{Name: "Dana", Role: "approver", PasswordHash: danaHash}
 	}
+	for _, extra := range config.ExtraUsers {
+		name := strings.ToLower(strings.TrimSpace(extra.Name))
+		if _, exists := users[name]; exists || name == "" || extra.Password == "" || (extra.Role != "requester" && extra.Role != "approver") {
+			return nil, fmt.Errorf("invalid or duplicate extra OA user %q", extra.Name)
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(extra.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		users[name] = user{Name: extra.Name, Role: extra.Role, PasswordHash: hash}
+	}
+	config.ExtraUsers = nil
 	config.AlicePassword = ""
 	config.BobPassword = ""
 	config.DanaPassword = ""
@@ -238,8 +260,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	csrf := randomID("login")
 	http.SetCookie(w, &http.Cookie{Name: "oa_login_csrf", Value: csrf, Path: "/login", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: r.TLS != nil, MaxAge: 600})
-	_, dana := s.users["dana"]
-	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error"), "Dana": dana})
+	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error"), "Users": s.loginOptions()})
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -821,8 +842,26 @@ const pageTemplates = `
 {{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-bound OA Demo</title><style>
 body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:880px;margin:48px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:10px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8}nav{display:flex;justify-content:space-between;align-items:center}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}a{color:#1769aa;text-decoration:none}</style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
-{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">Alice 提交申请；Bob 审批明细申请。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username"><option value="alice">Alice</option><option value="bob">Bob</option>{{if .Dana}}<option value="dana">Dana</option>{{end}}</select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
+{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">Alice 提交申请；Bob 审批明细申请。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.Role}}）</option>{{end}}</select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
 {{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{.Username}} / {{.Role}}</div><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></nav>{{end}}
 {{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批任务</h1>{{range .Drafts}}<div class="card"><span class="tag">{{.State}}</span><h2><a href="/tasks/{{.ID}}">{{.Manifest.DeclaredObjective}}</a></h2><p class="muted">{{.Manifest.TaskID}} · Agent {{.Manifest.AgentID}} · {{.Manifest.Sensitivity}} · {{.ApprovalMode}}</p></div>{{else}}<div class="card"><p>暂无任务。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "task"}}{{template "head" .}}{{template "nav" .Session}}<div class="card"><span class="tag">{{.Draft.State}}</span><h1>{{.Draft.Manifest.DeclaredObjective}}</h1><dl><dt>Task ID</dt><dd>{{.Draft.Manifest.TaskID}}</dd><dt>人类主体</dt><dd>{{.Draft.Manifest.HumanSubject}}</dd><dt>Agent 身份</dt><dd>{{.Draft.Manifest.AgentID}}</dd><dt>申请数据产品</dt><dd>{{range .Draft.Manifest.Products}}{{.}} {{end}}</dd><dt>申请字段</dt><dd>{{range $product, $columns := .Draft.Manifest.ApprovedColumns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := .Draft.Manifest.MandatoryScope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>敏感级别上限</dt><dd>{{.Draft.Manifest.Sensitivity}}</dd><dt>全部预算与有效期</dt><dd>最大查询次数 {{.Draft.Manifest.Budget.MaxQueries}}；最大返回行数 {{.Draft.Manifest.Budget.MaxResultRows}}；最大数据库时间 {{.Draft.Manifest.Budget.MaxDBMS}} ms；单次查询超时 {{.Draft.Manifest.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{.Draft.Manifest.Budget.TaskTTLMS}} ms</dd><dt>审批方式</dt><dd>{{.Draft.ApprovalMode}}{{if .Draft.Approver}} / {{.Draft.Approver}}{{end}}</dd><dt>目录版本 / SHA-256</dt><dd>{{.Draft.Manifest.CatalogVersion}} / <code>{{.Draft.Manifest.CatalogSHA256}}</code></dd><dt>Manifest SHA-256</dt><dd><code>{{.Draft.ManifestDigest}}</code></dd></dl>{{if and (eq .Session.Role "requester") (eq .Draft.State "draft")}}<form method="post" action="/tasks/{{.Draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}{{if and (eq .Session.Role "approver") (eq .Draft.State "pending")}}<form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">按原申请批准</button></form> <form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form><form class="narrow" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p><label>产品（JSON 数组或逗号分隔）<br><textarea name="approved_products" required>{{json .Draft.Manifest.Products}}</textarea></label></p><p><label>字段（JSON 对象）<br><textarea name="approved_columns" required>{{json .Draft.Manifest.ApprovedColumns}}</textarea></label></p><p><label>强制范围（枚举可取子集，日期区间可收紧）<br><textarea name="mandatory_scope" required>{{json .Draft.Manifest.MandatoryScope}}</textarea></label></p><div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxQueries}}" value="{{.Draft.Manifest.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxResultRows}}" value="{{.Draft.Manifest.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxDBMS}}" value="{{.Draft.Manifest.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" value="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.TaskTTLMS}}" value="{{.Draft.Manifest.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}</div><p><a href="/tasks">← 返回任务列表</a></p>{{template "foot" .}}{{end}}
 `
+
+// loginOption is one account offered on the login page.
+type loginOption struct{ ID, Name, Role string }
+
+// loginOptions lists the configured accounts, requesters first, then by name.
+func (s *Server) loginOptions() []loginOption {
+	options := make([]loginOption, 0, len(s.users))
+	for id, account := range s.users {
+		options = append(options, loginOption{ID: id, Name: account.Name, Role: account.Role})
+	}
+	sort.Slice(options, func(i, j int) bool {
+		if options[i].Role != options[j].Role {
+			return options[i].Role == "requester"
+		}
+		return options[i].ID < options[j].ID
+	})
+	return options
+}

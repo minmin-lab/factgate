@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"taskbound.local/agent-data-gateway/internal/approval"
 )
 
 // A second approver (dana) is configured by password; each approver sees and
@@ -145,4 +147,60 @@ func act(t *testing.T, client *http.Client, base, draft, action string, values u
 func decide(t *testing.T, client *http.Client, base, draft string, _ *Server) int {
 	t.Helper()
 	return act(t, client, base, draft, "decision", url.Values{"decision": {"approved"}})
+}
+
+// An extra requester (a colleague's own account) logs in and submits only the
+// drafts whose human subject they are; malformed or colliding extra users are
+// refused at start.
+func TestExtraRequesterSubmitsOwnDrafts(t *testing.T) {
+	callback := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	defer callback.Close()
+	base := Config{ServiceToken: "service", CallbackSecret: "callback", SessionSecret: "session", CallbackURL: callback.URL,
+		AlicePassword: "alice-pass", BobPassword: "bob-pass"}
+	for _, bad := range [][]ExtraUser{{{Name: "bob", Role: "requester", Password: "x"}}, {{Name: "lzj", Role: "admin", Password: "x"}}, {{Name: "lzj", Role: "requester"}}} {
+		config := base
+		config.ExtraUsers = bad
+		if _, err := New(config); err == nil {
+			t.Fatalf("accepted extra users %+v", bad)
+		}
+	}
+	config := base
+	config.ExtraUsers = []ExtraUser{{Name: "lzj", Role: "requester", Password: "lzj-pass"}}
+	server, err := New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpServer := httptest.NewServer(server.Handler())
+	defer httpServer.Close()
+	if page := get(t, http.DefaultClient, httpServer.URL+"/login"); !strings.Contains(page, `value="lzj"`) {
+		t.Fatal("the login page does not offer lzj")
+	}
+	request := testDraftRequest(t)
+	request.Manifest.HumanSubject = "lzj"
+	digest, err := approval.ManifestDigest(request.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.ManifestDigest = digest
+	body, _ := json.Marshal(request)
+	post, _ := http.NewRequest(http.MethodPost, httpServer.URL+"/api/drafts", strings.NewReader(string(body)))
+	post.Header.Set("Authorization", "Bearer service")
+	response, err := http.DefaultClient.Do(post)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var created map[string]any
+	if response.StatusCode != http.StatusCreated || json.NewDecoder(response.Body).Decode(&created) != nil {
+		t.Fatalf("create lzj draft: %d", response.StatusCode)
+	}
+	response.Body.Close()
+	draft := created["draft_id"].(string)
+	alice := login(t, httpServer.URL, "alice", "alice-pass")
+	if status := act(t, alice, httpServer.URL, draft, "submit", nil); status == http.StatusOK {
+		t.Fatal("alice submitted lzj's draft")
+	}
+	lzj := login(t, httpServer.URL, "lzj", "lzj-pass")
+	if status := act(t, lzj, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("lzj could not submit their draft: %d", status)
+	}
 }

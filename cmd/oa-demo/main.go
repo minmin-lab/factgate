@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -31,6 +32,7 @@ func main() {
 		AlicePassword:  requiredEnv("OA_ALICE_PASSWORD"),
 		BobPassword:    requiredEnv("OA_BOB_PASSWORD"),
 		DanaPassword:   env("OA_DANA_PASSWORD", ""),
+		ExtraUsers:     extraUsersFromEnv(),
 		ReceiptSigner:  receiptSigner,
 		Logger:         logger,
 	})
@@ -68,4 +70,20 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// extraUsersFromEnv reads OA_EXTRA_USERS ("name:role,name:role") with each
+// password from OA_<NAME>_PASSWORD; a missing password stops the demo.
+func extraUsersFromEnv() []oademo.ExtraUser {
+	var users []oademo.ExtraUser
+	for _, entry := range strings.Split(os.Getenv("OA_EXTRA_USERS"), ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		name, role, _ := strings.Cut(entry, ":")
+		users = append(users, oademo.ExtraUser{Name: name, Role: role,
+			Password: requiredEnv("OA_" + strings.ToUpper(strings.TrimSpace(name)) + "_PASSWORD")})
+	}
+	return users
 }
