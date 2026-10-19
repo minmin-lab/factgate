@@ -2312,3 +2312,14 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - OA（真实登录走 HTTP）：bob 看不到 dana 的草稿，审批 dana 的草稿被拒；dana 审批成功（同一机制作阳性对照）。
     - 回归：网关、目录、OA、cmd、kbpublish、kbformal、repohygiene 合计 225 过、9 跳过、0 败。
   - **下一步**：演示栈改路由与属性、换镜像，加三步演示脚本。
+
+- [2026-10-19 08:48 UTC+8] KB1-LOOP-130 **演示栈：按密级选审批人三步演示通过**。
+  - **镜像与配置**：
+    - 网关 123e8a33…、OA d2c56471…，均从 8f4d0fc 构建；主机二进制同提交。
+    - 根 .env 追加 OA_DANA_PASSWORD（未打印）。演示 overlay 给 OA 传入该口令。
+    - 属性快照加 bob（密级到 confidential）与 dana（含 leadership）。
+    - 演示目录（v2）：high 与 medium 均为 leadership → dana、其余 → bob，全部 verify_approver。
+  - **实跑**：
+    1. alice 申请 public/internal/confidential，路由到 bob（kb-large-v1），bob 批准后 ACTIVE。
+    2. alice 申请含 leadership，路由到 dana；bob 的任务列表看不到该草稿，审批返回 HTTP 409；dana 批准后 ACTIVE。
+    3. demo-misroute.sh 让网关临时运行把 leadership 误配给 bob 的目录：leadership 申请在建草稿前被拒，码 APPROVER_NOT_AUTHORIZED；随后恢复真实目录，挂载路径与路由复核正确（bob / dana）。
