@@ -2347,3 +2347,9 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - bob 缩小掉 leadership 后批准有效；
       - 选自己当场被拒且无草稿。
     - 回归：网关、control、OA、目录、cmd 合计 284 过、8 跳过、0 败。
+
+- [2026-10-19 10:34 UTC+8] KB1-LOOP-133 **演示栈：自由选审批人演示通过**（网关 7ddf7633…，从 18648f9 构建）。
+  - A：含 leadership 的申请选 bob，提交时预告 approver_authorized=false；bob 在 OA 批准后，TaskGate 把任务归档为 approver_not_authorized，无授权。
+  - B：同一申请选 dana，批准后 ACTIVE。
+  - C：不含 leadership 的申请选 bob，批准后 ACTIVE。
+  - 脚本 /home/wmm/kb-demo/demo-approver.py；README 已附 TeleAgent 里的说法。
