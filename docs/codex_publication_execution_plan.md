@@ -2353,3 +2353,12 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - B：同一申请选 dana，批准后 ACTIVE。
   - C：不含 leadership 的申请选 bob，批准后 ACTIVE。
   - 脚本 /home/wmm/kb-demo/demo-approver.py；README 已附 TeleAgent 里的说法。
+
+- [2026-10-19 11:29 UTC+8] KB1-LOOP-134 **我的错：list_data_products 的路由说明与 approver 参数自相矛盾，TeleAgent 因此不肯指定审批人**。
+  - **现象**：作者转来 TeleAgent 的答复，其中称"发起方没有'指定审批人'的入口"。
+  - **实查**：经 8083 垫片，request_data_task 与 request_download_task 的 schema 都已有 approver，描述也写明可选。但 list_data_products 的 approval_routing 仍是 KB1-LOOP-131 写的"审批人由目录路由决定，申请时不能指定……"。
+  - **根因**：KB1-LOOP-132 加 approver 参数时只改了工具描述，没改同一组的说明文字；KB1-LOOP-131 写的测试只断言说明非空，没核内容与工具一致（该查没查）。
+  - **修正**：
+    - 说明改为"缺省按目录路由；也可用 approver 参数指定任一审批人；TaskGate 在签发前按数据产品规则核验，无权者批准后以 approver_not_authorized 归档"。
+    - 测试改为断言说明含"approver 参数"且不含"不能指定"。
+  - **另记**：TeleAgent 所说"昨天 10:33 指定 Bob 被拒"的工单，是我当天（10-19）10:33 运行的演示脚本场景 A（脚本代 bob 立即批准），不是"昨天"，也不是"进不去审批列表"。

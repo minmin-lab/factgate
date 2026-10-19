@@ -41,8 +41,10 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		"products":        products,
 		"scopes":          append([]catalog.Scope(nil), s.catalog.Scopes...),
 		"approval_routes": routes,
-		"approval_routing": "审批人由目录路由决定，申请时不能指定：按申请产品的最高敏感级（及产品级路由的产品集合）选路由；" +
-			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。request_data_task 的返回值给出实际路由到的 approver。",
+		"approval_routing": "缺省由目录路由选审批人：按申请产品的最高敏感级（及产品级路由的产品集合）选路由，" +
+			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。申请时也可以用 request_data_task 或 request_download_task 的 " +
+			"approver 参数指定任一审批人，覆盖路由。无论审批人从哪来，TaskGate 都在签发授权前按数据产品规则核验实际审批人：" +
+			"无权者在 OA 批准后不签发授权，任务以 approver_not_authorized 归档。返回值的 approver_authorized 预告结果。",
 	}, nil
 }
 

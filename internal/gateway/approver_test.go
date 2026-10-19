@@ -163,6 +163,12 @@ func TestRoutingIsPublishedAndTheResolvedApproverReturned(t *testing.T) {
 	if conditioned != 1 || listing["approval_routing"] == "" {
 		t.Fatalf("published routing: %d conditioned routes, note %q", conditioned, listing["approval_routing"])
 	}
+	// The note must agree with the tools: the approver parameter exists, so the
+	// note may not tell an agent that the approver cannot be chosen.
+	note, _ := listing["approval_routing"].(string)
+	if !strings.Contains(note, "approver 参数") || strings.Contains(note, "不能指定") {
+		t.Fatalf("the routing note contradicts the approver parameter: %q", note)
+	}
 	for classification, approver := range map[string]string{"internal": "bob", "leadership": "dana"} {
 		result := mustCallGatewayTool(t, harness.service, harness.alice, "request_data_task", kbTaskRequest("finance", []string{classification}))
 		if result["approver"] != approver {
