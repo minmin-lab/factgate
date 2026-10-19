@@ -31,12 +31,36 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		}
 		products = append(products, publicProduct)
 	}
+	routes := make([]map[string]any, 0, len(s.catalog.ApprovalRoutes))
+	for _, route := range s.catalog.ApprovalRoutes {
+		routes = append(routes, publicApprovalRoute(route))
+	}
 	return map[string]any{
 		"catalog_version": s.catalog.CatalogVersion,
 		"sql_profile":     catalogReportingSQLProfile,
 		"products":        products,
 		"scopes":          append([]catalog.Scope(nil), s.catalog.Scopes...),
+		"approval_routes": routes,
+		"approval_routing": "审批人由目录路由决定，申请时不能指定：按申请产品的最高敏感级（及产品级路由的产品集合）选路由；" +
+			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。request_data_task 的返回值给出实际路由到的 approver。",
 	}, nil
+}
+
+// publicApprovalRoute is what a requester may know about a route: which
+// requests it takes and who approves them.
+func publicApprovalRoute(route catalog.ApprovalRoute) map[string]any {
+	public := map[string]any{"sensitivity": route.Sensitivity, "mode": route.Mode, "approver": route.Approver,
+		"budget_profile": route.BudgetProfile}
+	if len(route.Products) > 0 {
+		public["products"] = append([]string(nil), route.Products...)
+	}
+	if len(route.ScopeCondition) > 0 {
+		public["scope_condition"] = route.ScopeCondition
+	}
+	if route.VerifyApprover {
+		public["verify_approver"] = true
+	}
+	return public
 }
 
 // taskRequestArgs is request_data_task's input.
@@ -293,6 +317,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	result := map[string]any{
 		"task_id": taskID, "state": control.TaskAwaitingSubmission, "oa_url": draft.URL,
 		"approval_mode": string(policy.ApprovalRoute.Mode), "sensitivity": string(policy.Sensitivity),
+		"approver": policy.ApprovalRoute.Approver, "approval_route": publicApprovalRoute(policy.ApprovalRoute),
 		"catalog_version": s.catalog.CatalogVersion, "datasource_id": evidence.DatasourceID,
 		"budget_source": budgetSource, "budget_profile": policy.BudgetProfile,
 		"schema_digest": evidence.SchemaDigest, "manifest_digest": snapshotSHA256,

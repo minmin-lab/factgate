@@ -2323,3 +2323,12 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     1. alice 申请 public/internal/confidential，路由到 bob（kb-large-v1），bob 批准后 ACTIVE。
     2. alice 申请含 leadership，路由到 dana；bob 的任务列表看不到该草稿，审批返回 HTTP 409；dana 批准后 ACTIVE。
     3. demo-misroute.sh 让网关临时运行把 leadership 误配给 bob 的目录：leadership 申请在建草稿前被拒，码 APPROVER_NOT_AUTHORIZED；随后恢复真实目录，挂载路径与路由复核正确（bob / dana）。
+
+- [2026-10-19 10:21 UTC+8] KB1-LOOP-131 **作者反馈 TeleAgent 说不能选 dana：属设计（申请人不能指定审批人）；补齐路由可见性，免 agent 猜测**。
+  - TeleAgent 原话称审批人"按数据范围自动路由……从历史工单规律看……大概率还是到 Dana"。
+    - "不能指定审批人"是正确的设计：申请人自选审批人，等于允许挑软审批人。
+    - "大概率、看历史工单"不对：路由由目录确定性决定。agent 之所以只能猜，是 MCP 不给它路由信息。
+  - **改动**（只加信息，语义不变）：
+    - list_data_products 增 approval_routes（敏感级、产品集合、scope_condition、approver、budget_profile、verify_approver）与一句路由规则说明；
+    - request_data_task（及 request_download_task）的返回值增 approver 与 approval_route。
+  - **测试**：新增 TestRoutingIsPublishedAndTheResolvedApproverReturned；网关全包通过（db-test-env）。

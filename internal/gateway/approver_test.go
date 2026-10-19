@@ -135,3 +135,31 @@ func TestApproverWithTheClearanceIsAdmitted(t *testing.T) {
 		t.Fatalf("drafts %+v", harness.approval.requests)
 	}
 }
+
+// A requester learns the routing before asking and the resolved approver after:
+// list_data_products publishes the routes, and the request result names the
+// approver the scope routed to.
+func TestRoutingIsPublishedAndTheResolvedApproverReturned(t *testing.T) {
+	harness := newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: routedCatalog(t, "bob", "dana"),
+		principalAttributes: approverSnapshot(t, aliceSubject+bobSubject+danaSubject)})
+	listing := mustCallGatewayTool(t, harness.service, harness.alice, "list_data_products", map[string]any{})
+	routes, _ := listing["approval_routes"].([]map[string]any)
+	conditioned := 0
+	for _, route := range routes {
+		if route["scope_condition"] != nil {
+			conditioned++
+			if route["approver"] != "dana" {
+				t.Fatalf("the published leadership route names %v", route["approver"])
+			}
+		}
+	}
+	if conditioned != 1 || listing["approval_routing"] == "" {
+		t.Fatalf("published routing: %d conditioned routes, note %q", conditioned, listing["approval_routing"])
+	}
+	for classification, approver := range map[string]string{"internal": "bob", "leadership": "dana"} {
+		result := mustCallGatewayTool(t, harness.service, harness.alice, "request_data_task", kbTaskRequest("finance", []string{classification}))
+		if result["approver"] != approver {
+			t.Fatalf("%s request returned approver %v, want %s", classification, result["approver"], approver)
+		}
+	}
+}
