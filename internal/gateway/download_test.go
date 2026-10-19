@@ -24,7 +24,7 @@ func TestRequestDownloadTaskCarriesTheApprovedList(t *testing.T) {
 		"objective": "下载两份合同", "knowledge_product": "policy_kb", "include_values": true,
 		"documents": []map[string]any{{"doc_id": "D-2", "version": 1}, {"doc_id": "D-1", "version": 1}},
 	})
-	if result["task_kind"] != "download" || !reflect.DeepEqual(result["documents"], []string{"D-1@1", "D-2@1"}) {
+	if result["task_kind"] != "download" || !reflect.DeepEqual(result["documents"], []string{"D-1@1", "D-2@1"}) || result["scopes_defaulted_to_envelope"] != true {
 		t.Fatalf("result %v", result)
 	}
 	if len(harness.approval.requests) != 1 {

@@ -2362,3 +2362,14 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 说明改为"缺省按目录路由；也可用 approver 参数指定任一审批人；TaskGate 在签发前按数据产品规则核验，无权者批准后以 approver_not_authorized 归档"。
     - 测试改为断言说明含"approver 参数"且不含"不能指定"。
   - **另记**：TeleAgent 所说"昨天 10:33 指定 Bob 被拒"的工单，是我当天（10-19）10:33 运行的演示脚本场景 A（脚本代 bob 立即批准），不是"昨天"，也不是"进不去审批列表"。
+
+- [2026-10-19 13:21 UTC+8] KB1-LOOP-135 **作者问"D-004521 是 internal 却路由给 Dana"对不对：机制按规则运作，但请求范围远超所需；补最小权限提示**。
+  - **实查**：
+    - 下载任务 task_c0d373ad… 的强制范围是 12 个部门与 4 个密级（含 leadership）。原因是 request_download_task 未给 scopes，按设计取申请人的整个资格包络，因此命中 leadership 条件路由，审批人为 dana。
+    - 13:14:09 alice 提交，13:14:39 dana 批准，任务随后以 completed 归档。
+    - D-004521 本身为 sales、internal，5 个分块全部为 internal。
+  - **判断**：
+    - TeleAgent"internal → Bob"的前提不对：路由依任务请求的范围，不依文档本身的密级。
+    - 其"范围覆盖全密级，命中 leadership 路由"的解释正确；"按产品敏感级"一语不准，产品敏感级只选基础路由，dana 是范围条件选出的。
+    - 若给最窄范围 {sales, internal}，会路由到 bob，且仍能取回全文。
+  - **改动**（只加提示，语义不变）：request_download_task 的描述说明缺省范围的后果，并建议给最窄 scopes；返回值增 scopes_defaulted_to_envelope。网关全包通过（db-test-env）。
