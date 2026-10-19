@@ -2275,3 +2275,13 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **冒烟**（policy_kb 与 policy_kb_small 各一次）全部通过：
     - 原件段 D-008682 经网关地址取回 61,196 字节 PDF（%PDF 头），sha256 ed223420… 等于渲染清单与磁盘文件；四部分回执验签；带 Content-Digest 头。
     - 组装文件、清单外拒绝、双向种类分离、CHUNK_NOT_RETURNED、NOT_ELIGIBLE 同时通过。
+
+- [2026-10-19 08:13 UTC+8] KB1-LOOP-127 **演示栈改用项目根目录 .env**（作者原话："env 就用 项目根目录的 .env，不要在其它地方创建。"）。
+  - 根 .env（0600、gitignore）原有 60 个变量。
+    - 演示需要而缺的只有原件桶读者的两把钥匙，已生成并追加，未打印。
+    - 其 alice 令牌与作者 MCP 配置中的令牌相同（逐字节比较，未打印）。
+    - compose 读取的非机密设置（travel_demo、25434、29000/29001、127.0.0.1:8082）与演示脚本一致。
+  - 演示脚本（lib、up、approve、README）改指根 .env。数据库口令在初始化时写入卷，所以演示栈 down -v 后重建（08:09–08:12，10,469 个原件、8 个关系、两发布期激活）。
+  - /home/wmm/kb-demo/env 已删除。
+  - 核对：OA 中 alice 与 bob 的口令摘要等于根 .env 中的；以 `-env-file .env` 跑冒烟全部通过（含 PDF 原件 61,196 字节、四部分回执）；经 8083 垫片 initialize 与工具列表正常（22 个工具，含两项下载工具）。
+  - 这条规则只管本机与演示栈；正式轮的逐部署密钥按规程生成并销毁，不受影响。
