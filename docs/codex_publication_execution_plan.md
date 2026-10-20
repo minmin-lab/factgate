@@ -2457,3 +2457,19 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 修复：预检先查在途预留，再查耗尽，与 ReserveBudget 自身的顺序一致。属行为变化：并发同任务请求由 BUDGET_EXHAUSTED 改为 CONFLICT/QUERY_IN_PROGRESS。
       - 依赖面：论文只写 EXPOSURE_BUDGET_EXHAUSTED；KB 正式驱动与冒烟不发并发请求（无 goroutine）；final-v5 适配器只认 EXPOSURE_BUDGET_EXHAUSTED。
     - 实跑：用同一 request_id 重试按新查询完成，不是重放。网关全包 146 过、0 败、8 跳过。
+  - **提交 4（知识产品上发现面，申请时预告就绪情况）**：新文件 gateway/knowledge_discovery.go。
+    - **list_data_products**：新增 knowledge_products，各关系产品标注 knowledge_product{name, role}。describe_data_product 查不到产品时回落到知识产品（目录禁止重名）。
+    - **知识产品页的内容**：
+      - retrieval：k_max、exact、keyword、三种查询方式与限额（text 为归一化后 4096 字节，新常量 retrieval.MaxQueryTextBytes，由测试与 commitQuery 的边界绑定）、结果列、按设计不回分数；
+      - attributes：类型、allowed_values（作用域属性取其 Scope 的值）、实际可执行的 search 算子（text_set 为空并注明）与 filter_columns；
+      - extracted_fields：可用聚合与计划所读的列；
+      - task_requirements：search 与 fetch 的关系和必需列、aggregate 各字段、下载改用 request_download_task。
+      - 不发布 collection、source_namespace、embedding 权重与 eligibility。
+    - **单一真源**：search 与 fetch 的列取自 RetrievalRequiredColumns；filter_columns 是加过滤属性后多出的列；aggregate 要求直接运行 aggregatePlan（提交 0 钉住的同一函数），再按 values 关系的 allowed_aggregates 过滤（编译器 compiler.go:223 按它核对）。
+    - **knowledge_readiness**：request_data_task（basis=requested，注明审批人可能删减）与 get_task_context（basis=approved）按申请或授权的产品与列预告 search/fetch/aggregate 能否用、缺哪些关系或列、哪些属性可过滤，以及暴露 profile 是否为 V5。只作信息，从不让请求失败；下载任务不给。
+    - **工具描述**：list_data_products、describe_data_product、request_data_task 的描述提到上述内容。
+    - **实跑**：
+      - 纯测：发现页的 search 与 fetch 列等于 RetrievalRequiredColumns；job_role 的 5 个值、算子与过滤列；labels 不可过滤；amount 的聚合与所读列覆盖 aggregatePlan 的实际计划；私有字段不出现。
+      - 预告各情形：10-20 两次失败的授权分别预告缺 text_sha256 与缺 documents，授权充分时 ready，V4 时指出要求 V5。
+      - 连库：经 CallTool 的 list、describe("policy_kb")、request_data_task 预告与 get_task_context 预告。
+      - 网关全包 149 过、0 败、8 跳过。

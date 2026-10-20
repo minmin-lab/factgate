@@ -28,11 +28,21 @@ func (s *Service) describeDataProduct(_ context.Context, _ mcp.Principal, raw js
 	}
 	product, found := s.catalog.LookupProduct(args.Name)
 	if !found {
+		// A knowledge product is named like a Product but describes a
+		// collection; the Catalog forbids the two namespaces to overlap.
+		if kp, isKnowledge := s.catalog.LookupKnowledgeProduct(args.Name); isKnowledge {
+			result := s.publicKnowledgeProduct(kp)
+			result["catalog_version"] = s.catalog.CatalogVersion
+			return result, nil
+		}
 		return nil, &mcp.ToolError{Code: apierr.CodeNotFound, Message: "请求的数据产品不存在"}
 	}
 	result, err := publicDataProduct(product, true)
 	if err != nil {
 		return nil, err
+	}
+	if kp, role, isRelation := s.knowledgeRelationOf(product.Name); isRelation {
+		result["knowledge_product"] = map[string]any{"name": kp.Name, "role": role}
 	}
 	result["catalog_version"] = s.catalog.CatalogVersion
 	return result, nil

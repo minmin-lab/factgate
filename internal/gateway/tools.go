@@ -22,12 +22,12 @@ func objectSchema(properties map[string]any, required ...string) map[string]any 
 }
 
 var queryTools = []mcp.Tool{
-	{Name: "list_data_products", Description: "列出可申请的逻辑数据产品、字段、说明和敏感等级。", InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "describe_data_product", Description: "读取一个逻辑数据产品的字段类型、排序规则、稳定角色和 SQL 白名单。", InputSchema: objectSchema(map[string]any{
+	{Name: "list_data_products", Description: "列出可申请的逻辑数据产品、字段、说明和敏感等级，以及知识产品（knowledge_products）：知识产品名、关系、检索方式与 k_max、属性值域，和 search/fetch/aggregate 各需任务授权的关系与列（task_requirements）。", InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}},
+	{Name: "describe_data_product", Description: "读取一个逻辑数据产品的字段类型、排序规则、稳定角色和 SQL 白名单；name 为知识产品名（如 policy_kb）时返回该知识产品的检索说明与 task_requirements。", InputSchema: objectSchema(map[string]any{
 		"name": map[string]any{"type": "string", "minLength": 1},
 	}, "name"), Annotations: map[string]any{"readOnlyHint": true}},
 	{Name: "get_sql_capabilities", Description: "读取 TaskGate 报表 SQL profile 及可无损转换为规范 QueryPlan 的受限语法能力。", InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。approver 可选：指定审批人（缺省按目录路由）；无论谁审批，TaskGate 都在签发授权前按数据产品规则核验审批人，无权者批准也不签发。", InputSchema: objectSchema(map[string]any{
+	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。approver 可选：指定审批人（缺省按目录路由）；无论谁审批，TaskGate 都在签发授权前按数据产品规则核验审批人，无权者批准也不签发。申请涉及知识产品时，返回值的 knowledge_readiness 预告该申请能否 search/fetch/aggregate、缺哪些关系或列，可在提交前改正。", InputSchema: objectSchema(map[string]any{
 		"objective":             map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
 		"approver":              map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 		"parent_task_id":        map[string]any{"type": "string", "minLength": 1},

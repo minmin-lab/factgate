@@ -29,7 +29,14 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		if err != nil {
 			return nil, err
 		}
+		if kp, role, found := s.knowledgeRelationOf(product.Name); found {
+			publicProduct["knowledge_product"] = map[string]any{"name": kp.Name, "role": role}
+		}
 		products = append(products, publicProduct)
+	}
+	knowledgeProducts := make([]map[string]any, 0, len(s.catalog.KnowledgeProducts))
+	for _, kp := range s.catalog.KnowledgeProducts {
+		knowledgeProducts = append(knowledgeProducts, s.publicKnowledgeProduct(kp))
 	}
 	routes := make([]map[string]any, 0, len(s.catalog.ApprovalRoutes))
 	for _, route := range s.catalog.ApprovalRoutes {
@@ -39,8 +46,12 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		"catalog_version": s.catalog.CatalogVersion,
 		"sql_profile":     catalogReportingSQLProfile,
 		"products":        products,
-		"scopes":          append([]catalog.Scope(nil), s.catalog.Scopes...),
-		"approval_routes": routes,
+		// Knowledge products are searched by their own name (search, fetch,
+		// aggregate, request_download_task); their relations are the products
+		// above that point back to them.
+		"knowledge_products": knowledgeProducts,
+		"scopes":             append([]catalog.Scope(nil), s.catalog.Scopes...),
+		"approval_routes":    routes,
 		"approval_routing": "缺省由目录路由选审批人：按申请产品的最高敏感级（及产品级路由的产品集合）选路由，" +
 			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。申请时也可以用 request_data_task 或 request_download_task 的 " +
 			"approver 参数指定任一审批人，覆盖路由。无论审批人从哪来，TaskGate 都在签发授权前按数据产品规则核验实际审批人：" +
@@ -349,6 +360,11 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if viewBinding != nil {
 		result["view_binding_digest"] = viewBinding.Digest
+	}
+	if len(reservedScope) == 0 {
+		if readiness := s.knowledgeReadiness(args.DataProducts, columns, policy.Budget.ExposureProfileVersion, "requested"); len(readiness) > 0 {
+			result["knowledge_readiness"] = readiness
+		}
 	}
 	return result, nil
 }
@@ -714,6 +730,11 @@ func (s *Service) getTaskContext(ctx context.Context, principal mcp.Principal, r
 		"schema_digest": grant.SchemaDigest, "view_binding_digest": grant.ViewBindingDigest,
 		"manifest_digest": finalGrant.Core.ManifestDigest, "task_grant": finalGrant,
 		"approval_receipt": finalGrant.ApprovalReceipt, "budget": publicBudget(budget),
+	}
+	if _, isDownload, listErr := downloadListOf(grant); listErr == nil && !isDownload {
+		if readiness := s.knowledgeReadiness(grant.ApprovedProducts, grant.ApprovedColumns, grant.Exposure.ProfileVersion, "approved"); len(readiness) > 0 {
+			result["knowledge_readiness"] = readiness
+		}
 	}
 	if grant.ViewBindingDigest != "" {
 		status, statusErr := s.store.GetTaskViewBindingStatus(ctx, task.ID)
