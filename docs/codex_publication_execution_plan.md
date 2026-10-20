@@ -2389,3 +2389,45 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - tailscale serve 需要 root 或 operator：`sudo tailscale set --operator=$USER` 需作者执行一次（sudo 要口令），随后运行 /home/wmm/kb-demo/tailscale-publish.sh。
     - 只发布 /mcp、两个签名下载路径和 OA(:8443)；不用 Funnel。撤销用 tailscale-unpublish.sh。
     - 给 lzj 的说明在 /home/wmm/kb-demo/for-lzj.md，不含机密。
+
+- [2026-10-20 14:20 UTC+8] KB1-LOOP-137 **评审数据使用方反馈（alice 经 MCP，10-19~20，15 条）：事实大多属实，P0 根因更深——知识产品在 MCP 发现面上不可见；5 处说法不准**。
+  - **证据**（实查）：演示栈控制库 tasks/task_grants/audit_events/query_receipts、网关容器日志、以 agent 视角实调 list_data_products、describe_data_product、get_sql_capabilities 与工具 schema；代码由三路只读调查核对（读码）。
+  - **属实并采纳**：
+    - 第 1、2 条：检索前置条件无从得知、POLICY_DENIED 不透明。
+      - 实查：10-20 11:09:32 首次失败到 11:17:21 首次成功，建 3 个任务、3 次审批（提交到批准 8/14/34 秒）。
+      - 网关日志共 9 次 search 失败，"不在可精确计量片段内"连撞 3 次。
+      - list_data_products 不列知识产品；describe_data_product("policy_kb") 返回 NOT_FOUND。
+      - 读码："任务授权外的知识产品"其实只是目录查名（retrieval.go:357-359）；"不在片段内"是兜底，丢弃底层原因，网关日志里也没有（:402-406）。
+      - POLICY_DENIED 有 16 处发射点、14 种文案，均无 Details。
+    - 第 3 条：k_max=20 只在目录里，工具 schema 只有 minimum:1。同类：filters.op 列着 has，但 has 没有计划渲染、必拒；text 的 4096 是字节不是字符。
+    - 第 9 条：OA 非指派审批人查看得 404、批准得 409。
+    - 第 15 条：预览无 has_more。
+  - **属设计、不采纳**（理由如下）：
+    - 第 4 条：同任务一个在途查询（threat-model.md:39），只补重试语义；
+    - 第 5 条：不回相似度分数（kb-design.md:188-189；分数是无事实身份的交付字段，supplement.tex:4281 列为保证之外），动它需作者另行裁决；
+    - 第 6 条：doc_id 过滤，作者已裁决（KB1-LOOP-123）；
+    - 第 7 条：不加提交 API、不改 AWAITING_SUBMISSION（submitted 只认人类主体，gateway/callback.go:388-389），只加 next_action；
+    - 第 8 条：不做 webhook；
+    - 第 11 条：授权只能收窄，不续期（authorization.go:246-248）；
+    - 第 14 条：交付地址 TTL 已可配置，重调即换新地址且不计费。
+  - **说法不准**：
+    - 第 1 条：最小授权不是"全字段"，而是 chunks{doc_id, version, chunk_index, text_sha256}加上过滤列，以及 documents{doc_id, version}；text 不是发布列。
+    - 第 10 条：revoke 在三种未归档状态都可用（entities.go:336-340；alice 10-19 11:30 撤过待审任务）。真问题有两个：
+      - 撤销不通知 OA，工单仍挂在审批人列表里；
+      - 待审任务永不过期，architecture.md:208 写错。
+    - 第 12 条：SQL 支持 LIKE（sqllowering/lower.go:598-618；main.tex:691）（读码，待实跑）。agent 看不到，因为能力接口不列谓词、提示漏写、describe 把缺省显示成 []。
+    - 第 13 条：job_role 的 5 个值在目录知识产品属性里已声明（catalog.yaml:675-682），只是不暴露。全表扫描之前 agent 先撞过 count 未批（10-19 18:42:45 SQL_NOT_LOWERABLE），反馈漏了这一步。
+    - "计费折扣"：实为账本对已释放单元格不重复计费，每次实际释放都是 80，80/60/12 对应 20/15/3 个新块。
+  - **同类扫出、反馈未提**：
+    - query_sql 兜底拒绝同样丢原因（query.go:706-709）；
+    - 文档过期 6 处：catalog-guide.md:539、POLICY_DENIED 未登记、sql-security.md:62/72、getting-started.md:132-136、architecture.md:208、threat-model.md:35；
+    - 目录显式声明 allowed_operators 时无法授予 LIKE（like 与 ~~ 不对应，现有目录 0 处声明，未触发）；
+    - lzj 10-19 18:04 的待审任务因 OA 草稿只在内存、OA 今天重启而成孤儿（推断）。
+  - **决定**：按计划 /home/wmm/.claude/plans/pasted-content-id-804e-mellow-waffle.md 分 11 个提交实施，只改 MCP 发现面、报错 Details、流程提示、演示 OA 与文档。
+    - 不碰计费、授权、回执、范式、状态机与 sqllowering（held-out 协议写明降级器此后不改）。
+    - 在 K7.4 之前做完，确保 K7.5 彩排与正式轮同一二进制。
+    - 待办，本轮不修：like/~~ 别名、撤销后通知 OA、待审任务过期、演示目录 TTL 与 documents 的 count。
+  - **提交 0（护栏）**：
+    - physicalquery 钉住 HEAD（1781def3）上 vector/keyword/fetch 三种检索准备的输入摘要、整个 binding 的 JSON 摘要与两条语句摘要；
+    - gateway 钉住 aggregatePlan 在声明与放宽两种目录下全部 32 个请求的计划与拒绝文案。
+    - 已知反例：期望值为空时两个测试都失败。填值后连跑两次通过；db-test-env 下网关、physicalquery、retrieval 全包通过。
