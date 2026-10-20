@@ -2431,3 +2431,8 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - physicalquery 钉住 HEAD（1781def3）上 vector/keyword/fetch 三种检索准备的输入摘要、整个 binding 的 JSON 摘要与两条语句摘要；
     - gateway 钉住 aggregatePlan 在声明与放宽两种目录下全部 32 个请求的计划与拒绝文案。
     - 已知反例：期望值为空时两个测试都失败。填值后连跑两次通过；db-test-env 下网关、physicalquery、retrieval 全包通过。
+  - **提交 1（单一真源）**：新文件 physicalquery/retrieval_columns.go：RetrievalPlanColumns、RetrievalRequiredColumns、RetrievalOperatorRendered，都直接读 retrievalPlan 与算子表，只新增、不改既有函数；另加 retrieval.AdmittedOperators（读 Normalize 的同一张表）。
+    - 实跑：TestRetrievalRequiredColumnsAreSufficientAndMinimal 在向量检索、关键词检索与 fetch 三种形态上通过。
+      - 恰好授予推导出的列集即可准备，两条语句也过 sqlpolicy；删掉其中任一列即准备失败。
+      - 基础集为 chunks{chunk_index, doc_id, text_sha256, version}、documents{doc_id, version}；作用域列不必授权（由策略渲染器施加）；注入的作用域原子不加列。
+    - 提交 0 的护栏与 queryplan、sqlpolicy 身份测试照旧通过。
