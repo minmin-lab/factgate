@@ -3757,6 +3757,15 @@ the language and fail closed, exactly as subqueries and \code{OR} do in the
 SQL fragment. The mandatory scope of the task is injected as additional
 filter atoms; a caller's own filter can only intersect it.
 
+Whole-document delivery is a separate task kind in the artifact and lies
+outside the evaluated claims. A download task names its documents, which an
+approver may only narrow; it refuses as a whole any document with a section
+outside the task's scope, and it is served by the same prepared document,
+\code{fetch}-shaped chunk, and value operations, settled on the same ledgers.
+Its optional original-file mode releases the stored rendering as one file
+Fact, so section headings and unextracted front matter are accounted with the
+file rather than per cell.
+
 The query commitment is the digest of the normalized query text, of the
 quantized query vector, or of a canonical keyword list. Keyword search,
 admitted only where the Catalog declares it for a knowledge product, returns
