@@ -2505,3 +2505,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 提交回调后为 await_approver_decision，并附审批人；
       - 撤销待审任务后，审批回调被拒、不签发授权，状态为 none_terminal。
     - PUBLIC_OA_BASE_URL 的解析有单测。网关全包 152 过、0 败、8 跳过；cmd/gateway、oademo、approval 全过。
+  - **提交 7（预览分页提示）**：preview_result 返回增 has_more 与 next_offset。由纯函数 previewPage 计算，空页永不 has_more，按 next_offset 翻页一定会结束（单测覆盖 868 行的头页、末页、越界与空结果）。
+    - 描述写明：缺省 20 行、上限 100 行、预览不计费。
+    - deliver_result 描述写明：地址有效期见 download_url_expires_at（缺省约 5 分钟，即 GATEWAY_RESULT_DELIVERY_TTL）；过期后再调用即得新地址，不计费。缺省值不改，因为地址是持有即可下载的凭据。
+    - 网关全包通过。

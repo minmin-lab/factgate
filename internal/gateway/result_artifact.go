@@ -647,11 +647,25 @@ func (s *Service) previewResult(ctx context.Context, principal mcp.Principal, ra
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
+	result := map[string]any{
 		"result_id": artifact.ResultID, "row_count": artifact.RowCount, "column_count": artifact.ColumnCount,
 		"columns": stored.Columns, "offset": args.Offset, "limit": args.Limit, "rows": rows,
 		"expires_at": artifact.ExpiresAt,
-	}, nil
+	}
+	for key, value := range previewPage(args.Offset, int64(len(rows)), artifact.RowCount) {
+		result[key] = value
+	}
+	return result, nil
+}
+
+// previewPage says whether rows remain after a preview page and where the
+// next page starts. An empty page never has more, so a client paging by
+// next_offset always ends.
+func previewPage(offset, returned, rowCount int64) map[string]any {
+	if returned > 0 && offset+returned < rowCount {
+		return map[string]any{"has_more": true, "next_offset": offset + returned}
+	}
+	return map[string]any{"has_more": false}
 }
 
 func (s *Service) deliverySignature(resultID, taskID string, expires int64) string {

@@ -58,12 +58,12 @@ var queryTools = []mcp.Tool{
 	{Name: "get_query_result", Description: "读取自己的查询结果元数据和 result_id；完整数据仍保留在 TaskGate 对象存储。", InputSchema: objectSchema(map[string]any{
 		"task_id": map[string]any{"type": "string"}, "query_id": map[string]any{"type": "string"},
 	}, "task_id", "query_id"), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "preview_result", Description: "按 result_id 读取最多 100 行的有界预览；不交付完整 Parquet。", InputSchema: objectSchema(map[string]any{
+	{Name: "preview_result", Description: "按 result_id 读取最多 100 行的有界预览（缺省 20 行），用 offset 分页：返回 has_more 与 next_offset，按 next_offset 续读直到 has_more 为 false；预览不计费，不交付完整 Parquet（完整结果用 deliver_result）。", InputSchema: objectSchema(map[string]any{
 		"result_id": map[string]any{"type": "string", "minLength": 1},
 		"offset":    map[string]any{"type": "integer", "minimum": 0},
 		"limit":     map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
 	}, "result_id"), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "deliver_result", Description: "为已消费的规范结果生成短期 Parquet 交付地址；下载次数不会改变预算、消费状态或 Receipt。", InputSchema: objectSchema(map[string]any{
+	{Name: "deliver_result", Description: "为已消费的规范结果生成短期 Parquet 交付地址（有效期见 download_url_expires_at，缺省约 5 分钟）；地址过期后再调用即得新地址，不计费；下载次数不会改变预算、消费状态或 Receipt。", InputSchema: objectSchema(map[string]any{
 		"result_id": map[string]any{"type": "string", "minLength": 1},
 		"format":    map[string]any{"type": "string", "enum": []string{"parquet"}},
 	}, "result_id")},
