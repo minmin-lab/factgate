@@ -191,6 +191,11 @@ func run() error {
 		}
 		summary["eligibility_other_department"] = "NOT_ELIGIBLE"
 		summary["eligibility_own_department_state"] = admitted["state"]
+		// The admitted request is never submitted; void it so smoke runs do
+		// not accumulate pending tasks (they never expire).
+		if _, err := sales.Call(ctx, "revoke_task", map[string]any{"task_id": admitted["task_id"], "reason": "kb-formal-smoke: eligibility probe"}); err != nil {
+			return fmt.Errorf("revoke the eligibility probe: %w", err)
+		}
 	} else {
 		return errors.New("principal token for sales-staff is missing")
 	}

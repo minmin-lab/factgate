@@ -2538,3 +2538,8 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - **sql-security.md**：列出 WHERE 谓词（含 LIKE）、HAVING、COUNT DISTINCT 与只限精确数值的 AVG，以及未声明聚合即不可用；从不可 lowering 清单中删去 HAVING。
     - **threat-model.md**：AVG 改为只支持精确数值。
     - **getting-started.md**：Alice 可见 22 个工具，并补全清单。
+  - **全量回归**（提交 10 之后，db-test-env，`scripts/db-test-env.sh test -count=1 ./...`）：103 个包通过、0 失败、68 个包无测试文件；make hygiene 通过。
+  - **提交 11（冒烟收尾）**：冒烟资格段里 sales-staff 本部门申请被受理后从不提交，又因待审任务不会过期而一直挂着；每跑一次冒烟就留一张。
+    - 实查：task_994f49e8…（14:56，AWAITING_SUBMISSION）即本次已知反例那次运行留下的。
+    - 修复：核对后用同一身份 revoke_task。
+    - 另记：lzj 10-19 18:04 的 task_5eefd82b… 已成孤儿。实查 OA 容器于 10-20 02:45Z 启动，晚于该任务，而草稿只在内存里。它属于 lzj 的身份，我不能代撤；无授权，无害。
