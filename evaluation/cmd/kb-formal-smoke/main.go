@@ -6,8 +6,9 @@
 // and the document download task (docs/kb-design.md §12): two documents of the
 // search hits requested and approved, downloaded with verified part receipts,
 // fetched again through the download capability, and the refusals across
-// task kinds and outside the approved list. It prints one JSON summary and
-// exits non-zero on any failure.
+// task kinds and outside the approved list. With -usability it also checks
+// the discovery, readiness, task-flow and refusal details of KB1-LOOP-137
+// (usability.go). It prints one JSON summary and exits non-zero on any failure.
 //
 // Credentials come from a deployment env file (-env-file) and a principal
 // token file (-principal-tokens), read in-process and never printed.
@@ -67,6 +68,7 @@ func run() error {
 	tokensFile := flag.String("principal-tokens", "", "JSON map subject -> token for file principals")
 	catalogPath := flag.String("catalog", "", "the activated profile Catalog")
 	knowledgeProduct := flag.String("knowledge-product", "", "the knowledge product to exercise when the Catalog declares several")
+	usability := flag.Bool("usability", false, "also check discovery, readiness, task-flow hints and refusal details (KB1-LOOP-137)")
 	flag.Parse()
 	env, err := readEnvFile(*envFile)
 	if err != nil {
@@ -192,6 +194,11 @@ func run() error {
 	} else {
 		return errors.New("principal token for sales-staff is missing")
 	}
+	if *usability {
+		if err := smokeUsability(ctx, summary, provisioner, alice, product, taskID); err != nil {
+			return fmt.Errorf("usability: %w", err)
+		}
+	}
 	encoded, _ := json.MarshalIndent(summary, "", " ")
 	fmt.Println(string(encoded))
 	return nil
@@ -233,8 +240,14 @@ func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbf
 			documents = append(documents, ref{DocID: fmt.Sprint(row[0]), Version: row[1]})
 		}
 	}
+	// The documents are search hits of the finance internal/public task, so
+	// that scope is the narrowest one. Without scopes the request takes the
+	// applicant's whole envelope, which reaches leadership and, since the
+	// classification-conditioned routes (KB1-LOOP-130), an approver other
+	// than the provisioner's.
+	scopes := map[string]any{"kb_department": []string{"finance"}, "classification": []string{"internal", "public"}}
 	taskID, created, err := provisioner.ProvisionDownload(ctx, map[string]any{"objective": "K7.3 smoke: download two search hits",
-		"knowledge_product": product.Name, "documents": documents})
+		"knowledge_product": product.Name, "documents": documents, "scopes": scopes})
 	if err != nil {
 		return fmt.Errorf("provision: %w", err)
 	}
@@ -308,7 +321,7 @@ func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbf
 		return fmt.Errorf("original file without the right: want DOWNLOAD_NOT_APPROVED, got %v", err)
 	}
 	originalTask, originalCreated, err := provisioner.ProvisionDownload(ctx, map[string]any{"objective": "K7.2b smoke: original file",
-		"knowledge_product": product.Name, "documents": documents[:1], "original_file": true})
+		"knowledge_product": product.Name, "documents": documents[:1], "original_file": true, "scopes": scopes})
 	if err != nil {
 		return fmt.Errorf("provision original-file task: %w", err)
 	}

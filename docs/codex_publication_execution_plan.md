@@ -2517,3 +2517,16 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 删去不再使用的 authorizedDraft。
     - 实跑：approver_test 断言收紧——bob 决定或查看 dana 的工单得 403（正文含 dana），不存在得 404，dana 重复审批得 409，alice 提交 lzj 的草稿得 403。oademo 全包通过。
     - 演示脚本（demo-approver.py、approve.py）与正式客户端（kbformal/client.go，非 200 即错）都只用正确账号，不受影响。
+  - **提交 9（部署路径冒烟 -usability 段；顺带修好坏了一天的冒烟）**：
+    - **新文件 kb-formal-smoke/usability.go**，以 alice 身份在部署上依次核对：
+      - 发现面：list_data_products 发布的 search 列等于 RetrievalRequiredColumns；目录里每个带值的 enum 属性按原值发布；describe(知识产品) 为 knowledge_product；get_sql_capabilities 列出 LIKE。
+      - 预告与流程：只批身份列的申请在提交前就预告缺 text_sha256；next_action 为 human_submit_in_oa；撤销该待审任务后为 none_terminal。
+      - 精确拒绝：同一申请经 OA 批准后，search 得 COLUMNS_NOT_GRANTED 并点名 text_sha256；把 chunks 关系名当知识产品名时得 INVALID_REQUEST，并提示应填的知识产品。
+      - SQL：documents 上 title LIKE '%报销%' LIMIT 3 有结果。
+      - kbformal.ToolError 另存整个错误对象（Details）；请求日志仍只记 code 与 reason，驱动日志不变。
+    - **我的错（10-19 起冒烟一直是坏的）**：冒烟的下载段不带 scopes，按设计取 alice 的整个资格包络，其中含 leadership。KB1-LOOP-130 改为按密级选审批人后，这个请求被路由给 dana，而冒烟的审批账号是 bob，打开草稿得 404。
+      - 实查：本次对旧镜像试跑时，下载任务 task_37601f50… 的 approver 为 dana，失败于 "OA GET … returned 404"。该任务已撤销。
+      - 根因：KB1-LOOP-130/133/135 只用演示脚本验证，没有重跑部署路径冒烟（该查没查），发射端改了、校验端没跟上。
+      - 修复：冒烟的两个下载请求显式给最窄范围（finance internal/public，即检索任务的范围）。
+      - 防再犯：记忆规则 deployed-path-smoke-rule 补上"改演示目录（路由、预算）或换网关/OA 镜像后，两个知识产品都重跑冒烟"。
+    - **已知反例**：修好下载段后，新冒烟对旧镜像（aad7b95d…）跑到下载段之后，恰好在新段第一项失败（"list_data_products publishes no knowledge product policy_kb"），说明新段的检查能抓到旧行为。

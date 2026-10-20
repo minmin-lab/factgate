@@ -38,6 +38,9 @@ type ToolError struct {
 	Code    string
 	Message string
 	Reason  string
+	// Details is the whole error object the gateway returned, its code,
+	// message and reason included; the request log keeps only code and reason.
+	Details map[string]any
 }
 
 func (err *ToolError) Error() string { return err.Code + ": " + err.Message }
@@ -222,7 +225,11 @@ func (client *MCPClient) call(ctx context.Context, tool string, arguments any) (
 			} `json:"error"`
 		}
 		if json.Unmarshal(result.StructuredContent, &structured) == nil && structured.Error.Code != "" {
-			return nil, &ToolError{Code: structured.Error.Code, Message: structured.Error.Message, Reason: structured.Error.Reason}
+			var whole struct {
+				Error map[string]any `json:"error"`
+			}
+			_ = json.Unmarshal(result.StructuredContent, &whole)
+			return nil, &ToolError{Code: structured.Error.Code, Message: structured.Error.Message, Reason: structured.Error.Reason, Details: whole.Error}
 		}
 		return nil, errors.New("tool returned an error without structured content")
 	}
