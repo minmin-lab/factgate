@@ -76,12 +76,21 @@ func TestApproversAreConfiguredAndOnlyTheNamedOneDecides(t *testing.T) {
 	if !strings.Contains(list, bobDraft) || strings.Contains(list, danaDraft) {
 		t.Fatal("bob's task list does not show exactly the drafts naming bob")
 	}
-	if status := decide(t, bob, httpServer.URL, danaDraft, server); status == http.StatusOK {
-		t.Fatal("bob decided a draft routed to dana")
+	if status := decide(t, bob, httpServer.URL, danaDraft, server); status != http.StatusForbidden {
+		t.Fatalf("bob deciding a draft routed to dana: status %d, want 403", status)
+	}
+	if status, body := getStatus(t, bob, httpServer.URL+"/tasks/"+danaDraft); status != http.StatusForbidden || !strings.Contains(body, "dana") {
+		t.Fatalf("bob opening dana's draft: status %d body %q, want 403 naming dana", status, body)
+	}
+	if status, _ := getStatus(t, bob, httpServer.URL+"/tasks/no-such-draft"); status != http.StatusNotFound {
+		t.Fatalf("a missing draft: status %d, want 404", status)
 	}
 	dana := login(t, httpServer.URL, "dana", "dana-pass")
 	if status := decide(t, dana, httpServer.URL, danaDraft, server); status != http.StatusOK {
 		t.Fatalf("dana could not decide her draft: status %d", status)
+	}
+	if status := decide(t, dana, httpServer.URL, danaDraft, server); status != http.StatusConflict {
+		t.Fatalf("deciding an already decided draft: status %d, want 409", status)
 	}
 	server.mu.RLock()
 	state := server.drafts[danaDraft].State
@@ -111,6 +120,18 @@ func login(t *testing.T, base, username, password string) *http.Client {
 		t.Fatalf("login as %s failed", username)
 	}
 	return client
+}
+
+// getStatus is get with the final status.
+func getStatus(t *testing.T, client *http.Client, target string) (int, string) {
+	t.Helper()
+	response, err := client.Get(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	return response.StatusCode, string(body)
 }
 
 func get(t *testing.T, client *http.Client, target string) string {
@@ -196,8 +217,8 @@ func TestExtraRequesterSubmitsOwnDrafts(t *testing.T) {
 	response.Body.Close()
 	draft := created["draft_id"].(string)
 	alice := login(t, httpServer.URL, "alice", "alice-pass")
-	if status := act(t, alice, httpServer.URL, draft, "submit", nil); status == http.StatusOK {
-		t.Fatal("alice submitted lzj's draft")
+	if status := act(t, alice, httpServer.URL, draft, "submit", nil); status != http.StatusForbidden {
+		t.Fatalf("alice submitting lzj's draft: status %d, want 403", status)
 	}
 	lzj := login(t, httpServer.URL, "lzj", "lzj-pass")
 	if status := act(t, lzj, httpServer.URL, draft, "submit", nil); status != http.StatusOK {

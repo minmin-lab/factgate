@@ -2509,3 +2509,11 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 描述写明：缺省 20 行、上限 100 行、预览不计费。
     - deliver_result 描述写明：地址有效期见 download_url_expires_at（缺省约 5 分钟，即 GATEWAY_RESULT_DELIVERY_TTL）；过期后再调用即得新地址，不计费。缺省值不改，因为地址是持有即可下载的凭据。
     - 网关全包通过。
+  - **提交 8（OA 演示版拒绝码拆分）**：查看、提交、决定三处共用 draftAccess。
+    - 工单不存在：404。
+    - 已登录但不是你的工单：403，并说明原因——审批人看到"此工单指派给审批人 dana，你（bob）不能查看或审批"，申请人看到"只有其申请人本人可以打开和提交"。
+    - 状态不对：409。
+    - 修复前：非指派审批人查看得 404、批准得 409，同一无权情形两种码。草稿编号随机，对已登录用户隐瞒存在与否无意义。
+    - 删去不再使用的 authorizedDraft。
+    - 实跑：approver_test 断言收紧——bob 决定或查看 dana 的工单得 403（正文含 dana），不存在得 404，dana 重复审批得 409，alice 提交 lzj 的草稿得 403。oademo 全包通过。
+    - 演示脚本（demo-approver.py、approve.py）与正式客户端（kbformal/client.go，非 200 即错）都只用正确账号，不受影响。

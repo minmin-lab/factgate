@@ -348,12 +348,48 @@ func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	draft, ok := s.authorizedDraft(chi.URLParam(r, "draftID"), data)
-	if !ok {
-		http.NotFound(w, r)
-		return
+	s.mu.RLock()
+	stored, found := s.drafts[chi.URLParam(r, "draftID")]
+	var draft Draft
+	status, message := http.StatusNotFound, ""
+	if found {
+		status, message = draftAccess(stored, data)
+		draft = cloneDraft(stored)
 	}
-	s.render(w, "task", map[string]any{"Session": data, "Draft": draft})
+	s.mu.RUnlock()
+	if !refuseDraftAccess(w, r, status, message) {
+		s.render(w, "task", map[string]any{"Session": data, "Draft": draft})
+	}
+}
+
+// draftAccess decides whether the logged-in user may open a draft: a
+// requester their own, an approver the drafts naming them. A draft that is
+// someone else's is 403 with the reason, not 404, so a user can tell "not
+// mine" from "gone" (draft ids are random, so existence is not a secret worth
+// keeping from a logged-in user).
+func draftAccess(draft *Draft, data sessionData) (int, string) {
+	switch {
+	case data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username):
+		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人本人可以打开和提交"
+	case data.Role == "approver" && draft.ApprovalMode != "manual":
+		return http.StatusForbidden, "此工单不需要人工审批"
+	case data.Role == "approver" && draft.Approver != data.Username:
+		return http.StatusForbidden, "此工单指派给审批人 " + draft.Approver + "，你（" + data.Username + "）不能查看或审批"
+	}
+	return http.StatusOK, ""
+}
+
+// refuseDraftAccess writes a refusal and reports whether it did.
+func refuseDraftAccess(w http.ResponseWriter, r *http.Request, status int, message string) bool {
+	switch status {
+	case http.StatusOK:
+		return false
+	case http.StatusNotFound:
+		http.NotFound(w, r)
+	default:
+		http.Error(w, message, status)
+	}
+	return true
 }
 
 func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
@@ -365,9 +401,16 @@ func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 	draftID := chi.URLParam(r, "draftID")
 	s.mu.Lock()
 	draft, ok := s.drafts[draftID]
-	if !ok || !strings.EqualFold(draft.Manifest.HumanSubject, data.Username) || draft.State != "draft" {
+	status, message := http.StatusNotFound, ""
+	if ok {
+		status, message = draftAccess(draft, data)
+	}
+	if status == http.StatusOK && draft.State != "draft" {
+		status, message = http.StatusConflict, "draft cannot be submitted"
+	}
+	if status != http.StatusOK {
 		s.mu.Unlock()
-		http.Error(w, "draft cannot be submitted", http.StatusConflict)
+		refuseDraftAccess(w, r, status, message)
 		return
 	}
 	if err := validateStoredDraft(draft); err != nil {
@@ -402,9 +445,16 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	draftID := chi.URLParam(r, "draftID")
 	s.mu.Lock()
 	draft, ok := s.drafts[draftID]
-	if !ok || draft.ApprovalMode != "manual" || draft.Approver != data.Username || draft.State != "pending" {
+	status, message := http.StatusNotFound, ""
+	if ok {
+		status, message = draftAccess(draft, data)
+	}
+	if status == http.StatusOK && draft.State != "pending" {
+		status, message = http.StatusConflict, "draft cannot be decided"
+	}
+	if status != http.StatusOK {
 		s.mu.Unlock()
-		http.Error(w, "draft cannot be decided", http.StatusConflict)
+		refuseDraftAccess(w, r, status, message)
 		return
 	}
 	if err := validateStoredDraft(draft); err != nil {
@@ -506,16 +556,6 @@ func (s *Server) sendCallback(ctx context.Context, event callbackEvent) error {
 		return fmt.Errorf("callback status %d: %s", resp.StatusCode, excerpt)
 	}
 	return nil
-}
-
-func (s *Server) authorizedDraft(id string, data sessionData) (Draft, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	draft, ok := s.drafts[id]
-	if !ok || (data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username)) || (data.Role == "approver" && (draft.ApprovalMode != "manual" || draft.Approver != data.Username)) {
-		return Draft{}, false
-	}
-	return cloneDraft(draft), true
 }
 
 func cloneDraft(draft *Draft) Draft {
