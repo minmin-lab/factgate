@@ -346,7 +346,7 @@ func toolError(err error) error {
 	case control.CodeViewSemanticChanged:
 		return &mcp.ToolError{Code: string(dataconnector.CodeViewSemanticChanged), Message: "语义 View 已变化；历史结果仍可重放，但新查询必须创建新任务并重新审批"}
 	case control.CodeQueryInProgress:
-		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "同一任务已有查询正在执行"}
+		return queryInProgressError()
 	case control.CodeInvalid, control.CodeInvalidStateChange:
 		return &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求不符合任务状态或数据契约"}
 	case control.CodeIdempotencyConflict:
@@ -355,6 +355,16 @@ func toolError(err error) error {
 		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "请求与当前状态冲突；请重试或刷新状态"}
 	}
 	return &mcp.ToolError{Code: apierr.CodeInternal, Message: "请求处理失败；请使用 trace_id 联系管理员", Cause: err}
+}
+
+// queryInProgressError is the refusal of a second reservation while the
+// task's one in-flight query is outstanding (threat-model: one in-flight query
+// per task). Nothing is recorded for the refused request, so the same
+// request_id may be retried; the code stays CONFLICT, which harnesses retry on.
+func queryInProgressError() error {
+	return &mcp.ToolError{Code: apierr.CodeConflict,
+		Message: "同一任务已有查询正在执行；每个任务同一时刻只允许一个在途查询，待其返回后可用同一 request_id 重试（委托子任务各有独立名额）",
+		Details: map[string]any{"reason": "QUERY_IN_PROGRESS", "retryable": true, "same_request_id_ok": true, "slot": "task"}}
 }
 
 func forbidden() error {

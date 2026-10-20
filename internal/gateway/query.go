@@ -893,6 +893,12 @@ func (s *Service) executeSQL(ctx context.Context, principal mcp.Principal, task 
 	if err != nil {
 		return nil, err
 	}
+	if budget.Usage.ReservedQueries != 0 {
+		// The task's one in-flight query holds a reservation, usually of every
+		// remaining row: those rows are reserved, not spent, so this is not an
+		// exhausted budget. ReserveBudget refuses in the same order.
+		return nil, queryInProgressError()
+	}
 	remaining := budget.Remaining()
 	if remaining.Queries < 1 || remaining.Rows < 1 || remaining.DBMS < 1 {
 		return nil, &mcp.ToolError{Code: apierr.CodeBudgetExhausted, Message: "任务预算已耗尽"}

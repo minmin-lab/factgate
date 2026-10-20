@@ -2447,3 +2447,13 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 新增 TestRetrievalRefusalsNameWhatTheRequestOrTaskLacks。其中复现了 10-20 的 task_82dbe638 授权（两个关系，只有身份列），检索得 missing_columns {policy_kb_chunks: [text_sha256]}，加 job_role 过滤时再多 job_role。另覆盖 has、aggregate 的 sum/count 缺列与缺 values 关系；被拒请求均不耗预算。
       - 新增 TestListedSearchToolBoundsKByTheCatalog。
       - 网关全包 145 过、0 败、8 跳过（基线 143/0/8，多出的 2 个即新测试）；护栏两个测试照旧通过。
+  - **提交 3（在途查询冲突带重试语义；另修一处误导性拒绝）**：
+    - CONFLICT 码与消息前缀不变（final-v5-adapter/throughput_pilot.go:262 按 CONFLICT 重试）。Details 加 reason=QUERY_IN_PROGRESS、retryable、same_request_id_ok、slot=task。
+      - 读码核实：拒绝发生在写 query_records 之前，事务回滚（control/budget.go:147-149、:194-195），所以同一 request_id 可重试。
+      - 读码核实：每个授权各有一行 budget_ledger（entities.go:444-447），委托子任务名额独立。
+    - **新发现的缺陷（实跑）**：网关在预留前的预算预检（query.go:893-899）按"上限 − 已用 − 已预留"算剩余，而在途查询通常预留全部剩余行。
+      - 所以第二个并发请求多半得到 BUDGET_EXHAUSTED"任务预算已耗尽"，这个说法不实。只有第一笔预留尚未提交的窄窗口才得 CONFLICT；演示栈 10-20 11:19:17 那次正好落在窗口里。
+      - 新测试 TestSecondQueryWhileOneIsInFlightIsRetryable 起初正是因 BUDGET_EXHAUSTED 失败（已知反例）。
+      - 修复：预检先查在途预留，再查耗尽，与 ReserveBudget 自身的顺序一致。属行为变化：并发同任务请求由 BUDGET_EXHAUSTED 改为 CONFLICT/QUERY_IN_PROGRESS。
+      - 依赖面：论文只写 EXPOSURE_BUDGET_EXHAUSTED；KB 正式驱动与冒烟不发并发请求（无 goroutine）；final-v5 适配器只认 EXPOSURE_BUDGET_EXHAUSTED。
+    - 实跑：用同一 request_id 重试按新查询完成，不是重放。网关全包 146 过、0 败、8 跳过。
