@@ -86,6 +86,10 @@ type Config struct {
 	// object-store readers so slow clients cannot exhaust Gateway resources.
 	DownloadTimeout     time.Duration
 	DownloadConcurrency int
+	// OAPublicBaseURL is where requesters open OA drafts. When set, a pending
+	// task's status carries its draft link again (approval.DraftPageURL); the
+	// draft id is the stored approval reference, so nothing new is persisted.
+	OAPublicBaseURL string
 }
 
 type Service struct {
@@ -115,6 +119,7 @@ type Service struct {
 	deliveryTTL              time.Duration
 	downloadTimeout          time.Duration
 	downloadSlots            chan struct{}
+	oaPublicBaseURL          string
 	pendingSettles           atomic.Int64
 	artifactRecoveryFailures atomic.Int64
 	artifactRecoveryRunning  atomic.Bool
@@ -247,6 +252,7 @@ func New(config Config) (*Service, error) {
 		downloadTimeout:            config.DownloadTimeout,
 		downloadSlots:              make(chan struct{}, config.DownloadConcurrency),
 		highCardinalityDerivations: make(chan struct{}, 1),
+		oaPublicBaseURL:            strings.TrimRight(config.OAPublicBaseURL, "/"),
 	}
 	// The first background reconciliation clears this gate. Liveness can start
 	// immediately, but readiness must not race ahead of durable PENDING intents.

@@ -352,6 +352,7 @@ func main() {
 		PreviewMaxBytes:          previewMaxBytes, DeliveryBaseURL: deliveryBaseURL,
 		DeliverySigningKey: deliverySigningKey, DeliveryTTL: deliveryTTL,
 		DownloadTimeout: downloadTimeout, DownloadConcurrency: int(downloadConcurrency64),
+		OAPublicBaseURL: oaPublicBaseURLFromEnv(logger),
 	})
 	if err != nil {
 		logger.Error("initialize gateway service", "error", err)
@@ -1125,6 +1126,23 @@ func boolEnv(key string, fallback bool) (bool, error) {
 		return false, fmt.Errorf("%s must be a boolean", key)
 	}
 	return value, nil
+}
+
+// oaPublicBaseURLFromEnv reads the OA's public address, the base of the draft
+// links get_task_status rebuilds for pending tasks. It is optional, and an
+// unusable value only leaves those links out.
+func oaPublicBaseURLFromEnv(logger *slog.Logger) string {
+	base := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_OA_BASE_URL")), "/")
+	if base == "" {
+		return ""
+	}
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") ||
+		parsed.RawQuery != "" || parsed.Fragment != "" {
+		logger.Warn("PUBLIC_OA_BASE_URL is not an absolute http(s) URL; pending tasks will not carry their OA draft link", "value", base)
+		return ""
+	}
+	return base
 }
 
 func deliveryConfigFromEnv() (string, []byte, error) {

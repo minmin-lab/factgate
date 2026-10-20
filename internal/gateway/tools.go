@@ -46,9 +46,9 @@ var queryTools = []mcp.Tool{
 		"state":  map[string]any{"type": "string", "enum": []string{"AWAITING_SUBMISSION", "AWAITING_APPROVAL", "ACTIVE", "ARCHIVED"}},
 		"cursor": map[string]any{"type": "string"},
 	}), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "get_task_status", Description: "读取自己的任务状态。", InputSchema: taskIDSchema(), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "wait_for_approval", Description: "短轮询等待审批，最长 45 秒。", InputSchema: objectSchema(map[string]any{
-		"task_id": map[string]any{"type": "string"}, "timeout_seconds": map[string]any{"type": "integer", "minimum": 0, "maximum": 45},
+	{Name: "get_task_status", Description: "读取自己的任务状态；未批准的任务另给 waiting_for、next_action、next_action_hint 与 oa_url：AWAITING_SUBMISSION 表示须由申请人本人在 OA 提交草稿（agent 不能代交），AWAITING_APPROVAL 表示等待审批人决定。", InputSchema: taskIDSchema(), Annotations: map[string]any{"readOnlyHint": true}},
+	{Name: "wait_for_approval", Description: "短轮询等待审批，单次最长 45 秒（缺省 30 秒），任务变为 ACTIVE 或归档即返回；更久的等待请循环调用。返回同 get_task_status 的 waiting_for 与 next_action：若是 human_submit_in_oa，继续等待没有用，须由申请人本人先在 OA 提交草稿。", InputSchema: objectSchema(map[string]any{
+		"task_id": map[string]any{"type": "string"}, "timeout_seconds": map[string]any{"type": "integer", "minimum": 0, "maximum": waitForApprovalMaxSeconds},
 	}, "task_id"), Annotations: map[string]any{"readOnlyHint": true}},
 	{Name: "get_task_context", Description: "读取 ACTIVE 任务的批准范围、预算和期限。", InputSchema: taskIDSchema(), Annotations: map[string]any{"readOnlyHint": true}},
 	{Name: "rebind_data_task", Description: "为语义 View 已变化的旧任务创建一个全新的根任务和 OA 草稿；旧 Grant、查询、结果与 Receipt 不会被修改。", InputSchema: taskIDSchema()},
@@ -74,7 +74,7 @@ var queryTools = []mcp.Tool{
 	{Name: "complete_task", Description: "完成并归档自己的 ACTIVE 任务。", InputSchema: objectSchema(map[string]any{
 		"task_id": map[string]any{"type": "string"}, "summary": map[string]any{"type": "string", "maxLength": 8000},
 	}, "task_id")},
-	{Name: "revoke_task", Description: "撤销自己的任务并阻止新查询；已在途查询仍由原授权期限和超时约束。", InputSchema: objectSchema(map[string]any{
+	{Name: "revoke_task", Description: "撤销自己的任务并阻止新查询；已在途查询仍由原授权期限和超时约束。也可用于作废尚未提交或尚在审批中的任务（撤销后 OA 再批准也不会签发授权；OA 草稿本身不会被删除）。未批准的任务不会自动过期，不再需要时请撤销，可附 reason。", InputSchema: objectSchema(map[string]any{
 		"task_id": map[string]any{"type": "string"}, "reason": map[string]any{"type": "string", "maxLength": 1000},
 	}, "task_id")},
 }

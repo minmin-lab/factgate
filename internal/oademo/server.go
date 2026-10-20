@@ -234,7 +234,7 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"draft_id": draft.ID,
 		"state":    draft.State,
-		"url":      strings.TrimRight(s.config.PublicBaseURL, "/") + "/tasks/" + draft.ID,
+		"url":      approval.DraftPageURL(s.config.PublicBaseURL, draft.ID),
 	})
 }
 

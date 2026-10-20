@@ -204,6 +204,7 @@ func (harness *gatewayHarness) controlDB(t *testing.T) *sql.DB {
 type harnessOptions struct {
 	rewriteCatalog      func(string) string
 	principalAttributes *principalattr.Snapshot
+	oaPublicBaseURL     string
 }
 
 func newGatewayHarness(t *testing.T) *gatewayHarness {
@@ -270,6 +271,7 @@ func newGatewayHarnessWithOptions(t *testing.T, options harnessOptions) *gateway
 		Catalog: loadedCatalog, Store: store, Approval: approvalAdapter,
 		Connector: connector, CallbackSecret: secret, PrincipalAttributes: options.principalAttributes,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Clock: clock.Now, Background: background,
+		OAPublicBaseURL: options.oaPublicBaseURL,
 	})
 	if err != nil {
 		t.Fatalf("create gateway service: %v", err)

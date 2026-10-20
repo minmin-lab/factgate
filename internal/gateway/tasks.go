@@ -366,6 +366,12 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 			result["knowledge_readiness"] = readiness
 		}
 	}
+	if s.oaPublicBaseURL != "" && approval.DraftPageURL(s.oaPublicBaseURL, draft.DraftID) != draft.URL {
+		// get_task_status rebuilds the link from the configured base; a
+		// different OA link means the two configurations disagree.
+		s.logger.Warn("OA draft link differs from PUBLIC_OA_BASE_URL", "task_id", taskID, "oa_url", draft.URL)
+	}
+	mergeTaskFlow(result, s.taskFlow(control.Task{State: control.TaskAwaitingSubmission, RequestContext: pendingJSON, ApprovalRef: draft.DraftID}))
 	return result, nil
 }
 
@@ -643,6 +649,7 @@ func (s *Service) getTaskStatus(ctx context.Context, principal mcp.Principal, ra
 		return nil, err
 	}
 	result := publicTask(task)
+	mergeTaskFlow(result, s.taskFlow(task))
 	if status, statusErr := s.store.GetTaskViewBindingStatus(ctx, task.ID); statusErr == nil {
 		result["view_binding_status"] = publicViewBindingStatus(status)
 	} else if !errors.Is(statusErr, control.ErrNotFound) {
@@ -659,11 +666,11 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	if args.TimeoutSeconds < 0 || args.TimeoutSeconds > 45 {
-		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "timeout_seconds 必须在 0 到 45 之间"}
+	if args.TimeoutSeconds < 0 || args.TimeoutSeconds > waitForApprovalMaxSeconds {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: fmt.Sprintf("timeout_seconds 必须在 0 到 %d 之间", waitForApprovalMaxSeconds)}
 	}
 	if args.TimeoutSeconds == 0 {
-		args.TimeoutSeconds = 30
+		args.TimeoutSeconds = waitForApprovalDefaultSeconds
 	}
 	deadline := time.NewTimer(time.Duration(args.TimeoutSeconds) * time.Second)
 	defer deadline.Stop()
@@ -677,6 +684,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 		if task.State == control.TaskActive || task.State == control.TaskArchived {
 			result := publicTask(task)
 			result["timed_out"] = false
+			mergeTaskFlow(result, s.taskFlow(task))
 			return result, nil
 		}
 		select {
@@ -685,6 +693,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 		case <-deadline.C:
 			result := publicTask(task)
 			result["timed_out"] = true
+			mergeTaskFlow(result, s.taskFlow(task))
 			return result, nil
 		case <-ticker.C:
 		}

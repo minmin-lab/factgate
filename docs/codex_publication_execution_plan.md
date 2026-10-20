@@ -2488,3 +2488,20 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - TestEffectiveSQLControlsResolveTheDefaults：documents 未声明算子，解析为缺省集；expense_summary 声明的算子不含 ~~，不列 LIKE。
       - 三个 lowerability 工具（四份输出）重跑到暂存区，与已提交的 results.json 逐字节相同。比对器先用一对不同文件验证，判为不同。
       - 网关全包 151 过、0 败、8 跳过；sqlpolicy、sqllowering、queryplan 全过。
+  - **提交 6（流程提示）**：新文件 gateway/task_flow.go。
+    - **新增字段**：request_data_task、get_task_status 与 wait_for_approval 的返回增 waiting_for、next_action 与 next_action_hint。
+      - AWAITING_SUBMISSION：human_submit_in_oa，须由申请人本人在 OA 提交（agent 不能代交）。
+      - AWAITING_APPROVAL：await_approver_decision，附审批人。
+      - ACTIVE：use_task。
+      - ARCHIVED：none_terminal，附按终止原因给出的建议。
+      - 不改状态名，不加提交 API。
+    - **oa_url 可再取回**：网关读取可选的 PUBLIC_OA_BASE_URL（compose 原已传入，只是网关此前未读），由已存的 approval_ref 拼出草稿链接，不新增持久字段。
+      - 拼法与 OA 共用 approval.DraftPageURL；OA 演示版改用它，行为不变。
+      - request_data_task 仍用 OA 返回的链接；两者不一致时记告警。
+    - 等待上限与缺省（45/30 秒）改为具名常量，schema 引用同一常量。
+    - **工具描述**：get_task_status、wait_for_approval、revoke_task 写明两种等待的区别、wait 在 human_submit_in_oa 时继续等无用、revoke 可作废待提交与待审任务、待审任务不会自动过期。
+    - **实跑**（db-test-env）：TestTaskFlowSaysWhoActsNextAndRevokeVoidsAPendingTask 依次核对：
+      - 建任务、状态与等待三处的 next_action，以及拼出的 oa_url；
+      - 提交回调后为 await_approver_decision，并附审批人；
+      - 撤销待审任务后，审批回调被拒、不签发授权，状态为 none_terminal。
+    - PUBLIC_OA_BASE_URL 的解析有单测。网关全包 152 过、0 败、8 跳过；cmd/gateway、oademo、approval 全过。
