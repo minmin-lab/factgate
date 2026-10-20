@@ -129,11 +129,11 @@ export TASKBOUND_GATEWAY_TOKEN='<Alice Token>'
 codex
 ```
 
-MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 16 个普通任务/查询工具，Carol 只可见两个审计工具：
+MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 22 个工具（17 个任务/查询工具、3 个知识检索工具、2 个文档下载工具），Carol 只可见两个审计工具：
 
 | 身份 | 工具 |
 |---|---|
-| Alice | `list_data_products`、`describe_data_product`、`get_sql_capabilities`、`request_data_task`、`list_my_tasks`、`get_task_status`、`wait_for_approval`、`get_task_context`、`query_sql`、`get_query_result`、`preview_result`、`deliver_result`、`get_budget`、`list_receipts`、`complete_task`、`revoke_task` |
+| Alice | `list_data_products`、`describe_data_product`、`get_sql_capabilities`、`request_data_task`、`list_my_tasks`、`get_task_status`、`wait_for_approval`、`get_task_context`、`rebind_data_task`、`query_sql`、`get_query_result`、`preview_result`、`deliver_result`、`get_budget`、`list_receipts`、`complete_task`、`revoke_task`；知识检索 `search`、`fetch`、`aggregate`；下载 `request_download_task`、`download_document` |
 | Carol | `list_audit_events`、`get_audit_receipt` |
 
 `execute_plan` 保留给 SDK、内部测试、基准、调试和确定性工作流，不在普通 Alice `tools/list` 中默认列出。

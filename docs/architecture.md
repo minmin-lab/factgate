@@ -205,9 +205,15 @@ AWAITING_APPROVAL   --narrowed-->  ACTIVE
 AWAITING_APPROVAL   --rejected-->  ARCHIVED(rejected)
 ACTIVE              --complete-->  ARCHIVED(completed)
 任意未归档状态       --revoke-->    ARCHIVED(revoked)
-任意未归档状态       --expire-->    ARCHIVED(expired)
+ACTIVE              --expire-->    ARCHIVED(expired)
 ACTIVE 达到任一资源预算硬上限       ARCHIVED(budget_exhausted)
 ```
+
+期限从批准生成 Grant 起算，所以只有 ACTIVE 会过期：AWAITING_SUBMISSION 与 AWAITING_APPROVAL 不设
+`expires_at`，后台清扫只扫 ACTIVE，未批准的任务不会自动过期，不再需要时以 `revoke_task` 作废（撤销后
+OA 再批准也不签发授权；演示 OA 不被通知，草稿仍留在其列表中）。TLA+ 规约的 `Expire` 允许 PENDING 过期，
+但 `Spec` 不带公平性，实现不走这一步仍是合法精化（formal/TaskGate.tla）。KB1-LOOP-137 之前此处写作
+"任意未归档状态 --expire-->"，与实现不符。
 
 Phase B task 另有一个与上述 lifecycle 正交的 View binding 状态：
 

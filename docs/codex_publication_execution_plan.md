@@ -2530,3 +2530,11 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 修复：冒烟的两个下载请求显式给最窄范围（finance internal/public，即检索任务的范围）。
       - 防再犯：记忆规则 deployed-path-smoke-rule 补上"改演示目录（路由、预算）或换网关/OA 镜像后，两个知识产品都重跑冒烟"。
     - **已知反例**：修好下载段后，新冒烟对旧镜像（aad7b95d…）跑到下载段之后，恰好在新段第一项失败（"list_data_products publishes no knowledge product policy_kb"），说明新段的检查能抓到旧行为。
+  - **提交 10（文档）**：
+    - **catalog-guide.md**：
+      - 新增"发现面、就绪预告与拒绝细节"：knowledge_products、task_requirements、knowledge_readiness、next_action、where_predicates/sql_effective；6 个 reason 的码、触发条件与补救；改动后全部 POLICY_DENIED 发射点（按代码 grep 重列）；被拒请求只进网关日志。
+      - 改正：响应列为 5 列（含 text_sha256）、按设计不回分数；has 语言接受但计划无渲染。
+    - **architecture.md**：生命周期改为只有 ACTIVE 会过期，并说明待审任务以 revoke_task 作废，以及 TLA+ 无公平性、少走 Expire 仍是合法精化；原"任意未归档状态 --expire-->"与实现不符（读码核实：清扫只列 ACTIVE，cmd/gateway/main.go:1085）。
+    - **sql-security.md**：列出 WHERE 谓词（含 LIKE）、HAVING、COUNT DISTINCT 与只限精确数值的 AVG，以及未声明聚合即不可用；从不可 lowering 清单中删去 HAVING。
+    - **threat-model.md**：AVG 改为只支持精确数值。
+    - **getting-started.md**：Alice 可见 22 个工具，并补全清单。

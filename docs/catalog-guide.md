@@ -527,7 +527,8 @@ kb_publications:
 - 检索语言（`internal/retrieval`）是封闭的：`search`（AND 过滤原子 + 一个文本或向量查询承诺 + `k ≤ k_max`）、`fetch`
   （只接受本根任务族此前 `search`/`fetch` 已返回过的块引用，网关对照该根族账本的 Release 集合逐块核对，否则
   `CHUNK_NOT_RETURNED`）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
-  `= <> in`；date/numeric: `= <> < <= > >=  in`；text_set: `has`），字面量用 exposure 规范编码；任务强制范围按 `attributes[].scope`
+  `= <> in`；date/numeric: `= <> < <= > >=  in`；text_set: `has`——语言接受，但检索计划尚无渲染，`search` 以
+`RETRIEVAL_FILTER_UNSUPPORTED`（reason `OPERATOR_NOT_EXECUTABLE`）拒绝，MCP schema 也不再列出它），字面量用 exposure 规范编码；任务强制范围按 `attributes[].scope`
   注入为原子（进入请求承诺 h_N，不计为调用方原子），调用方对该属性的原子必须与范围相交。语言之外一律关闭式拒绝：
   `RETRIEVAL_FILTER_UNSUPPORTED`、`RETRIEVAL_QUERY_UNSUPPORTED`（含任何未知字段，如重排器、more-like-this）、
   `RETRIEVAL_K_EXCEEDED`、`RETRIEVAL_SCOPE_EXCEEDED`、`CHUNK_NOT_RETURNED`、`AGGREGATE_UNSUPPORTED`。
@@ -536,7 +537,8 @@ kb_publications:
 `knowledge_product`，以及各自的 `filters` / `query{text|vector}` / `k`、`chunks[]`、`field` + `aggregate`）。`search` 与 `fetch` 由
 `physicalquery.PrepareRetrieval` 准备：先把规范形变成 `chunks ⋈ documents` 的关系计划交给与 `execute_plan` 相同的编译器，再给两条语句各包一层
 命中集 CTE（在 `kb.chunks` 上按精确余弦距离排序、同一调用方原子、身份三列全序、`LIMIT k`；`fetch` 按身份枚举、不排序）；密封、预留、
-执行、序数推导、结算、回执、重放全部复用 `execute_plan` 的链条，响应列为 `doc_id, version, chunk_index, text`。效果口径见
+执行、序数推导、结算、回执、重放全部复用 `execute_plan` 的链条，响应列为 `doc_id, version, chunk_index, text_sha256, text`
+（前四列是封印语句的结果，`text` 是交付时按 `text_sha256` 核对后补上的正文；按设计不回相似度分数，名次即返回顺序）。效果口径见
 docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块行、文档键单元格与文档行、每个调用方过滤属性一个块单元格）。
 
 文档下载任务（K7；docs/kb-design.md §12）：检索与下载是两种任务。
@@ -560,6 +562,38 @@ documents 两个 Product（aggregate 授权 values），且携带 V5 暴露 prof
 （compose 中默认为空），未配置时文本查询以 `RETRIEVAL_QUERY_UNSUPPORTED` 拒绝、向量查询仍可用；嵌入器在使用前按知识产品声明的
 模型 / 维度 / 权重 sha256 核对。业务库须把 pgvector 装在 `pg_catalog`（`db/init/kb-schema.psql`）：连接器为每条语句钉
 `search_path = pg_catalog`，距离算子只有在那里才可解析。
+
+发现面、就绪预告与拒绝细节（KB1-LOOP-137；代码出处见各条）：
+- `list_data_products` 增 `knowledge_products`，各关系产品带 `knowledge_product: {name, role}`；`describe_data_product` 接受知识产品名。
+  知识产品页给出 `retrieval`（`k_max`、三种查询方式及限额：text 为归一化后至多 4096 字节、keywords 至多 8 个且每个至多 64 字符、
+  vector 的维度）、`attributes`（类型、`allowed_values`、实际可执行的 search 算子、`filter_columns`）、`extracted_fields`（可用聚合与所读列）
+  与 `task_requirements`。其中 search/fetch 的列取自检索计划本身（physicalquery.RetrievalRequiredColumns：chunks 的
+  `doc_id, version, chunk_index, text_sha256` 加每个过滤属性的列，documents 的 `doc_id, version`；作用域列不必授权），aggregate 的要求
+  直接运行 aggregatePlan 得出。不发布 collection、source_namespace、嵌入权重与 eligibility。
+- `request_data_task`（按申请清单）与 `get_task_context`（按已批授权）返回 `knowledge_readiness`：每个涉及的知识产品能否 search/fetch/aggregate、
+  缺哪些关系或列、哪些属性可过滤、暴露 profile 是否为 V5。只作信息，从不让请求失败；审批人仍可能删减。
+- `request_data_task`、`get_task_status`、`wait_for_approval` 返回 `waiting_for` 与 `next_action`：`human_submit_in_oa`（须申请人本人在 OA 提交，
+  agent 不能代交）、`await_approver_decision`、`use_task`、`none_terminal`；配置 `PUBLIC_OA_BASE_URL` 时，未批准任务的状态带草稿链接 `oa_url`。
+- `get_sql_capabilities` 增 `where_predicates`、`where_rejected`、`catalog_control_defaults`；`describe_data_product` 增 `sql_effective`
+  （生效算子：声明的或策略缺省集；该产品可用的 WHERE 谓词；聚合，未声明即不能聚合）。
+
+拒绝细节：错误体在 `code`、`message` 之外带 `reason` 与以下键（`mcp.ToolError.Details`）。
+
+| reason | code | 何时 | 细节与补救 |
+|---|---|---|---|
+| `UNKNOWN_KNOWLEDGE_PRODUCT` | `INVALID_REQUEST` | knowledge_product 不是目录中的知识产品名（KB1-LOOP-137 前为 `POLICY_DENIED`"任务授权外的知识产品"） | `knowledge_products` 列出全部知识产品；输入是某知识产品的关系名时给 `suggested_knowledge_product` 与 `relation_role` |
+| `RELATIONS_NOT_GRANTED` | `POLICY_DENIED` | 任务缺工具所读的关系（search/fetch：chunks 与 documents；aggregate：values；download_document：chunks 与 documents） | `missing_products`；授权只能收窄，须按 `task_requirements` 新建任务 |
+| `COLUMNS_NOT_GRANTED` | `POLICY_DENIED` | 检索或 aggregate 计划读取的列未获授权 | `missing_columns`（关系 → 列）；同上新建任务 |
+| `OPERATOR_NOT_EXECUTABLE` | `RETRIEVAL_FILTER_UNSUPPORTED` | 语言接受、计划尚无渲染的过滤算子（text_set 的 `has`） | `attribute`、`attribute_type`、`operator` |
+| `RETRIEVAL_NOT_PREPARABLE` | `POLICY_DENIED` | 其余检索准备失败（兜底） | 具体原因只记在网关日志（trace_id 对应的 cause） |
+| `QUERY_IN_PROGRESS` | `CONFLICT` | 同一任务已有在途查询（每个任务一个名额，委托子任务各有名额） | `retryable`、`same_request_id_ok`：在途查询返回后可用同一 request_id 重试 |
+
+`POLICY_DENIED` 的全部发射点（gateway 包，KB1-LOOP-137 后）：`QueryPlan 不在任务授权可精确计量的数据暴露片段内`（query.go，兜底，cause 记日志）、
+`任务授权缺少目录要求的强制数据范围`（query.go）、`当前实例不支持跨数据源任务`（datasource.go）、`QueryPlan 请求了任务授权外的数据产品`、
+`QueryPlan 无法在语义 View 的任务授权内编译`、`QueryPlan 使用了语义 View root 未授权的运算`、`语义 View 查询不在其治理闭包与任务授权内`（view_execution.go）、
+`检索不在任务授权可精确计量的数据暴露片段内`（retrieval.go，兜底）、`任务未授权该知识产品的抽取值关系`（知识产品无 values 关系时）、
+`委托任务无法继承父任务的授权预算`、`委托任务扩大了父 Grant 的产品、字段、范围或期限`（tasks.go），以及 retrieval_refusals.go 的
+`RELATIONS_NOT_GRANTED` 与 `COLUMNS_NOT_GRANTED` 两类。被拒请求不进审计链，只在网关日志按 trace_id 记录：拒绝只取决于授权与请求，不取决于数据。
 
 发布流程：`kb-publish -spec <spec.json> -artifact-dir <snapshot artifact root>` 写入 kb.* 行、建冻结物化视图、编译三个 bundle 到
 `<root>/<publication>/`，并在 `<root>/kb/<epoch>/` 留下清单、三个 compiler input 与 `catalog-fragment.yaml`；
