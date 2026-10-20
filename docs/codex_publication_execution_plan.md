@@ -2473,3 +2473,18 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 预告各情形：10-20 两次失败的授权分别预告缺 text_sha256 与缺 documents，授权充分时 ready，V4 时指出要求 V5。
       - 连库：经 CallTool 的 list、describe("policy_kb")、request_data_task 预告与 get_task_context 预告。
       - 网关全包 149 过、0 败、8 跳过。
+  - **提交 5（SQL 可发现）**：
+    - **WHERE 谓词描述表放在网关**（gateway/sql_predicates.go），不放进 sqllowering（held-out 协议写明降级器此后不改；本提交 sqllowering 零改动）。
+      - 可用：= <> < <= > >= IN NOT IN，以及 LIKE（正向、区分大小写、字面量模式）。
+      - 被拒及改写办法：OR/NOT、NOT LIKE/ILIKE/SIMILAR TO、BETWEEN、IS NULL、列与列比较、函数。
+    - **get_sql_capabilities**：增 where_predicates、where_rejected、catalog_control_defaults（未声明算子用策略缺省集，含 LIKE；未声明聚合即不能聚合）。
+    - **describe_data_product 增 sql_effective**：生效算子（声明的，或 sqlpolicy 缺省集）、该产品可用的谓词、聚合（未声明时附说明）。
+      - allowed_operators 键保持原样，仍为声明值。
+      - sqlpolicy 只加只读访问器 DefaultOperators()，行为不变，附防外泄副本测试。
+    - **实跑**：
+      - TestSQLWherePredicatesDescribeTheLowerer：用冻结的降级器逐条降级样例，每条可用谓词降级到所列计划算子，并只凭所列策略算子通过 sqlpolicy。
+        - documents 上 title LIKE '%工资%' 降级为 LIKE，并以 ~~ 获准；这是第 12 条"支持 LIKE"的进程内实跑证据，部署路径待冒烟。
+        - 已知反例：只给 "=" 时 LIKE 被拒。所列被拒谓词逐条确实不能降级。
+      - TestEffectiveSQLControlsResolveTheDefaults：documents 未声明算子，解析为缺省集；expense_summary 声明的算子不含 ~~，不列 LIKE。
+      - 三个 lowerability 工具（四份输出）重跑到暂存区，与已提交的 results.json 逐字节相同。比对器先用一对不同文件验证，判为不同。
+      - 网关全包 151 过、0 败、8 跳过；sqlpolicy、sqllowering、queryplan 全过。

@@ -127,6 +127,14 @@ func (s *Service) getSQLCapabilities(_ context.Context, _ mcp.Principal, raw jso
 			"operators":  "per_product",
 			"functions":  "per_product",
 		},
+		// What a product admits when its Catalog entry declares nothing;
+		// describe_data_product reports each product's effective controls.
+		"catalog_control_defaults": map[string]any{
+			"operators":  "policy_default：未声明 allowed_operators 的产品用缺省算子集（含 LIKE）",
+			"aggregates": "none：未声明 allowed_aggregates 的产品在 SQL 中不能聚合",
+		},
+		"where_predicates":    publicWherePredicates(sqlWherePredicates),
+		"where_rejected":      sqlWhereRejected,
 		"rewrite_error_codes": rewriteErrorCodes,
 		"rebind_error_codes":  []string{apierr.CodeViewSemanticChanged},
 		// Backward-compatible alias for clients predating the split between
@@ -210,6 +218,9 @@ func publicDataProduct(product catalog.Product, detailed bool) (map[string]any, 
 	if detailed {
 		result["allowed_operators"] = append([]string{}, product.AllowedOperators...)
 		result["allowed_functions"] = append([]string{}, product.AllowedFunctions...)
+		// allowed_operators is the declaration, empty when the product leaves
+		// the policy default in force; sql_effective is what applies.
+		result["sql_effective"] = effectiveSQLControls(product)
 	}
 	return result, nil
 }
