@@ -2543,3 +2543,20 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 实查：task_994f49e8…（14:56，AWAITING_SUBMISSION）即本次已知反例那次运行留下的。
     - 修复：核对后用同一身份 revoke_task。
     - 另记：lzj 10-19 18:04 的 task_5eefd82b… 已成孤儿。实查 OA 容器于 10-20 02:45Z 启动，晚于该任务，而草稿只在内存里。它属于 lzj 的身份，我不能代撤；无授权，无害。
+
+- [2026-10-20 15:10 UTC+8] KB1-LOOP-138 **KB1-LOOP-137 部署到演示栈：两个知识产品的部署路径冒烟（含 -usability）与 smoke.py 全过；顺带修好按旧路由审批的 approve.py**。
+  - **推送与构建**：
+    - 推送前 db-test-env 已 down，NAS 路由恢复走 eth0。kb-dev 1781def3..679c7c3d 推到 NAS，再由 NAS 推到 origin；在 NAS 上用 ls-remote 核实 origin 的 kb-dev 为 679c7c3d 后，才更新本地 origin/kb-dev。
+    - 首次构建因 HEAD≠origin/kb-dev 被构建器拒绝（按设计，正式镜像只从已发布提交构建）；失败目录只有两份日志，已删。
+    - 从 679c7c3d 构建：网关镜像 2af1a0d7…，OA 镜像 7caab277…。演示栈只重建这两个容器：两个知识产品激活，嵌入服务在线，61 个文件主体，无告警。
+  - **冒烟**（kb-formal-smoke -usability，policy_kb 与 policy_kb_small 各一次）全部通过：
+    - search 5 行、回执验签，fetch 未返回块得 CHUNK_NOT_RETURNED；
+    - 下载段走 bob（kb-large-v1 / kb-pilot-v1），含原件段；资格段 NOT_ELIGIBLE 与本部门受理；
+    - 新段：发布的 search 列等于检索计划列，enum 值按目录发布；只批身份列的申请在提交前预告缺 text_sha256，撤销后为 none_terminal；批准后检索得 COLUMNS_NOT_GRANTED；关系名得 INVALID_REQUEST；title LIKE '%报销%' 返回 3 行；待审任务的 oa_url 可重建。
+    - 第 12 条"SQL 支持 LIKE"在部署路径上实跑成立。
+  - **smoke.py 也从 10-19 起坏着**（同根）：其范围含 leadership，被路由给 dana，而 approve.py 一律以 bob 审批。
+    - 改动前 bob 得 404，现在得 403 并说明原因。
+    - 修复（演示文件，不在仓库）：approve.py 提交后从 get_task_status 读实际审批人（本次新增字段），用其账号审批；README 同步。
+    - 重跑通过：两任务由 dana 审批后 ACTIVE；关键词与文本检索、aggregate（count 104）正常。
+  - **清理**：失败运行留下的待审任务 task_37601f50、ecbc1229、4a45e532（alice）与 994f49e8（sales-staff，用其令牌）均已撤销。lzj 的孤儿任务仍在，见 KB1-LOOP-137。
+  - **agent 视角实调**（经本会话的 factgate MCP）：describe_data_product("policy_kb") 返回知识产品页，含 job_role 的 5 个值、k_max 20、三种查询方式与限额、各工具的 task_requirements，以及按字段的可用聚合（文本只 count，日期无 sum）。
