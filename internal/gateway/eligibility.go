@@ -221,17 +221,42 @@ func subsetOfSorted(requested, admissible []string) bool {
 // knowledgeProductOwning returns the knowledge product whose chunks,
 // documents or values relation is the named Product.
 func (s *Service) knowledgeProductOwning(product string) (catalog.KnowledgeProduct, bool) {
+	kp, _, found := s.knowledgeRelationOf(product)
+	return kp, found
+}
+
+// knowledgeRelationOf returns the knowledge product one of whose relations is
+// the named Product, and that relation's role. Every relation counts: the
+// optional collection_values and files relations as much as the three every
+// knowledge product declares.
+func (s *Service) knowledgeRelationOf(product string) (catalog.KnowledgeProduct, string, bool) {
 	if s.catalog == nil {
-		return catalog.KnowledgeProduct{}, false
+		return catalog.KnowledgeProduct{}, "", false
 	}
 	for _, kp := range s.catalog.KnowledgeProducts {
-		// Every relation inherits: the optional collection_values and files
-		// relations as much as the three every knowledge product declares.
-		for _, relation := range kp.Products.Relations() {
-			if relation == product {
-				return kp, true
+		for _, relation := range knowledgeRelationRoles(kp) {
+			if relation.product == product {
+				return kp, relation.role, true
 			}
 		}
 	}
-	return catalog.KnowledgeProduct{}, false
+	return catalog.KnowledgeProduct{}, "", false
+}
+
+type knowledgeRelationRole struct{ role, product string }
+
+// knowledgeRelationRoles lists the declared relations with their roles, in
+// the order KnowledgeProductRelations.Relations lists them.
+func knowledgeRelationRoles(kp catalog.KnowledgeProduct) []knowledgeRelationRole {
+	relations := []knowledgeRelationRole{
+		{"documents", kp.Products.Documents}, {"chunks", kp.Products.Chunks}, {"values", kp.Products.Values},
+		{"collection_values", kp.Products.CollectionValues}, {"files", kp.Products.Files},
+	}
+	declared := relations[:0]
+	for _, relation := range relations {
+		if relation.product != "" {
+			declared = append(declared, relation)
+		}
+	}
+	return declared
 }

@@ -91,7 +91,7 @@ func TestSearchToolIsListedAndRejectsClosedForm(t *testing.T) {
 		args map[string]any
 		code string
 	}{
-		{"unknown knowledge product", base(map[string]any{"knowledge_product": "nope"}), apierr.CodePolicyDenied},
+		{"unknown knowledge product", base(map[string]any{"knowledge_product": "nope"}), apierr.CodeInvalidRequest},
 		{"unknown attribute", base(map[string]any{"filters": []map[string]any{{"attribute": "colour", "op": "=", "value": "red"}}}), apierr.CodeRetrievalFilterUnsupported},
 		{"unsupported operator on enum", base(map[string]any{"filters": []map[string]any{{"attribute": "job_role", "op": ">", "value": "staff"}}}), apierr.CodeRetrievalFilterUnsupported},
 		{"k above k_max", base(map[string]any{"k": 21}), apierr.CodeRetrievalKExceeded},

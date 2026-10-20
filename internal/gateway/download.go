@@ -136,7 +136,7 @@ func (s *Service) requestDownloadTask(ctx context.Context, principal mcp.Princip
 	}
 	product, found := s.catalog.LookupKnowledgeProduct(args.KnowledgeProduct)
 	if !found {
-		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "目录中没有这个知识产品"}
+		return nil, s.unknownKnowledgeProduct(args.KnowledgeProduct)
 	}
 	list, err := kbdownload.CanonicalList(args.Documents)
 	if err != nil {
@@ -296,8 +296,12 @@ func (s *Service) downloadDocument(ctx context.Context, principal mcp.Principal,
 		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "本实例未加载 Catalog"}
 	}
 	product, found := s.catalog.LookupKnowledgeProduct(args.KnowledgeProduct)
-	if !found || !contains(grant.ApprovedProducts, product.Products.Chunks) || !contains(grant.ApprovedProducts, product.Products.Documents) {
-		return mcp.ToolResult{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未授权该知识产品的分块与文档关系"}
+	if !found {
+		return mcp.ToolResult{}, s.unknownKnowledgeProduct(args.KnowledgeProduct)
+	}
+	if !contains(grant.ApprovedProducts, product.Products.Chunks) || !contains(grant.ApprovedProducts, product.Products.Documents) {
+		return mcp.ToolResult{}, knowledgeRelationsNotGranted("任务未授权该知识产品的分块与文档关系", product, "download_document",
+			[]string{product.Products.Chunks, product.Products.Documents}, grant.ApprovedProducts)
 	}
 	includeValues := product.Products.Values != "" && contains(grant.ApprovedProducts, product.Products.Values)
 	original := args.Format == kbdownload.FormatOriginal

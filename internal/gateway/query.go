@@ -701,17 +701,18 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 		// Catalog and resolving Publications through the verified registry -- so a
 		// failure here is server state disagreeing with itself, not a refused plan.
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "查询无法在当前 Catalog 与快照证据下构造准备输入"}
+			Message: "查询无法在当前 Catalog 与快照证据下构造准备输入", Cause: err}
 	}
 	prepared, err := physicalquery.Prepare(inputs)
 	if err != nil {
+		// The cause names the check that refused; it is logged, not returned.
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied,
-			Message: "QueryPlan 不在任务授权可精确计量的数据暴露片段内"}
+			Message: "QueryPlan 不在任务授权可精确计量的数据暴露片段内", Cause: err}
 	}
 	compiler, err := physicalquery.LocalCompilerIdentity()
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "本进程无法确定查询编译器身份"}
+			Message: "本进程无法确定查询编译器身份", Cause: err}
 	}
 	// Validate proves the object is the one its binding describes; RequireInputs
 	// proves the binding names these inputs and this compiler. The Gateway holds
@@ -719,12 +720,12 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 	// the finalizer does before comparing.
 	if err := prepared.RequireInputs(inputs, compiler); err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "准备结果与其输入证据不一致；查询未执行"}
+			Message: "准备结果与其输入证据不一致；查询未执行", Cause: err}
 	}
 	visibleSQL, _, err := prepared.ExecutableStatements()
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "准备结果拒绝交出可执行语句"}
+			Message: "准备结果拒绝交出可执行语句", Cause: err}
 	}
 	result := preparedQueryPlan{SQL: visibleSQL, PolicyGrant: prepared.PolicyGrant(), Prepared: prepared}
 	if !grant.Exposure.Enabled() {
@@ -737,7 +738,7 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 	context, err := s.planExposureContextFrom(prepared, plan)
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "已准备的查询无法在当前快照索引下建立观测上下文"}
+			Message: "已准备的查询无法在当前快照索引下建立观测上下文", Cause: err}
 	}
 	result.Exposure = context
 	return result, nil

@@ -316,21 +316,21 @@ func (s *Service) prepareSemanticViewPlan(grant control.TaskGrant, artifact view
 	inputs, err := s.semanticViewPreparationInputs(grant, artifact, composition, binding, outer)
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "语义 View 查询无法在当前 Catalog 与快照证据下构造准备输入"}
+			Message: "语义 View 查询无法在当前 Catalog 与快照证据下构造准备输入", Cause: err}
 	}
 	prepared, err := physicalquery.PrepareSemanticView(inputs)
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied,
-			Message: "语义 View 查询不在其治理闭包与任务授权内"}
+			Message: "语义 View 查询不在其治理闭包与任务授权内", Cause: err}
 	}
 	compiler, err := physicalquery.LocalCompilerIdentity()
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "本进程无法确定查询编译器身份"}
+			Message: "本进程无法确定查询编译器身份", Cause: err}
 	}
 	if err := prepared.RequireSemanticViewInputs(inputs, compiler); err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "语义 View 准备结果与其输入证据不一致；查询未执行"}
+			Message: "语义 View 准备结果与其输入证据不一致；查询未执行", Cause: err}
 	}
 	// The observation is expressed in the COMPOSED plan, not the agent's outer
 	// one: the statements project and group by composed FieldIDs, so an
@@ -340,7 +340,7 @@ func (s *Service) prepareSemanticViewPlan(grant control.TaskGrant, artifact view
 	context, err := s.planExposureContextFrom(prepared, composition.Plan)
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "已准备的语义 View 查询无法在当前快照索引下建立观测上下文"}
+			Message: "已准备的语义 View 查询无法在当前快照索引下建立观测上下文", Cause: err}
 	}
 	// The raw revision, which the binding carries only as a digest. executeSQL
 	// compares it against the revision the registry reports at execution time.

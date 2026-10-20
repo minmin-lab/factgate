@@ -2436,3 +2436,14 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 恰好授予推导出的列集即可准备，两条语句也过 sqlpolicy；删掉其中任一列即准备失败。
       - 基础集为 chunks{chunk_index, doc_id, text_sha256, version}、documents{doc_id, version}；作用域列不必授权（由策略渲染器施加）；注入的作用域原子不加列。
     - 提交 0 的护栏与 queryplan、sqlpolicy 身份测试照旧通过。
+  - **提交 2（精确拒绝与检索描述）**：新文件 gateway/retrieval_refusals.go。
+    - **未知知识产品名**：码由 POLICY_DENIED 改为 INVALID_REQUEST，与 request_download_task 一致，属行为变化。Details 列出全部知识产品名；输入若是某知识产品的关系名，提示改填该知识产品。涉及 search、fetch 预检、aggregate、download_document 四处。
+    - **缺关系**：仍为 POLICY_DENIED，Details 加 reason=RELATIONS_NOT_GRANTED、missing_products 与补救办法（新建任务，因为授权只能收窄）。
+    - **缺列**：在 Normalize 之后、准备之前按 RetrievalPlanColumns 核授权，缺列时 reason=COLUMNS_NOT_GRANTED 并给 missing_columns，属行为变化。aggregate 同样按其计划列核对。fetch 的已返回块检查仍在前。
+    - **has**：改由网关以 RETRIEVAL_FILTER_UNSUPPORTED 拒绝，reason=OPERATOR_NOT_EXECUTABLE，属行为变化；并从 search 的 schema 枚举中删去。physicalquery 的 Validate 不动。
+    - **兜底拒绝**：保留原码与原文，补 Cause 以便日志记下具体原因（retrieval、query_sql、语义 View 三条准备路径），检索兜底另加 reason=RETRIEVAL_NOT_PREPARABLE。
+    - **工具描述与 schema**：search 与 fetch 描述写明填知识产品名、k 上限、query 三选一与 4096 字节、必需列见 task_requirements、按设计不回分数。列给 agent 的 search schema 按目录给出 k.maximum（最大 k_max）。
+    - **实跑**（db-test-env）：
+      - 新增 TestRetrievalRefusalsNameWhatTheRequestOrTaskLacks。其中复现了 10-20 的 task_82dbe638 授权（两个关系，只有身份列），检索得 missing_columns {policy_kb_chunks: [text_sha256]}，加 job_role 过滤时再多 job_role。另覆盖 has、aggregate 的 sum/count 缺列与缺 values 关系；被拒请求均不耗预算。
+      - 新增 TestListedSearchToolBoundsKByTheCatalog。
+      - 网关全包 145 过、0 败、8 跳过（基线 143/0/8，多出的 2 个即新测试）；护栏两个测试照旧通过。

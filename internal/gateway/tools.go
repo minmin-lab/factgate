@@ -164,7 +164,7 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	}
 	switch principal.Role {
 	case "query":
-		return append(append(append([]mcp.Tool(nil), queryTools...), retrievalTools...), downloadTools...)
+		return append(append(append([]mcp.Tool(nil), queryTools...), retrievalToolsFor(s.catalog)...), downloadTools...)
 	case "auditor":
 		return append([]mcp.Tool(nil), auditTools...)
 	default:

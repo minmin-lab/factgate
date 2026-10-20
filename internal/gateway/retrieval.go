@@ -44,14 +44,17 @@ var retrievalDisplayColumns = []string{"doc_id", "version", "chunk_index", retri
 // projection of the sealed statement (kb-design §9.8).
 const chunkTextDeliveryColumn = "text"
 
-var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询检索，返回至多 k 个分块：文本或向量做精确最近邻检索；关键词（知识产品声明 keyword 时）返回正文同时包含每个关键词的分块，区分大小写，按命中字符数排序。命中分块按任务账本的三维结算记账。过滤只接受知识产品声明的属性，不接受 doc_id：要某份已知文档的全文或原文件，请用 request_download_task 申请下载任务，再用 download_document 一次取回。",
+var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过滤原子与查询检索，返回至多 k 个分块：文本或向量做精确最近邻检索；关键词（知识产品声明 keyword 时）返回正文同时包含每个关键词的分块，区分大小写，按命中字符数排序。" +
+	"knowledge_product 填知识产品名（如 policy_kb），不是它的关系名（如 policy_kb_chunks）；k 不超过该知识产品的 k_max；query 三选一：text（归一化后至多 4096 字节）、vector、keywords。" +
+	"任务须同时授权该知识产品的 chunks 与 documents 关系及其必需列，另加每个过滤属性在 chunks 上的列；知识产品、属性值域、k_max 与必需列见 list_data_products 的 knowledge_products[].task_requirements。" +
+	"结果按相似度（或命中字符数）排序，名次即返回顺序，按设计不返回分数。命中分块按任务账本的三维结算记账。过滤只接受知识产品声明的属性，不接受 doc_id：要某份已知文档的全文或原文件，请用 request_download_task 申请下载任务，再用 download_document 一次取回。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        requestIDSchema(),
 		"knowledge_product": map[string]any{"type": "string", "minLength": 1},
 		"filters": map[string]any{"type": "array", "items": objectSchema(map[string]any{
 			"attribute": map[string]any{"type": "string", "minLength": 1},
-			"op":        map[string]any{"type": "string", "enum": []string{"=", "<>", "<", "<=", ">", ">=", "in", "has"}},
+			"op":        map[string]any{"type": "string", "enum": []string{"=", "<>", "<", "<=", ">", ">=", "in"}},
 			"value":     map[string]any{},
 			"values":    map[string]any{"type": "array"},
 		}, "attribute", "op")},
@@ -64,7 +67,7 @@ var searchTool = mcp.Tool{Name: "search", Description: "在知识产品内按过
 		"k": map[string]any{"type": "integer", "minimum": 1},
 	}, "task_id", "request_id", "knowledge_product", "query", "k")}
 
-var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chunk_index) 取回先前检索命中的分块正文；取回同样按任务账本结算，已结算过的分块不再重复计费。只能取本任务族此前检索返回过的块；要整份文档请用 request_download_task 与 download_document。",
+var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chunk_index) 取回先前检索命中的分块正文；取回同样按任务账本结算，已结算过的分块不再重复计费。只能取本任务族此前检索返回过的块；任务授权要求与 search 相同（见 list_data_products 的 task_requirements）；要整份文档请用 request_download_task 与 download_document。",
 	InputSchema: objectSchema(map[string]any{
 		"task_id":           map[string]any{"type": "string"},
 		"request_id":        requestIDSchema(),
@@ -78,6 +81,40 @@ var fetchTool = mcp.Tool{Name: "fetch", Description: "按 (doc_id, version, chun
 
 // retrievalTools are listed to query principals alongside queryTools.
 var retrievalTools = []mcp.Tool{searchTool, fetchTool, aggregateTool}
+
+// retrievalToolsFor is retrievalTools with search's k bounded by the largest
+// k_max the loaded Catalog declares. Each knowledge product's own k_max is
+// published by list_data_products and enforced on the request; the schema
+// bound only spares a client the round trip.
+func retrievalToolsFor(loaded *catalog.Catalog) []mcp.Tool {
+	kMax := 0
+	if loaded != nil {
+		for _, kp := range loaded.KnowledgeProducts {
+			kMax = max(kMax, kp.Retrieval.KMax)
+		}
+	}
+	tools := append([]mcp.Tool(nil), retrievalTools...)
+	if kMax == 0 {
+		return tools
+	}
+	properties, _ := searchTool.InputSchema["properties"].(map[string]any)
+	bounded := make(map[string]any, len(properties))
+	for name, property := range properties {
+		bounded[name] = property
+	}
+	bounded["k"] = map[string]any{"type": "integer", "minimum": 1, "maximum": kMax}
+	schema := make(map[string]any, len(searchTool.InputSchema))
+	for key, value := range searchTool.InputSchema {
+		schema[key] = value
+	}
+	schema["properties"] = bounded
+	for index := range tools {
+		if tools[index].Name == searchTool.Name {
+			tools[index].InputSchema = schema
+		}
+	}
+	return tools
+}
 
 func (s *Service) search(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
 	return s.retrieve(ctx, principal, raw, retrieval.ToolSearch)
@@ -356,10 +393,11 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	}
 	product, found := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
 	if !found {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, s.unknownKnowledgeProduct(request.KnowledgeProduct)
 	}
 	if !contains(grant.ApprovedProducts, product.Products.Chunks) || !contains(grant.ApprovedProducts, product.Products.Documents) {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未同时授权该知识产品的分块与文档关系"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, knowledgeRelationsNotGranted("任务未同时授权该知识产品的分块与文档关系", product, request.Tool,
+			[]string{product.Products.Chunks, product.Products.Documents}, grant.ApprovedProducts)
 	}
 	if !grant.Exposure.Enabled() || grant.Exposure.ProfileVersion != exposure.ProfileV5 {
 		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeExposureEvidenceRequired, Message: "知识检索要求任务携带 V5 暴露 profile"}
@@ -371,6 +409,14 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	normalForm, err := retrieval.Normalize(product, scope, request)
 	if err != nil {
 		return preparedQueryPlan{}, queryplan.QueryPlan{}, retrievalToolError(err)
+	}
+	// Both refusals below are ones the preparation would make; they come
+	// first only to say precisely what the request or the task lacks.
+	if err := requireRenderedOperators(normalForm); err != nil {
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, err
+	}
+	if err := requireRetrievalColumns(product, normalForm, grant.ApprovedColumns); err != nil {
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, err
 	}
 	var vector []float32
 	var keywords []string
@@ -388,11 +434,11 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	}
 	view, err := physicalquery.CatalogViewFromCatalog(*s.catalog)
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索无法在当前 Catalog 下构造准备输入"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索无法在当前 Catalog 下构造准备输入", Cause: err}
 	}
 	bindings, err := s.snapshotBindings()
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索无法在当前快照证据下构造准备输入"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索无法在当前快照证据下构造准备输入", Cause: err}
 	}
 	inputs := physicalquery.RetrievalPreparationInputsV1{
 		Grant: preparationGrant(grant), Catalog: view, SnapshotBindings: bindings,
@@ -402,26 +448,27 @@ func (s *Service) prepareRetrieval(grant control.TaskGrant, request retrieval.Re
 	prepared, err := physicalquery.PrepareRetrieval(inputs)
 	if err != nil {
 		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied,
-			Message: "检索不在任务授权可精确计量的数据暴露片段内"}
+			Message: "检索不在任务授权可精确计量的数据暴露片段内",
+			Details: map[string]any{"reason": "RETRIEVAL_NOT_PREPARABLE"}, Cause: err}
 	}
 	compiler, err := physicalquery.LocalCompilerIdentity()
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "本进程无法确定查询编译器身份"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "本进程无法确定查询编译器身份", Cause: err}
 	}
 	if err := prepared.RequireRetrievalInputs(inputs, compiler); err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "准备结果与其输入证据不一致；检索未执行"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "准备结果与其输入证据不一致；检索未执行", Cause: err}
 	}
 	visibleSQL, _, err := prepared.ExecutableStatements()
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "准备结果拒绝交出可执行语句"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "准备结果拒绝交出可执行语句", Cause: err}
 	}
 	planInputs, err := inputs.PlanInputs()
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索的等价计划无法构造"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "检索的等价计划无法构造", Cause: err}
 	}
 	exposureContext, err := s.planExposureContextFrom(prepared, planInputs.Plan)
 	if err != nil {
-		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "已准备的检索无法在当前快照索引下建立观测上下文"}
+		return preparedQueryPlan{}, queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict, Message: "已准备的检索无法在当前快照索引下建立观测上下文", Cause: err}
 	}
 	return preparedQueryPlan{SQL: visibleSQL, PolicyGrant: prepared.PolicyGrant(), Prepared: prepared, Exposure: exposureContext}, planInputs.Plan, nil
 }
@@ -583,6 +630,10 @@ func (s *Service) aggregate(ctx context.Context, principal mcp.Principal, raw js
 	if err != nil {
 		return nil, err
 	}
+	if missing := missingPlanColumns(singleProductPlanColumns(plan), grant.ApprovedColumns); len(missing) > 0 {
+		product, _ := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
+		return nil, columnsNotGranted(product, retrieval.ToolAggregate, missing)
+	}
 	prepared, err := s.prepareTaskPlan(ctx, task, grant, plan)
 	if err != nil {
 		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, envelope.RequestID, digest(requestSummary), requestStarted, err)
@@ -617,7 +668,7 @@ func (s *Service) aggregatePlan(grant control.TaskGrant, request retrieval.Reque
 	}
 	product, found := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
 	if !found {
-		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+		return queryplan.QueryPlan{}, s.unknownKnowledgeProduct(request.KnowledgeProduct)
 	}
 	// A collection-scoped field aggregates over the deduplicated relation, so
 	// the witness set and the dependency are distinct values within the
@@ -628,8 +679,12 @@ func (s *Service) aggregatePlan(grant control.TaskGrant, request retrieval.Reque
 			values = product.Products.CollectionValues
 		}
 	}
-	if values == "" || !contains(grant.ApprovedProducts, values) {
+	if values == "" {
 		return queryplan.QueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务未授权该知识产品的抽取值关系"}
+	}
+	if !contains(grant.ApprovedProducts, values) {
+		return queryplan.QueryPlan{}, knowledgeRelationsNotGranted("任务未授权该知识产品的抽取值关系", product, retrieval.ToolAggregate,
+			[]string{values}, grant.ApprovedProducts)
 	}
 	valuesProduct, found := s.catalog.LookupProduct(values)
 	if !found {
@@ -727,7 +782,7 @@ func aggregateAtomFilters(form retrieval.NormalForm, columns map[string]bool) ([
 func (s *Service) requireChunksReturned(ctx context.Context, task control.Task, request retrieval.Request) error {
 	product, found := s.catalog.LookupKnowledgeProduct(request.KnowledgeProduct)
 	if !found {
-		return &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "任务授权外的知识产品"}
+		return s.unknownKnowledgeProduct(request.KnowledgeProduct)
 	}
 	chunksProduct, found := s.catalog.LookupProduct(product.Products.Chunks)
 	if !found || s.snapshotRegistry == nil {
