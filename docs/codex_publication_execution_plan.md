@@ -2764,3 +2764,10 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - demo-approver.py：A、B、C、D 均 ACTIVE；E 指定 sales-director，归档 approver_not_authorized。
     - 未跑 demo-misroute.sh：它会用错配目录临时重启网关，作者正在测试。改动只是把误配对象从 bob 换成 finance-manager，留待空闲时跑。
   - **未改**：作者本机 Claude Code 的 factgate MCP 仍用 alice 的令牌。演示栈已不提供 alice 的 OA 账号，用它建的任务无法提交；是否改用 staff 令牌，交作者定。
+- [2026-10-26 13:28 UTC+8] KB1-LOOP-146 **作者在 TeleAgent 实测接入成功，测试指南改为直接附这份配置（含 staff 令牌）**。
+  - 作者原话："我实际用这个在 teleagent 配置成功了……写进说明文档，我发给同事"。
+  - 配置用的是 mcp-remote 方式：公网 /mcp，令牌放在 env 的 FACTGATE_AUTH 里。我核对过该令牌就是根 .env 的 STAFF_MCP_TOKEN（只比对，未打印）。
+  - /home/wmm/kb-demo/tester-guide.md 的处理：
+    - 把 TeleAgent 配置原样放在"接入"一节第一位，附上冒号后不留空格的原因，以及验证方法（list_data_products）；
+    - "凭据"一节改为"MCP 令牌见配置，OA 口令另行私发"；
+    - 文件含令牌，权限改为 0600。kb-demo README 已注明。
