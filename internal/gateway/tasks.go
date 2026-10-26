@@ -105,6 +105,9 @@ type taskRequestArgs struct {
 	// checked against the data products' rules when the approval arrives, so
 	// a wrong choice yields no grant.
 	Approver string `json:"approver,omitempty"`
+	// issuance is set by issue_data_authorization only (issue.go): the task
+	// is created for another principal with a chosen budget profile.
+	issuance *issuanceRequest
 }
 
 func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
@@ -148,9 +151,23 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	rootTaskID := ""
 	var parentCore *domain.TaskGrantCoreV1
 	var inheritedViewBinding *pendingViewBinding
+	var issuedBy *issuerRecord
 	if args.ParentTaskID == "" {
 		if args.DelegatePrincipalID != "" {
 			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "delegate_principal_id 只能与 parent_task_id 一起使用"}
+		}
+		if issuance := args.issuance; issuance != nil {
+			// An issued authorization is the employee's task: their principal
+			// runs it, they are its human subject; the issuer approves first.
+			if err := s.issuerAuthority(principal, now); err != nil {
+				return nil, err
+			}
+			employee, err := s.issuedPrincipal(ctx, principal, issuance.ForPrincipalID)
+			if err != nil {
+				return nil, err
+			}
+			taskPrincipalID, humanSubject = employee.ID, employee.Subject
+			issuedBy = &issuerRecord{PrincipalID: principal.ID, Subject: principal.Subject}
 		}
 	} else {
 		parentTask, err := s.ownedTask(ctx, principal, args.ParentTaskID)
@@ -217,6 +234,12 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
 	}
 	budgetSource := "catalog_profile"
+	if issuedBy != nil {
+		if err := s.applyIssuance(&policy, principal, scope, args.issuance, now); err != nil {
+			return nil, err
+		}
+		budgetSource = "issued_profile"
+	}
 	if parentCore != nil {
 		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
 		if err != nil {
@@ -269,6 +292,10 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		}
 		chain, chainSteps = &planned, steps
 		policy.ApprovalRoute.Approver, _ = steps[0]["approver"].(string)
+		if issuedBy != nil && !strings.EqualFold(policy.ApprovalRoute.Approver, principal.Subject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeApproverNotAuthorized,
+				Message: fmt.Sprintf("发单人 %s 不是该员工所在部门的审批人（目录组织架构指定 %s）", principal.Subject, policy.ApprovalRoute.Approver)}
+		}
 		if chosenApprover != "" {
 			authorized, _ := steps[0]["approver_authorized"].(bool)
 			approverAuthorized = &authorized
@@ -345,6 +372,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Manifest:     manifest,
 		ApprovalMode: string(policy.ApprovalRoute.Mode), Approver: policy.ApprovalRoute.Approver,
 	}
+	if issuedBy != nil {
+		draftRequest.IssuedBy = issuedBy.Subject
+	}
 	snapshotSHA256, err := approval.AuthorizationSnapshotSHA256(draftRequest)
 	if err != nil {
 		return nil, err
@@ -367,7 +397,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		ViewBinding: clonePendingViewBinding(viewBinding),
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
 		VerifyApprover: selfConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
-		Chain: chain, SelfConfirm: selfConfirm,
+		Chain: chain, SelfConfirm: selfConfirm, IssuedBy: issuedBy,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -387,6 +417,14 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		RootTaskID: rootTaskID, ParentTaskID: args.ParentTaskID,
 	}); err != nil {
 		return nil, err
+	}
+	if issuedBy != nil {
+		payload, _ := json.Marshal(map[string]any{"human_subject": humanSubject, "for_principal_id": taskPrincipalID,
+			"issuer_subject": issuedBy.Subject, "budget_profile": policy.BudgetProfile})
+		if _, err := s.store.AppendAuditEvent(ctx, control.AuditEvent{TaskID: taskID, Actor: issuedBy.PrincipalID,
+			EventType: "TASK_ISSUED_FOR", OccurredAt: now, Payload: payload}); err != nil {
+			return nil, err
+		}
 	}
 	result := map[string]any{
 		"task_id": taskID, "state": control.TaskAwaitingSubmission, "oa_url": draft.URL,
@@ -414,6 +452,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if selfConfirm {
 		result["self_confirm"] = true
+	}
+	if issuedBy != nil {
+		result["issued_by"], result["human_subject"] = issuedBy.Subject, humanSubject
 	}
 	if len(reservedScope) == 0 {
 		if readiness := s.knowledgeReadiness(args.DataProducts, columns, policy.Budget.ExposureProfileVersion, "requested"); len(readiness) > 0 {
@@ -698,7 +739,7 @@ func (s *Service) getTaskStatus(ctx context.Context, principal mcp.Principal, ra
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	task, err := s.ownedTask(ctx, principal, args.TaskID)
+	task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -731,7 +772,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 	ticker := time.NewTicker(250 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		task, err := s.ownedTask(ctx, principal, args.TaskID)
+		task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 		if err != nil {
 			return nil, err
 		}
@@ -936,7 +977,7 @@ func (s *Service) revokeTask(ctx context.Context, principal mcp.Principal, raw j
 	if len(args.Reason) > 1000 {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "reason 过长"}
 	}
-	task, err := s.ownedTask(ctx, principal, args.TaskID)
+	task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 	if err != nil {
 		return nil, err
 	}

@@ -449,7 +449,8 @@ func (s *Service) validateRejectedReceipt(event oaCallbackEvent, manifest approv
 func validCallbackActor(event oaCallbackEvent, pending pendingContext, humanSubject string) bool {
 	switch event.Status {
 	case "submitted":
-		return strings.EqualFold(event.Actor, humanSubject)
+		return strings.EqualFold(event.Actor, humanSubject) ||
+			(pending.IssuedBy != nil && strings.EqualFold(event.Actor, pending.IssuedBy.Subject))
 	case "approved", "narrowed", "rejected":
 		if strings.EqualFold(pending.Approver, humanSubject) && !pending.SelfConfirm {
 			return false

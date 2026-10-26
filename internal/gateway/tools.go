@@ -164,7 +164,11 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	}
 	switch principal.Role {
 	case "query":
-		return append(append(append([]mcp.Tool(nil), queryTools...), retrievalToolsFor(s.catalog)...), downloadTools...)
+		tools := append(append(append([]mcp.Tool(nil), queryTools...), retrievalToolsFor(s.catalog)...), downloadTools...)
+		if s.delegated() != nil {
+			tools = append(tools, issueTool)
+		}
+		return tools
 	case "auditor":
 		return append([]mcp.Tool(nil), auditTools...)
 	default:
@@ -200,6 +204,8 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 			result, err = s.getTaskContext(ctx, principal, raw)
 		case "rebind_data_task":
 			result, err = s.rebindDataTask(ctx, principal, raw)
+		case issueTool.Name:
+			result, err = s.issueDataAuthorization(ctx, principal, raw)
 		case executePlanTool.Name:
 			result, err = s.executePlan(ctx, principal, raw)
 		case "query_sql":

@@ -59,6 +59,9 @@ type DraftRequest struct {
 	ManifestDigest string                  `json:"manifest_digest"`
 	ApprovalMode   string                  `json:"approval_mode"`
 	Approver       string                  `json:"approver,omitempty"`
+	// IssuedBy is the subject who issued the task for its human subject and
+	// may submit the draft in their place (KB1-LOOP-147); empty otherwise.
+	IssuedBy string `json:"issued_by,omitempty"`
 }
 
 // CanonicalJSON implements the JSON Canonicalization Scheme in RFC 8785 for

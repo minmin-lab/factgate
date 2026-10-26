@@ -2793,3 +2793,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-26 22:59 UTC+8] KB1-LOOP-147 **更正：阶段 2 条目的时间戳写成 23:12，实为 22:59（date 输出在同一条命令里，我没看就写了）**。
   - 根因：与 KB1-LOOP-145 同类——先写条目、后看 date。同类根因第二次出现，按流程缺陷处理。
   - 防再犯：新增 scripts/ledger-append.sh，条目正文从文件读入，时间戳由脚本在写入时刻取（TZ=Asia/Shanghai），从此台账条目不再手写时间；本条起使用。
+- [2026-10-26 23:05 UTC+8] KB1-LOOP-147 **阶段 3：管理员代开单工具 issue_data_authorization**。
+  - internal/gateway/issue.go：目录有 delegated_authorization 时才列出与可调；发单人须命中 issuer_role；for_principal_id 须为已启用查询主体且不是自己；任务挂在员工主体下（HumanSubject、AgentID 均为员工），发单人是链上第一级审批人（steps[0] 不是发单人即 APPROVER_NOT_AUTHORIZED）；范围限发单人本部门（含其他部门即 INVALID_REQUEST，提示跨部门由员工自己发起项目）；budget_profile 须是目录预算档且 exposure_profile_version 与路由一致，budget_source=issued_profile。
+  - 记录代开人：pendingContext.IssuedBy、approval.DraftRequest.IssuedBy（manifest 之外，摘要不变）、OA Draft.IssuedBy、审计事件 TASK_ISSUED_FOR（actor=发单人主体 id）。回调 submitted 允许代开人；get_task_status / wait_for_approval / revoke_task 对代开人开放（issuedOrOwnedTask），查询类工具不开放。
+  - **实跑**：新增 TestAdministratorIssuesAnAuthorizationForAnEmployeeOfTheirDepartment（alice 为 staff 开单，TTL 取所选档 2h；陌生人提交 403，发单人提交并批准后 ACTIVE；员工与发单人都能看状态，发单人读不到 task_context；员工建自确认子任务并激活；发单人撤销根任务）、TestIssuedAuthorizationsAreConfinedToTheIssuersDepartment、TestIssuingIsAbsentWithoutTheCatalogBlock 通过；db-test-env 下 internal/gateway、control、cmd/gateway 全部 ok；oademo、approval、cmd/oa-demo ok；make hygiene 通过。

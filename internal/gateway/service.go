@@ -176,6 +176,10 @@ type pendingContext struct {
 	// model lets its own human subject confirm: Approver is then the human
 	// subject. The approval callback refuses a self-approval without it.
 	SelfConfirm bool `json:"self_confirm,omitempty"`
+	// IssuedBy names the department administrator who issued this task for
+	// its human subject (issue.go); they may submit the draft and watch or
+	// revoke the task.
+	IssuedBy *issuerRecord `json:"issued_by,omitempty"`
 }
 
 // delegated is the Catalog's delegated-authorization model, nil when the

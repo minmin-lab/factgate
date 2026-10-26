@@ -92,14 +92,17 @@ type user struct {
 type DraftRequest = approval.DraftRequest
 
 type Draft struct {
-	ID              string                           `json:"id"`
-	Manifest        approval.AuthorizationManifestV1 `json:"authorization_manifest"`
-	ManifestDigest  string                           `json:"manifest_digest"`
-	ApprovalMode    string                           `json:"approval_mode"`
-	Approver        string                           `json:"approver,omitempty"`
-	ApprovedGrant   *approval.TaskGrantCoreV1        `json:"approved_grant,omitempty"`
-	ApprovalReceipt *approval.ApprovalReceiptV1      `json:"approval_receipt,omitempty"`
-	State           string                           `json:"state"`
+	ID             string                           `json:"id"`
+	Manifest       approval.AuthorizationManifestV1 `json:"authorization_manifest"`
+	ManifestDigest string                           `json:"manifest_digest"`
+	ApprovalMode   string                           `json:"approval_mode"`
+	Approver       string                           `json:"approver,omitempty"`
+	// IssuedBy is the administrator who issued the task for its human
+	// subject (KB1-LOOP-147); they may submit the draft in their place.
+	IssuedBy        string                      `json:"issued_by,omitempty"`
+	ApprovedGrant   *approval.TaskGrantCoreV1   `json:"approved_grant,omitempty"`
+	ApprovalReceipt *approval.ApprovalReceiptV1 `json:"approval_receipt,omitempty"`
+	State           string                      `json:"state"`
 	// History lists the decisions on the draft, oldest first. In an approval
 	// chain (KB1-LOOP-141) TaskGate answers each approval with the next
 	// approver; the draft is then reassigned to them and Approver is always
@@ -293,7 +296,7 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 	now := s.config.Clock().UTC()
 	draft := &Draft{
 		ID: randomID("oa"), Manifest: cloneManifest(request.Manifest), ManifestDigest: request.ManifestDigest,
-		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver),
+		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver), IssuedBy: strings.ToLower(request.IssuedBy),
 		State: "draft", CreatedAt: now, UpdatedAt: now,
 	}
 	s.mu.Lock()
