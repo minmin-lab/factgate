@@ -2808,3 +2808,14 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-26 23:16 UTC+8] KB1-LOOP-147 **更正阶段 5 条目：callback_scale_test.go 带 `//go:build taskgate_scale` 标签，我加在 TestDelegatedTaskSharesRootExposureAndStopsWithParent 里的断言从未运行，"通过"是假的**。
   - 根因：该查没查——没看文件头的构建标签就把它当作普通测试，把整包 ok 当成了它通过。按第 3 档（未复核）处理：已把该文件回退到改动前，级联行为只由 issue_test.go 里实跑过的断言作证（子任务 ARCHIVED、cascaded_task_ids 恰为子任务、get_task_context 返回 TASK_NOT_ACTIVE）。
   - 防再犯：改测试文件前先 `head -3` 看构建标签；跑指定测试用 -v 核对 `=== RUN` 行确实出现，"no tests to run" 即未验证。
+- [2026-10-26 23:32 UTC+8] KB1-LOOP-147 **阶段 6：演示侧配置与镜像就绪；重部署被待审闸门拦下，等作者定**。
+  - **推送**：db-test-env 先 down（NAS 路由恢复 eth0），kb-dev 34fef546..360b7ef3 推到 NAS，再由 NAS 推到 origin，ls-remote 核实后更新本地 origin/kb-dev。首次构建因 HEAD≠origin/kb-dev 被构建器拒绝（按设计），失败目录改名 images/failed-build-360b7ef34613-unpublished-head。
+  - **镜像**（均从 360b7ef3 构建，verify-build 通过）：网关 726f609a…、OA f62272b6…；compose 覆盖已装入 images/。
+  - **演示配置**（/home/wmm/kb-demo，不进仓库；改前文件留 *.before-147）：
+    - build-catalog.py：directors 改为 `<部门>-admin`（authority job_family dept_admin）；escalations 两层（director：confidential+leadership → `<部门>-director`；leader：leadership → 三位分管领导）；顶层 delegated_authorization（issuer_role dept_admin，child_self_confirm）；kb-large-v1 TTL 12h→24h；新增 kb-annual-v1（复制 kb-large-v1，TTL 8760h）；目录版本 kb-demo-v2kwf-dual-budget-v4-delegated；同时产出 config/oa-labels.yaml（部门、密级、产品中文名）。新目录生成到 catalog.next.yaml（沿用现 schema_digest e89b71a5…），**尚未替换 catalog.yaml**，运行中的旧网关不受影响。用临时测试按新代码加载核过：两条路由均两层，finance+sales/leadership 排出 6 级（admin、admin、director、director、leader、leader），kb-annual-v1 可查到；临时测试已删。
+    - ensure-principals.py：主体属性加 12 位 `<部门>-admin`（department + job_family dept_admin）；principals.json 加 principal_finance_admin（subject finance-admin），令牌 ADMIN_FINANCE_MCP_TOKEN 已生成写入根 .env（0600，未打印）。已执行：principals 62、属性主体 77（向后兼容，旧网关可读）。
+    - compose.demo.yaml：staff 改 both；加 12 位 `<部门>-admin:approver`；OA_LABELS_FILE=/config/oa-labels.yaml 并挂载。
+    - 新脚本 demo-project.py（项目：三部门一年期根任务 → 本人确认子任务 → 委托子任务 → 撤销级联 → confidential/leadership 链探测）与 demo-delegated.py（finance-admin 代开单一次登录提交+批准、staff 可用、admin 读不到 context、跨部门被拒、admin 撤销）。只编译检查，**未实跑**（待重部署）。
+    - tester-guide.md、README.md：角色表加管理员与 both、链四级说明、新增"项目与授权单"一节、OA 新操作、预算表；令牌行未动，文件仍 0600。
+  - **闸门**：待审检查单独一步，控制库有 1 个 AWAITING_SUBMISSION：task_f18371534bad…（principal_staff，2026-10-26 13:37 UTC+8 建，作者 agent 所建）。按 redeploy-pending-gate 规则停下不重建 OA/网关，先告知作者。
+  - **重部署步骤（作者放行后）**：mv catalog.next.yaml catalog.yaml（留 catalog.yaml.before-147）→ `compose up -d --wait --no-deps oa-demo` → `compose up -d --wait --no-deps gateway` → kb-formal-smoke -usability -requester staff 两个知识产品 → smoke.py、demo-approver.py、demo-project.py、demo-delegated.py → 台账。目录变更会让旧目录下的 10 个 ACTIVE 任务按版本不匹配失效（与 KB1-LOOP-143 同）。
