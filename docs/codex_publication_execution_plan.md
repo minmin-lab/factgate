@@ -2805,3 +2805,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-26 23:15 UTC+8] KB1-LOOP-147 **阶段 5：撤销根任务级联归档子任务（记账，不是安全）**。
   - control.TaskFilter 加 RootTaskID（ListTasks SQL 加条件）；revokeTask 对根任务归档后分页遍历同根的未归档后代，逐个 Archived/revoked（payload 记 cascade_from），状态竞态（ErrInvalidStateChange/ErrConflict/ErrNotFound）跳过；结果加 cascaded_task_ids。安全仍靠执行时的 ensureActiveTaskFamily。
   - **实跑**：TestDelegatedTaskSharesRootExposureAndStopsWithParent 加断言（撤销根后子任务 ARCHIVED/revoked，cascaded_task_ids 恰为子任务）、代开单测试改为断言子任务被级联归档且 get_task_context 返回 TASK_NOT_ACTIVE；db-test-env 下 internal/gateway、control、cmd/gateway 全部 ok。
+- [2026-10-26 23:16 UTC+8] KB1-LOOP-147 **更正阶段 5 条目：callback_scale_test.go 带 `//go:build taskgate_scale` 标签，我加在 TestDelegatedTaskSharesRootExposureAndStopsWithParent 里的断言从未运行，"通过"是假的**。
+  - 根因：该查没查——没看文件头的构建标签就把它当作普通测试，把整包 ok 当成了它通过。按第 3 档（未复核）处理：已把该文件回退到改动前，级联行为只由 issue_test.go 里实跑过的断言作证（子任务 ARCHIVED、cascaded_task_ids 恰为子任务、get_task_context 返回 TASK_NOT_ACTIVE）。
+  - 防再犯：改测试文件前先 `head -3` 看构建标签；跑指定测试用 -v 核对 `=== RUN` 行确实出现，"no tests to run" 即未验证。
