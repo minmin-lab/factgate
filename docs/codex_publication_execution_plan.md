@@ -2636,3 +2636,51 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
       - 组织架构中的人力部主任属性不是 director 时，请求当场拒绝、不建草稿。
     - 网关全包 157 过、0 败、8 跳过；control、catalog、domain、approval、physicalquery 全过。
   - **下一步**：OA 演示版（读网关返回的下一级、按上一级核心续批、显示名与共用口令、审批记录）、正式客户端按链审批、演示配置与部署。
+- [2026-10-26 12:06 UTC+8] KB1-LOOP-142 **审批链的 OA 演示版、正式客户端按链审批、演示配置；我打印出演示 OA 回执私钥，已轮换（只做功能，不进论文）**。
+  - **OA 演示版**（internal/oademo）：
+    - 每级决定后读网关的回调答复：
+      - 有 next_approver：草稿改派给下一级，回到 pending；
+      - 有 terminal_reason：记为 not_granted 并写明原因；
+      - 回调 3 次都失败：把网关的拒绝原因写在草稿上，不再静默。
+    - 后续各级以上一级的授权核心按本级时间重签发为基准（Reissued），照批或收窄；缩小表单按该核心预填。
+    - 草稿记录审批历史。之前的审批人能查看、不能再决定（403）；只有当前审批人能决定。
+    - 账号支持显示名：OA_EXTRA_USERS 为 name:role[:显示名]；审批人没有 OA_<NAME>_PASSWORD 时用 OA_SHARED_APPROVER_PASSWORD。
+  - **正式客户端**（evaluation/kbformal）：
+    - Provisioner 新增可选 ApproverFor：按 get_task_status 给出的审批人逐级决定，直到 ACTIVE。
+    - 不设置时与原来逐字一致：只由 Approver 决定一次。正式轮不设置，行为不变。
+    - kb-formal-smoke 只在目录含 chain 路由时启用它，并加一段跨部门含 leadership 的链检查：实际决定的审批人须与 request_data_task 公布的链逐一相同，且含三种角色。
+  - **文档**：
+    - catalog-guide.md 增"审批链"一节；
+    - adapters.md 增审批链回调契约（每级一条回调，pending/next_approver 答复）；
+    - request_download_task 描述补一句：缺省范围会拉长审批链。
+  - **演示配置**（/home/wmm/kb-demo，不在仓库）：
+    - 目录 kb-demo-v2kwf-dual-budget-v3-chain：两条路由都改为 chain，主任为 <部门>-director，分管领导按作者定的三条业务线。
+      - 资格放宽新增 request_reach: all_departments；
+      - 与旧目录相比，只有路由、版本、资格放宽三处不同（逐项比对）；
+      - 网关的 catalog.Load 与 principalattr.Load 都接受新目录和新属性文件，各级审批人的属性满足各自环节。
+    - 主体：
+      - 新增 staff（普通员工，财务部，principal_staff）与三位分管领导；
+      - lzj 退役。它 10-19 起挂着的孤儿待审任务 task_5eefd82b… 已用原身份 revoke。
+    - 根 .env：
+      - LZJ_MCP_TOKEN 改名为 STAFF_MCP_TOKEN，值不变（核对过逐字节相同），同事的 MCP 配置不用改；
+      - OA_LZJ_PASSWORD 改名为 OA_STAFF_PASSWORD；
+      - 新增 OA_SHARED_APPROVER_PASSWORD（32 位随机串）；
+      - 删去 OA_EXTRA_USERS，账号表改放 compose.demo.yaml，带中文显示名。
+    - 脚本：
+      - approve.py 按链逐级批准（smoke.py 也走它）；
+      - demo-approver.py 改为五个链场景；
+      - demo-misroute.sh 改为"财务部主任误配成 bob"；
+      - 测试指南 tester-guide.md 取代 for-lzj.md，按角色列账号与权限。
+  - **我的过失**：
+    - 经过：约 12:00 核对 compose 渲染值时，我用了 `docker compose config | grep -A2 OA_EXTRA_USERS`，上下文行把根 .env 的 OA_RECEIPT_PRIVATE_KEY（演示 OA 的审批回执签名私钥，key ID oa-ed25519-v1）打印进了对话。
+    - 影响面（读代码与脚本推出）：
+      - 这把钥匙只供本机演示栈使用。正式轮每次部署都新生成密钥，拆除即销毁（evaluation/kb-formal/scripts/run-deployment.sh:204-216），所以不影响任何证据。
+      - 伪造回执还需要回调 HMAC 密钥，而回调接口不在公网放行之列。
+    - 处置：
+      - 已换新钥 oa-ed25519-v2，私钥与公钥一并更换，旧钥不留在验签端；
+      - 随本次重部署生效。网关每次查询都会重验授权回执（query.go:814），所以换钥后旧的 ACTIVE 任务不能再查，需重新申请；
+      - 防再犯：记忆规则 compose-config-secrets——不把 compose config 输出直接打到终端，只按单个键取值。
+  - **实跑**：
+    - OA：TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant 跑三级，含中间一级收窄，核对每级回调的 Grant 是上一级重签发或其收窄、回执绑定摘要；TestApprovalAnswersWithoutAGrantAreShownOnTheDraft 覆盖无权与回调被拒。
+    - 已知正例验证：把 decisionBase 改回"总以 Manifest 为基准"，链测试即失败（chain_test.go:194），恢复后通过。
+    - 全量（db-test-env）：103 个包 ok、0 失败，退出码 0；make hygiene 通过。

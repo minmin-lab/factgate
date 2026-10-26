@@ -104,6 +104,12 @@ func run() error {
 		Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: "alice", Password: env["OA_ALICE_PASSWORD"], Timeout: timeout},
 		Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout},
 		Poll:      200 * time.Millisecond, Deadline: 60 * time.Second}
+	chain := firstChain(profile)
+	var approvers *chainApprovers
+	if chain != nil {
+		approvers = newChainApprovers(*oa, env, provisioner.Approver, timeout)
+		provisioner.ApproverFor = approvers.account
+	}
 	chunks, documents := product.Products.Chunks, product.Products.Documents
 	request := kbformal.TaskRequest{Objective: "K4.10 smoke: department policy retrieval",
 		Products: []string{chunks, documents},
@@ -198,6 +204,12 @@ func run() error {
 		}
 	} else {
 		return errors.New("principal token for sales-staff is missing")
+	}
+	if chain != nil {
+		// alice is the finance requester of the demo and the formal round.
+		if err := smokeChain(ctx, summary, provisioner, approvers, chain, request.Products, request.Columns, "finance"); err != nil {
+			return fmt.Errorf("approval chain: %w", err)
+		}
 	}
 	if *usability {
 		if err := smokeUsability(ctx, summary, provisioner, alice, product, taskID); err != nil {

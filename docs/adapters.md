@@ -133,6 +133,24 @@ Body 契约：
 | `narrowed` | Catalog 指定的 `bob` | `AWAITING_APPROVAL → ACTIVE` | 严格收缩 Grant + `decision=narrow` 回执 |
 | `rejected` | Catalog 指定的 `bob` | `AWAITING_APPROVAL → ARCHIVED(rejected)` | 无 Grant；`decision=reject` 回执 |
 
+**审批链任务**（目录路由带 `chain`，见 catalog-guide.md）：
+
+- 每一级审批人各发一次 `approved`、`narrowed` 或 `rejected` 回调，各带自己签名的回执。actor 必须是 TaskGate 当前等待的那一级审批人。
+- 每级的 `approved_grant` 是上一级回调所带的 Grant，以本级回执时间重新签发：`expires_at` 等于本级 `issued_at` 加 TTL。`approved` 的摘要必须与之相同；`narrowed` 必须是它的严格收缩。第一级的基准是 Manifest。
+- 还有剩余环节时，任务仍为 `AWAITING_APPROVAL`，响应形如：
+
+  ```json
+  {"ok": true, "granted": false, "pending": true, "next_approver": "sales-director", "next_role": "department_director", "remaining_steps": 2}
+  ```
+
+  OA 应把草稿转给 `next_approver`。OA Demo 的做法：
+  - 草稿回到 `pending`；
+  - 之前的审批人只能查看；
+  - 页面列出审批记录与上一级批准的范围。
+- 最后一级被接受时，签发授权，任务进入 ACTIVE，响应为 `{"ok": true}`。
+- 审批人没有该环节权限时，任务归档，响应为 `{"ok": true, "granted": false, "terminal_reason": "approver_not_authorized"}`。
+- 重放同一事件，返回首次保存的响应。
+
 Gateway 会同时校验：
 
 - Header 时间戳在当前时间前后 5 分钟内，签名使用常量时间比较。

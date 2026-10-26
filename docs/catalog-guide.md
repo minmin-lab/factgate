@@ -323,6 +323,47 @@ approval_routes:
   - {sensitivity: high, mode: manual, approver: dana, budget_profile: kb-large-v1, verify_approver: true,
      scope_condition: {classification: [leadership]}}
 ```
+
+### 审批链（`chain`，KB1-LOOP-141；演示功能，不属论文主张）
+
+路由可以不点名审批人，改由组织架构逐级审批：
+
+1. 申请人所在部门的主任；
+2. 申请范围中其余每个部门的主任，按部门值排序；
+3. 申请范围含升级值（如 `classification: leadership`）时，每个所涉部门的分管领导，按部门排序，同一位领导分管的部门合为一步。
+
+```yaml
+approval_routes:
+  - sensitivity: high
+    mode: manual
+    budget_profile: kb-large-v1
+    chain:
+      requester_attribute: department        # 申请人的部门属性，须恰有一个值
+      department_scope: kb_department        # 列出被申请部门的枚举范围
+      directors: {finance: finance-director, sales: sales-director, ...}   # 须覆盖该范围的全部值
+      director_authority: {attribute: department, role: {attribute: job_family, any_of: [director]}}
+      escalation:
+        scope: classification
+        values: [leadership]
+        leaders: {finance: leader-admin, sales: leader-business, ...}      # 须覆盖全部部门
+        leader_authority: {attribute: oversees, role: {attribute: job_family, any_of: [leader]}}
+```
+
+- 链路由不写 `approver` 与 `scope_condition`。组织架构须覆盖部门范围的全部值，缺一个即目录无效。
+- **权限核验**：每一级审批人都要在主体属性快照中核验。
+  - `authority.attribute` 须含该步的全部部门；
+  - `role` 须成立。
+  - 目录点名的审批人在建草稿前就核，不满足即 `APPROVER_NOT_AUTHORIZED`，目录配错时失败关闭。
+  - 每一级在审批回调到达时再核一次，不满足则任务以 `approver_not_authorized` 归档，不签发授权。
+  - 申请人不能出现在自己的链上。
+- **缩小与重算**：
+  - 每一级批准或缩小的是上一级的授权，在本级时刻重新签发，有效期从本级起算；
+  - TaskGate 按该级留下的范围重算剩余环节，已批过的人不再出现；
+  - 没有剩余环节时签发授权，任务变为 ACTIVE；
+  - 任一级拒绝，任务即归档。
+- **申请人自选审批人**：`approver` 只替换第一级，并照常在回调时核验。
+- **可见性**：`request_data_task` 返回 `approval_chain`；`get_task_status` 与 `wait_for_approval` 返回当前审批人和每一步的状态（approved / current / pending）。
+
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。
 

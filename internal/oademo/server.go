@@ -51,7 +51,8 @@ type Config struct {
 	// approver sees and decides only the drafts that name them.
 	DanaPassword string
 	// ExtraUsers adds further demo accounts (for example a colleague's own
-	// requester account); names must not collide with the built-in users.
+	// requester account, or the directors and leaders of an approval chain);
+	// names must not collide with the built-in users.
 	ExtraUsers    []ExtraUser
 	HTTPClient    *http.Client
 	Logger        *slog.Logger
@@ -64,6 +65,9 @@ type ExtraUser struct {
 	Name     string
 	Role     string // requester or approver
 	Password string
+	// DisplayName, when set, is shown instead of the name (for example
+	// "财务部主任"), so a tester sees who holds which authority.
+	DisplayName string
 }
 
 type Server struct {
@@ -75,7 +79,7 @@ type Server struct {
 }
 
 type user struct {
-	Name         string
+	Name         string // display name
 	Role         string
 	PasswordHash []byte
 }
@@ -91,8 +95,57 @@ type Draft struct {
 	ApprovedGrant   *approval.TaskGrantCoreV1        `json:"approved_grant,omitempty"`
 	ApprovalReceipt *approval.ApprovalReceiptV1      `json:"approval_receipt,omitempty"`
 	State           string                           `json:"state"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       time.Time                        `json:"updated_at"`
+	// History lists the decisions on the draft, oldest first. In an approval
+	// chain (KB1-LOOP-141) TaskGate answers each approval with the next
+	// approver; the draft is then reassigned to them and Approver is always
+	// the one who decides now.
+	History []DraftDecision `json:"history,omitempty"`
+	// Note is what TaskGate answered the last callback with when it did not
+	// simply take it: the next approver, why no grant was issued, or why the
+	// callback was refused.
+	Note      string    `json:"note,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// DraftDecision is one approver's decision on a draft.
+type DraftDecision struct {
+	Actor     string    `json:"actor"`
+	Decision  string    `json:"decision"`
+	At        time.Time `json:"at"`
+	ReceiptID string    `json:"receipt_id"`
+}
+
+// decidedBy reports whether username has decided the draft before.
+func (d Draft) decidedBy(username string) bool {
+	for _, decision := range d.History {
+		if decision.Actor == username {
+			return true
+		}
+	}
+	return false
+}
+
+// draftEnvelope is what the current approver decides on: the request as made,
+// or in an approval chain what the previous approver granted.
+type draftEnvelope struct {
+	Products []string
+	Columns  map[string][]string
+	Scope    map[string]any
+	Budget   approval.AuthorizationBudgetV1
+	// Granted is true when a previous approver's grant is the base.
+	Granted bool
+}
+
+// Envelope is the draft's current envelope (the task page shows it and
+// prefills the narrow form with it).
+func (d Draft) Envelope() draftEnvelope {
+	if grant := d.ApprovedGrant; grant != nil {
+		return draftEnvelope{Products: grant.ApprovedProducts, Columns: grant.ApprovedColumns, Scope: grant.MandatoryScope,
+			Budget: grant.Budget, Granted: true}
+	}
+	return draftEnvelope{Products: d.Manifest.Products, Columns: d.Manifest.ApprovedColumns, Scope: d.Manifest.MandatoryScope,
+		Budget: d.Manifest.Budget}
 }
 
 type callbackEvent struct {
@@ -142,7 +195,7 @@ func New(config Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON}).Parse(pageTemplates)
+	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel, "roleLabel": roleLabel}).Parse(pageTemplates)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +219,11 @@ func New(config Config) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
-		users[name] = user{Name: extra.Name, Role: extra.Role, PasswordHash: hash}
+		display := strings.TrimSpace(extra.DisplayName)
+		if display == "" {
+			display = extra.Name
+		}
+		users[name] = user{Name: display, Role: extra.Role, PasswordHash: hash}
 	}
 	config.ExtraUsers = nil
 	config.AlicePassword = ""
@@ -290,9 +347,10 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 type sessionContextKey struct{}
 
 type sessionData struct {
-	Username string
-	Role     string
-	CSRF     string
+	Username    string
+	DisplayName string
+	Role        string
+	CSRF        string
 }
 
 func (s *Server) requireSession(next http.Handler) http.Handler {
@@ -303,7 +361,7 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 			return
 		}
 		account := s.users[username]
-		data := sessionData{Username: username, Role: account.Role, CSRF: s.csrf(r)}
+		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role, CSRF: s.csrf(r)}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, data)))
 	})
 }
@@ -336,7 +394,7 @@ func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 		if data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username) {
 			continue
 		}
-		if data.Role == "approver" && (draft.ApprovalMode != "manual" || draft.Approver != data.Username) {
+		if data.Role == "approver" && (draft.ApprovalMode != "manual" || (draft.Approver != data.Username && !draft.decidedBy(data.Username))) {
 			continue
 		}
 		drafts = append(drafts, cloneDraft(draft))
@@ -363,7 +421,8 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 }
 
 // draftAccess decides whether the logged-in user may open a draft: a
-// requester their own, an approver the drafts naming them. A draft that is
+// requester their own, an approver the drafts naming them now or that they
+// decided before (an earlier step of an approval chain). A draft that is
 // someone else's is 403 with the reason, not 404, so a user can tell "not
 // mine" from "gone" (draft ids are random, so existence is not a secret worth
 // keeping from a logged-in user).
@@ -373,7 +432,7 @@ func draftAccess(draft *Draft, data sessionData) (int, string) {
 		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人本人可以打开和提交"
 	case data.Role == "approver" && draft.ApprovalMode != "manual":
 		return http.StatusForbidden, "此工单不需要人工审批"
-	case data.Role == "approver" && draft.Approver != data.Username:
+	case data.Role == "approver" && draft.Approver != data.Username && !draft.decidedBy(data.Username):
 		return http.StatusForbidden, "此工单指派给审批人 " + draft.Approver + "，你（" + data.Username + "）不能查看或审批"
 	}
 	return http.StatusOK, ""
@@ -449,6 +508,9 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		status, message = draftAccess(draft, data)
 	}
+	if status == http.StatusOK && draft.Approver != data.Username {
+		status, message = http.StatusForbidden, "你（"+data.Username+"）已审批过此工单，现在等待 "+draft.Approver+" 审批；你只能查看"
+	}
 	if status == http.StatusOK && draft.State != "pending" {
 		status, message = http.StatusConflict, "draft cannot be decided"
 	}
@@ -464,22 +526,22 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	issuedAt := s.config.Clock().UTC()
+	parent, err := decisionBase(draft, issuedAt)
+	if err != nil {
+		s.mu.Unlock()
+		http.Error(w, "cannot construct approved grant", http.StatusInternalServerError)
+		return
+	}
 	var candidate *approval.TaskGrantCoreV1
 	protocolDecision := approval.ApprovalDecisionReject
 	state := "rejected"
 	switch decision {
 	case "approved":
-		grant, err := domainCoreForDraft(draft, issuedAt)
-		if err != nil {
-			s.mu.Unlock()
-			http.Error(w, "cannot construct approved grant", http.StatusInternalServerError)
-			return
-		}
-		candidate = &grant
+		candidate = &parent
 		protocolDecision = approval.ApprovalDecisionApprove
 		state = "approved"
 	case "narrow":
-		grant, err := narrowedGrantFromForm(draft, r, issuedAt)
+		grant, err := narrowedGrantFromForm(parent, r, issuedAt)
 		if err != nil {
 			s.mu.Unlock()
 			http.Error(w, "invalid narrowing: "+err.Error(), http.StatusBadRequest)
@@ -497,6 +559,9 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	draft.State = state
 	draft.UpdatedAt = issuedAt
+	draft.Note = ""
+	draft.History = append(draft.History, DraftDecision{Actor: data.Username, Decision: state, At: issuedAt,
+		ReceiptID: draft.ApprovalReceipt.ReceiptID})
 	snapshot := cloneDraft(draft)
 	s.mu.Unlock()
 	s.dispatch(snapshot, state, data.Username)
@@ -514,27 +579,126 @@ func (s *Server) dispatch(draft Draft, status, actor string) {
 		CallbackContext: draft.Manifest.CallbackContext, ManifestDigest: draft.ManifestDigest,
 		ApprovedGrant: cloneGrantPointer(draft.ApprovedGrant), ApprovalReceipt: cloneReceiptPointer(draft.ApprovalReceipt),
 	}
+	receiptID := ""
+	if draft.ApprovalReceipt != nil {
+		receiptID = draft.ApprovalReceipt.ReceiptID
+	}
 	go func() {
+		var err error
 		for attempt := 1; attempt <= 3; attempt++ {
-			if err := s.sendCallback(context.Background(), event); err == nil {
+			var answer []byte
+			if answer, err = s.sendCallback(context.Background(), event); err == nil {
+				s.applyAnswer(draft.ID, status, receiptID, answer)
 				return
-			} else {
-				s.config.Logger.Warn("OA callback failed", "event_id", event.EventID, "attempt", attempt, "error", err)
 			}
+			s.config.Logger.Warn("OA callback failed", "event_id", event.EventID, "attempt", attempt, "error", err)
 			time.Sleep(time.Duration(attempt) * 200 * time.Millisecond)
 		}
+		s.noteOnDraft(draft.ID, status, receiptID, "TaskGate 未接受这次"+callbackStatusLabels[status]+"（已重试 3 次）："+err.Error())
 	}()
 }
 
-func (s *Server) sendCallback(ctx context.Context, event callbackEvent) error {
+// callbackAnswer is what TaskGate answers an accepted callback with. An
+// approval-chain step that leaves steps open names the next approver; an
+// approval TaskGate took without issuing a grant names the terminal reason.
+type callbackAnswer struct {
+	Pending        bool   `json:"pending"`
+	NextApprover   string `json:"next_approver"`
+	NextRole       string `json:"next_role"`
+	RemainingSteps int    `json:"remaining_steps"`
+	TerminalReason string `json:"terminal_reason"`
+}
+
+var callbackStatusLabels = map[string]string{"submitted": "提交", "approved": "批准", "narrowed": "缩小后批准", "rejected": "拒绝"}
+
+var approvalStepLabels = map[string]string{
+	"requester_director":  "申请人所在部门主任",
+	"department_director": "被申请部门主任",
+	"leader":              "分管领导",
+}
+
+var terminalReasonLabels = map[string]string{
+	"approver_not_authorized": "审批人对所批范围无权，任务已归档",
+}
+
+// applyAnswer acts on TaskGate's answer to a decision: the next approver of
+// an approval chain gets the draft, or the draft records that no grant was
+// issued. It applies only while the draft still holds the decision answered.
+func (s *Server) applyAnswer(draftID, status, receiptID string, body []byte) {
+	if status == "submitted" || receiptID == "" {
+		return
+	}
+	var answer callbackAnswer
+	if err := json.Unmarshal(body, &answer); err != nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[draftID]
+	if !ok || draft.State != status || draft.ApprovalReceipt == nil || draft.ApprovalReceipt.ReceiptID != receiptID {
+		return
+	}
+	switch {
+	case answer.Pending && answer.NextApprover != "":
+		next := strings.ToLower(strings.TrimSpace(answer.NextApprover))
+		previous := draft.Approver
+		draft.Approver, draft.State = next, "pending"
+		draft.Note = fmt.Sprintf("%s 已%s；TaskGate 按组织架构要求下一级 %s（%s）审批，还剩 %d 级",
+			s.displayName(previous), callbackStatusLabels[status], s.displayName(next), approvalStepLabels[answer.NextRole], answer.RemainingSteps)
+		if account, ok := s.users[next]; !ok || account.Role != "approver" {
+			draft.Note += "；本 OA 没有该审批人账号，无法继续"
+			s.config.Logger.Error("approval chain names an approver the OA does not have", "draft_id", draftID, "approver", next)
+		}
+	case answer.TerminalReason != "":
+		draft.State = "not_granted"
+		reason := terminalReasonLabels[answer.TerminalReason]
+		if reason == "" {
+			reason = answer.TerminalReason
+		}
+		draft.Note = "TaskGate 未签发授权：" + reason
+	default:
+		return
+	}
+	draft.UpdatedAt = s.config.Clock().UTC()
+}
+
+// noteOnDraft records why a callback failed while the draft still holds it.
+func (s *Server) noteOnDraft(draftID, status, receiptID, note string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// A refused submission leaves the draft pending; a refused decision, in
+	// the state the decision set.
+	held := status
+	if status == "submitted" {
+		held = "pending"
+	}
+	draft, ok := s.drafts[draftID]
+	if !ok || draft.State != held {
+		return
+	}
+	if receiptID != "" && (draft.ApprovalReceipt == nil || draft.ApprovalReceipt.ReceiptID != receiptID) {
+		return
+	}
+	draft.Note = note
+}
+
+// displayName is the account's display name with its login name.
+func (s *Server) displayName(username string) string {
+	if account, ok := s.users[username]; ok && account.Name != username {
+		return account.Name + "（" + username + "）"
+	}
+	return username
+}
+
+func (s *Server) sendCallback(ctx context.Context, event callbackEvent) ([]byte, error) {
 	body, err := json.Marshal(event)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	timestamp := strconv.FormatInt(s.config.Clock().Unix(), 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.config.CallbackURL, bytes.NewReader(body))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-OA-Event-ID", event.EventID)
@@ -542,7 +706,7 @@ func (s *Server) sendCallback(ctx context.Context, event callbackEvent) error {
 	req.Header.Set("X-OA-Signature", approval.Sign([]byte(s.config.CallbackSecret), timestamp, body))
 	resp, err := s.config.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
@@ -553,9 +717,9 @@ func (s *Server) sendCallback(ctx context.Context, event callbackEvent) error {
 		if len(excerpt) > 512 {
 			excerpt = excerpt[:512]
 		}
-		return fmt.Errorf("callback status %d: %s", resp.StatusCode, excerpt)
+		return nil, fmt.Errorf("callback status %d: %s", resp.StatusCode, excerpt)
 	}
-	return nil
+	return responseBody, nil
 }
 
 func cloneDraft(draft *Draft) Draft {
@@ -563,6 +727,7 @@ func cloneDraft(draft *Draft) Draft {
 	copy.Manifest = cloneManifest(draft.Manifest)
 	copy.ApprovedGrant = cloneGrantPointer(draft.ApprovedGrant)
 	copy.ApprovalReceipt = cloneReceiptPointer(draft.ApprovalReceipt)
+	copy.History = append([]DraftDecision(nil), draft.History...)
 	return copy
 }
 
@@ -620,6 +785,16 @@ func domainCoreForDraft(draft *Draft, issuedAt time.Time) (approval.TaskGrantCor
 	return domain.CoreFromManifest(draft.Manifest, draft.ManifestDigest, issuedAt)
 }
 
+// decisionBase is what an approver approves or narrows: the manifest's core,
+// or in an approval chain the previous approver's grant re-issued now, which
+// is what TaskGate checks the decision against.
+func decisionBase(draft *Draft, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
+	if draft.ApprovedGrant != nil {
+		return draft.ApprovedGrant.Reissued(issuedAt), nil
+	}
+	return domainCoreForDraft(draft, issuedAt)
+}
+
 func (s *Server) issueDecision(draft *Draft, decision approval.ApprovalDecision, actor string, issuedAt time.Time, grant *approval.TaskGrantCoreV1) error {
 	grantDigest := ""
 	if grant != nil {
@@ -642,11 +817,7 @@ func (s *Server) issueDecision(draft *Draft, decision approval.ApprovalDecision,
 	return nil
 }
 
-func narrowedGrantFromForm(draft *Draft, r *http.Request, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
-	parent, err := domainCoreForDraft(draft, issuedAt)
-	if err != nil {
-		return approval.TaskGrantCoreV1{}, err
-	}
+func narrowedGrantFromForm(parent approval.TaskGrantCoreV1, r *http.Request, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
 	candidate := parent
 
 	productsRaw := strings.TrimSpace(r.Form.Get("approved_products"))
@@ -880,13 +1051,30 @@ func templateJSON(value any) string {
 
 const pageTemplates = `
 {{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-bound OA Demo</title><style>
-body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:880px;margin:48px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:10px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8}nav{display:flex;justify-content:space-between;align-items:center}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}a{color:#1769aa;text-decoration:none}</style></head><body><div class="wrap">{{end}}
+body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:880px;margin:48px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:10px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8}nav{display:flex;justify-content:space-between;align-items:center}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}</style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
-{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">Alice 提交申请；Bob 审批明细申请。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.Role}}）</option>{{end}}</select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{.Username}} / {{.Role}}</div><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></nav>{{end}}
-{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批任务</h1>{{range .Drafts}}<div class="card"><span class="tag">{{.State}}</span><h2><a href="/tasks/{{.ID}}">{{.Manifest.DeclaredObjective}}</a></h2><p class="muted">{{.Manifest.TaskID}} · Agent {{.Manifest.AgentID}} · {{.Manifest.Sensitivity}} · {{.ApprovalMode}}</p></div>{{else}}<div class="card"><p>暂无任务。</p></div>{{end}}{{template "foot" .}}{{end}}
-{{define "task"}}{{template "head" .}}{{template "nav" .Session}}<div class="card"><span class="tag">{{.Draft.State}}</span><h1>{{.Draft.Manifest.DeclaredObjective}}</h1><dl><dt>Task ID</dt><dd>{{.Draft.Manifest.TaskID}}</dd><dt>人类主体</dt><dd>{{.Draft.Manifest.HumanSubject}}</dd><dt>Agent 身份</dt><dd>{{.Draft.Manifest.AgentID}}</dd><dt>申请数据产品</dt><dd>{{range .Draft.Manifest.Products}}{{.}} {{end}}</dd><dt>申请字段</dt><dd>{{range $product, $columns := .Draft.Manifest.ApprovedColumns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := .Draft.Manifest.MandatoryScope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>敏感级别上限</dt><dd>{{.Draft.Manifest.Sensitivity}}</dd><dt>全部预算与有效期</dt><dd>最大查询次数 {{.Draft.Manifest.Budget.MaxQueries}}；最大返回行数 {{.Draft.Manifest.Budget.MaxResultRows}}；最大数据库时间 {{.Draft.Manifest.Budget.MaxDBMS}} ms；单次查询超时 {{.Draft.Manifest.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{.Draft.Manifest.Budget.TaskTTLMS}} ms</dd><dt>审批方式</dt><dd>{{.Draft.ApprovalMode}}{{if .Draft.Approver}} / {{.Draft.Approver}}{{end}}</dd><dt>目录版本 / SHA-256</dt><dd>{{.Draft.Manifest.CatalogVersion}} / <code>{{.Draft.Manifest.CatalogSHA256}}</code></dd><dt>Manifest SHA-256</dt><dd><code>{{.Draft.ManifestDigest}}</code></dd></dl>{{if and (eq .Session.Role "requester") (eq .Draft.State "draft")}}<form method="post" action="/tasks/{{.Draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}{{if and (eq .Session.Role "approver") (eq .Draft.State "pending")}}<form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">按原申请批准</button></form> <form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form><form class="narrow" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p><label>产品（JSON 数组或逗号分隔）<br><textarea name="approved_products" required>{{json .Draft.Manifest.Products}}</textarea></label></p><p><label>字段（JSON 对象）<br><textarea name="approved_columns" required>{{json .Draft.Manifest.ApprovedColumns}}</textarea></label></p><p><label>强制范围（枚举可取子集，日期区间可收紧）<br><textarea name="mandatory_scope" required>{{json .Draft.Manifest.MandatoryScope}}</textarea></label></p><div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxQueries}}" value="{{.Draft.Manifest.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxResultRows}}" value="{{.Draft.Manifest.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxDBMS}}" value="{{.Draft.Manifest.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" value="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.TaskTTLMS}}" value="{{.Draft.Manifest.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}</div><p><a href="/tasks">← 返回任务列表</a></p>{{template "foot" .}}{{end}}
+{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
+{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{.Role}}</div><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></nav>{{end}}
+{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批任务</h1>{{range .Drafts}}<div class="card"><span class="tag">{{.State}}</span><h2><a href="/tasks/{{.ID}}">{{.Manifest.DeclaredObjective}}</a></h2><p class="muted">{{.Manifest.TaskID}} · Agent {{.Manifest.AgentID}} · {{.Manifest.Sensitivity}} · {{.ApprovalMode}}{{if .Approver}} · 当前审批人 {{.Approver}}{{end}}</p>{{if .Note}}<p class="note">{{.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无任务。</p></div>{{end}}{{template "foot" .}}{{end}}
+{{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$envelope := .Draft.Envelope}}<div class="card"><span class="tag">{{.Draft.State}}</span><h1>{{.Draft.Manifest.DeclaredObjective}}</h1><dl><dt>Task ID</dt><dd>{{.Draft.Manifest.TaskID}}</dd><dt>人类主体</dt><dd>{{.Draft.Manifest.HumanSubject}}</dd><dt>Agent 身份</dt><dd>{{.Draft.Manifest.AgentID}}</dd><dt>申请数据产品</dt><dd>{{range .Draft.Manifest.Products}}{{.}} {{end}}</dd><dt>申请字段</dt><dd>{{range $product, $columns := .Draft.Manifest.ApprovedColumns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := .Draft.Manifest.MandatoryScope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>敏感级别上限</dt><dd>{{.Draft.Manifest.Sensitivity}}</dd><dt>全部预算与有效期</dt><dd>最大查询次数 {{.Draft.Manifest.Budget.MaxQueries}}；最大返回行数 {{.Draft.Manifest.Budget.MaxResultRows}}；最大数据库时间 {{.Draft.Manifest.Budget.MaxDBMS}} ms；单次查询超时 {{.Draft.Manifest.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{.Draft.Manifest.Budget.TaskTTLMS}} ms</dd><dt>审批方式</dt><dd>{{.Draft.ApprovalMode}}{{if .Draft.Approver}} / 当前审批人 {{.Draft.Approver}}{{end}}</dd><dt>目录版本 / SHA-256</dt><dd>{{.Draft.Manifest.CatalogVersion}} / <code>{{.Draft.Manifest.CatalogSHA256}}</code></dd><dt>Manifest SHA-256</dt><dd><code>{{.Draft.ManifestDigest}}</code></dd></dl>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}{{if .Draft.History}}<h2>审批记录</h2><ol class="history">{{range .Draft.History}}<li>{{.At.UTC.Format "2006-01-02 15:04:05"}} UTC · {{.Actor}} {{decisionLabel .Decision}}</li>{{end}}</ol>{{end}}{{if $envelope.Granted}}<h2>上一级批准的范围</h2><p class="muted">本级在此基础上批准或缩小，不能扩大。</p><dl><dt>数据产品</dt><dd>{{range $envelope.Products}}{{.}} {{end}}</dd><dt>字段</dt><dd>{{range $product, $columns := $envelope.Columns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := $envelope.Scope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>预算与有效期</dt><dd>最大查询次数 {{$envelope.Budget.MaxQueries}}；最大返回行数 {{$envelope.Budget.MaxResultRows}}；最大数据库时间 {{$envelope.Budget.MaxDBMS}} ms；单次查询超时 {{$envelope.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{$envelope.Budget.TaskTTLMS}} ms（从最后一级批准时起算）</dd></dl>{{end}}{{if and (eq .Session.Role "requester") (eq .Draft.State "draft")}}<form method="post" action="/tasks/{{.Draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}{{if and (eq .Session.Role "approver") (eq .Draft.State "pending") (eq .Draft.Approver .Session.Username)}}<form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">按原申请批准</button></form> <form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form><form class="narrow" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p><label>产品（JSON 数组或逗号分隔）<br><textarea name="approved_products" required>{{json $envelope.Products}}</textarea></label></p><p><label>字段（JSON 对象）<br><textarea name="approved_columns" required>{{json $envelope.Columns}}</textarea></label></p><p><label>强制范围（枚举可取子集，日期区间可收紧）<br><textarea name="mandatory_scope" required>{{json $envelope.Scope}}</textarea></label></p><div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{$envelope.Budget.MaxQueries}}" value="{{$envelope.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{$envelope.Budget.MaxResultRows}}" value="{{$envelope.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{$envelope.Budget.MaxDBMS}}" value="{{$envelope.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{$envelope.Budget.PerQueryTimeoutMS}}" value="{{$envelope.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{$envelope.Budget.TaskTTLMS}}" value="{{$envelope.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}</div><p><a href="/tasks">← 返回任务列表</a></p>{{template "foot" .}}{{end}}
 `
+
+func decisionLabel(decision string) string {
+	if label, ok := callbackStatusLabels[decision]; ok {
+		return label
+	}
+	return decision
+}
+
+func roleLabel(role string) string {
+	switch role {
+	case "requester":
+		return "申请人"
+	case "approver":
+		return "审批人"
+	}
+	return role
+}
 
 // loginOption is one account offered on the login page.
 type loginOption struct{ ID, Name, Role string }

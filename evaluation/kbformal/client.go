@@ -425,8 +425,13 @@ type Provisioner struct {
 	Requester *MCPClient
 	Applicant *OAAccount
 	Approver  *OAAccount
-	Poll      time.Duration
-	Deadline  time.Duration
+	// ApproverFor, when set, follows an approval chain (KB1-LOOP-141; a demo
+	// feature): each step is decided by the account of the approver
+	// get_task_status names, until the task is ACTIVE. Unset, Approver decides
+	// once, as in the formal round.
+	ApproverFor func(subject string) (*OAAccount, error)
+	Poll        time.Duration
+	Deadline    time.Duration
 }
 
 // Provision returns the task ID once the task is ACTIVE, and the
@@ -463,16 +468,64 @@ func (p *Provisioner) Provision(ctx context.Context, request TaskRequest) (strin
 		if err != nil {
 			return "", created, err
 		}
-		if err := p.Approver.Act(ctx, draftID, "decision", values); err != nil {
+		if err := p.decide(ctx, taskID, draftID, values); err != nil {
 			return "", created, err
 		}
-	} else if err := p.Approver.Act(ctx, draftID, "decision", url.Values{"decision": {"approved"}}); err != nil {
-		return "", created, err
-	}
-	if err := p.wait(ctx, taskID, "ACTIVE"); err != nil {
+	} else if err := p.decide(ctx, taskID, draftID, url.Values{"decision": {"approved"}}); err != nil {
 		return "", created, err
 	}
 	return taskID, created, nil
+}
+
+// decide has the task approved and waits until it is ACTIVE: by Approver
+// with first, or along the approval chain with first at its first step and
+// approval as made at every later one.
+func (p *Provisioner) decide(ctx context.Context, taskID, draftID string, first url.Values) error {
+	if p.ApproverFor == nil {
+		if err := p.Approver.Act(ctx, draftID, "decision", first); err != nil {
+			return err
+		}
+		return p.wait(ctx, taskID, "ACTIVE")
+	}
+	deadline := time.Now().Add(p.Deadline)
+	values, decided := first, map[string]bool{}
+	var last error
+	for time.Now().Before(deadline) {
+		status, err := p.Requester.Call(ctx, "get_task_status", map[string]string{"task_id": taskID})
+		if err != nil {
+			last = err
+			time.Sleep(p.Poll)
+			continue
+		}
+		state, _ := status["state"].(string)
+		if state == "ACTIVE" {
+			return nil
+		}
+		if state != "AWAITING_APPROVAL" {
+			return fmt.Errorf("task %s left its approval chain in state %q", taskID, state)
+		}
+		// TaskGate names an approver once, and never the same one twice; while
+		// it still names one who decided, their decision is being applied.
+		subject, _ := status["approver"].(string)
+		if subject == "" || decided[subject] {
+			time.Sleep(p.Poll)
+			continue
+		}
+		account, err := p.ApproverFor(subject)
+		if err != nil {
+			return err
+		}
+		// The OA reassigns the draft when TaskGate's answer reaches it, a moment
+		// after get_task_status names the next approver; until then the next
+		// approver is refused and retries.
+		if last = account.Act(ctx, draftID, "decision", values); last != nil {
+			time.Sleep(p.Poll)
+			continue
+		}
+		decided[subject] = true
+		values = url.Values{"decision": {"approved"}}
+	}
+	return fmt.Errorf("task %s did not become ACTIVE along its approval chain (approvers %v, last error %v)", taskID, decided, last)
 }
 
 // ProvisionDownload runs the same path for a document download task
@@ -496,10 +549,7 @@ func (p *Provisioner) ProvisionDownload(ctx context.Context, arguments map[strin
 	if err := p.wait(ctx, taskID, "AWAITING_APPROVAL"); err != nil {
 		return "", created, err
 	}
-	if err := p.Approver.Act(ctx, draftID, "decision", url.Values{"decision": {"approved"}}); err != nil {
-		return "", created, err
-	}
-	if err := p.wait(ctx, taskID, "ACTIVE"); err != nil {
+	if err := p.decide(ctx, taskID, draftID, url.Values{"decision": {"approved"}}); err != nil {
 		return "", created, err
 	}
 	return taskID, created, nil

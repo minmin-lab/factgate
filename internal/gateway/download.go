@@ -53,7 +53,7 @@ const downloadToolName = "download_document"
 const maxDownloadRequestIDLength = 100
 
 var requestDownloadTaskTool = mcp.Tool{Name: "request_download_task",
-	Description: "申请一个文档下载任务：列出要下载的文档（doc_id 与 version，1 到 20 份），审批人在 OA 看到这份清单并可删减。下载任务只能下载清单内的文档，不能检索；检索请另建任务。include_values 为 true 时一并申请抽取值（下载文件带类型化字段）。original_file 为 true 时一并申请原件（files 关系，如 PDF；原件含前置字段，故隐含 include_values），审批人可删去该关系即不批原件。scopes 缺省为申请人的整个资格包络（常含全部部门与 leadership，因而会路由到 leadership 审批人）；最小权限做法是按文档已知的部门与密级给出最窄的 scopes，例如 {kb_department: [sales], classification: [internal]}。approver 可选，指定审批人。",
+	Description: "申请一个文档下载任务：列出要下载的文档（doc_id 与 version，1 到 20 份），审批人在 OA 看到这份清单并可删减。下载任务只能下载清单内的文档，不能检索；检索请另建任务。include_values 为 true 时一并申请抽取值（下载文件带类型化字段）。original_file 为 true 时一并申请原件（files 关系，如 PDF；原件含前置字段，故隐含 include_values），审批人可删去该关系即不批原件。scopes 缺省为申请人的整个资格包络（常含全部部门与 leadership，因而要更多人审批：路由到 leadership 审批人，或审批链上每个部门的主任与分管领导）；最小权限做法是按文档已知的部门与密级给出最窄的 scopes，例如 {kb_department: [sales], classification: [internal]}。approver 可选，指定审批人。",
 	InputSchema: objectSchema(map[string]any{
 		"objective":         map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
 		"knowledge_product": map[string]any{"type": "string", "minLength": 1},

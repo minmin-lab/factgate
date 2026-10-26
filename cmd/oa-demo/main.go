@@ -72,8 +72,11 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-// extraUsersFromEnv reads OA_EXTRA_USERS ("name:role,name:role") with each
-// password from OA_<NAME>_PASSWORD; a missing password stops the demo.
+// extraUsersFromEnv reads OA_EXTRA_USERS ("name:role[:display name]", comma
+// separated). Each password comes from OA_<NAME>_PASSWORD (upper case, "-" and
+// "." as "_"); an approver without one uses OA_SHARED_APPROVER_PASSWORD, so the
+// directors and leaders of an approval chain can share one demo password. A
+// missing password stops the demo.
 func extraUsersFromEnv() []oademo.ExtraUser {
 	var users []oademo.ExtraUser
 	for _, entry := range strings.Split(os.Getenv("OA_EXTRA_USERS"), ",") {
@@ -81,9 +84,23 @@ func extraUsersFromEnv() []oademo.ExtraUser {
 		if entry == "" {
 			continue
 		}
-		name, role, _ := strings.Cut(entry, ":")
-		users = append(users, oademo.ExtraUser{Name: name, Role: role,
-			Password: requiredEnv("OA_" + strings.ToUpper(strings.TrimSpace(name)) + "_PASSWORD")})
+		fields := strings.SplitN(entry, ":", 3)
+		name, role, display := strings.TrimSpace(fields[0]), "", ""
+		if len(fields) > 1 {
+			role = strings.TrimSpace(fields[1])
+		}
+		if len(fields) > 2 {
+			display = strings.TrimSpace(fields[2])
+		}
+		key := "OA_" + strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(name)) + "_PASSWORD"
+		password := os.Getenv(key)
+		if password == "" && role == "approver" {
+			password = os.Getenv("OA_SHARED_APPROVER_PASSWORD")
+		}
+		if password == "" {
+			password = requiredEnv(key)
+		}
+		users = append(users, oademo.ExtraUser{Name: name, Role: role, Password: password, DisplayName: display})
 	}
 	return users
 }

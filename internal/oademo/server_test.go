@@ -140,7 +140,11 @@ func TestNarrowedGrantFromFormContractsScopeColumnsAndBudgets(t *testing.T) {
 	if err := httpRequest.ParseForm(); err != nil {
 		t.Fatal(err)
 	}
-	grant, err := narrowedGrantFromForm(draft, httpRequest, issuedAt)
+	parent, err := decisionBase(draft, issuedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := narrowedGrantFromForm(parent, httpRequest, issuedAt)
 	if err != nil {
 		t.Fatalf("safe narrowing rejected: %v", err)
 	}
@@ -157,7 +161,7 @@ func TestNarrowedGrantFromFormContractsScopeColumnsAndBudgets(t *testing.T) {
 	httpRequest = httptest.NewRequest(http.MethodPost, "/decision", strings.NewReader(form.Encode()))
 	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	_ = httpRequest.ParseForm()
-	if _, err := narrowedGrantFromForm(draft, httpRequest, issuedAt); err == nil {
+	if _, err := narrowedGrantFromForm(parent, httpRequest, issuedAt); err == nil {
 		t.Fatal("budget expansion was accepted")
 	}
 }
