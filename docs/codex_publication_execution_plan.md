@@ -2746,3 +2746,21 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - oademo 全包通过。新测试 TestOAWithoutBuiltinUsersOffersOnlyItsRoleAccounts：缺申请人或缺审批人时拒绝启动，登录页不再列 alice/bob/dana，alice 登录被拒。
     - 已知正例：保留内置账号时，同一登录请求跳到 /tasks。
     - kbformal、cmd/gateway 通过；make hygiene 通过。
+- [2026-10-26 13:04 UTC+8] KB1-LOOP-145 **KB1-LOOP-144 部署到演示栈，冒烟通过；我重部署时弄丢了作者正在用的一张 OA 草稿；更正 KB1-LOOP-144 的时间戳**。
+  - **更正**：KB1-LOOP-144 记为 13:05，实为 12:57。根因：我在同一条命令里先写条目，后看 date 输出，没有先对表再写。
+  - **部署**：
+    - OA 镜像 d3a1af3b… 从 902f800f 构建；网关仍是 ce0a6a62…（本轮未改网关代码），强制重建一次，以重读主体属性文件。
+    - OA 登录页只剩 16 个账号：staff、12 位主任、3 位分管领导；alice、bob、dana 已不在列。网关重新激活两个知识产品。
+  - **我的过失**：
+    - 经过：重部署前的待审检查与 compose up 写在同一条命令里，检查查到 1 个任务也没能拦住部署。这个任务是 task_2bb33f8b…（staff，AWAITING_SUBMISSION），12:53:31 由作者自己的 agent 经 MCP 建立，草稿 oa_7db1d3fe…。12:59 OA 重建，这张只存在内存的草稿随之丢失，该任务再也无法提交。
+    - 我要代为 revoke，被权限策略拦下，未绕过；它停在 AWAITING_SUBMISSION，不影响其他任务。作者可让 agent 调 revoke_task 作废后重新申请。
+    - 防再犯：记忆规则 redeploy-pending-gate——待审检查单独一步；有待办任务就先告知作者再定时间。
+  - **实跑**（新部署上）：
+    - kb-formal-smoke -usability -requester staff -requester-token-key STAFF_MCP_TOKEN，policy_kb 与 policy_kb_small 均退出 0：
+      - 回执验签通过，目录摘要 6c8ad8b5…；
+      - sales-staff 跨部门仍为 NOT_ELIGIBLE；
+      - 链检查实际决定者依次为 finance-director、engineering-director、leader-rd、leader-admin。
+    - smoke.py 以 staff 跑：三级链，两种预算均 ACTIVE。
+    - demo-approver.py：A、B、C、D 均 ACTIVE；E 指定 sales-director，归档 approver_not_authorized。
+    - 未跑 demo-misroute.sh：它会用错配目录临时重启网关，作者正在测试。改动只是把误配对象从 bob 换成 finance-manager，留待空闲时跑。
+  - **未改**：作者本机 Claude Code 的 factgate MCP 仍用 alice 的令牌。演示栈已不提供 alice 的 OA 账号，用它建的任务无法提交；是否改用 staff 令牌，交作者定。
