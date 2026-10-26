@@ -2579,3 +2579,28 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **放弃了什么**：论文不再给出下载通道的正确性与开销数字；带 files 关系与 PDF 原件的 v2kwf 发布期只供演示，不进证据。
   - **保留**：K7.1–K7.3 的设计、代码、部署路径冒烟与演示。
   - **下一步**：投稿准备。作者审阅主稿后，刷新 review/、投稿包、投稿信与 arXiv v3。
+
+- [2026-10-26 10:47 UTC+8] KB1-LOOP-140 **演示栈经 Cloudflare tunnel 发布到公网，供同事 lzj 用自己的 agent 自助测试（取代未完成的 Tailscale 方案 KB1-LOOP-136）**。
+  - **作者原话**："同事不方便用tailscale， 能不能把 mscp 发布到 公网， 让同事 用他自己的 agetn 软件 自助测试? 相关密钥在 auth 仓库"。
+  - **作者选择**：OA 防护选"只靠 OA 口令"（不加 Cloudflare Access）；时长选"测完再删"。
+  - **做法**：照 auth 仓库 cloudflare/README.md 的临时发布流程，新开 tunnel factgate-kb-demo（0fa7acd8-211c-469a-af0d-456a7701dd4a），两条显式 DNS 记录（proxied）。
+    - factgate-demo.sessionbound.org 只放行 /mcp（经 8083 垫片）、/api/v1/results/<id>/download、/api/v1/kb/documents/download 与回执公钥 /.well-known/taskgate/query-receipt-keyring.json；
+    - factgate-oa.sessionbound.org 为 OA 整站，挡掉 /api/ 与 /health；
+    - 其余路径边缘 404。
+    - 白名单沿用 Tailscale 方案的四类路径，另加只含公钥的回执公钥。
+    - 演示文件（不在仓库）：建删脚本 ~/kb-demo/cloudflare-tunnel.py，连接器启停 cloudflare-connect.sh（start.sh 自动拉起，stop.sh 与 down.sh 先停）。auth 仓库记录表已登记（8091e94）。
+  - **连接器**：WSL 连不上 github.com（实测超时），改在 NAS 下载。
+    - 最新版 2026.10.3 于 10-21 才发布，只有 5 天，改用 10-05 发布的 2026.10.0。
+    - NAS 与 WSL 两份 sha256 都等于发布说明（d33ff2d1…）。
+    - 令牌从 0600 文件读，不放进命令行参数。
+  - **链接改公网**：根 .env 的 GATEWAY_PUBLIC_BASE_URL 由 https://wmm-wsl.tail8b36e9.ts.net 改为 https://factgate-demo.sessionbound.org；compose.demo.yaml 两处 PUBLIC_OA_BASE_URL 由 tailnet :8443 改为 https://factgate-oa.sessionbound.org。随后重建 gateway 与 oa-demo，镜像不变（2af1a0d7、7caab277）。
+  - **口令强度**（只核长度与字符类别，未打印）：OA 口令 24–48 位随机串，MCP 令牌 64 位。
+  - **实跑**（从 WSL 经公网域名、走 Cloudflare 边缘）：
+    - 边缘白名单：网关的 /health、回调、管理接口与根路径，以及 OA 的 /api/drafts、/health 均为 404；回执公钥与 OA 登录页 200；不带令牌的 MCP 请求得网关的 401。
+    - 以 lzj 身份全流程：initialize（2.1.0）、22 个工具、两个知识产品；request_data_task 返回的 oa_url 在公网 OA 主机上；lzj 在公网 OA 提交、bob 批准后 ACTIVE；search 3 行；deliver_result 的下载链接在公网网关主机上，取回 8527 字节 Parquet；最后撤销该测试任务。
+    - 部署路径冒烟（含 -usability）两个知识产品全过。
+  - **一处被拦**：Cloudflare 的 Browser Integrity Check 对 Python urllib 默认 User-Agent 返回 403（error 1010）。
+    - 我想对 MCP 主机关掉这项检查，被自动模式按削弱安全设置拦下，没有绕过。
+    - 随后实测：只有 Python-urllib 默认 UA 被拦；httpx、requests、aiohttp、node、undici、node-fetch、claude-code、Go、浏览器与空 UA 都是 200。
+    - 所以保留该检查，在给同事的指南里注明自写脚本要带 User-Agent。
+  - **待办**：作者说测完时按 ~/kb-demo/README.md"收工"五步撤下，并把两处地址改回 tailnet。KB1-LOOP-136 的 tailscale operator 一步不再需要。
