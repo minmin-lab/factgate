@@ -997,7 +997,52 @@ func (s *Service) revokeTask(ctx context.Context, principal mcp.Principal, raw j
 	}
 	result := publicTask(updated)
 	result["in_flight_queries_cancelled"] = false
+	if task.ParentTaskID == "" {
+		cascaded, err := s.cascadeRevocation(ctx, task.ID, principal.Subject)
+		if err != nil {
+			return nil, err
+		}
+		result["cascaded_task_ids"] = cascaded
+	}
 	return result, nil
+}
+
+// cascadeRevocation archives every open descendant of a revoked root
+// (KB1-LOOP-147). It is bookkeeping, not the safety: a descendant of an
+// archived root is already refused at every use by ensureActiveTaskFamily,
+// so a descendant that changes state meanwhile is simply skipped.
+func (s *Service) cascadeRevocation(ctx context.Context, rootTaskID, actor string) ([]string, error) {
+	cascaded := []string{}
+	payload, _ := json.Marshal(map[string]any{"cascade_from": rootTaskID,
+		"in_flight_semantics": "not_cancelled; bounded by the approved timeout and grant expiry"})
+	afterID := ""
+	for {
+		page, err := s.store.ListTasks(ctx, control.TaskFilter{RootTaskID: rootTaskID, AfterID: afterID, Limit: 500})
+		if err != nil {
+			return nil, err
+		}
+		if len(page) == 0 {
+			return cascaded, nil
+		}
+		for _, descendant := range page {
+			afterID = descendant.ID
+			if descendant.ID == rootTaskID || descendant.State == control.TaskArchived {
+				continue
+			}
+			_, err := s.store.TransitionTask(ctx, control.TaskTransition{
+				TaskID: descendant.ID, ExpectedFrom: descendant.State, To: control.TaskArchived,
+				Reason: control.TerminalRevoked, Actor: actor, Payload: payload,
+			})
+			switch {
+			case err == nil:
+				cascaded = append(cascaded, descendant.ID)
+			case errors.Is(err, control.ErrInvalidStateChange), errors.Is(err, control.ErrConflict), errors.Is(err, control.ErrNotFound):
+				continue
+			default:
+				return nil, err
+			}
+		}
+	}
 }
 
 type persistedPendingContext struct {

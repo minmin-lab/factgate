@@ -194,9 +194,11 @@ func TestAdministratorIssuesAnAuthorizationForAnEmployeeOfTheirDepartment(t *tes
 	if revoked["state"] != control.TaskArchived || h.task(root.ID).State != control.TaskArchived {
 		t.Fatalf("revocation %v", revoked)
 	}
-	if _, err := callGatewayTool(h.service, h.staff, "get_task_context", map[string]any{"task_id": child.ID}); err != nil {
-		t.Fatalf("the child's own record is still readable: %v", err)
+	if cascaded, _ := revoked["cascaded_task_ids"].([]string); len(cascaded) != 1 || cascaded[0] != child.ID || h.task(child.ID).State != control.TaskArchived {
+		t.Fatalf("the employee's child after the issuer's revocation: cascaded %v, state %s", revoked["cascaded_task_ids"], h.task(child.ID).State)
 	}
+	_, err = callGatewayTool(h.service, h.staff, "get_task_context", map[string]any{"task_id": child.ID})
+	requireToolCode(t, err, apierr.CodeTaskNotActive)
 }
 
 func TestIssuedAuthorizationsAreConfinedToTheIssuersDepartment(t *testing.T) {

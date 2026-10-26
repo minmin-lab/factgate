@@ -224,9 +224,9 @@ func (s *Store) ListTasks(ctx context.Context, filter TaskFilter) ([]Task, error
 		limit = 100
 	}
 	rows, err := s.db.QueryContext(ctx, taskSelect+`
-WHERE ($1 = '' OR principal_id = $2) AND ($3 = '' OR state = $4) AND ($5 = '' OR id > $6)
-ORDER BY id LIMIT $7`, filter.PrincipalID, filter.PrincipalID, filter.State, filter.State,
-		filter.AfterID, filter.AfterID, limit)
+WHERE ($1 = '' OR principal_id = $2) AND ($3 = '' OR state = $4) AND ($5 = '' OR id > $6) AND ($7 = '' OR root_task_id = $8)
+ORDER BY id LIMIT $9`, filter.PrincipalID, filter.PrincipalID, filter.State, filter.State,
+		filter.AfterID, filter.AfterID, filter.RootTaskID, filter.RootTaskID, limit)
 	if err != nil {
 		return nil, opErr(op, ErrConflict, err)
 	}

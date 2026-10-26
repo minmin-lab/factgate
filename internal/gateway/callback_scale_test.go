@@ -154,11 +154,20 @@ func TestDelegatedTaskSharesRootExposureAndStopsWithParent(t *testing.T) {
 		t.Fatalf("family exposure was not conserved: root=%+v child=%+v", rootResult["exposure"], childResult["exposure"])
 	}
 
-	mustCallGatewayTool(t, harness.service, harness.alice, "revoke_task", map[string]any{
+	revoked := mustCallGatewayTool(t, harness.service, harness.alice, "revoke_task", map[string]any{
 		"task_id": "task-family-root", "reason": "delegation test",
 	})
 	_, err = callGatewayTool(harness.service, bob, "execute_plan", map[string]any{
 		"task_id": childID, "request_id": "family-child-after-revoke", "plan": plan,
 	})
 	requireToolCode(t, err, apierr.CodeTaskNotActive)
+	// Revoking the root also archives its descendants (bookkeeping; the
+	// refusal above is the safety).
+	if cascaded, _ := revoked["cascaded_task_ids"].([]string); len(cascaded) != 1 || cascaded[0] != childID {
+		t.Fatalf("cascaded tasks %v, want the child", revoked["cascaded_task_ids"])
+	}
+	child, err := harness.store.GetTask(context.Background(), childID)
+	if err != nil || child.State != control.TaskArchived || child.TerminalReason != control.TerminalRevoked {
+		t.Fatalf("child after the root's revocation %+v %v", child, err)
+	}
 }

@@ -64,6 +64,8 @@ type TaskFilter struct {
 	State       TaskState
 	Limit       int
 	AfterID     string
+	// RootTaskID limits the listing to the descendants of one root task.
+	RootTaskID string
 }
 
 type TaskGrant struct {
