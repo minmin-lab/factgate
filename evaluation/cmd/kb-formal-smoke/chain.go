@@ -15,9 +15,9 @@ import (
 // Approval chains (KB1-LOOP-141; a demo feature, not a paper claim). When the
 // Catalog routes requests through an org-chart chain, the smoke follows it:
 // every step is decided by the approver TaskGate names, with the OA password
-// OA_<SUBJECT>_PASSWORD or, for the demo's directors and leaders, the shared
-// OA_SHARED_APPROVER_PASSWORD. A Catalog without chains keeps the single
-// approver bob, as in the formal round.
+// OA_<SUBJECT>_PASSWORD or, for the demo's role accounts, the shared
+// OA_SHARED_PASSWORD. A Catalog without chains keeps the single approver bob,
+// as in the formal round.
 
 // firstChain returns the Catalog's first approval chain, nil when it has none.
 func firstChain(profile *catalog.Catalog) *catalog.ApprovalChain {
@@ -51,16 +51,21 @@ func (c *chainApprovers) account(subject string) (*kbformal.OAAccount, error) {
 	if account, ok := c.accounts[subject]; ok {
 		return account, nil
 	}
-	password := c.env["OA_"+strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(subject))+"_PASSWORD"]
-	if password == "" {
-		password = c.env["OA_SHARED_APPROVER_PASSWORD"]
-	}
+	password := oaPassword(c.env, subject)
 	if password == "" {
 		return nil, fmt.Errorf("no OA password for approver %s", subject)
 	}
 	account := &kbformal.OAAccount{BaseURL: c.baseURL, Username: subject, Password: password, Timeout: c.timeout}
 	c.accounts[subject] = account
 	return account, nil
+}
+
+// oaPassword is OA_<SUBJECT>_PASSWORD, or the demo's shared OA_SHARED_PASSWORD.
+func oaPassword(env map[string]string, subject string) string {
+	if own := env["OA_"+strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(subject))+"_PASSWORD"]; own != "" {
+		return own
+	}
+	return env["OA_SHARED_PASSWORD"]
 }
 
 // smokeChain requests the requester's own department and another one,

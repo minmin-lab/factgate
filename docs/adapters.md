@@ -173,6 +173,11 @@ OA Demo 对回调最多尝试 3 次。企业 OA 应采用持久化 Outbox、指�
 - `POST /tasks/{draftID}/decision`：仅 Bob，可批准/拒绝分配给 Bob 的 pending 人工任务。
 - 修改操作使用 CSRF Token；会话 Cookie 为签名值、`HttpOnly`、`SameSite=Lax`，有 TLS 时才设置 `Secure`。
 - 密码启动时转换为 bcrypt Hash，明文从内存配置结构清除。
+- 账号：
+  - 内置 alice（申请人）、bob（审批人），配置了 `OA_DANA_PASSWORD` 时另有 dana。
+  - `OA_EXTRA_USERS` 增加账号，格式为逗号分隔的 `name:role[:显示名]`，role 为 requester 或 approver。每个账号的口令取 `OA_<NAME>_PASSWORD`（大写，`-` 与 `.` 记作 `_`），没有时取共用的 `OA_SHARED_PASSWORD`。
+  - `OA_BUILTIN_USERS=off` 不创建内置账号，只提供 `OA_EXTRA_USERS`，其中须有申请人和审批人。KB 演示栈用这种方式只提供按角色命名的账号（KB1-LOOP-144）；正式轮保留内置账号。
+- 审批人可以打开指派给自己或自己审批过的草稿，只有当前审批人能决定。
 
 OA Demo 的用户与草稿都在内存中，重启即丢失；它只是协议演示，不是生产 OA。
 

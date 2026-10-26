@@ -2716,3 +2716,33 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 换钥生效的证据：上述每次审批都由网关以新公钥 oa-ed25519-v2 验签通过。
   - **收尾**：草稿区里含旧密钥的 .env 备份已删除（扫描命令先在根 .env 这个已知正例上命中，再采信对草稿区的 0 命中）。
   - **下一步**：作者把三样东西私下发给同事——STAFF_MCP_TOKEN（值同旧 LZJ_MCP_TOKEN，MCP 不用重配）、OA_STAFF_PASSWORD（值同旧 OA_LZJ_PASSWORD）、OA_SHARED_APPROVER_PASSWORD（新），以及指南 /home/wmm/kb-demo/tester-guide.md。测完照 README"收工"撤下 tunnel。
+- [2026-10-26 13:05 UTC+8] KB1-LOOP-144 **作者定：演示栈 OA 只留一个口令，删掉废弃的 alice、bob、lzj 账号（只做功能，不进论文）**。
+  - **作者原话**："OA_STAFF_PASSWORD 和 OA_SHARED_APPROVER_PASSWORD 合并，删掉废弃的 alic bob lzj 账号"。
+  - **约束**（实查）：
+    - 正式轮的 compose.yaml 是冻结文件。它用 `${…:?}` 强制要求 OA_ALICE_PASSWORD、OA_BOB_PASSWORD、TASKBOUND_ALICE_TOKEN（compose.yaml:369、515、516），这三个值只能留在根 .env。
+    - 作者本机 Claude Code 的 factgate MCP 用的是 TASKBOUND_ALICE_TOKEN（令牌值比对，不打印）。
+  - **决定**：
+    - 演示 OA 不再提供 alice、bob、dana：OmitBuiltinUsers，演示栈以 OA_BUILTIN_USERS=off 启用。dana 与 bob 同属已废弃的按密级路由审批人，一并删除，不另问。
+    - 正式轮缺省保留内置账号，行为不变。
+    - OA_STAFF_PASSWORD 与 OA_SHARED_APPROVER_PASSWORD 合并为 OA_SHARED_PASSWORD，演示的全部角色账号共用。
+      - 值沿用 OA_STAFF_PASSWORD，即原 OA_LZJ_PASSWORD，同事可能已经拿到；
+      - 废弃 KB1-LOOP-142 新生成的审批人口令。
+    - 删去 OA_DANA_PASSWORD。
+    - lzj 已在 KB1-LOOP-142 退役。
+    - alice 仍是网关里的 MCP 主体（compose.yaml 定义），只是在演示栈上无法提交申请。
+  - **代码**：
+    - oademo.Config.OmitBuiltinUsers：不建内置账号时，要求至少有一个申请人和一个审批人；
+    - cmd/oa-demo 读 OA_BUILTIN_USERS；OA_SHARED_PASSWORD 适用于任何角色的附加账号；
+    - kb-formal-smoke 新增 -requester 与 -requester-token-key。缺省为 alice 与 TASKBOUND_ALICE_TOKEN，正式轮不变；演示栈用 staff。
+  - **演示侧**：
+    - compose.demo.yaml；
+    - ensure-principals.py：RETIRED 加 bob、dana，属性快照从 67 个主体减为 65 个；
+    - approve.py 与 smoke.py 改以 staff 申请；
+    - demo-approver.py 场景 E 改为指定 sales-director；
+    - demo-misroute.sh 改为把财务部主任误配成 finance-manager；
+    - README、tester-guide.md 改为"两样东西"；
+    - adapters.md 补 OA 账号配置说明。
+  - **实跑**：
+    - oademo 全包通过。新测试 TestOAWithoutBuiltinUsersOffersOnlyItsRoleAccounts：缺申请人或缺审批人时拒绝启动，登录页不再列 alice/bob/dana，alice 登录被拒。
+    - 已知正例：保留内置账号时，同一登录请求跳到 /tasks。
+    - kbformal、cmd/gateway 通过；make hygiene 通过。

@@ -69,6 +69,10 @@ func run() error {
 	catalogPath := flag.String("catalog", "", "the activated profile Catalog")
 	knowledgeProduct := flag.String("knowledge-product", "", "the knowledge product to exercise when the Catalog declares several")
 	usability := flag.Bool("usability", false, "also check discovery, readiness, task-flow hints and refusal details (KB1-LOOP-137)")
+	// The formal round's requester is alice; the demo stack offers only its
+	// role accounts, so its smoke requests as staff (KB1-LOOP-144).
+	requester := flag.String("requester", "alice", "the requesting subject: its OA account and MCP principal")
+	requesterToken := flag.String("requester-token-key", "TASKBOUND_ALICE_TOKEN", "env file key of the requester's MCP token")
 	flag.Parse()
 	env, err := readEnvFile(*envFile)
 	if err != nil {
@@ -99,9 +103,9 @@ func run() error {
 	ctx := context.Background()
 	timeout := 60 * time.Second
 	summary := map[string]any{"catalog_sha256": profile.SHA256, "knowledge_product": product.Name, "epoch": product.IndexPublication}
-	alice := kbformal.NewMCPClient(*gateway, env["TASKBOUND_ALICE_TOKEN"], timeout)
+	alice := kbformal.NewMCPClient(*gateway, env[*requesterToken], timeout)
 	provisioner := &kbformal.Provisioner{Requester: alice,
-		Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: "alice", Password: env["OA_ALICE_PASSWORD"], Timeout: timeout},
+		Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: *requester, Password: oaPassword(env, *requester), Timeout: timeout},
 		Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout},
 		Poll:      200 * time.Millisecond, Deadline: 60 * time.Second}
 	chain := firstChain(profile)
@@ -206,7 +210,7 @@ func run() error {
 		return errors.New("principal token for sales-staff is missing")
 	}
 	if chain != nil {
-		// alice is the finance requester of the demo and the formal round.
+		// alice and staff are both finance requesters.
 		if err := smokeChain(ctx, summary, provisioner, approvers, chain, request.Products, request.Columns, "finance"); err != nil {
 			return fmt.Errorf("approval chain: %w", err)
 		}

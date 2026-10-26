@@ -23,18 +23,32 @@ func main() {
 		logger.Error("initialize OA approval receipt signer", "error", err)
 		os.Exit(1)
 	}
+	// OA_BUILTIN_USERS=off leaves out alice, bob and dana (the demo stack offers
+	// only its role accounts); their passwords are then not read.
+	omitBuiltin := env("OA_BUILTIN_USERS", "on") == "off"
+	builtinPassword := func(key string) string {
+		if omitBuiltin {
+			return ""
+		}
+		return requiredEnv(key)
+	}
+	danaPassword := ""
+	if !omitBuiltin {
+		danaPassword = env("OA_DANA_PASSWORD", "")
+	}
 	oa, err := oademo.New(oademo.Config{
-		ServiceToken:   requiredEnv("OA_SERVICE_TOKEN"),
-		CallbackSecret: requiredEnv("OA_CALLBACK_SECRET"),
-		SessionSecret:  requiredEnv("OA_SESSION_SECRET"),
-		CallbackURL:    requiredEnv("GATEWAY_CALLBACK_URL"),
-		PublicBaseURL:  env("PUBLIC_OA_BASE_URL", "http://127.0.0.1:8092"),
-		AlicePassword:  requiredEnv("OA_ALICE_PASSWORD"),
-		BobPassword:    requiredEnv("OA_BOB_PASSWORD"),
-		DanaPassword:   env("OA_DANA_PASSWORD", ""),
-		ExtraUsers:     extraUsersFromEnv(),
-		ReceiptSigner:  receiptSigner,
-		Logger:         logger,
+		ServiceToken:     requiredEnv("OA_SERVICE_TOKEN"),
+		CallbackSecret:   requiredEnv("OA_CALLBACK_SECRET"),
+		SessionSecret:    requiredEnv("OA_SESSION_SECRET"),
+		CallbackURL:      requiredEnv("GATEWAY_CALLBACK_URL"),
+		PublicBaseURL:    env("PUBLIC_OA_BASE_URL", "http://127.0.0.1:8092"),
+		AlicePassword:    builtinPassword("OA_ALICE_PASSWORD"),
+		BobPassword:      builtinPassword("OA_BOB_PASSWORD"),
+		DanaPassword:     danaPassword,
+		ExtraUsers:       extraUsersFromEnv(),
+		OmitBuiltinUsers: omitBuiltin,
+		ReceiptSigner:    receiptSigner,
+		Logger:           logger,
 	})
 	if err != nil {
 		logger.Error("initialize OA demo", "error", err)
@@ -74,9 +88,8 @@ func env(key, fallback string) string {
 
 // extraUsersFromEnv reads OA_EXTRA_USERS ("name:role[:display name]", comma
 // separated). Each password comes from OA_<NAME>_PASSWORD (upper case, "-" and
-// "." as "_"); an approver without one uses OA_SHARED_APPROVER_PASSWORD, so the
-// directors and leaders of an approval chain can share one demo password. A
-// missing password stops the demo.
+// "." as "_"); an account without one uses OA_SHARED_PASSWORD, so the demo's
+// role accounts can share one password. A missing password stops the demo.
 func extraUsersFromEnv() []oademo.ExtraUser {
 	var users []oademo.ExtraUser
 	for _, entry := range strings.Split(os.Getenv("OA_EXTRA_USERS"), ",") {
@@ -94,8 +107,8 @@ func extraUsersFromEnv() []oademo.ExtraUser {
 		}
 		key := "OA_" + strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(name)) + "_PASSWORD"
 		password := os.Getenv(key)
-		if password == "" && role == "approver" {
-			password = os.Getenv("OA_SHARED_APPROVER_PASSWORD")
+		if password == "" {
+			password = os.Getenv("OA_SHARED_PASSWORD")
 		}
 		if password == "" {
 			password = requiredEnv(key)

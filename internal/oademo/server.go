@@ -53,11 +53,16 @@ type Config struct {
 	// ExtraUsers adds further demo accounts (for example a colleague's own
 	// requester account, or the directors and leaders of an approval chain);
 	// names must not collide with the built-in users.
-	ExtraUsers    []ExtraUser
-	HTTPClient    *http.Client
-	Logger        *slog.Logger
-	Clock         func() time.Time
-	ReceiptSigner approval.ReceiptSigner
+	ExtraUsers []ExtraUser
+	// OmitBuiltinUsers leaves out alice, bob and dana, so the OA offers only
+	// ExtraUsers (the demo stack's role accounts, KB1-LOOP-144); they must then
+	// include a requester and an approver. The formal round keeps the built-in
+	// users.
+	OmitBuiltinUsers bool
+	HTTPClient       *http.Client
+	Logger           *slog.Logger
+	Clock            func() time.Time
+	ReceiptSigner    approval.ReceiptSigner
 }
 
 // ExtraUser is one configured demo account.
@@ -166,7 +171,7 @@ func New(config Config) (*Server, error) {
 	if config.ServiceToken == "" || config.CallbackSecret == "" || config.SessionSecret == "" || config.CallbackURL == "" {
 		return nil, errors.New("OA service token, callback secret, session secret, and callback URL are required")
 	}
-	if config.AlicePassword == "" || config.BobPassword == "" {
+	if !config.OmitBuiltinUsers && (config.AlicePassword == "" || config.BobPassword == "") {
 		return nil, errors.New("OA demo passwords are required")
 	}
 	if config.PublicBaseURL == "" {
@@ -187,28 +192,27 @@ func New(config Config) (*Server, error) {
 	if config.ReceiptSigner == nil {
 		config.ReceiptSigner = approval.DemoReceiptSigner([]byte(config.CallbackSecret))
 	}
-	aliceHash, err := bcrypt.GenerateFromPassword([]byte(config.AlicePassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-	bobHash, err := bcrypt.GenerateFromPassword([]byte(config.BobPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
 	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel, "roleLabel": roleLabel}).Parse(pageTemplates)
 	if err != nil {
 		return nil, err
 	}
-	users := map[string]user{
-		"alice": {Name: "Alice", Role: "requester", PasswordHash: aliceHash},
-		"bob":   {Name: "Bob", Role: "approver", PasswordHash: bobHash},
-	}
-	if config.DanaPassword != "" {
-		danaHash, err := bcrypt.GenerateFromPassword([]byte(config.DanaPassword), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
+	users := map[string]user{}
+	if !config.OmitBuiltinUsers {
+		builtin := []struct{ id, name, role, password string }{
+			{"alice", "Alice", "requester", config.AlicePassword},
+			{"bob", "Bob", "approver", config.BobPassword},
+			{"dana", "Dana", "approver", config.DanaPassword},
 		}
-		users["dana"] = user{Name: "Dana", Role: "approver", PasswordHash: danaHash}
+		for _, account := range builtin {
+			if account.password == "" {
+				continue // dana is optional
+			}
+			hash, err := bcrypt.GenerateFromPassword([]byte(account.password), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, err
+			}
+			users[account.id] = user{Name: account.name, Role: account.role, PasswordHash: hash}
+		}
 	}
 	for _, extra := range config.ExtraUsers {
 		name := strings.ToLower(strings.TrimSpace(extra.Name))
@@ -224,6 +228,13 @@ func New(config Config) (*Server, error) {
 			display = extra.Name
 		}
 		users[name] = user{Name: display, Role: extra.Role, PasswordHash: hash}
+	}
+	roles := map[string]bool{}
+	for _, account := range users {
+		roles[account.Role] = true
+	}
+	if !roles["requester"] || !roles["approver"] {
+		return nil, errors.New("the OA demo needs at least one requester and one approver")
 	}
 	config.ExtraUsers = nil
 	config.AlicePassword = ""

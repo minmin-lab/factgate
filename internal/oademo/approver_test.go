@@ -225,3 +225,57 @@ func TestExtraRequesterSubmitsOwnDrafts(t *testing.T) {
 		t.Fatalf("lzj could not submit their draft: %d", status)
 	}
 }
+
+// The demo stack offers only its role accounts (KB1-LOOP-144): without the
+// built-in users, alice, bob and dana are neither offered nor able to log in,
+// and the OA refuses to start without both a requester and an approver.
+func TestOAWithoutBuiltinUsersOffersOnlyItsRoleAccounts(t *testing.T) {
+	callback := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	defer callback.Close()
+	base := Config{ServiceToken: "service", CallbackSecret: "callback", SessionSecret: "session", CallbackURL: callback.URL,
+		OmitBuiltinUsers: true}
+	for _, lacking := range [][]ExtraUser{
+		{{Name: "staff", Role: "requester", Password: "shared"}},
+		{{Name: "finance-director", Role: "approver", Password: "shared"}},
+	} {
+		config := base
+		config.ExtraUsers = lacking
+		if _, err := New(config); err == nil {
+			t.Fatalf("an OA with only %+v started", lacking)
+		}
+	}
+	config := base
+	config.ExtraUsers = []ExtraUser{{Name: "staff", Role: "requester", Password: "shared", DisplayName: "普通员工（财务部）"},
+		{Name: "finance-director", Role: "approver", Password: "shared", DisplayName: "财务部主任"}}
+	server, err := New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpServer := httptest.NewServer(server.Handler())
+	defer httpServer.Close()
+	page := get(t, http.DefaultClient, httpServer.URL+"/login")
+	for _, gone := range []string{`value="alice"`, `value="bob"`, `value="dana"`} {
+		if strings.Contains(page, gone) {
+			t.Fatalf("the login page still offers %s", gone)
+		}
+	}
+	if !strings.Contains(page, `value="staff"`) || !strings.Contains(page, "财务部主任") {
+		t.Fatal("the login page does not offer the role accounts")
+	}
+	login(t, httpServer.URL, "staff", "shared")
+	login(t, httpServer.URL, "finance-director", "shared")
+	jarless := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	match := csrfField.FindStringSubmatch(page)
+	request, _ := http.NewRequest(http.MethodPost, httpServer.URL+"/login",
+		strings.NewReader(url.Values{"csrf": {match[1]}, "username": {"alice"}, "password": {"alice-pass"}}.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(&http.Cookie{Name: "oa_login_csrf", Value: match[1]})
+	response, err := jarless.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if location := response.Header.Get("Location"); !strings.Contains(location, "/login?error=invalid") {
+		t.Fatalf("alice logging in to an OA without built-in users: redirected to %q", location)
+	}
+}
