@@ -2790,3 +2790,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 发射端 createTask：有父任务且开关开 → 审批人 = 申请人本人，不走链、不走 authorizeApprover，指定他人为审批人即 INVALID_REQUEST；根任务路径不变，自批仍拒。校验端 validCallbackActor 同步：审批人 == 人类主体而无 self_confirm 标记即拒（失败关闭）。回调时 VerifyApprover 再核申请人资格。task_flow 提示改为"本人确认"，request_data_task 描述补一句。
   - **实跑**：新增 TestChildTaskIsConfirmedByItsOwnRequesterUnderDelegatedAuthorization（根仍由 bob 批；子任务审批人为 alice，bob 确认 403，alice 确认后 ACTIVE，回执 approver_id=alice；指定他人 INVALID_REQUEST）、TestChildSelfConfirmationIsRefusedWithoutTheCatalogBlock、TestCallbackRefusesAnUnmarkedSelfApproval、catalog TestDelegatedAuthorizationParsesAndValidates 通过；db-test-env 下 internal/gateway、catalog、cmd/gateway 全部 ok。
   - **正式轮守卫**：grep delegated_authorization/escalations:/chain: 对 7 个 kb-formal profile 与 config/catalog.yaml 全 0，命令先在已知正例（测试文件，2 命中）上验证；正式 profile、compose.yaml、config/catalog.yaml 无 diff。
+- [2026-10-26 22:59 UTC+8] KB1-LOOP-147 **更正：阶段 2 条目的时间戳写成 23:12，实为 22:59（date 输出在同一条命令里，我没看就写了）**。
+  - 根因：与 KB1-LOOP-145 同类——先写条目、后看 date。同类根因第二次出现，按流程缺陷处理。
+  - 防再犯：新增 scripts/ledger-append.sh，条目正文从文件读入，时间戳由脚本在写入时刻取（TZ=Asia/Shanghai），从此台账条目不再手写时间；本条起使用。
