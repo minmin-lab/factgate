@@ -169,6 +169,9 @@ type pendingContext struct {
 	// verifying route and always for an approver the requester chose.
 	VerifyApprover bool `json:"verify_approver,omitempty"`
 	ApproverChosen bool `json:"approver_chosen,omitempty"`
+	// Chain is the routing record of an approval-chain task
+	// (approval_chain.go); Approver is then its first step's approver.
+	Chain *pendingChain `json:"approval_chain,omitempty"`
 }
 
 func New(config Config) (*Service, error) {

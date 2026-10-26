@@ -55,7 +55,9 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		"approval_routing": "缺省由目录路由选审批人：按申请产品的最高敏感级（及产品级路由的产品集合）选路由，" +
 			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。申请时也可以用 request_data_task 或 request_download_task 的 " +
 			"approver 参数指定任一审批人，覆盖路由。无论审批人从哪来，TaskGate 都在签发授权前按数据产品规则核验实际审批人：" +
-			"无权者在 OA 批准后不签发授权，任务以 approver_not_authorized 归档。返回值的 approver_authorized 预告结果。",
+			"无权者在 OA 批准后不签发授权，任务以 approver_not_authorized 归档。返回值的 approver_authorized 预告结果。" +
+			"带 approval_chain 的路由按组织架构多级审批（申请人部门主任 → 被申请部门主任 → 领导级文档的分管领导），" +
+			"每一级都在 TaskGate 核验审批人权限，最后一级批准后才签发授权；approver 参数只替换第一级。",
 	}, nil
 }
 
@@ -72,6 +74,15 @@ func publicApprovalRoute(route catalog.ApprovalRoute) map[string]any {
 	}
 	if route.VerifyApprover {
 		public["verify_approver"] = true
+	}
+	if chain := route.Chain; chain != nil {
+		delete(public, "approver")
+		org := map[string]any{"department_scope": chain.DepartmentScope, "directors": chain.Directors,
+			"rule": "依次审批：申请人所在部门主任 → 每个被申请部门的主任 → 申请含领导级文档时，再由每个被申请部门的分管领导审批；审批人缩小范围后，后续环节按缩小后的范围重算"}
+		if escalation := chain.Escalation; escalation != nil {
+			org["escalation"] = map[string]any{"scope": escalation.Scope, "values": escalation.Values, "leaders": escalation.Leaders}
+		}
+		public["approval_chain"] = org
 	}
 	return public
 }
@@ -225,8 +236,27 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if chosenApprover != "" {
 		policy.ApprovalRoute.Approver = chosenApprover
 	}
-	approverEligibility, approverAuthorized, err := s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != "")
-	if err != nil {
+	var (
+		approverEligibility *eligibilityVerdict
+		approverAuthorized  *bool
+		chain               *pendingChain
+		chainSteps          []map[string]any
+	)
+	if route := policy.ApprovalRoute.Chain; route != nil {
+		// An approval chain: TaskGate derives every step from the org chart
+		// and verifies each approver when they approve; a chosen approver
+		// replaces only the first step (approval_chain.go).
+		planned, steps, chainErr := s.planApprovalChain(*route, humanSubject, chosenApprover, scopeValueSets(scope), now)
+		if chainErr != nil {
+			return nil, chainErr
+		}
+		chain, chainSteps = &planned, steps
+		policy.ApprovalRoute.Approver, _ = steps[0]["approver"].(string)
+		if chosenApprover != "" {
+			authorized, _ := steps[0]["approver_authorized"].(bool)
+			approverAuthorized = &authorized
+		}
+	} else if approverEligibility, approverAuthorized, err = s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != ""); err != nil {
 		return nil, err
 	}
 	if len(reservedScope) > 0 {
@@ -319,7 +349,8 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
-		VerifyApprover: policy.ApprovalRoute.VerifyApprover || chosenApprover != "", ApproverChosen: chosenApprover != "",
+		VerifyApprover: chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != ""), ApproverChosen: chosenApprover != "",
+		Chain: chain,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -360,6 +391,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if viewBinding != nil {
 		result["view_binding_digest"] = viewBinding.Digest
+	}
+	if chain != nil {
+		result["approval_chain"] = chainSteps
 	}
 	if len(reservedScope) == 0 {
 		if readiness := s.knowledgeReadiness(args.DataProducts, columns, policy.Budget.ExposureProfileVersion, "requested"); len(readiness) > 0 {
@@ -649,7 +683,7 @@ func (s *Service) getTaskStatus(ctx context.Context, principal mcp.Principal, ra
 		return nil, err
 	}
 	result := publicTask(task)
-	mergeTaskFlow(result, s.taskFlow(task))
+	mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 	if status, statusErr := s.store.GetTaskViewBindingStatus(ctx, task.ID); statusErr == nil {
 		result["view_binding_status"] = publicViewBindingStatus(status)
 	} else if !errors.Is(statusErr, control.ErrNotFound) {
@@ -684,7 +718,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 		if task.State == control.TaskActive || task.State == control.TaskArchived {
 			result := publicTask(task)
 			result["timed_out"] = false
-			mergeTaskFlow(result, s.taskFlow(task))
+			mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 			return result, nil
 		}
 		select {
@@ -693,7 +727,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 		case <-deadline.C:
 			result := publicTask(task)
 			result["timed_out"] = true
-			mergeTaskFlow(result, s.taskFlow(task))
+			mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 			return result, nil
 		case <-ticker.C:
 		}

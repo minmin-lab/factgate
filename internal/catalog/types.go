@@ -199,6 +199,10 @@ type ApprovalRoute struct {
 	// could not request themselves. Off by default, so catalogs whose
 	// approvers are not in the snapshot keep their behaviour.
 	VerifyApprover bool `yaml:"verify_approver,omitempty" json:"verify_approver,omitempty"`
+	// Chain routes the task through an org-chart approval chain instead of a
+	// single approver (approval_chain.go). A chain route names no approver
+	// and no scope condition; it always verifies each approver's authority.
+	Chain *ApprovalChain `yaml:"chain,omitempty" json:"chain,omitempty"`
 }
 
 // routeKey identifies the routes that compete for one request: the same

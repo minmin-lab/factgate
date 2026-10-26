@@ -181,6 +181,9 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 	for index, route := range c.ApprovalRoutes {
 		path := fmt.Sprintf("approval_routes[%d]", index)
 		problems = append(problems, validateApprovalRoute(path, route, profiles)...)
+		if route.Chain != nil {
+			problems = append(problems, validateApprovalChain(path+".chain", *route.Chain, scopeDefinitions)...)
+		}
 		if len(route.ScopeCondition) > 0 {
 			problems = append(problems, validateScopeCondition(path+".scope_condition", route.ScopeCondition, scopeDefinitions)...)
 			if _, ok := unconditioned[route.routeKey()]; !ok {
@@ -460,7 +463,11 @@ func validateApprovalRoute(path string, route ApprovalRoute, profiles map[string
 	if route.Mode != domain.ApprovalModeManual {
 		problems = append(problems, fieldError(path+".mode", "mode must be manual; automatic task approval is disabled", ErrInvalidApprovalRoute))
 	}
-	if strings.TrimSpace(route.Approver) == "" {
+	if route.Chain != nil {
+		if strings.TrimSpace(route.Approver) != "" || len(route.ScopeCondition) > 0 {
+			problems = append(problems, fieldError(path+".chain", "a chain route names neither an approver nor a scope condition", ErrInvalidApprovalRoute))
+		}
+	} else if strings.TrimSpace(route.Approver) == "" {
 		problems = append(problems, fieldError(path+".approver", "manual route requires an approver", ErrInvalidApprovalRoute))
 	}
 	if strings.TrimSpace(route.BudgetProfile) == "" {

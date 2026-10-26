@@ -212,6 +212,7 @@ func cloneApprovalRoute(route ApprovalRoute) ApprovalRoute {
 		}
 		route.ScopeCondition = condition
 	}
+	route.Chain = cloneApprovalChain(route.Chain)
 	return route
 }
 

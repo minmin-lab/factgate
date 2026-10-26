@@ -2604,3 +2604,35 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 随后实测：只有 Python-urllib 默认 UA 被拦；httpx、requests、aiohttp、node、undici、node-fetch、claude-code、Go、浏览器与空 UA 都是 200。
     - 所以保留该检查，在给同事的指南里注明自写脚本要带 User-Agent。
   - **待办**：作者说测完时按 ~/kb-demo/README.md"收工"五步撤下，并把两处地址改回 tailnet。KB1-LOOP-136 的 tailscale operator 一步不再需要。
+
+- [2026-10-26 11:42 UTC+8] KB1-LOOP-141 **作者定：演示栈按组织架构多级审批；MCP 只给同事一个令牌，OA 账号可多加（只做功能，不进论文）**。
+  - **作者原话**：
+    - "LZJ_MCP_TOKEN、OA_LZJ_PASSWORD、OA_BOB_PASSWORD、OA_DANA_PASSWORD 这个名称不好，改成角色权限的名字，例如 普通员工 部门主任 分管领导，这样同事一看就知道权限关系"；
+    - "一个令牌比较好……搞2个令牌，mcp 要配置2次啊，不够直观"；
+    - "允许跨部门申请权限啊，跨部门的文档申请，本部门主任审批，然后被申请部门主任审批，如果涉及领导级文档，需要对应的分管领导审批。mcp只有一个，oa账号可以多加"。
+  - **作者选择**：
+    - 分管领导"3 位，按业务线"：管理线（财务、采购、法务、人力）、业务线（销售、市场、客服、运营）、研发线（工程、产品、研究、IT）；
+    - 缩小范围后"按缩小后的范围重算"后续环节；
+    - 审批人"共用一个口令"。
+  - **设计**：TaskGate 是审批链的权威，OA 协议不变（一位审批人一条回调，各带签名回执）。
+    - 目录：ApprovalRoute 新增可选 chain（omitempty，已有目录与证据摘要不变）。chain 由三部分组成：申请人部门属性、部门范围、主任表、主任权限条件；领导级升级另有升级范围与取值、分管领导表与领导权限条件。
+    - 校验要求组织架构覆盖部门范围的全部取值；chain 路由不写 approver 和 scope_condition。
+    - 环节：申请人部门主任 → 其余被申请部门主任（按名排序）→ 申请含 leadership 时，每个被申请部门的分管领导（同一领导合并为一级）。
+    - 建任务：按申请人的已证明属性取其部门，排出整条链；目录点名的每位审批人须有该环节权限，否则请求当场拒绝（组织架构配错失败关闭）；申请人不能审批自己。approver 参数只替换第一级，模拟 OA 误派，批准时照样核验。
+    - 回调：从审批事件得出已批到第几级，本回调的发出人必须是下一级。
+      - 以上一级签发的授权核心按本级时间重签发作基准（domain.TaskGrantCoreV1.Reissued），核"照批"或"收窄"。
+      - 按主体属性核本级权限：主任的部门属性须含该部门且 job_family 为 director；分管领导的 oversees 须含各部门且 job_family 为 leader。无权即归档 approver_not_authorized。
+      - 按本级批准后的范围重算余下环节：仍有则只记一级（控制库新增 Step 模式，不改状态，审计 APPROVAL_STEP_APPLIED），并把 next_approver 回给 OA；没有则签发授权。
+      - 每条回调都带"已批级数"，在任务行锁下核对，防止乱序。
+    - 状态：get_task_status 与 wait_for_approval 给出 approval_chain（每级 approved/current/pending）和当前审批人；request_data_task 返回整条链；list_data_products 发布 chain 路由与规则说明。
+  - **实跑**：
+    - 目录：TestApprovalChainStepsFollowTheOrgChart、TestApprovalChainValidationRequiresACompleteOrgChart；
+    - 授权核心：TestReissuedRebasesOnlyTheExpiry；
+    - 控制库（db-test-env）：TestApprovalStepRecordsWithoutChangingState——只记录、可重放、乱序 409、最终审批照常激活；
+    - 网关（db-test-env）四个场景：
+      - 跨部门含 leadership 三级审批，越级回调 403，每级后状态正确，最后一级才 ACTIVE；
+      - 被申请部门主任删掉 leadership 后不再需要分管领导，直接签发；后一级不能恢复前一级删掉的列（409）；
+      - 申请人把第一级指定为销售部主任，批准后归档 approver_not_authorized，无授权；
+      - 组织架构中的人力部主任属性不是 director 时，请求当场拒绝、不建草稿。
+    - 网关全包 157 过、0 败、8 跳过；control、catalog、domain、approval、physicalquery 全过。
+  - **下一步**：OA 演示版（读网关返回的下一级、按上一级核心续批、显示名与共用口令、审批记录）、正式客户端按链审批、演示配置与部署。

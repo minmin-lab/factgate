@@ -113,6 +113,18 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 		writeCallbackError(w, http.StatusConflict, "callback does not match task")
 		return
 	}
+	// An approval-chain task is decided step by step: its approval events say
+	// which step this callback must be, so its actor is that step's approver.
+	var progress *chainProgress
+	if pending.Chain != nil && event.Status != "submitted" {
+		current, chainErr := s.chainProgressOf(r.Context(), task, persistedPending)
+		if chainErr != nil || current.Next == nil {
+			writeCallbackError(w, http.StatusConflict, "approval chain has no step for this callback")
+			return
+		}
+		progress = &current
+		pending.Approver = current.Next.Approver
+	}
 	if !validCallbackActor(event, pending, persistedPending.Manifest.HumanSubject) {
 		writeCallbackError(w, http.StatusForbidden, "callback actor is not allowed")
 		return
@@ -134,7 +146,11 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 		callback.ExpectedState = control.TaskAwaitingSubmission
 		callback.NewState = control.TaskAwaitingApproval
 	case "approved", "narrowed":
-		finalGrant, err := s.validateApprovedGrant(event, persistedPending.Manifest)
+		var base *domain.TaskGrantCoreV1
+		if progress != nil {
+			base = progress.Current
+		}
+		finalGrant, err := s.validateApprovedGrant(event, persistedPending.Manifest, base)
 		if err != nil {
 			// The OA only retries and logs this status; name the failed check so an
 			// operator can tell a stale key from a changed envelope.
@@ -158,6 +174,37 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 		if err := s.validateDelegatedGrant(r.Context(), task, finalGrant.Core, event.OccurredAt.UTC()); err != nil {
 			writeCallbackError(w, http.StatusConflict, "delegated grant exceeds or outlives its parent")
 			return
+		}
+		if progress != nil {
+			// A chain step: the approver must hold the step's authority, and the
+			// grant is issued only when the approved scope needs no further step.
+			approvedSteps := len(progress.Approvals)
+			callback.ApprovedSteps = &approvedSteps
+			if !s.chainStepAuthorized(pending.Chain.Route, *progress.Next, event.Actor, s.clock().UTC()) {
+				if s.logger != nil {
+					s.logger.Warn("OA approval by someone without the chain step's authority; no grant issued",
+						"task_id", task.ID, "event_id", event.EventID, "approver", event.Actor, "step", progress.Next.Role)
+				}
+				callback.ExpectedState = control.TaskAwaitingApproval
+				callback.NewState = control.TaskArchived
+				callback.Reason = control.TerminalApproverNotAuthorized
+				callback.Response = []byte(`{"ok":true,"granted":false,"terminal_reason":"approver_not_authorized"}`)
+				response = callback.Response
+				break
+			}
+			remaining, chainErr := progress.remaining(*pending.Chain, scopeValueSets(finalGrant.Core.MandatoryScope), event.Actor)
+			if chainErr != nil {
+				writeCallbackError(w, http.StatusConflict, "approval chain cannot be derived for the approved scope")
+				return
+			}
+			if len(remaining) > 0 {
+				next, _ := json.Marshal(map[string]any{"ok": true, "granted": false, "pending": true,
+					"next_approver": remaining[0].Approver, "next_role": remaining[0].Role, "remaining_steps": len(remaining)})
+				callback.ExpectedState, callback.NewState, callback.Step = control.TaskAwaitingApproval, control.TaskAwaitingApproval, true
+				callback.Response = next
+				response = next
+				break
+			}
 		}
 		// Whoever the approval flow let decide, the data products' rules decide
 		// whether that approval can grant anything: an approver outside the
@@ -205,6 +252,10 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 			ApprovalReceipt: encodedGrant, CreatedAt: finalGrant.ApprovalReceipt.IssuedAt,
 		}
 	case "rejected":
+		if progress != nil {
+			approvedSteps := len(progress.Approvals)
+			callback.ApprovedSteps = &approvedSteps
+		}
 		if err := s.validateRejectedReceipt(event, persistedPending.Manifest); err != nil {
 			writeCallbackError(w, http.StatusConflict, "rejection receipt is invalid")
 			return
@@ -312,7 +363,10 @@ func sameCanonicalJSON(left, right any) bool {
 	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }
 
-func (s *Service) validateApprovedGrant(event oaCallbackEvent, manifest approval.AuthorizationManifestV1) (approval.TaskGrantV1, error) {
+// validateApprovedGrant checks an approval against its parent: the manifest,
+// or, for a later step of an approval chain, base -- the previous step's core
+// re-issued at this approval's time.
+func (s *Service) validateApprovedGrant(event oaCallbackEvent, manifest approval.AuthorizationManifestV1, base *domain.TaskGrantCoreV1) (approval.TaskGrantV1, error) {
 	if event.ApprovedGrant == nil || event.ApprovalReceipt == nil {
 		return approval.TaskGrantV1{}, errors.New("approved grant and receipt are required")
 	}
@@ -336,6 +390,9 @@ func (s *Service) validateApprovedGrant(event oaCallbackEvent, manifest approval
 	parent, err := domain.CoreFromManifest(manifest, event.ManifestDigest, receipt.IssuedAt)
 	if err != nil {
 		return approval.TaskGrantV1{}, err
+	}
+	if base != nil {
+		parent = base.Reissued(receipt.IssuedAt)
 	}
 	if err := parent.CheckNarrowing(candidate); err != nil {
 		return approval.TaskGrantV1{}, err

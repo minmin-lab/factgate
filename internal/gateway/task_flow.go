@@ -1,7 +1,9 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 
 	"taskbound.local/agent-data-gateway/internal/approval"
 	"taskbound.local/agent-data-gateway/internal/control"
@@ -85,4 +87,28 @@ func mergeTaskFlow(result map[string]any, flow map[string]any) {
 			result[key] = value
 		}
 	}
+}
+
+// taskFlowFor is taskFlow plus, for an approval-chain task, where its chain
+// stands: the approver it waits for now and every step with its status.
+func (s *Service) taskFlowFor(ctx context.Context, task control.Task) map[string]any {
+	flow := s.taskFlow(task)
+	if task.State != control.TaskAwaitingSubmission && task.State != control.TaskAwaitingApproval {
+		return flow
+	}
+	persisted, err := decodePersistedPending(task)
+	if err != nil || persisted.Chain == nil {
+		return flow
+	}
+	progress, err := s.chainProgressOf(ctx, task, persisted)
+	if err != nil {
+		return flow
+	}
+	flow["approval_chain"] = publicChainProgress(progress)
+	if task.State == control.TaskAwaitingApproval && progress.Next != nil {
+		flow["approver"] = progress.Next.Approver
+		flow["next_action_hint"] = fmt.Sprintf("审批链进行中：已批 %d 级，共 %d 级；等待 %s（%s）在 OA 审批。可再次调用 wait_for_approval 继续等待，不再需要时用 revoke_task 作废",
+			len(progress.Approvals), len(progress.Steps), progress.Next.Approver, approvalStepLabels[progress.Next.Role])
+	}
+	return flow
 }
