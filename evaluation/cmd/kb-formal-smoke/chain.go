@@ -69,13 +69,14 @@ func oaPassword(env map[string]string, subject string) string {
 }
 
 // smokeChain requests the requester's own department and another one,
-// including the escalation value, so the chain has every kind of step: the
-// requester's director, the other department's director, and the leaders. The
-// approvers who decided must be the chain request_data_task announced, in
-// order.
+// including a trigger value of every escalation layer, so the chain has every
+// kind of step: the requester's department approver, the other department's
+// approver, and each layer's leaders in layer order. The approvers who decided
+// must be the chain request_data_task announced, in order.
 func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, approvers *chainApprovers,
 	chain *catalog.ApprovalChain, products []string, columns map[string][]string, ownDepartment string) error {
-	if chain.Escalation == nil || len(chain.Escalation.Values) == 0 {
+	layers := chain.Layers()
+	if len(layers) == 0 {
 		return errors.New("the chain has no escalation to exercise")
 	}
 	var others []string
@@ -88,10 +89,24 @@ func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbform
 	if len(others) == 0 {
 		return errors.New("the chain's org chart has a single department")
 	}
-	request := kbformal.TaskRequest{Objective: "KB1-LOOP-141 smoke: cross-department request with leadership data",
-		Products: products, Columns: columns,
-		Scope: map[string]any{chain.DepartmentScope: []string{ownDepartment, others[0]},
-			chain.Escalation.Scope: []string{"internal", chain.Escalation.Values[0]}}}
+	scope := map[string]any{chain.DepartmentScope: []string{ownDepartment, others[0]}}
+	var layerRoles []string
+	for _, layer := range layers {
+		if len(layer.Values) == 0 {
+			return fmt.Errorf("escalation layer %s has no trigger value", layer.Role)
+		}
+		values, _ := scope[layer.Scope].([]string)
+		if len(values) == 0 {
+			values = []string{"internal"}
+		}
+		if !containsString(values, layer.Values[0]) {
+			values = append(values, layer.Values[0])
+		}
+		scope[layer.Scope] = values
+		layerRoles = append(layerRoles, layer.Role)
+	}
+	request := kbformal.TaskRequest{Objective: "KB1-LOOP-141 smoke: cross-department request through every escalation layer",
+		Products: products, Columns: columns, Scope: scope}
 	approvers.decided = nil
 	taskID, created, err := provisioner.Provision(ctx, request)
 	if err != nil {
@@ -106,9 +121,18 @@ func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbform
 		planned = append(planned, approver)
 		roles = append(roles, role)
 	}
-	if len(planned) < 3 || roles[0] != catalog.ApprovalStepRequesterDirector || roles[1] != catalog.ApprovalStepDepartmentDirector ||
-		roles[len(roles)-1] != catalog.ApprovalStepLeader {
-		return fmt.Errorf("announced chain %v (%v) lacks a requester director, a department director or a leader", planned, roles)
+	if len(planned) < 3 || roles[0] != catalog.ApprovalStepRequesterDirector || roles[1] != catalog.ApprovalStepDepartmentDirector {
+		return fmt.Errorf("announced chain %v (%v) lacks a requester director or a department director", planned, roles)
+	}
+	// After the director steps, the layers' roles appear in layer order.
+	var announcedLayers []string
+	for _, role := range roles[2:] {
+		if count := len(announcedLayers); count == 0 || announcedLayers[count-1] != role {
+			announcedLayers = append(announcedLayers, role)
+		}
+	}
+	if strings.Join(announcedLayers, ",") != strings.Join(layerRoles, ",") {
+		return fmt.Errorf("announced chain %v walks layers %v, want %v", planned, announcedLayers, layerRoles)
 	}
 	if strings.Join(planned, ",") != strings.Join(approvers.decided, ",") {
 		return fmt.Errorf("approvers %v decided, but the announced chain is %v", approvers.decided, planned)
@@ -119,4 +143,13 @@ func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbform
 		return fmt.Errorf("revoke the chain probe: %w", err)
 	}
 	return nil
+}
+
+func containsString(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }

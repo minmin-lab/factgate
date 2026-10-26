@@ -328,9 +328,9 @@ approval_routes:
 
 路由可以不点名审批人，改由组织架构逐级审批：
 
-1. 申请人所在部门的主任；
-2. 申请范围中其余每个部门的主任，按部门值排序；
-3. 申请范围含升级值（如 `classification: leadership`）时，每个所涉部门的分管领导，按部门排序，同一位领导分管的部门合为一步。
+1. 申请人所在部门的审批人（`directors` 里该部门的人：部门主任，或演示里的部门管理员）；
+2. 申请范围中其余每个部门的审批人，按部门值排序；
+3. 之后按 `escalations` 的顺序逐层：申请范围命中该层的触发值（如 `classification: confidential` 或 `leadership`）时，该层上每个所涉部门的负责人，按部门排序，同一人负责的部门合为一步。
 
 ```yaml
 approval_routes:
@@ -340,15 +340,24 @@ approval_routes:
     chain:
       requester_attribute: department        # 申请人的部门属性，须恰有一个值
       department_scope: kb_department        # 列出被申请部门的枚举范围
-      directors: {finance: finance-director, sales: sales-director, ...}   # 须覆盖该范围的全部值
-      director_authority: {attribute: department, role: {attribute: job_family, any_of: [director]}}
-      escalation:
-        scope: classification
-        values: [leadership]
-        leaders: {finance: leader-admin, sales: leader-business, ...}      # 须覆盖全部部门
-        leader_authority: {attribute: oversees, role: {attribute: job_family, any_of: [leader]}}
+      directors: {finance: finance-admin, sales: sales-admin, ...}         # 须覆盖该范围的全部值
+      director_authority: {attribute: department, role: {attribute: job_family, any_of: [dept_admin]}}
+      escalations:                           # 升级层，按链上顺序；KB1-LOOP-147
+        - role: director                     # 本层步骤的角色名，小写标识符，层间唯一，不得是 requester_director / department_director
+          label: 部门主任                     # 展示名，可省略
+          scope: classification
+          values: [confidential, leadership]
+          leaders: {finance: finance-director, sales: sales-director, ...}  # 须覆盖全部部门
+          leader_authority: {attribute: department, role: {attribute: job_family, any_of: [director]}}
+        - role: leader
+          label: 分管领导
+          scope: classification
+          values: [leadership]
+          leaders: {finance: leader-admin, sales: leader-business, ...}
+          leader_authority: {attribute: oversees, role: {attribute: job_family, any_of: [leader]}}
 ```
 
+- 旧写法 `escalation:`（单个升级层，角色名固定为 `leader`）仍受理，等价于只有一层的 `escalations`；两者不得同时出现。
 - 链路由不写 `approver` 与 `scope_condition`。组织架构须覆盖部门范围的全部值，缺一个即目录无效。
 - **权限核验**：每一级审批人都要在主体属性快照中核验。
   - `authority.attribute` 须含该步的全部部门；
@@ -362,7 +371,7 @@ approval_routes:
   - 没有剩余环节时签发授权，任务变为 ACTIVE；
   - 任一级拒绝，任务即归档。
 - **申请人自选审批人**：`approver` 只替换第一级，并照常在回调时核验。
-- **可见性**：`request_data_task` 返回 `approval_chain`；`get_task_status` 与 `wait_for_approval` 返回当前审批人和每一步的状态（approved / current / pending）。
+- **可见性**：`request_data_task` 返回 `approval_chain`（每步含 `role`、`role_label`、`approver`）；`get_task_status` 与 `wait_for_approval` 返回当前审批人和每一步的状态（approved / current / pending）；每级审批回调的答复含 `next_role` 与 `next_role_label`。
 
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。

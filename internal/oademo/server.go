@@ -616,16 +616,29 @@ type callbackAnswer struct {
 	Pending        bool   `json:"pending"`
 	NextApprover   string `json:"next_approver"`
 	NextRole       string `json:"next_role"`
+	NextRoleLabel  string `json:"next_role_label"`
 	RemainingSteps int    `json:"remaining_steps"`
 	TerminalReason string `json:"terminal_reason"`
 }
 
 var callbackStatusLabels = map[string]string{"submitted": "提交", "approved": "批准", "narrowed": "缩小后批准", "rejected": "拒绝"}
 
+// approvalStepLabels is the fallback when TaskGate's answer carries no
+// next_role_label (a gateway older than KB1-LOOP-147).
 var approvalStepLabels = map[string]string{
-	"requester_director":  "申请人所在部门主任",
-	"department_director": "被申请部门主任",
+	"requester_director":  "申请人所在部门审批人",
+	"department_director": "被申请部门审批人",
 	"leader":              "分管领导",
+}
+
+func (answer callbackAnswer) nextRoleLabel() string {
+	if answer.NextRoleLabel != "" {
+		return answer.NextRoleLabel
+	}
+	if label, ok := approvalStepLabels[answer.NextRole]; ok {
+		return label
+	}
+	return answer.NextRole
 }
 
 var terminalReasonLabels = map[string]string{
@@ -655,7 +668,7 @@ func (s *Server) applyAnswer(draftID, status, receiptID string, body []byte) {
 		previous := draft.Approver
 		draft.Approver, draft.State = next, "pending"
 		draft.Note = fmt.Sprintf("%s 已%s；TaskGate 按组织架构要求下一级 %s（%s）审批，还剩 %d 级",
-			s.displayName(previous), callbackStatusLabels[status], s.displayName(next), approvalStepLabels[answer.NextRole], answer.RemainingSteps)
+			s.displayName(previous), callbackStatusLabels[status], s.displayName(next), answer.nextRoleLabel(), answer.RemainingSteps)
 		if account, ok := s.users[next]; !ok || account.Role != "approver" {
 			draft.Note += "；本 OA 没有该审批人账号，无法继续"
 			s.config.Logger.Error("approval chain names an approver the OA does not have", "draft_id", draftID, "approver", next)

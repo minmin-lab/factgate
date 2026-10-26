@@ -140,7 +140,7 @@ Body 契约：
 - 还有剩余环节时，任务仍为 `AWAITING_APPROVAL`，响应形如：
 
   ```json
-  {"ok": true, "granted": false, "pending": true, "next_approver": "sales-director", "next_role": "department_director", "remaining_steps": 2}
+  {"ok": true, "granted": false, "pending": true, "next_approver": "sales-director", "next_role": "department_director", "next_role_label": "被申请部门审批人", "remaining_steps": 2}
   ```
 
   OA 应把草稿转给 `next_approver`。OA Demo 的做法：

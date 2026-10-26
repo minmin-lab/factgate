@@ -199,7 +199,8 @@ func (s *Service) handleOACallback(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(remaining) > 0 {
 				next, _ := json.Marshal(map[string]any{"ok": true, "granted": false, "pending": true,
-					"next_approver": remaining[0].Approver, "next_role": remaining[0].Role, "remaining_steps": len(remaining)})
+					"next_approver": remaining[0].Approver, "next_role": remaining[0].Role, "next_role_label": stepLabel(remaining[0]),
+					"remaining_steps": len(remaining)})
 				callback.ExpectedState, callback.NewState, callback.Step = control.TaskAwaitingApproval, control.TaskAwaitingApproval, true
 				callback.Response = next
 				response = next

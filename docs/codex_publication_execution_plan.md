@@ -2771,3 +2771,17 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - 把 TeleAgent 配置原样放在"接入"一节第一位，附上冒号后不留空格的原因，以及验证方法（list_data_products）；
     - "凭据"一节改为"MCP 令牌见配置，OA 口令另行私发"；
     - 文件含令牌，权限改为 0600。kb-demo README 已注明。
+- [2026-10-26 22:53 UTC+8] KB1-LOOP-147 **作者定下粗粒度一年期授权模型（演示/产品，不改论文）；阶段 1 审批链升级层列表化完成并通过测试**。
+  - **作者决策（2026-10-26，对话中逐项确认）**：
+    1. 只做演示与产品，论文一字不改。论文 main.tex:978-980 写 every child grant is human-approved，跨根拆分的防线是 each root's approval（:1496-1498）；根授权仍由管理员独立审批，只有子任务改为本人确认，放在演示开关后，正式轮行为不变。顺带整理成专利素材。
+    2. 两条入口按场景分开：项目 = 长期根任务，负责人一人申请（跨部门，零新机制，现有 request_data_task + 一年期 budget_profile）；管理员代开单只限本部门资源，含其他部门即拒绝，代开人可代为提交草稿。
+    3. 跨部门走项目，审批链自动加对方部门管理员一步（现有机制）。
+    4. 领导两级升级：confidential 由数据所在部门主任再批，leadership 再由分管领导批。依据：上市公司定密制度（领益智造 2025-10 保密制度：秘密级部门负责人、机密级分管领导、绝密级董事长/总经理；长航凤凰商业秘密管理办法同构）。
+    5. 密级沿用四级，全部中文名展示（公开、内部、机密、领导层专属，与语料生成器 evaluation/kbcorpus/v2.go:30 一致）。五级制要重生一万份 LLM 语料，不做。
+    6. 本轮不做：下载/导出额外审批；总经理角色（升级层列表化后是纯配置）；项目多成员各自确认（新机制，下一轮）。
+    7. OA 可用性追加：共享口令模式下一次登录、右上角切换账号；审批记录页；审批单中文摘要 + 勾选式缩小表单，哈希收进折叠的技术细节。
+  - **我自决**：receipt 绑定代开人用 pending + 审计事件 + DraftRequest 字段，不改 manifest 协议；链上两个固定角色的展示标签改中性措辞（申请人所在部门审批人 / 被申请部门审批人）。
+  - **我改口的根因记录**：上一轮探查说"论文写每个子授权都经人审批、唯一审批方式是人工"并把它当作要改主张的依据；本轮复核原文，论文没有 self-approval / separation of duties 表述，禁自批只是代码里的 demo 约束，所以"只做演示"的代价比上一轮估的低。根因：把转述当了依据，该查没查。
+  - **阶段 1（本提交）**：审批链 `escalation` 单层改为 `escalations` 列表（internal/catalog/approval_chain.go）：每层 role/label/scope/values/leaders/authority，`Layers()` 把旧单层当作角色为 leader 的一层；旧字段保留，两者并存即目录无效；Steps 逐层追加、层内同一人合并；ApprovalStep 带 Label。网关 role_label 取层 label，回调答复加 next_role_label，publicApprovalRoute 以 escalations 列表输出；OA 优先用 next_role_label，旧网关回退到本地标签表；smoke chain.go 按每层首值发请求并核对层序；catalog-guide 与 adapters.md 更新。
+  - **实跑**：catalog 新增 TestApprovalChainWalksEscalationLayersInOrder、TestApprovalChainValidationOfEscalationLayers 通过；gateway 新增 TestApprovalChainWalksEveryEscalationLayer（管理员→管理员→主任→分管领导四级；越级 403；缩掉 leadership 后 leader 步消失、director 步保留）通过；db-test-env 下 internal/gateway、control、approval、domain、cmd/gateway、cmd/oa-demo、oademo、kbformal 全部 ok；make hygiene 通过。oademo 一个旧断言改为新标签并加断言核网关给的 label 会显示。
+  - **注意**：gofmt -l 在 HEAD 上就报 internal/gateway/ordinal_derivation.go、query.go、semantic_columns_having_test.go 三个文件，本轮未碰，属既有欠账。

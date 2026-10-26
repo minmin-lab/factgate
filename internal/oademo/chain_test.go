@@ -124,7 +124,7 @@ func TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant(t *testi
 	gateway.answer(draft, "bob", "approved", http.StatusOK,
 		`{"ok":true,"granted":false,"pending":true,"next_approver":"dana","next_role":"department_director","remaining_steps":2}`)
 	gateway.answer(draft, "dana", "narrowed", http.StatusOK,
-		`{"ok":true,"granted":false,"pending":true,"next_approver":"leader-rd","next_role":"leader","remaining_steps":1}`)
+		`{"ok":true,"granted":false,"pending":true,"next_approver":"leader-rd","next_role":"leader","next_role_label":"分管领导（研发线）","remaining_steps":1}`)
 
 	alice := login(t, httpServer.URL, "alice", "alice-pass")
 	if status := act(t, alice, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
@@ -135,7 +135,7 @@ func TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant(t *testi
 		t.Fatalf("bob approve: %d", status)
 	}
 	settled := awaitDraft(t, server, draft, func(d Draft) bool { return d.Approver == "dana" })
-	if settled.State != "pending" || !strings.Contains(settled.Note, "dana") || !strings.Contains(settled.Note, "被申请部门主任") {
+	if settled.State != "pending" || !strings.Contains(settled.Note, "dana") || !strings.Contains(settled.Note, "被申请部门审批人") {
 		t.Fatalf("after bob: state %q note %q", settled.State, settled.Note)
 	}
 	if status, _ := getStatus(t, bob, httpServer.URL+"/tasks/"+draft); status != http.StatusOK {
@@ -160,7 +160,9 @@ func TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant(t *testi
 	if status := act(t, dana, httpServer.URL, draft, "decision", narrow); status != http.StatusOK {
 		t.Fatalf("dana narrow: %d", status)
 	}
-	awaitDraft(t, server, draft, func(d Draft) bool { return d.Approver == "leader-rd" && d.State == "pending" })
+	if reassigned := awaitDraft(t, server, draft, func(d Draft) bool { return d.Approver == "leader-rd" && d.State == "pending" }); !strings.Contains(reassigned.Note, "分管领导（研发线）") {
+		t.Fatalf("the gateway's next_role_label was not shown: note %q", reassigned.Note)
+	}
 
 	leader := login(t, httpServer.URL, "leader-rd", "leader-pass")
 	page = get(t, leader, httpServer.URL+"/tasks/"+draft)

@@ -108,7 +108,7 @@ func (s *Service) taskFlowFor(ctx context.Context, task control.Task) map[string
 	if task.State == control.TaskAwaitingApproval && progress.Next != nil {
 		flow["approver"] = progress.Next.Approver
 		flow["next_action_hint"] = fmt.Sprintf("审批链进行中：已批 %d 级，共 %d 级；等待 %s（%s）在 OA 审批。可再次调用 wait_for_approval 继续等待，不再需要时用 revoke_task 作废",
-			len(progress.Approvals), len(progress.Steps), progress.Next.Approver, approvalStepLabels[progress.Next.Role])
+			len(progress.Approvals), len(progress.Steps), progress.Next.Approver, stepLabel(*progress.Next))
 	}
 	return flow
 }

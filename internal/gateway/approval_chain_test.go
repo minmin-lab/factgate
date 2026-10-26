@@ -54,10 +54,14 @@ const chainSubjects = `  - subject: alice
 // approval chain, editing the YAML node tree so every other scalar keeps its
 // exact form.
 func chainCatalog(t *testing.T) func(string) string {
+	return chainCatalogWith(t, chainRouteYAML)
+}
+
+func chainCatalogWith(t *testing.T, routeYAML string) func(string) string {
 	t.Helper()
 	knowledge := kbCatalogRewrite(t)
 	var chain yaml.Node
-	if err := yaml.Unmarshal([]byte(chainRouteYAML), &chain); err != nil {
+	if err := yaml.Unmarshal([]byte(routeYAML), &chain); err != nil {
 		t.Fatal(err)
 	}
 	return func(base string) string {
@@ -103,8 +107,12 @@ type chainHarness struct {
 }
 
 func newChainHarness(t *testing.T, subjects string) *chainHarness {
+	return newChainHarnessWith(t, chainRouteYAML, subjects)
+}
+
+func newChainHarnessWith(t *testing.T, routeYAML, subjects string) *chainHarness {
 	t.Helper()
-	return &chainHarness{t: t, gatewayHarness: newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: chainCatalog(t),
+	return &chainHarness{t: t, gatewayHarness: newGatewayHarnessWithOptions(t, harnessOptions{rewriteCatalog: chainCatalogWith(t, routeYAML),
 		principalAttributes: approverSnapshot(t, subjects)})}
 }
 
@@ -290,5 +298,98 @@ func TestApprovalChainFailsClosedOnAWrongOrgChart(t *testing.T) {
 	requireToolCode(t, err, apierr.CodeApproverNotAuthorized)
 	if len(h.approval.requests) != 0 {
 		t.Fatalf("a wrong org chart produced %d drafts", len(h.approval.requests))
+	}
+}
+
+// layeredChainRouteYAML is the delegated-authorization demo's chain
+// (KB1-LOOP-147): department administrators approve every request, the
+// department directors join for confidential or leadership data, and the
+// leaders for leadership data.
+const layeredChainRouteYAML = `
+requester_attribute: department
+department_scope: kb_department
+directors: {engineering: engineering-admin, finance: finance-admin, hr: hr-admin, sales: sales-admin}
+director_authority: {attribute: department, role: {attribute: job_family, any_of: [dept_admin]}}
+escalations:
+  - role: director
+    label: 部门主任
+    scope: classification
+    values: [confidential, leadership]
+    leaders: {engineering: engineering-director, finance: finance-director, hr: hr-director, sales: sales-director}
+    leader_authority: {attribute: department, role: {attribute: job_family, any_of: [director]}}
+  - role: leader
+    label: 分管领导
+    scope: classification
+    values: [leadership]
+    leaders: {engineering: leader-rd, finance: leader-admin, hr: leader-admin, sales: leader-business}
+    leader_authority: {attribute: oversees, role: {attribute: job_family, any_of: [leader]}}
+`
+
+const layeredChainSubjects = chainSubjects + `  - subject: finance-admin
+    attributes: {department: [finance], job_family: [dept_admin]}
+  - subject: sales-admin
+    attributes: {department: [sales], job_family: [dept_admin]}
+  - subject: engineering-admin
+    attributes: {department: [engineering], job_family: [dept_admin]}
+  - subject: hr-admin
+    attributes: {department: [hr], job_family: [dept_admin]}
+`
+
+func TestApprovalChainWalksEveryEscalationLayer(t *testing.T) {
+	h := newChainHarnessWith(t, layeredChainRouteYAML, layeredChainSubjects)
+	result, task, draft := h.request([]string{"sales"}, []string{"internal", "leadership"}, "")
+	steps, _ := result["approval_chain"].([]map[string]any)
+	var planned, labels []string
+	for _, step := range steps {
+		planned = append(planned, step["approver"].(string))
+		labels = append(labels, step["role_label"].(string))
+	}
+	if strings.Join(planned, ",") != "finance-admin,sales-admin,sales-director,leader-business" {
+		t.Fatalf("request-time chain %v", planned)
+	}
+	if strings.Join(labels, ",") != "申请人所在部门审批人,被申请部门审批人,部门主任,分管领导" {
+		t.Fatalf("request-time labels %v", labels)
+	}
+	code, body, first := h.decide(task, draft, manifestCore(t, draft, h.clock.value), "finance-admin", nil)
+	if code != http.StatusOK || body["next_approver"] != "sales-admin" || body["next_role_label"] != "被申请部门审批人" {
+		t.Fatalf("first step = %d %v", code, body)
+	}
+	code, body, second := h.decide(task, draft, first, "sales-admin", nil)
+	if code != http.StatusOK || body["next_approver"] != "sales-director" || body["next_role"] != "director" || body["next_role_label"] != "部门主任" {
+		t.Fatalf("second step = %d %v", code, body)
+	}
+	// Out of turn: the leader may not decide before the director layer.
+	if code, _, _ := h.decide(task, draft, second, "leader-business", nil); code != http.StatusForbidden {
+		t.Fatalf("a leader deciding before the director layer = %d, want 403", code)
+	}
+	code, body, third := h.decide(task, draft, second, "sales-director", nil)
+	if code != http.StatusOK || body["next_approver"] != "leader-business" || body["next_role_label"] != "分管领导" {
+		t.Fatalf("director layer step = %d %v", code, body)
+	}
+	code, body, _ = h.decide(task, draft, third, "leader-business", nil)
+	if code != http.StatusOK || body["granted"] == false {
+		t.Fatalf("last step = %d %v", code, body)
+	}
+	if got := h.state(task.ID).State; got != control.TaskActive {
+		t.Fatalf("task after the last step is %s", got)
+	}
+
+	// Narrowing confidential+leadership to confidential drops the leader
+	// layer and keeps the director layer.
+	_, task, draft = h.request([]string{"sales"}, []string{"confidential", "leadership"}, "")
+	_, _, first = h.decide(task, draft, manifestCore(t, draft, h.clock.value), "finance-admin", nil)
+	code, body, second = h.decide(task, draft, first, "sales-admin", func(core *approval.TaskGrantCoreV1) {
+		core.MandatoryScope["classification"] = []string{"confidential"}
+	})
+	if code != http.StatusOK || body["next_approver"] != "sales-director" || body["remaining_steps"] != float64(1) {
+		t.Fatalf("narrowing step = %d %v", code, body)
+	}
+	code, body, _ = h.decide(task, draft, second, "sales-director", nil)
+	if code != http.StatusOK || body["granted"] == false {
+		t.Fatalf("director layer after the narrowing = %d %v", code, body)
+	}
+	grant, err := h.store.GetGrant(context.Background(), task.ID)
+	if err != nil || strings.Contains(string(grant.MandatoryScope), "leadership") {
+		t.Fatalf("narrowed grant %s %v", grant.MandatoryScope, err)
 	}
 }

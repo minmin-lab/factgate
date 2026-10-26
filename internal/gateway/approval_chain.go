@@ -18,9 +18,10 @@ import (
 // Approval chains (KB1-LOOP-141; a demo feature, not a paper claim).
 //
 // A chain route has the OA approve a task in sequence: the requester's own
-// department director, then the director of every other requested
-// department, then the leader in charge of each requested department when
-// the task requests leadership-classified data. TaskGate is the authority on
+// department approver, then the approver of every other requested
+// department, then, for each escalation layer the task's scope triggers (for
+// example confidential or leadership data), the person in charge of each
+// requested department on that layer. TaskGate is the authority on
 // the chain: after each approval it derives, from the Catalog's org chart and
 // the scope that approval left (an approver may narrow), who must approve
 // next and tells the OA; it checks every approver's authority against the
@@ -198,14 +199,28 @@ func (s *Service) planApprovalChain(route catalog.ApprovalChain, humanSubject, c
 
 // publicApprovalStep is a chain step as the requester sees it.
 func publicApprovalStep(step catalog.ApprovalStep, status string) map[string]any {
-	return map[string]any{"role": step.Role, "role_label": approvalStepLabels[step.Role],
+	return map[string]any{"role": step.Role, "role_label": stepLabel(step),
 		"departments": append([]string(nil), step.Departments...), "approver": step.Approver, "status": status}
 }
 
+// approvalStepLabels names the director steps and the single-layer form's
+// leader step; an escalation layer carries its own label on the step.
 var approvalStepLabels = map[string]string{
-	catalog.ApprovalStepRequesterDirector:  "申请人所在部门主任",
-	catalog.ApprovalStepDepartmentDirector: "被申请部门主任",
-	catalog.ApprovalStepLeader:             "分管领导（领导级文档）",
+	catalog.ApprovalStepRequesterDirector:  "申请人所在部门审批人",
+	catalog.ApprovalStepDepartmentDirector: "被申请部门审批人",
+	catalog.ApprovalStepLeader:             "分管领导",
+}
+
+// stepLabel is how a step is shown to people: the layer's label, else the
+// built-in label of its role, else the role itself.
+func stepLabel(step catalog.ApprovalStep) string {
+	if step.Label != "" {
+		return step.Label
+	}
+	if label, ok := approvalStepLabels[step.Role]; ok {
+		return label
+	}
+	return step.Role
 }
 
 // publicChainProgress lists a chain task's approvals and the steps its
