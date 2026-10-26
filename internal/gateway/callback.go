@@ -441,13 +441,19 @@ func (s *Service) validateRejectedReceipt(event oaCallbackEvent, manifest approv
 	return s.receiptVerifier.VerifyReceipt(receipt)
 }
 
+// validCallbackActor is the callback-side half of who may decide: the human
+// subject submits, the pending approver decides. A record whose approver is
+// the human subject is a self-approval; it is allowed only when the request
+// side marked the task as self-confirmed (pendingContext.SelfConfirm), so an
+// unmarked record fails closed whatever named the approver.
 func validCallbackActor(event oaCallbackEvent, pending pendingContext, humanSubject string) bool {
 	switch event.Status {
 	case "submitted":
 		return strings.EqualFold(event.Actor, humanSubject)
-	case "approved":
-		return pending.ApprovalMode == "manual" && strings.EqualFold(event.Actor, pending.Approver)
-	case "narrowed", "rejected":
+	case "approved", "narrowed", "rejected":
+		if strings.EqualFold(pending.Approver, humanSubject) && !pending.SelfConfirm {
+			return false
+		}
 		return pending.ApprovalMode == "manual" && strings.EqualFold(event.Actor, pending.Approver)
 	default:
 		return false

@@ -247,7 +247,19 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		chain               *pendingChain
 		chainSteps          []map[string]any
 	)
-	if route := policy.ApprovalRoute.Chain; route != nil {
+	// A child task under the delegated-authorization model is confirmed by
+	// the tree's own human subject (KB1-LOOP-147, demo): the root was
+	// approved by someone else, the child can only narrow it and shares its
+	// ledger, so the confirmation is the requester's own. A root task never
+	// takes this path.
+	selfConfirm := parentCore != nil && s.childSelfConfirm()
+	if selfConfirm {
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, humanSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "本人确认的子任务不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = humanSubject
+		policy.ApprovalRoute.Chain = nil
+	} else if route := policy.ApprovalRoute.Chain; route != nil {
 		// An approval chain: TaskGate derives every step from the org chart
 		// and verifies each approver when they approve; a chosen approver
 		// replaces only the first step (approval_chain.go).
@@ -354,8 +366,8 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
-		VerifyApprover: chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != ""), ApproverChosen: chosenApprover != "",
-		Chain: chain,
+		VerifyApprover: selfConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
+		Chain: chain, SelfConfirm: selfConfirm,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -399,6 +411,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if chain != nil {
 		result["approval_chain"] = chainSteps
+	}
+	if selfConfirm {
+		result["self_confirm"] = true
 	}
 	if len(reservedScope) == 0 {
 		if readiness := s.knowledgeReadiness(args.DataProducts, columns, policy.Budget.ExposureProfileVersion, "requested"); len(readiness) > 0 {

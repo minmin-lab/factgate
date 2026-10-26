@@ -172,6 +172,26 @@ type pendingContext struct {
 	// Chain is the routing record of an approval-chain task
 	// (approval_chain.go); Approver is then its first step's approver.
 	Chain *pendingChain `json:"approval_chain,omitempty"`
+	// SelfConfirm marks a child task the Catalog's delegated-authorization
+	// model lets its own human subject confirm: Approver is then the human
+	// subject. The approval callback refuses a self-approval without it.
+	SelfConfirm bool `json:"self_confirm,omitempty"`
+}
+
+// delegated is the Catalog's delegated-authorization model, nil when the
+// Catalog does not declare it (the formal round).
+func (s *Service) delegated() *catalog.DelegatedAuthorization {
+	if s == nil || s.catalog == nil {
+		return nil
+	}
+	return s.catalog.DelegatedAuthorization
+}
+
+// childSelfConfirm reports whether child tasks are confirmed by their own
+// human subject (catalog delegated_authorization.child_self_confirm).
+func (s *Service) childSelfConfirm() bool {
+	delegated := s.delegated()
+	return delegated != nil && delegated.ChildSelfConfirm
 }
 
 func New(config Config) (*Service, error) {

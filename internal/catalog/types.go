@@ -26,6 +26,9 @@ type Catalog struct {
 	// KBPublications bind each knowledge product's index publication epoch to
 	// the digest-bound manifest cmd/kb-publish produced.
 	KBPublications []KBPublication `yaml:"kb_publications,omitempty" json:"kb_publications,omitempty"`
+	// DelegatedAuthorization switches on the demo's long-lived authorization
+	// model (delegated.go); absent in the formal round.
+	DelegatedAuthorization *DelegatedAuthorization `yaml:"delegated_authorization,omitempty" json:"delegated_authorization,omitempty"`
 }
 
 // V4Enabled reports the deployment mode selected by the validated Catalog.

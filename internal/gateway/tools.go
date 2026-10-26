@@ -27,7 +27,7 @@ var queryTools = []mcp.Tool{
 		"name": map[string]any{"type": "string", "minLength": 1},
 	}, "name"), Annotations: map[string]any{"readOnlyHint": true}},
 	{Name: "get_sql_capabilities", Description: "读取 TaskGate 报表 SQL profile 及可无损转换为规范 QueryPlan 的受限语法能力。", InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}},
-	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。approver 可选：指定审批人（缺省按目录路由）；无论谁审批，TaskGate 都在签发授权前按数据产品规则核验审批人，无权者批准也不签发。申请涉及知识产品时，返回值的 knowledge_readiness 预告该申请能否 search/fetch/aggregate、缺哪些关系或列，可在提交前改正。", InputSchema: objectSchema(map[string]any{
+	{Name: "request_data_task", Description: "使用显式产品、字段和范围创建根任务或受父 Grant 约束的委托任务及 OA 草稿。approver 可选：指定审批人（缺省按目录路由）；无论谁审批，TaskGate 都在签发授权前按数据产品规则核验审批人，无权者批准也不签发。目录启用 delegated_authorization.child_self_confirm 时，带 parent_task_id 的子任务由申请人本人在 OA 确认（返回 self_confirm: true），根任务仍由他人审批。申请涉及知识产品时，返回值的 knowledge_readiness 预告该申请能否 search/fetch/aggregate、缺哪些关系或列，可在提交前改正。", InputSchema: objectSchema(map[string]any{
 		"objective":             map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
 		"approver":              map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 		"parent_task_id":        map[string]any{"type": "string", "minLength": 1},

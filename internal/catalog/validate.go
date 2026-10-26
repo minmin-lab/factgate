@@ -86,6 +86,9 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 	if len(c.Sources) == 0 {
 		problems = append(problems, fieldError("sources", "at least one source is required", ErrMissingField))
 	}
+	if c.DelegatedAuthorization != nil {
+		problems = append(problems, validateDelegatedAuthorization("delegated_authorization", *c.DelegatedAuthorization)...)
+	}
 	if len(c.Products) == 0 {
 		problems = append(problems, fieldError("products", "at least one product is required", ErrMissingField))
 	}
