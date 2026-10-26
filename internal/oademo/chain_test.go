@@ -167,7 +167,7 @@ func TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant(t *testi
 	leader := login(t, httpServer.URL, "leader-rd", "leader-pass")
 	page = get(t, leader, httpServer.URL+"/tasks/"+draft)
 	if !strings.Contains(page, `name="max_queries" type="number" min="1" max="5" value="5"`) ||
-		!strings.Contains(page, "[&#34;销售部&#34;]") || strings.Contains(page, "市场部&#34;") {
+		!strings.Contains(page, `name="scope:department" value="销售部" checked`) || strings.Contains(page, `value="市场部"`) {
 		t.Fatal("the leader's narrow form is not prefilled from dana's narrowed grant")
 	}
 	if !strings.Contains(page, "研发线分管领导") {

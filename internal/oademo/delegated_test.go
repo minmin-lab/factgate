@@ -1,0 +1,248 @@
+package oademo
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+
+	"taskbound.local/agent-data-gateway/internal/approval"
+)
+
+// The delegated-authorization demo's OA (KB1-LOOP-147): role accounts that
+// both request and approve, an issuer who submits the draft they issued, an
+// account switcher in the shared-password mode, a history page, Chinese
+// labels and a checkbox narrowing form.
+
+func delegatedOA(t *testing.T, allowSwitch bool) (*Server, *httptest.Server, *fakeGateway) {
+	t.Helper()
+	gateway := &fakeGateway{answers: map[string]fakeAnswer{}}
+	callback := httptest.NewServer(gateway)
+	t.Cleanup(callback.Close)
+	server, err := New(Config{ServiceToken: "service", CallbackSecret: "callback", SessionSecret: "session",
+		CallbackURL: callback.URL, OmitBuiltinUsers: true, AllowSwitch: allowSwitch,
+		Labels: Labels{Scopes: map[string]string{"department": "部门"}, Values: map[string]map[string]string{"department": {"销售部": "销售部（Sales）"}},
+			Products: map[string]string{"expense_summary": "费用汇总"}},
+		ExtraUsers: []ExtraUser{
+			{Name: "staff", Role: "both", Password: "shared", DisplayName: "普通员工"},
+			{Name: "finance-admin", Role: "approver", Password: "shared", DisplayName: "财务部管理员"},
+			{Name: "sales-admin", Role: "approver", Password: "shared", DisplayName: "销售部管理员"},
+		}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpServer := httptest.NewServer(server.Handler())
+	t.Cleanup(httpServer.Close)
+	return server, httpServer, gateway
+}
+
+// staffDraft is a draft whose human subject is staff; approver and issuer as given.
+func staffDraft(t *testing.T, approver, issuedBy string, ttl time.Duration) DraftRequest {
+	t.Helper()
+	request := testDraftRequest(t)
+	request.Manifest.HumanSubject = "staff"
+	request.Manifest.Budget.TaskTTLMS = ttl.Milliseconds()
+	digest, err := approval.ManifestDigest(request.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.ManifestDigest, request.Approver, request.IssuedBy = digest, approver, issuedBy
+	return request
+}
+
+func TestABothAccountSubmitsAndConfirmsItsOwnDraft(t *testing.T) {
+	server, httpServer, gateway := delegatedOA(t, false)
+	draft := createDraft(t, httpServer.URL, staffDraft(t, "staff", "", 24*time.Hour))
+	staff := login(t, httpServer.URL, "staff", "shared")
+	list := get(t, staff, httpServer.URL+"/tasks")
+	if !strings.Contains(list, draft) || !strings.Contains(list, "普通员工（staff） 申请 部门 销售部（Sales）、市场部 的资料（费用汇总）") ||
+		!strings.Contains(list, "有效期 1 天") || !strings.Contains(list, "待提交") {
+		t.Fatalf("staff's to-do list: %s", list)
+	}
+	page := get(t, staff, httpServer.URL+"/tasks/"+draft)
+	if !strings.Contains(page, "提交申请") || strings.Contains(page, `name="decision" value="approved"`) {
+		t.Fatalf("an unsubmitted draft offers the wrong actions: %s", page)
+	}
+	if status := act(t, staff, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("staff submit: %d", status)
+	}
+	page = get(t, staff, httpServer.URL+"/tasks/"+draft)
+	if !strings.Contains(page, ">确认<") || !strings.Contains(page, "等待 普通员工（staff）本人确认") {
+		t.Fatalf("a self-confirmed draft does not read as one: %s", page)
+	}
+	if status := act(t, staff, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
+		t.Fatalf("staff confirm: %d", status)
+	}
+	settled := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "approved" })
+	if event := gateway.event(t, draft, "staff", "approved"); event.ApprovalReceipt == nil || event.ApprovalReceipt.ApproverID != "staff" {
+		t.Fatalf("confirmation receipt %+v", event.ApprovalReceipt)
+	}
+	// Settled drafts leave the to-do list and appear in the history.
+	if list := get(t, staff, httpServer.URL+"/tasks"); strings.Contains(list, draft) {
+		t.Fatal("a settled draft is still a to-do")
+	}
+	if history := get(t, staff, httpServer.URL+"/history"); !strings.Contains(history, draft) || !strings.Contains(history, "已批准") || !strings.Contains(history, "普通员工（staff） 批准（") {
+		t.Fatalf("history: %s", history)
+	}
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, settled.ApprovalReceipt.ReceiptID) {
+		t.Fatal("the settled draft's page does not carry its receipt id")
+	}
+	// An approver-only account that the draft never named sees nothing of it.
+	admin := login(t, httpServer.URL, "finance-admin", "shared")
+	if status, _ := getStatus(t, admin, httpServer.URL+"/tasks/"+draft); status != http.StatusForbidden {
+		t.Fatalf("a stranger opening the draft = %d", status)
+	}
+	if history := get(t, admin, httpServer.URL+"/history"); strings.Contains(history, draft) {
+		t.Fatal("a stranger's history lists the draft")
+	}
+}
+
+func TestTheIssuerSubmitsAndApprovesTheDraftTheyIssued(t *testing.T) {
+	server, httpServer, gateway := delegatedOA(t, false)
+	draft := createDraft(t, httpServer.URL, staffDraft(t, "finance-admin", "finance-admin", 365*24*time.Hour))
+	admin := login(t, httpServer.URL, "finance-admin", "shared")
+	list := get(t, admin, httpServer.URL+"/tasks")
+	if !strings.Contains(list, draft) || !strings.Contains(list, "项目（长期授权）") || !strings.Contains(list, "有效期 1 年") || !strings.Contains(list, "由 财务部管理员（finance-admin） 代开") {
+		t.Fatalf("the issuer's to-do list: %s", list)
+	}
+	if status := act(t, admin, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("the issuer submitting: %d", status)
+	}
+	if event := gateway.event(t, draft, "finance-admin", "submitted"); event.Status != "submitted" {
+		t.Fatalf("submit event %+v", event)
+	}
+	if status := act(t, admin, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
+		t.Fatalf("the issuer approving: %d", status)
+	}
+	awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "approved" })
+	// The employee sees their issued authorization in the history; another
+	// administrator does not.
+	staff := login(t, httpServer.URL, "staff", "shared")
+	if history := get(t, staff, httpServer.URL+"/history"); !strings.Contains(history, draft) || !strings.Contains(history, "代开人 finance-admin") {
+		t.Fatalf("the employee's history: %s", history)
+	}
+	other := login(t, httpServer.URL, "sales-admin", "shared")
+	if status, _ := getStatus(t, other, httpServer.URL+"/tasks/"+draft); status != http.StatusForbidden {
+		t.Fatalf("another administrator opening the draft = %d", status)
+	}
+	// An ordinary draft cannot be submitted by an approver who did not issue it.
+	plain := createDraft(t, httpServer.URL, staffDraft(t, "finance-admin", "", time.Hour))
+	if status := act(t, admin, httpServer.URL, plain, "submit", nil); status != http.StatusForbidden {
+		t.Fatalf("an approver submitting a draft they did not issue = %d", status)
+	}
+}
+
+func TestAccountSwitchIsOfferedOnlyInTheSharedPasswordMode(t *testing.T) {
+	_, httpServer, _ := delegatedOA(t, true)
+	staff := login(t, httpServer.URL, "staff", "shared")
+	page := get(t, staff, httpServer.URL+"/tasks")
+	if !strings.Contains(page, `action="/switch"`) || !strings.Contains(page, `<option value="staff" selected>`) {
+		t.Fatalf("no account switcher: %s", page)
+	}
+	match := csrfField.FindStringSubmatch(page)
+	response, err := staff.PostForm(httpServer.URL+"/switch", url.Values{"csrf": {match[1]}, "username": {"finance-admin"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	page = get(t, staff, httpServer.URL+"/tasks")
+	if !strings.Contains(page, "finance-admin / 审批人") || !strings.Contains(page, `<option value="finance-admin" selected>`) {
+		t.Fatalf("after the switch: %s", page)
+	}
+	match = csrfField.FindStringSubmatch(page) // the session, and so its token, changed
+	response, err = staff.PostForm(httpServer.URL+"/switch", url.Values{"csrf": {match[1]}, "username": {"nobody"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("switching to an unknown account = %d", response.StatusCode)
+	}
+
+	_, fixed, _ := delegatedOA(t, false)
+	staff = login(t, fixed.URL, "staff", "shared")
+	page = get(t, staff, fixed.URL+"/tasks")
+	if strings.Contains(page, `action="/switch"`) {
+		t.Fatal("the switcher is offered outside the shared-password mode")
+	}
+	match = csrfField.FindStringSubmatch(page)
+	response, err = staff.PostForm(fixed.URL+"/switch", url.Values{"csrf": {match[1]}, "username": {"finance-admin"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("switch outside the shared-password mode = %d", response.StatusCode)
+	}
+}
+
+func TestCheckboxNarrowingMatchesTheJSONForm(t *testing.T) {
+	request := testDraftRequest(t)
+	draft := &Draft{Manifest: request.Manifest, ManifestDigest: request.ManifestDigest, ApprovalMode: "manual", Approver: "bob"}
+	issuedAt := time.Date(2026, 7, 22, 10, 0, 0, 0, time.UTC)
+	parent, err := decisionBase(draft, issuedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgets := url.Values{"max_queries": {"5"}, "max_result_rows": {"100"}, "max_db_ms": {"10000"}, "per_query_timeout_ms": {"2000"}, "task_ttl_ms": {"600000"}}
+	boxes := url.Values{"approved_products": {"expense_summary"}, "column:expense_summary": {"total_amount"}, "scope:department": {"销售部"}}
+	jsonForm := url.Values{"approved_products": {`["expense_summary"]`}, "approved_columns": {`{"expense_summary":["total_amount"]}`}, "mandatory_scope": {`{"department":["销售部"]}`}}
+	grants := make([]approval.TaskGrantCoreV1, 0, 2)
+	for _, form := range []url.Values{boxes, jsonForm} {
+		for key, values := range budgets {
+			form[key] = values
+		}
+		r := httptest.NewRequest(http.MethodPost, "/tasks/x/decision", strings.NewReader(form.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		grant, err := narrowedGrantFromForm(parent, r, issuedAt)
+		if err != nil {
+			t.Fatalf("narrowing from %v: %v", form, err)
+		}
+		grants = append(grants, grant)
+	}
+	left, _ := approval.GrantCoreDigest(grants[0])
+	right, _ := approval.GrantCoreDigest(grants[1])
+	if left != right || len(grants[0].ApprovedColumns["expense_summary"]) != 1 || grants[0].Budget.MaxQueries != 5 {
+		t.Fatalf("checkbox grant %+v differs from the JSON grant %+v", grants[0], grants[1])
+	}
+	// Keeping a product without any column, or a scope without any value, is refused.
+	for name, form := range map[string]url.Values{
+		"no column": {"approved_products": {"expense_summary"}, "scope:department": {"销售部"}},
+		"no value":  {"approved_products": {"expense_summary"}, "column:expense_summary": {"total_amount"}},
+	} {
+		for key, values := range budgets {
+			form[key] = values
+		}
+		r := httptest.NewRequest(http.MethodPost, "/tasks/x/decision", strings.NewReader(form.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		_ = r.ParseForm()
+		if _, err := narrowedGrantFromForm(parent, r, issuedAt); err == nil {
+			t.Fatalf("%s was accepted", name)
+		}
+	}
+}
+
+func TestHumanDurationAndKinds(t *testing.T) {
+	for ms, want := range map[int64]string{1_800_000: "30 分钟", 7_200_000: "2 小时", 86_400_000: "1 天", 31_536_000_000: "1 年", 1_500: "1500 毫秒"} {
+		if got := humanDuration(ms); got != want {
+			t.Fatalf("humanDuration(%d) = %q, want %q", ms, got, want)
+		}
+	}
+	draft := Draft{Manifest: testDraftRequest(t).Manifest}
+	if kindLabel(draft) != "任务" {
+		t.Fatalf("a 30 minute task is %q", kindLabel(draft))
+	}
+	draft.Manifest.Budget.TaskTTLMS = (365 * 24 * time.Hour).Milliseconds()
+	if kindLabel(draft) != "项目（长期授权）" {
+		t.Fatalf("a one-year task is %q", kindLabel(draft))
+	}
+	draft.Manifest.ParentTaskID = "root"
+	if kindLabel(draft) != "项目内查询" {
+		t.Fatalf("a child task is %q", kindLabel(draft))
+	}
+}

@@ -36,6 +36,14 @@ func main() {
 	if !omitBuiltin {
 		danaPassword = env("OA_DANA_PASSWORD", "")
 	}
+	// OA_LABELS_FILE gives display names for Catalog identifiers; the account
+	// switcher is offered only when the role accounts share one password
+	// (OA_BUILTIN_USERS=off with OA_SHARED_PASSWORD), KB1-LOOP-147.
+	labels, err := oademo.LoadLabels(env("OA_LABELS_FILE", ""))
+	if err != nil {
+		logger.Error("load OA labels", "error", err)
+		os.Exit(1)
+	}
 	oa, err := oademo.New(oademo.Config{
 		ServiceToken:     requiredEnv("OA_SERVICE_TOKEN"),
 		CallbackSecret:   requiredEnv("OA_CALLBACK_SECRET"),
@@ -47,6 +55,8 @@ func main() {
 		DanaPassword:     danaPassword,
 		ExtraUsers:       extraUsersFromEnv(),
 		OmitBuiltinUsers: omitBuiltin,
+		AllowSwitch:      omitBuiltin && os.Getenv("OA_SHARED_PASSWORD") != "",
+		Labels:           labels,
 		ReceiptSigner:    receiptSigner,
 		Logger:           logger,
 	})

@@ -59,16 +59,21 @@ type Config struct {
 	// include a requester and an approver. The formal round keeps the built-in
 	// users.
 	OmitBuiltinUsers bool
-	HTTPClient       *http.Client
-	Logger           *slog.Logger
-	Clock            func() time.Time
-	ReceiptSigner    approval.ReceiptSigner
+	// AllowSwitch offers a logged-in user a switch to any other configured
+	// account without a password (the shared-password demo mode only).
+	AllowSwitch bool
+	// Labels are display names for Catalog identifiers (pages.go).
+	Labels        Labels
+	HTTPClient    *http.Client
+	Logger        *slog.Logger
+	Clock         func() time.Time
+	ReceiptSigner approval.ReceiptSigner
 }
 
 // ExtraUser is one configured demo account.
 type ExtraUser struct {
 	Name     string
-	Role     string // requester or approver
+	Role     string // requester, approver, or both
 	Password string
 	// DisplayName, when set, is shown instead of the name (for example
 	// "财务部主任"), so a tester sees who holds which authority.
@@ -85,8 +90,22 @@ type Server struct {
 
 type user struct {
 	Name         string // display name
-	Role         string
+	Role         string // requester, approver, or both
+	CanRequest   bool
+	CanApprove   bool
 	PasswordHash []byte
+}
+
+func capabilities(role string) (canRequest, canApprove, ok bool) {
+	switch role {
+	case "requester":
+		return true, false, true
+	case "approver":
+		return false, true, true
+	case "both":
+		return true, true, true
+	}
+	return false, false, false
 }
 
 type DraftRequest = approval.DraftRequest
@@ -195,10 +214,6 @@ func New(config Config) (*Server, error) {
 	if config.ReceiptSigner == nil {
 		config.ReceiptSigner = approval.DemoReceiptSigner([]byte(config.CallbackSecret))
 	}
-	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel, "roleLabel": roleLabel}).Parse(pageTemplates)
-	if err != nil {
-		return nil, err
-	}
 	users := map[string]user{}
 	if !config.OmitBuiltinUsers {
 		builtin := []struct{ id, name, role, password string }{
@@ -214,12 +229,14 @@ func New(config Config) (*Server, error) {
 			if err != nil {
 				return nil, err
 			}
-			users[account.id] = user{Name: account.name, Role: account.role, PasswordHash: hash}
+			canRequest, canApprove, _ := capabilities(account.role)
+			users[account.id] = user{Name: account.name, Role: account.role, CanRequest: canRequest, CanApprove: canApprove, PasswordHash: hash}
 		}
 	}
 	for _, extra := range config.ExtraUsers {
 		name := strings.ToLower(strings.TrimSpace(extra.Name))
-		if _, exists := users[name]; exists || name == "" || extra.Password == "" || (extra.Role != "requester" && extra.Role != "approver") {
+		canRequest, canApprove, validRole := capabilities(extra.Role)
+		if _, exists := users[name]; exists || name == "" || extra.Password == "" || !validRole {
 			return nil, fmt.Errorf("invalid or duplicate extra OA user %q", extra.Name)
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(extra.Password), bcrypt.DefaultCost)
@@ -230,25 +247,27 @@ func New(config Config) (*Server, error) {
 		if display == "" {
 			display = extra.Name
 		}
-		users[name] = user{Name: display, Role: extra.Role, PasswordHash: hash}
+		users[name] = user{Name: display, Role: extra.Role, CanRequest: canRequest, CanApprove: canApprove, PasswordHash: hash}
 	}
-	roles := map[string]bool{}
+	anyRequester, anyApprover := false, false
 	for _, account := range users {
-		roles[account.Role] = true
+		anyRequester, anyApprover = anyRequester || account.CanRequest, anyApprover || account.CanApprove
 	}
-	if !roles["requester"] || !roles["approver"] {
+	if !anyRequester || !anyApprover {
 		return nil, errors.New("the OA demo needs at least one requester and one approver")
 	}
 	config.ExtraUsers = nil
 	config.AlicePassword = ""
 	config.BobPassword = ""
 	config.DanaPassword = ""
-	return &Server{
-		config:    config,
-		users:     users,
-		drafts:    make(map[string]*Draft),
-		templates: parsedTemplates,
-	}, nil
+	server := &Server{config: config, users: users, drafts: make(map[string]*Draft)}
+	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel,
+		"roleLabel": roleLabel, "stateLabel": stateLabel, "humanDuration": humanDuration}).Parse(pageTemplates)
+	if err != nil {
+		return nil, err
+	}
+	server.templates = parsedTemplates
+	return server, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -258,6 +277,8 @@ func (s *Server) Handler() http.Handler {
 	router.Get("/login", s.loginPage)
 	router.Post("/login", s.login)
 	router.With(s.requireSession, s.requireCSRF).Post("/logout", s.logout)
+	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
+	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
 	router.Group(func(protected chi.Router) {
 		protected.Use(s.requireSession)
@@ -315,7 +336,7 @@ func (s *Server) validateDraftRequest(request DraftRequest) error {
 	}
 	switch request.ApprovalMode {
 	case "manual":
-		if approver, ok := s.users[request.Approver]; !ok || approver.Role != "approver" {
+		if approver, ok := s.users[strings.ToLower(request.Approver)]; !ok || !approver.CanApprove {
 			return errors.New("manual demo approval requires a configured approver")
 		}
 	default:
@@ -364,7 +385,12 @@ type sessionData struct {
 	Username    string
 	DisplayName string
 	Role        string
+	CanRequest  bool
+	CanApprove  bool
 	CSRF        string
+	// AllowSwitch and Accounts feed the account switcher in the navigation.
+	AllowSwitch bool
+	Accounts    []loginOption
 }
 
 func (s *Server) requireSession(next http.Handler) http.Handler {
@@ -375,7 +401,11 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 			return
 		}
 		account := s.users[username]
-		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role, CSRF: s.csrf(r)}
+		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role,
+			CanRequest: account.CanRequest, CanApprove: account.CanApprove, CSRF: s.csrf(r), AllowSwitch: s.config.AllowSwitch}
+		if s.config.AllowSwitch {
+			data.Accounts = s.loginOptions()
+		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, data)))
 	})
 }
@@ -405,17 +435,17 @@ func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	drafts := make([]Draft, 0, len(s.drafts))
 	for _, draft := range s.drafts {
-		if data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username) {
-			continue
+		if draft.open() && visible(draft, data) {
+			drafts = append(drafts, cloneDraft(draft))
 		}
-		if data.Role == "approver" && (draft.ApprovalMode != "manual" || (draft.Approver != data.Username && !draft.decidedBy(data.Username))) {
-			continue
-		}
-		drafts = append(drafts, cloneDraft(draft))
 	}
 	s.mu.RUnlock()
 	sort.Slice(drafts, func(i, j int) bool { return drafts[i].CreatedAt.After(drafts[j].CreatedAt) })
-	s.render(w, "tasks", map[string]any{"Session": data, "Drafts": drafts})
+	views := make([]draftView, 0, len(drafts))
+	for _, draft := range drafts {
+		views = append(views, s.view(draft))
+	}
+	s.render(w, "tasks", map[string]any{"Session": data, "Views": views})
 }
 
 func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
@@ -430,8 +460,17 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.RUnlock()
 	if !refuseDraftAccess(w, r, status, message) {
-		s.render(w, "task", map[string]any{"Session": data, "Draft": draft})
+		s.render(w, "task", s.taskPage(data, draft))
 	}
+}
+
+// taskPage is what the task page renders: the view, and whether the session
+// may submit or decide the draft now.
+func (s *Server) taskPage(data sessionData, draft Draft) map[string]any {
+	return map[string]any{"Session": data, "View": s.view(draft),
+		"CanSubmit":   draft.State == "draft" && draft.relatesAsRequester(data.Username),
+		"CanDecide":   draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username),
+		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject)}
 }
 
 // draftAccess decides whether the logged-in user may open a draft: a
@@ -442,11 +481,13 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 // keeping from a logged-in user).
 func draftAccess(draft *Draft, data sessionData) (int, string) {
 	switch {
-	case data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username):
-		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人本人可以打开和提交"
-	case data.Role == "approver" && draft.ApprovalMode != "manual":
+	case draft.relatesAsRequester(data.Username):
+		return http.StatusOK, ""
+	case !data.CanApprove:
+		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人或代开人可以打开和提交"
+	case draft.ApprovalMode != "manual":
 		return http.StatusForbidden, "此工单不需要人工审批"
-	case data.Role == "approver" && draft.Approver != data.Username && !draft.decidedBy(data.Username):
+	case !draft.relatesAsApprover(data.Username):
 		return http.StatusForbidden, "此工单指派给审批人 " + draft.Approver + "，你（" + data.Username + "）不能查看或审批"
 	}
 	return http.StatusOK, ""
@@ -467,16 +508,15 @@ func refuseDraftAccess(w http.ResponseWriter, r *http.Request, status int, messa
 
 func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	if data.Role != "requester" {
-		http.Error(w, "requester only", http.StatusForbidden)
-		return
-	}
 	draftID := chi.URLParam(r, "draftID")
 	s.mu.Lock()
 	draft, ok := s.drafts[draftID]
 	status, message := http.StatusNotFound, ""
 	if ok {
 		status, message = draftAccess(draft, data)
+	}
+	if status == http.StatusOK && !draft.relatesAsRequester(data.Username) {
+		status, message = http.StatusForbidden, "只有申请人本人或代开人可以提交"
 	}
 	if status == http.StatusOK && draft.State != "draft" {
 		status, message = http.StatusConflict, "draft cannot be submitted"
@@ -503,7 +543,7 @@ func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	if data.Role != "approver" {
+	if !data.CanApprove {
 		http.Error(w, "approver only", http.StatusForbidden)
 		return
 	}
@@ -672,7 +712,7 @@ func (s *Server) applyAnswer(draftID, status, receiptID string, body []byte) {
 		draft.Approver, draft.State = next, "pending"
 		draft.Note = fmt.Sprintf("%s 已%s；TaskGate 按组织架构要求下一级 %s（%s）审批，还剩 %d 级",
 			s.displayName(previous), callbackStatusLabels[status], s.displayName(next), answer.nextRoleLabel(), answer.RemainingSteps)
-		if account, ok := s.users[next]; !ok || account.Role != "approver" {
+		if account, ok := s.users[next]; !ok || !account.CanApprove {
 			draft.Note += "；本 OA 没有该审批人账号，无法继续"
 			s.config.Logger.Error("approval chain names an approver the OA does not have", "draft_id", draftID, "approver", next)
 		}
@@ -851,8 +891,10 @@ func narrowedGrantFromForm(parent approval.TaskGrantCoreV1, r *http.Request, iss
 	if productsRaw == "" {
 		return approval.TaskGrantCoreV1{}, errors.New("approved_products is required")
 	}
-	var products []string
-	if strings.HasPrefix(productsRaw, "[") {
+	products := checkedProducts(r.Form)
+	if len(products) > 0 {
+		// the checkbox form: one value per kept product
+	} else if strings.HasPrefix(productsRaw, "[") {
 		if err := decodeStrictJSON(productsRaw, &products); err != nil {
 			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_products: %w", err)
 		}
@@ -870,8 +912,16 @@ func narrowedGrantFromForm(parent approval.TaskGrantCoreV1, r *http.Request, iss
 	candidate.ApprovedProducts = products
 
 	var columns map[string][]string
-	if err := decodeStrictJSON(r.Form.Get("approved_columns"), &columns); err != nil {
-		return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+	if raw := strings.TrimSpace(r.Form.Get("approved_columns")); raw != "" {
+		if err := decodeStrictJSON(raw, &columns); err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+		}
+	} else {
+		checked, err := checkedColumns(r.Form, products)
+		if err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+		}
+		columns = checked
 	}
 	for product := range columns {
 		sort.Strings(columns[product])
@@ -879,8 +929,16 @@ func narrowedGrantFromForm(parent approval.TaskGrantCoreV1, r *http.Request, iss
 	candidate.ApprovedColumns = columns
 
 	var scope map[string]any
-	if err := decodeStrictJSON(r.Form.Get("mandatory_scope"), &scope); err != nil {
-		return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+	if raw := strings.TrimSpace(r.Form.Get("mandatory_scope")); raw != "" {
+		if err := decodeStrictJSON(raw, &scope); err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+		}
+	} else {
+		checked, err := checkedScope(r.Form, cloneMandatoryScope(parent.MandatoryScope))
+		if err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+		}
+		scope = checked
 	}
 	for name, value := range scope {
 		if values, ok := value.([]any); ok {
@@ -1076,16 +1134,6 @@ func templateJSON(value any) string {
 	return string(encoded)
 }
 
-const pageTemplates = `
-{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-bound OA Demo</title><style>
-body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:880px;margin:48px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:10px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8}nav{display:flex;justify-content:space-between;align-items:center}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}</style></head><body><div class="wrap">{{end}}
-{{define "foot"}}</div></body></html>{{end}}
-{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{.Role}}</div><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></nav>{{end}}
-{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批任务</h1>{{range .Drafts}}<div class="card"><span class="tag">{{.State}}</span><h2><a href="/tasks/{{.ID}}">{{.Manifest.DeclaredObjective}}</a></h2><p class="muted">{{.Manifest.TaskID}} · Agent {{.Manifest.AgentID}} · {{.Manifest.Sensitivity}} · {{.ApprovalMode}}{{if .Approver}} · 当前审批人 {{.Approver}}{{end}}</p>{{if .Note}}<p class="note">{{.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无任务。</p></div>{{end}}{{template "foot" .}}{{end}}
-{{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$envelope := .Draft.Envelope}}<div class="card"><span class="tag">{{.Draft.State}}</span><h1>{{.Draft.Manifest.DeclaredObjective}}</h1><dl><dt>Task ID</dt><dd>{{.Draft.Manifest.TaskID}}</dd><dt>人类主体</dt><dd>{{.Draft.Manifest.HumanSubject}}</dd><dt>Agent 身份</dt><dd>{{.Draft.Manifest.AgentID}}</dd><dt>申请数据产品</dt><dd>{{range .Draft.Manifest.Products}}{{.}} {{end}}</dd><dt>申请字段</dt><dd>{{range $product, $columns := .Draft.Manifest.ApprovedColumns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := .Draft.Manifest.MandatoryScope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>敏感级别上限</dt><dd>{{.Draft.Manifest.Sensitivity}}</dd><dt>全部预算与有效期</dt><dd>最大查询次数 {{.Draft.Manifest.Budget.MaxQueries}}；最大返回行数 {{.Draft.Manifest.Budget.MaxResultRows}}；最大数据库时间 {{.Draft.Manifest.Budget.MaxDBMS}} ms；单次查询超时 {{.Draft.Manifest.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{.Draft.Manifest.Budget.TaskTTLMS}} ms</dd><dt>审批方式</dt><dd>{{.Draft.ApprovalMode}}{{if .Draft.Approver}} / 当前审批人 {{.Draft.Approver}}{{end}}</dd><dt>目录版本 / SHA-256</dt><dd>{{.Draft.Manifest.CatalogVersion}} / <code>{{.Draft.Manifest.CatalogSHA256}}</code></dd><dt>Manifest SHA-256</dt><dd><code>{{.Draft.ManifestDigest}}</code></dd></dl>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}{{if .Draft.History}}<h2>审批记录</h2><ol class="history">{{range .Draft.History}}<li>{{.At.UTC.Format "2006-01-02 15:04:05"}} UTC · {{.Actor}} {{decisionLabel .Decision}}</li>{{end}}</ol>{{end}}{{if $envelope.Granted}}<h2>上一级批准的范围</h2><p class="muted">本级在此基础上批准或缩小，不能扩大。</p><dl><dt>数据产品</dt><dd>{{range $envelope.Products}}{{.}} {{end}}</dd><dt>字段</dt><dd>{{range $product, $columns := $envelope.Columns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := $envelope.Scope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>预算与有效期</dt><dd>最大查询次数 {{$envelope.Budget.MaxQueries}}；最大返回行数 {{$envelope.Budget.MaxResultRows}}；最大数据库时间 {{$envelope.Budget.MaxDBMS}} ms；单次查询超时 {{$envelope.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{$envelope.Budget.TaskTTLMS}} ms（从最后一级批准时起算）</dd></dl>{{end}}{{if and (eq .Session.Role "requester") (eq .Draft.State "draft")}}<form method="post" action="/tasks/{{.Draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}{{if and (eq .Session.Role "approver") (eq .Draft.State "pending") (eq .Draft.Approver .Session.Username)}}<form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">按原申请批准</button></form> <form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form><form class="narrow" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p><label>产品（JSON 数组或逗号分隔）<br><textarea name="approved_products" required>{{json $envelope.Products}}</textarea></label></p><p><label>字段（JSON 对象）<br><textarea name="approved_columns" required>{{json $envelope.Columns}}</textarea></label></p><p><label>强制范围（枚举可取子集，日期区间可收紧）<br><textarea name="mandatory_scope" required>{{json $envelope.Scope}}</textarea></label></p><div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{$envelope.Budget.MaxQueries}}" value="{{$envelope.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{$envelope.Budget.MaxResultRows}}" value="{{$envelope.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{$envelope.Budget.MaxDBMS}}" value="{{$envelope.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{$envelope.Budget.PerQueryTimeoutMS}}" value="{{$envelope.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{$envelope.Budget.TaskTTLMS}}" value="{{$envelope.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}</div><p><a href="/tasks">← 返回任务列表</a></p>{{template "foot" .}}{{end}}
-`
-
 func decisionLabel(decision string) string {
 	if label, ok := callbackStatusLabels[decision]; ok {
 		return label
@@ -1099,6 +1147,8 @@ func roleLabel(role string) string {
 		return "申请人"
 	case "approver":
 		return "审批人"
+	case "both":
+		return "申请人兼审批人"
 	}
 	return role
 }
@@ -1112,9 +1162,10 @@ func (s *Server) loginOptions() []loginOption {
 	for id, account := range s.users {
 		options = append(options, loginOption{ID: id, Name: account.Name, Role: account.Role})
 	}
+	rank := map[string]int{"requester": 0, "both": 1, "approver": 2}
 	sort.Slice(options, func(i, j int) bool {
-		if options[i].Role != options[j].Role {
-			return options[i].Role == "requester"
+		if rank[options[i].Role] != rank[options[j].Role] {
+			return rank[options[i].Role] < rank[options[j].Role]
 		}
 		return options[i].ID < options[j].ID
 	})

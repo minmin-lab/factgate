@@ -106,10 +106,7 @@ func TestCreateDraftAuthenticatesAndDisplaysCompleteManifest(t *testing.T) {
 	}
 
 	page := httptest.NewRecorder()
-	server.render(page, "task", map[string]any{
-		"Session": sessionData{Username: "alice", Role: "requester", CSRF: "csrf"},
-		"Draft":   stored,
-	})
+	server.render(page, "task", server.taskPage(sessionData{Username: "alice", Role: "requester", CanRequest: true, CSRF: "csrf"}, stored))
 	for _, visible := range []string{
 		"summarize travel expenses", "expense_summary", "total_amount", "department", "high",
 		"agent:expense-research", "alice", "10", "500", "30000", "5000", "1800000",
