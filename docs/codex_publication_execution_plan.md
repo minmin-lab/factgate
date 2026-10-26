@@ -2684,3 +2684,35 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - OA：TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant 跑三级，含中间一级收窄，核对每级回调的 Grant 是上一级重签发或其收窄、回执绑定摘要；TestApprovalAnswersWithoutAGrantAreShownOnTheDraft 覆盖无权与回调被拒。
     - 已知正例验证：把 decisionBase 改回"总以 Manifest 为基准"，链测试即失败（chain_test.go:194），恢复后通过。
     - 全量（db-test-env）：103 个包 ok、0 失败，退出码 0；make hygiene 通过。
+- [2026-10-26 12:28 UTC+8] KB1-LOOP-143 **审批链部署到演示栈：两个知识产品的正式冒烟（含新的链检查）、smoke.py、五个链场景、组织架构配错演示、经公网的端到端全部通过**。
+  - **构建**：
+    - 首次失败。BuildKit 解析 `# syntax=docker/dockerfile:1.7` 时连 registry-1.docker.io 超时：DNS 给出 198.18.0.5，WSL 直连 40 s 无响应。当时 daocloud 镜像源与 NAS 直连 Docker Hub 都可达（401），Tailscale 已登出。
+    - 绕法：
+      - 经 NAS 向 Docker Hub 取 docker/dockerfile:1.7 的索引摘要 sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e；
+      - 按该摘要从 docker.m.daocloud.io 拉取（内容寻址，镜像源改不了字节），tag 成 docker/dockerfile:1.7；
+      - 基础镜像本已按摘要在本地，构建带 --pull=false。写入 docs/agents/environment.md。
+    - 失败目录改名 images/failed-build-2e43cb4ffb44-dockerhub-timeout 留档。
+    - 重试成功：网关 ce0a6a62…、OA 786013b1…，均从 2e43cb4f 构建（build-gateway.sh 的 verify-build 通过）。
+  - **部署**：
+    - 部署前查控制库：alice 4 个 ACTIVE（今早冒烟所留），无待审任务；lzj 的孤儿待审任务已在 KB1-LOOP-142 作废。
+    - 只重建 oa-demo 与 gateway。网关激活两个知识产品，无 ERROR 日志；OA 登录页列出 19 个账号，显示名正确。
+  - **实跑**（均在新镜像上）：
+    - kb-formal-smoke -usability，policy_kb 与 policy_kb_small 均退出 0：
+      - 回执验签通过，目录摘要 6c8ad8b5… 等于 catalog.yaml；
+      - sales-staff 申请别部门被拒（NOT_ELIGIBLE），本部门可建；
+      - 链检查：alice 申请 finance+engineering、含 leadership，实际决定者依次为 finance-director、engineering-director、leader-rd、leader-admin，与 request_data_task 公布的链逐一相同。
+    - smoke.py：alice 申请工程部含 leadership，三级（finance-director、engineering-director、leader-rd），两种预算的检索与聚合都有结果。
+    - demo-approver.py（staff）：
+      - A 一级、B 两级、C 四级，均 ACTIVE；
+      - D 第一级缩小到 finance/internal 后链重算，当场 ACTIVE；
+      - E 指定 bob 为第一级，归档 approver_not_authorized。
+    - demo-misroute.sh：财务部主任误配成 bob 时，建草稿前即 APPROVER_NOT_AUTHORIZED，之后恢复真实目录。
+    - 公网端到端（Cloudflare 两个地址，staff 令牌，脚本带自定义 User-Agent）：
+      - oa_url 指向 factgate-oa.sessionbound.org；
+      - 提交后状态显示 finance-director current、sales-director pending；
+      - 两级批准后 ACTIVE；已批过的 finance-director 仍可查看草稿；
+      - 检索回执目录摘要 6c8ad8b5…；
+      - 最后 revoke。
+    - 换钥生效的证据：上述每次审批都由网关以新公钥 oa-ed25519-v2 验签通过。
+  - **收尾**：草稿区里含旧密钥的 .env 备份已删除（扫描命令先在根 .env 这个已知正例上命中，再采信对草稿区的 0 命中）。
+  - **下一步**：作者把三样东西私下发给同事——STAFF_MCP_TOKEN（值同旧 LZJ_MCP_TOKEN，MCP 不用重配）、OA_STAFF_PASSWORD（值同旧 OA_LZJ_PASSWORD）、OA_SHARED_APPROVER_PASSWORD（新），以及指南 /home/wmm/kb-demo/tester-guide.md。测完照 README"收工"撤下 tunnel。

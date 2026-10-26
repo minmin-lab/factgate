@@ -38,6 +38,13 @@ WSL2 出网走 **Tailscale exit node = NAS（`ds423plus` `100.72.87.34`）**，�
   buildkit RUN 步够不到 docker0 网关 `172.17.0.1`，**必须用 eth0 IP**。
 - **apt**：`Dockerfile.formal` 的 apt-get 带 `Acquire::Retries=8` + 60s 超时。
 - **构建超时**：`final-v5-gateway-build` 的 `buildTimeout` 90m。
+- **Docker Hub 不通时的 dockerfile 前端**（2026-10-26 实测）：
+  - 症状：WSL 解析 registry-1.docker.io 得 198.18.0.5，HEAD 超时，`# syntax=docker/dockerfile:1.7` 解析失败。当时 daocloud 镜像源与 NAS 都能连 Docker Hub。
+  - 基础镜像不受影响：已按摘要在本地，且构建带 `--pull=false`。
+  - 绕法：
+    1. 经 NAS 向 Docker Hub 取 `docker/dockerfile:1.7` 的索引摘要（2026-10-26 为 `sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e`）；
+    2. 按摘要从镜像源拉取：`docker pull docker.m.daocloud.io/docker/dockerfile@<摘要>`。内容寻址，镜像源改不了字节；
+    3. `docker tag` 成 `docker/dockerfile:1.7`，BuildKit 随即用本地这份。
 
 ### mirrored 网络模式（2026-08-27 作者定，已试；与 tailscale 冲突后弃用）
 
