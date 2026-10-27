@@ -2840,3 +2840,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-27 11:37 UTC+8] KB1-LOOP-147 **作者定：共享口令模式下 OA 登录页只要口令，身份登录后再切**（作者原话"角色切换改成登录后，登录页面只要一个密码就行了"）。
   - 实现：AllowSwitch 模式登录页只有口令框，口令通过即以第一个申请人账号（staff）开会话，右上角"身份"下拉 + "切换身份"按钮换账号（去掉被 CSP 挡住的 onchange 自动提交）；表单带 username 的登录照旧（approve.py、kbformal 客户端不用改）；口令先对默认账号核，不中再逐账号核，以兼容各账号口令不同的配置；其他模式登录页不变。全部响应加 Cache-Control: no-store（作者反馈公网看到"旧页面"，curl 核实公网已是新版、cf-cache-status DYNAMIC，判为浏览器缓存或旧草稿链接）。
   - **实跑**：oademo 新增 TestPasswordOnlyLoginLandsOnTheDefaultAccount（无账号框、默认 staff、错口令回 error=invalid、带账号登录仍可、非共享模式仍有账号框）；oademo、approval、cmd/oa-demo ok，make hygiene 通过。adapters.md 与 tester-guide.md 已改。待重建 OA 镜像并重建 OA（会丢内存草稿）。
+- [2026-10-27 11:43 UTC+8] KB1-LOOP-147 **OA 镜像 4a776394…（ca814cb1）已上线：公网登录页只有口令框、带 no-store；冒烟与审批场景通过**。
+  - 待审闸门单独一步：三个待审均为已放行丢弃或我的探测任务，无作者新任务。--force-recreate oa-demo；curl 公网登录页：200、cache-control no-store、无 username 框、含"默认是普通员工 staff"。
+  - **实跑**：kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized（脚本带用户名登录的路径照旧）。
