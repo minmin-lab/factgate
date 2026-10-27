@@ -19,7 +19,7 @@ import (
 // check names the evidence it read; refusals cost nothing, and the one query
 // is LIMIT 3 so a small budget profile is not drawn down. The deficient task
 // is scoped to classifications; likePattern must match a title in scope.
-func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, alice *kbformal.MCPClient,
+func smokeUsability(ctx context.Context, summary map[string]any, provisioner *smokeProvisioner, alice *kbformal.MCPClient,
 	product catalog.KnowledgeProduct, fullTask string, classifications []string, likePattern string) error {
 	chunks, documents := product.Products.Chunks, product.Products.Documents
 	wantColumns := fmt.Sprintf(`{%q:["chunk_index","doc_id","text_sha256","version"],%q:["doc_id","version"]}`, chunks, documents)
@@ -64,7 +64,17 @@ func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kb
 	}
 	pendingID, _ := pending["task_id"].(string)
 	status, err := alice.Call(ctx, "get_task_status", map[string]any{"task_id": pendingID})
-	if err != nil || pending["next_action"] != "human_submit_in_oa" || status["next_action"] != "human_submit_in_oa" {
+	if agentSubmitted := pending["state"] == "AWAITING_APPROVAL"; agentSubmitted != provisioner.agentSubmits {
+		return fmt.Errorf("pending task created %v, but the profile Catalog's agent_submits is %v", pending["state"], provisioner.agentSubmits)
+	} else if agentSubmitted {
+		// Under agent_submits (KB1-LOOP-149) the agent submitted the task at
+		// creation: request and status both name an approval step, never a
+		// submission.
+		if err != nil || !approvalNextAction(pending["next_action"]) || !approvalNextAction(status["next_action"]) {
+			return fmt.Errorf("agent-submitted task flow: request %v, status %v, %v", pending["next_action"], status["next_action"], err)
+		}
+		summary["usability_pending_agent_submitted"] = true
+	} else if err != nil || pending["next_action"] != "human_submit_in_oa" || status["next_action"] != "human_submit_in_oa" {
 		return fmt.Errorf("pending task flow: request %v, status %v, %v", pending["next_action"], status["next_action"], err)
 	}
 	summary["usability_pending_oa_url_rebuilt"] = status["oa_url"] != nil
@@ -109,6 +119,13 @@ func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kb
 	summary["usability_refusals"] = []string{"COLUMNS_NOT_GRANTED", "UNKNOWN_KNOWLEDGE_PRODUCT"}
 	summary["usability_published_search_columns"] = wantColumns
 	return nil
+}
+
+// approvalNextAction reports whether a task flow's next_action is one of the
+// AWAITING_APPROVAL branch's (internal/gateway/task_flow.go): an approver's
+// decision, or a person's own confirmation.
+func approvalNextAction(action any) bool {
+	return action == "await_approver_decision" || action == "human_confirm_in_oa"
 }
 
 // knowledgePage finds one knowledge product in list_data_products.

@@ -14,7 +14,9 @@ import (
 // callback admits the human subject only (callback.go) -- and then for the
 // approver. get_task_status, wait_for_approval and request_data_task say which,
 // and what to do next, so an agent does not wait on a step only a person can
-// take.
+// take. Under the Catalog's delegated_authorization agent_submits
+// (KB1-LOOP-149) the agent submits at creation instead: the task starts
+// AWAITING_APPROVAL and its hint says a person only approves.
 
 const (
 	// waitForApprovalMaxSeconds bounds one wait_for_approval call; a longer
@@ -31,7 +33,9 @@ func (s *Service) taskFlow(task control.Task) map[string]any {
 		Approver      string `json:"approver"`
 		SelfConfirm   bool   `json:"self_confirm"`
 		MemberConfirm bool   `json:"member_confirm"`
-		Manifest      struct {
+		// AgentSubmitted: the agent submitted the task at creation.
+		AgentSubmitted bool `json:"agent_submitted"`
+		Manifest       struct {
 			HumanSubject string `json:"human_subject"`
 			ParentTaskID string `json:"parent_task_id"`
 		} `json:"authorization_manifest"`
@@ -59,12 +63,18 @@ func (s *Service) taskFlow(task control.Task) map[string]any {
 			flow["waiting_for"], flow["next_action"] = "member_confirmation", "human_confirm_in_oa"
 			flow["approver"] = pending.Approver
 			flow["next_action_hint"] = "等待项目成员" + quotedOrEmpty(pending.Approver) + "本人在 OA 点“批准”确认；可再次调用 wait_for_approval（每次至多 45 秒）继续等待，不再需要时用 revoke_task 作废"
+			if pending.AgentSubmitted {
+				flow["next_action_hint"] = "agent 已代为提交。这是委托给项目成员的子任务，由成员" + quotedOrEmpty(pending.Approver) + "本人确认：成员登录 OA 打开草稿点“批准”即可生效；" + agentSubmittedWait
+			}
 			break
 		}
 		if pending.SelfConfirm {
 			flow["waiting_for"], flow["next_action"] = "requester_confirmation", "human_confirm_in_oa"
 			flow["approver"] = pending.Approver
 			flow["next_action_hint"] = "等待申请人" + quotedOrEmpty(pending.Approver) + "本人在 OA 点“批准”确认；可再次调用 wait_for_approval（每次至多 45 秒）继续等待，不再需要时用 revoke_task 作废"
+			if pending.AgentSubmitted {
+				flow["next_action_hint"] = "agent 已代为提交。该申请由申请人" + quotedOrEmpty(pending.Approver) + "本人确认：本人登录 OA 打开草稿点“批准”即可生效；" + agentSubmittedWait
+			}
 			break
 		}
 		flow["waiting_for"], flow["next_action"] = "approver_decision", "await_approver_decision"
@@ -72,6 +82,9 @@ func (s *Service) taskFlow(task control.Task) map[string]any {
 			flow["approver"] = pending.Approver
 		}
 		flow["next_action_hint"] = "等待审批人" + quotedOrEmpty(pending.Approver) + "在 OA 审批；可再次调用 wait_for_approval（每次至多 45 秒）继续等待，不再需要时用 revoke_task 作废"
+		if pending.AgentSubmitted {
+			flow["next_action_hint"] = "agent 已代为提交。等待审批人" + quotedOrEmpty(pending.Approver) + "审批：审批人登录 OA 打开草稿点“批准”即可生效（也可缩小后批准或拒绝）；" + agentSubmittedWait
+		}
 	case control.TaskActive:
 		flow["next_action"] = "use_task"
 		flow["next_action_hint"] = "任务已批准，可在期限内查询；用 get_task_context 查看批准的产品、列、范围与 knowledge_readiness"
@@ -85,6 +98,9 @@ func (s *Service) taskFlow(task control.Task) map[string]any {
 	}
 	return flow
 }
+
+// agentSubmittedWait ends the hint of a task the agent submitted.
+const agentSubmittedWait = "申请人无需再提交。可再次调用 wait_for_approval（每次至多 45 秒）继续等待，不再需要时用 revoke_task 作废"
 
 var terminalAdvice = map[control.TerminalReason]string{
 	control.TerminalCompleted:             "任务已完成归档",
@@ -134,6 +150,9 @@ func (s *Service) taskFlowFor(ctx context.Context, task control.Task) map[string
 		flow["approver"] = progress.Next.Approver
 		flow["next_action_hint"] = fmt.Sprintf("审批链进行中：已批 %d 级，共 %d 级；等待 %s（%s）在 OA 审批。可再次调用 wait_for_approval 继续等待，不再需要时用 revoke_task 作废",
 			len(progress.Approvals), len(progress.Steps), progress.Next.Approver, stepLabel(*progress.Next))
+		if persisted.AgentSubmitted {
+			flow["next_action_hint"] = "agent 已代为提交，申请人无需再提交。" + flow["next_action_hint"].(string)
+		}
 	}
 	return flow
 }

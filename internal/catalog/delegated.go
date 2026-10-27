@@ -37,6 +37,13 @@ type DelegatedAuthorization struct {
 	// values are exactly the requester's own values of the same-named
 	// attribute is confirmed by the requester. Empty switches the rule off.
 	PersonalScope string `yaml:"personal_scope,omitempty" json:"personal_scope,omitempty"`
+	// AgentSubmits lets the agent submit a task for its human subject
+	// (KB1-LOOP-149, author's decision 2026-10-28): request_data_task,
+	// request_download_task and issue_data_authorization then create the
+	// task already AWAITING_APPROVAL and its OA draft already pending, so a
+	// person only approves. Off, a person submits the draft in the OA first,
+	// as in the formal round. The Catalog digest binds the choice.
+	AgentSubmits bool `yaml:"agent_submits,omitempty" json:"agent_submits,omitempty"`
 }
 
 // Default attribute names of the delegated-authorization rules.

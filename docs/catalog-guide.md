@@ -154,8 +154,8 @@ products:
 ## Eligibility（资格先于审批）
 
 `eligibility` 是 Product 上可选的资格谓词：Gateway 在 `request_data_task` 创建 OA 草稿**之前**，用申请人（根任务的
-Principal subject；委托任务的父 Grant 人类主体）经身份系统证明的属性把它编译成一个"可申请包络"。申请落在包络外立即以
-`NOT_ELIGIBLE` 拒绝，不进入审批队列、不建任务、不设例外路由；审批人只能在包络内收窄。资格裁决是机器裁决，人工审批
+Principal subject；委托任务的父 Grant 人类主体）经身份系统证明的属性推出一个"可申请范围"。申请落在可申请范围外立即以
+`NOT_ELIGIBLE` 拒绝，不进入审批队列、不建任务、不设例外路由；审批人只能在可申请范围内收窄。资格裁决是机器裁决，人工审批
 是人的决定，两者分开记录。
 
 ```yaml
@@ -309,12 +309,12 @@ approval_routes:
   - 条件只决定谁来审批和用哪个预算，不改变授予的内容。
 - 审批人权限：
   - 审批人永远不能是任务的申请人本人（`APPROVER_NOT_AUTHORIZED`）。
-  - 路由带 `verify_approver: true` 时，审批人必须在主体属性快照中，并且按与申请人相同的资格包络，对所申请的全部范围都有资格。例如没有 leadership 密级的人不能审批 leadership 任务。不满足即在建 OA 草稿前以 `APPROVER_NOT_AUTHORIZED` 拒绝。
+  - 路由带 `verify_approver: true` 时，审批人必须在主体属性快照中，并且按其属性推出的范围（与申请人同一套规则），对所申请的全部范围都有资格。例如没有 leadership 密级的人不能审批 leadership 任务。不满足即在建 OA 草稿前以 `APPROVER_NOT_AUTHORIZED` 拒绝。
   - 审批人的资格裁决与申请人的一并记入任务的私有记录。
-  - 两道门各管一边：申请人的资格包络决定能申请什么，审批人的资格决定谁有权批。
+  - 两道门各管一边：申请人的可申请范围决定能申请什么，审批人的资格决定谁有权批。
 - 申请人自选审批人（`request_data_task` 与 `request_download_task` 的可选 `approver`）：覆盖目录路由，相当于审批流被手工改派或配错。
   - 自选的审批人仍不得是申请人本人，否则请求时即以 `APPROVER_NOT_AUTHORIZED` 拒绝；其余情况照常建 OA 草稿，返回值的 `approver_authorized` 预告该审批能否生效。
-  - 审批回调到达时，TaskGate 按数据产品规则（与申请人相同的资格包络）对实际审批人、针对批准后（可能已缩小）的范围再核一次。不通过则不签发授权，任务以终止原因 `approver_not_authorized` 归档。
+  - 审批回调到达时，TaskGate 按数据产品规则（按其属性推出的范围，与申请人同一套规则）对实际审批人、针对批准后（可能已缩小）的范围再核一次。不通过则不签发授权，任务以终止原因 `approver_not_authorized` 归档。
   - 走 verify_approver 路由的审批同样在回调时复核。所以即使 OA 流程配错、让无权者批准，也拿不到授权；审批人缩小掉自己无权批的范围后，批准有效。
 
 ```yaml
@@ -386,6 +386,7 @@ delegated_authorization:
   center_scope: center              # 中心范围（枚举）；省略即不启用中心规则
   center_attribute: authority_center  # 列出主体所辖中心的属性；省略即 authority_center
   personal_scope: employee_id       # 个人记录范围（枚举）；申请人同名属性是本人的值；省略即不启用
+  agent_submits: true               # agent 代人类主体提交：任务创建即 AWAITING_APPROVAL，人只在 OA 批准；省略即 false
 products:
   - name: attendance_records
     steward_department: hr          # 数据管家部门，须是每条审批链 department_scope 的取值
@@ -404,15 +405,16 @@ products:
    - 链上一步不剩时，任务由申请人本人确认（self-service）：审批人是申请人，返回 `self_service: true` 与 `self_confirm: true`，申请人登录 OA 提交并批准即生效；此时不能用 `approver` 指定他人（`INVALID_REQUEST`）。
    - 中心：申请只含本部门、只含本人所辖中心（`center_scope` 的值都在 `center_attribute` 内）、不触发任何升级层，且所有产品都声明了 `center_scope` 时，同样由申请人本人确认；超出本中心则按上面的规则（通常是本部门管理员审批）。
    - 职权快照在申请时记入任务的私有路由记录，审批人缩小范围后每一级都按同一份记录重算。
-2. **个人记录自助**。根任务的所有产品都声明了 `personal_scope`，且该范围的申请值恰好等于申请人同名属性的值集合（非空）时，任务由申请人本人确认，不论部门。只申请别人的记录由资格包络挡下（`NOT_ELIGIBLE`），与本规则无关；含未声明该范围的产品（如文档）的混合任务不适用本规则。
+2. **个人记录自助**。根任务的所有产品都声明了 `personal_scope`，且该范围的申请值恰好等于申请人同名属性的值集合（非空）时，任务由申请人本人确认，不论部门。只申请别人的记录由可申请范围挡下（`NOT_ELIGIBLE`），与本规则无关；含未声明该范围的产品（如文档）的混合任务不适用本规则。
 3. **数据管家**。任务的所有产品都声明了 `steward_department` 时，申请范围里既不在申请人职权内、也不是申请人本部门的部门，一律换成管家部门再排链（例：HR 管理员申请全公司考勤 → 只剩 hr → 本人确认；财务管理员申请财务与销售的考勤 → 本部门主任 + HR 管理员）。混合任务（含未声明管家的产品）按部门常规排链。
-4. **成员确认**。`request_data_task` 带 `parent_task_id` 并用 `delegate_principal_id` 委托给另一个人的查询主体时：任务的人类主体仍是父任务的（委托收缩检查不变），审批人是受托成员本人，资格包络按成员编译；成员可在 OA 提交并批准，回执上的审批人即成员；返回 `member_confirm: true`，`get_task_status` 的 `waiting_for` 为 `member_submission` / `member_confirmation`。委托给自己（或同一人类主体）的子任务仍按 `child_self_confirm` 由本人确认。
+4. **成员确认**。`request_data_task` 带 `parent_task_id` 并用 `delegate_principal_id` 委托给另一个人的查询主体时：任务的人类主体仍是父任务的（委托收缩检查不变），审批人是受托成员本人，可申请范围按成员推出；成员可在 OA 提交并批准，回执上的审批人即成员；返回 `member_confirm: true`，`get_task_status` 的 `waiting_for` 为 `member_submission` / `member_confirmation`。委托给自己（或同一人类主体）的子任务仍按 `child_self_confirm` 由本人确认。
 
-块打开时另有两项：
+块打开时另有以下几项：
 
 - `request_data_task` 可选 `budget_profile`：取目录里的预算档替换路由的预算档，须与路由预算档的 `exposure_profile_version` 相同（返回 `budget_source: requested_profile`）；块不存在时传入即 `INVALID_REQUEST`。子任务仍与父授权取交。
-- `issue_data_authorization`（代开单）：数据范围只能是发单人自己的部门（数据属主），链从发单人的部门起排、第一步须是发单人；员工可以属于任何部门，但员工本人的资格包络须覆盖所开范围。
+- `issue_data_authorization`（代开单）：数据范围只能是发单人自己的部门（数据属主），链从发单人的部门起排、第一步须是发单人；员工可以属于任何部门，但员工本人的可申请范围须覆盖所开范围。
 - `list_data_products` 返回 `delegated_authorization`，说明以上规则与所用属性名；`request_data_task` 的工具说明与入参 schema 也随之列出 `budget_profile`。
+- `agent_submits: true`（KB1-LOOP-149，作者 2026-10-28 定）：任何场景下提交都由 agent 代人类主体完成，人只审批。`request_data_task`、`request_download_task` 与 `issue_data_authorization` 建的任务创建即 `AWAITING_APPROVAL`（返回 `agent_submitted: true`），OA 草稿以 `submitted: true` 建为待审批、不发 `submitted` 回调（adapters.md），网关审计记一条 `TASK_SUBMITTED_BY_AGENT`（actor 是发起调用的主体，payload 含 `human_subject`、`agent_id`、`approver`、`self_confirm`、`member_confirm`、`draft_id`，代开单另含 `issuer_subject`）。`next_action` 直接是审批那一类（`await_approver_decision`，本人或成员确认为 `human_confirm_in_oa`），不会出现 `human_submit_in_oa`；上述工具与 `get_task_status`、`wait_for_approval`、`revoke_task` 的说明、以及 `list_data_products` 的 `delegated_authorization`（`agent_submits: true`）随之注明。开关缺省关，关时行为不变。
 
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。
@@ -614,7 +616,7 @@ kb_publications:
   多一项即拒启动，所以 kb-publish 输出的 `<root>/kb` 要单独挂给 `GATEWAY_KB_ARTIFACT_DIR`；该目录同样只能含 Catalog 声明的
   epoch，不认的条目、符号链接或文件都拒绝激活。
 - `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验；申请其 chunks / documents / values
-  任一关系时，Gateway 在建草稿前按该知识产品的包络编译资格（关系继承知识产品的 eligibility），包络外即 `NOT_ELIGIBLE`。
+  任一关系时，Gateway 在建草稿前按该知识产品的 eligibility 推出可申请范围（关系继承知识产品的 eligibility），可申请范围外即 `NOT_ELIGIBLE`。
 - 检索语言（`internal/retrieval`）是封闭的：`search`（AND 过滤原子 + 一个文本或向量查询承诺 + `k ≤ k_max`）、`fetch`
   （只接受本根任务族此前 `search`/`fetch` 已返回过的块引用，网关对照该根族账本的 Release 集合逐块核对，否则
   `CHUNK_NOT_RETURNED`）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
@@ -634,7 +636,7 @@ docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块�
 
 文档下载任务（K7；docs/kb-design.md §12）：检索与下载是两种任务。
 - `request_download_task`（`objective`、`knowledge_product`、`documents[]` 为 1–20 个 `{doc_id, version}`、可选 `include_values`、
-  可选 `scopes`，缺省为申请人的资格包络）：产品与列由网关固定——chunks 与 documents，`include_values` 时加 values。
+  可选 `scopes`，缺省为申请人的可申请范围）：产品与列由网关固定——chunks 与 documents，`include_values` 时加 values。
   清单以排序后的 `"doc_id@version"` 存入授权单的保留范围键 `kb_documents`，审批人在 OA 看到并可删减（沿用子集缩小规则）。
   普通 `request_data_task` 不能携带该键；下载任务不能委托。
 - `download_document`（`task_id`、`request_id` 最长 100 字符、`knowledge_product`、`doc_id`、`version`）：
@@ -664,7 +666,7 @@ documents 两个 Product（aggregate 授权 values），且携带 V5 暴露 prof
 - `request_data_task`（按申请清单）与 `get_task_context`（按已批授权）返回 `knowledge_readiness`：每个涉及的知识产品能否 search/fetch/aggregate、
   缺哪些关系或列、哪些属性可过滤、暴露 profile 是否为 V5。只作信息，从不让请求失败；审批人仍可能删减。
 - `request_data_task`、`get_task_status`、`wait_for_approval` 返回 `waiting_for` 与 `next_action`：`human_submit_in_oa`（须申请人本人在 OA 提交，
-  agent 不能代交）、`await_approver_decision`、`use_task`、`none_terminal`；配置 `PUBLIC_OA_BASE_URL` 时，未批准任务的状态带草稿链接 `oa_url`。
+  agent 不能代交；目录启用 `delegated_authorization.agent_submits` 时不会出现，任务创建即待审批）、`await_approver_decision`、`use_task`、`none_terminal`；配置 `PUBLIC_OA_BASE_URL` 时，未批准任务的状态带草稿链接 `oa_url`。
 - `get_sql_capabilities` 增 `where_predicates`、`where_rejected`、`catalog_control_defaults`；`describe_data_product` 增 `sql_effective`
   （生效算子：声明的或策略缺省集；该产品可用的 WHERE 谓词；聚合，未声明即不能聚合）。
 

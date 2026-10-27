@@ -75,7 +75,7 @@ func oaPassword(env map[string]string, subject string) string {
 // departments do not cover starts from narrow, a value outside every layer.
 // The approvers who decided must be the chain request_data_task announced, in
 // order.
-func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, approvers *chainApprovers,
+func smokeChain(ctx context.Context, summary map[string]any, provisioner *smokeProvisioner, approvers *chainApprovers,
 	chain *catalog.ApprovalChain, products []string, columns map[string][]string, ownDepartment, narrow string) error {
 	layers := chain.Layers()
 	if len(layers) == 0 {

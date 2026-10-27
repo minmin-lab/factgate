@@ -174,6 +174,26 @@ func delegatedRequestDataTaskTool(base mcp.Tool) mcp.Tool {
 	return base
 }
 
+// agentSubmitsDescriptions is what the task tools add to their description
+// when the Catalog's delegated_authorization.agent_submits is on
+// (KB1-LOOP-149): the agent submits a task at creation, so no task waits for
+// a person's submission. Off, the descriptions stay as they are.
+var agentSubmitsDescriptions = map[string]string{
+	"request_data_task":        "本目录启用了 agent_submits：任务创建即由 agent 代申请人提交，状态为 AWAITING_APPROVAL（返回 agent_submitted: true），无需人提交，审批人（或本人、受托成员）在 OA 点“批准”即可生效。",
+	"request_download_task":    "本目录启用了 agent_submits：任务创建即由 agent 代申请人提交，状态为 AWAITING_APPROVAL，无需人提交，审批人在 OA 点“批准”即可生效。",
+	"issue_data_authorization": "本目录启用了 agent_submits：授权单创建即由 agent 提交，状态为 AWAITING_APPROVAL，无需人提交，发单人在 OA 直接批准。",
+	"get_task_status":          "本目录启用了 agent_submits：新任务创建即 AWAITING_APPROVAL，无需人提交，不会处于 AWAITING_SUBMISSION。",
+	"wait_for_approval":        "本目录启用了 agent_submits：新任务创建即 AWAITING_APPROVAL，无需人提交，不会返回 human_submit_in_oa。",
+	"revoke_task":              "本目录启用了 agent_submits：新任务创建即 AWAITING_APPROVAL（无需人提交），未批准的任务都在审批中，同样可以作废。",
+}
+
+func agentSubmitsTool(base mcp.Tool) mcp.Tool {
+	if extra, ok := agentSubmitsDescriptions[base.Name]; ok {
+		base.Description += extra
+	}
+	return base
+}
+
 func taskIDSchema() map[string]any {
 	return objectSchema(map[string]any{"task_id": map[string]any{"type": "string"}}, "task_id")
 }
@@ -192,6 +212,11 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 				}
 			}
 			tools = append(tools, issueTool)
+		}
+		if s.agentSubmits() {
+			for index := range tools {
+				tools[index] = agentSubmitsTool(tools[index])
+			}
 		}
 		return tools
 	case "auditor":

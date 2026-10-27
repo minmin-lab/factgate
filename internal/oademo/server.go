@@ -128,7 +128,11 @@ type Draft struct {
 	MemberConfirm bool `json:"member_confirm,omitempty"`
 	// ParentExpiresAt bounds a delegated task's grant: a decision later than
 	// the request shortens the TTL to what the parent has left.
-	ParentExpiresAt *time.Time                  `json:"parent_expires_at,omitempty"`
+	ParentExpiresAt *time.Time `json:"parent_expires_at,omitempty"`
+	// AgentSubmitted marks a draft the agent submitted for its human subject
+	// (KB1-LOOP-149; DraftRequest.Submitted): it is created pending, offers
+	// no submission, and no submitted callback is sent for it.
+	AgentSubmitted  bool                        `json:"agent_submitted,omitempty"`
 	ApprovedGrant   *approval.TaskGrantCoreV1   `json:"approved_grant,omitempty"`
 	ApprovalReceipt *approval.ApprovalReceiptV1 `json:"approval_receipt,omitempty"`
 	State           string                      `json:"state"`
@@ -333,6 +337,12 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 		ParentExpiresAt: cloneTime(request.ParentExpiresAt),
 		State:           "draft", CreatedAt: now, UpdatedAt: now,
 	}
+	if request.Submitted {
+		// TaskGate already holds the task as submitted: the draft waits for its
+		// approver from the start, and nobody submits it again.
+		draft.State, draft.AgentSubmitted = "pending", true
+		draft.Note = s.agentSubmittedNote(draft)
+	}
 	s.mu.Lock()
 	s.drafts[draft.ID] = draft
 	s.mu.Unlock()
@@ -341,6 +351,19 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 		"state":    draft.State,
 		"url":      approval.DraftPageURL(s.config.PublicBaseURL, draft.ID),
 	})
+}
+
+// agentSubmittedNote is what an agent-submitted draft says until its first
+// decision: who it was submitted for and who acts on it now.
+func (s *Server) agentSubmittedNote(draft *Draft) string {
+	note := "agent 已代 " + s.displayName(draft.Manifest.HumanSubject) + " 提交，"
+	switch {
+	case strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject):
+		return note + "等待本人确认"
+	case draft.MemberConfirm:
+		return note + "等待项目成员 " + s.displayName(draft.Approver) + " 本人确认"
+	}
+	return note + "等待 " + s.displayName(draft.Approver) + " 审批"
 }
 
 func (s *Server) validateDraftRequest(request DraftRequest) error {

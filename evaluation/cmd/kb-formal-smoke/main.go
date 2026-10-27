@@ -121,10 +121,13 @@ func run() error {
 	timeout := 60 * time.Second
 	summary := map[string]any{"catalog_sha256": profile.SHA256, "knowledge_product": product.Name, "epoch": product.IndexPublication}
 	alice := kbformal.NewMCPClient(*gateway, env[*requesterToken], timeout)
-	provisioner := &kbformal.Provisioner{Requester: alice,
+	provisioner := &smokeProvisioner{Provisioner: &kbformal.Provisioner{Requester: alice,
 		Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: *requester, Password: oaPassword(env, *requester), Timeout: timeout},
 		Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout},
-		Poll:      200 * time.Millisecond, Deadline: 60 * time.Second}
+		Poll:      200 * time.Millisecond, Deadline: 60 * time.Second}, agentSubmits: agentSubmitsOn(profile)}
+	if provisioner.agentSubmits {
+		summary["agent_submits"] = true
+	}
 	chain := firstChain(profile)
 	var approvers *chainApprovers
 	if chain != nil {
@@ -218,8 +221,9 @@ func run() error {
 		}
 		summary["eligibility_other_department"] = "NOT_ELIGIBLE"
 		summary["eligibility_own_department_state"] = admitted["state"]
-		// The admitted request is never submitted; void it so smoke runs do
-		// not accumulate pending tasks (they never expire).
+		// The admitted request is never approved (nor submitted, unless the
+		// Catalog's agent_submits submitted it at creation); void it so smoke
+		// runs do not accumulate pending tasks (they never expire).
 		if _, err := sales.Call(ctx, "revoke_task", map[string]any{"task_id": admitted["task_id"], "reason": "kb-formal-smoke: eligibility probe"}); err != nil {
 			return fmt.Errorf("revoke the eligibility probe: %w", err)
 		}
@@ -276,7 +280,7 @@ func checkRows(rows [][]any) ([][]any, error) {
 }
 
 // smokeDownload is the deployed-path check of the document download task.
-func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, alice *kbformal.MCPClient,
+func smokeDownload(ctx context.Context, summary map[string]any, provisioner *smokeProvisioner, alice *kbformal.MCPClient,
 	verifier kbformal.ReceiptVerifier, profile *catalog.Catalog, product catalog.KnowledgeProduct, searchTask string, rows [][]any,
 	classifications []string, timeout time.Duration) error {
 	type ref struct {

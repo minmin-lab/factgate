@@ -186,6 +186,11 @@ type pendingContext struct {
 	// its human subject (issue.go); they may submit the draft and watch or
 	// revoke the task.
 	IssuedBy *issuerRecord `json:"issued_by,omitempty"`
+	// AgentSubmitted marks a task the agent submitted for its human subject
+	// at creation (catalog delegated_authorization.agent_submits,
+	// KB1-LOOP-149): it was created AWAITING_APPROVAL with a pending OA
+	// draft, and no submitted callback is expected.
+	AgentSubmitted bool `json:"agent_submitted,omitempty"`
 }
 
 // delegated is the Catalog's delegated-authorization model, nil when the
@@ -202,6 +207,14 @@ func (s *Service) delegated() *catalog.DelegatedAuthorization {
 func (s *Service) childSelfConfirm() bool {
 	delegated := s.delegated()
 	return delegated != nil && delegated.ChildSelfConfirm
+}
+
+// agentSubmits reports whether a new task is submitted by the agent for its
+// human subject (catalog delegated_authorization.agent_submits): created
+// AWAITING_APPROVAL, its OA draft pending.
+func (s *Service) agentSubmits() bool {
+	delegated := s.delegated()
+	return delegated != nil && delegated.AgentSubmits
 }
 
 func New(config Config) (*Service, error) {

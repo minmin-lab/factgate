@@ -18,7 +18,7 @@ Agent 提交的结构化申请、QueryPlan、SQL、浏览器请求、网络回�
 | Agent 越权读取其他主体任务/结果 | Bearer Token 映射固定 Principal；任务和结果同时校验 principal、task、query 与 actor；越权按不存在返回；Principal 禁用后 Gateway 不再列出或执行工具 | 长期静态 Token 没有设备绑定、短期会话、组织级权限或外部会话吊销发布 |
 | Carol 读取敏感原始结果 | Carol 只注册两个审计工具，凭证不含结果行；Control PG 不保存 Parquet bytes | 同时拥有对象存储、数据密钥和元数据权限的管理员可以解密；审计元数据可能包含目标和 OA 信息 |
 | 客户端伪造授权字段 | 身份字段由 Gateway 生成；产品、字段和 Scope 必须显式且非空；OA 展示并绑定 RFC 8785 `AuthorizationManifestV1` 摘要 | 不验证自然语言目标与查询语义；审批人仍须核对结构化 Manifest |
-| 无资格主体把越权申请送进审批队列并依赖审批人误批 | Catalog `eligibility` 在建草稿前把申请人的证明属性（含带窗口的临时授权）编译成可申请包络，包络外直接 `NOT_ELIGIBLE`，不建任务、不设例外路由；委托按委托人属性评估；裁决连同属性快照摘要落入任务记录 | 属性快照是身份/HR 系统的输入，其正确性与时效属可信运维；包络只覆盖 `require` 与 enum Scope，不覆盖字段级或日期范围；误批仍受预算、TTL 与回执约束而非被阻止 |
+| 无资格主体把越权申请送进审批队列并依赖审批人误批 | Catalog `eligibility` 在建草稿前把申请人的证明属性（含带窗口的临时授权）编译成可申请范围，可申请范围外直接 `NOT_ELIGIBLE`，不建任务、不设例外路由；委托按委托人属性评估；裁决连同属性快照摘要落入任务记录 | 属性快照是身份/HR 系统的输入，其正确性与时效属可信运维；可申请范围只覆盖 `require` 与 enum Scope，不覆盖字段级或日期范围；误批仍受预算、TTL 与回执约束而非被阻止 |
 | 恶意 QueryPlan | 本地编译器验证产品、字段、聚合、过滤、排序、literal、Limit 与 Offset，随后进入完整 SQL AST 策略 | 编译器或策略实现缺陷仍需模糊测试和攻击语料覆盖 |
 | 通过拆分查询、重叠分页、新 request ID 或不同阈值重复提取数据 | release/influence/outcome 按 decoded FactID 集合结算；exact bitmap ANDNOT 只计 novel facts；OutcomeFact 绑定规范化命题与结果；终态 request replay 不重执行 | outcome 是每个成功命题一个单位，不估算信息量；不限制输出顺序、背景知识或跨 root 推断 |
 | 通过预算拒绝探测数据相关阈值 | 超预算结果始终在释放前丢弃，成功结算保持账本上限 | 接受/拒绝位本身不计 exposure，可能泄漏候选 Effect 是否超过剩余额度；当前机制不是 simulatable auditor，不能把拒绝称为无泄漏 |

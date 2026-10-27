@@ -58,7 +58,7 @@ func (s *Service) approverEligibility(products []catalog.Product, approver strin
 	verdict, err := s.compileEligibility(products, approver, scope, now)
 	if err != nil {
 		return nil, &mcp.ToolError{Code: apierr.CodeApproverNotAuthorized,
-			Message: "审批人 " + approver + " 无权审批此任务：其资格包络不覆盖所申请的范围（例如密级）"}
+			Message: "审批人 " + approver + " 无权审批此任务：按其属性推出的范围不覆盖所申请的范围（例如密级）"}
 	}
 	return verdict, nil
 }

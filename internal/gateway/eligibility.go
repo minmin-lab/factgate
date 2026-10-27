@@ -102,7 +102,7 @@ func (s *Service) compileEligibility(products []catalog.Product, subject string,
 	sort.Slice(governed, func(i, j int) bool { return governed[i].Name < governed[j].Name })
 	snapshot := s.principalAttributes
 	if snapshot == nil {
-		return nil, notEligible("部署未配置主体属性快照，无法编译资格包络")
+		return nil, notEligible("部署未配置主体属性快照，无法推出可申请范围")
 	}
 	if !snapshot.Known(subject) {
 		return nil, notEligible("申请人不在主体属性快照中，不具备申请资格")
@@ -133,7 +133,7 @@ func (s *Service) compileEligibility(products []catalog.Product, subject string,
 			rule := product.Eligibility.ScopeEnvelope[name]
 			requested, ok := scopeStringValues(scope[name])
 			if !ok || len(requested) == 0 {
-				return nil, notEligible(fmt.Sprintf("数据产品 %s 的 %s 范围缺失，无法编译资格包络", product.Name, name))
+				return nil, notEligible(fmt.Sprintf("数据产品 %s 的 %s 范围缺失，无法推出可申请范围", product.Name, name))
 			}
 			source := envelopeSourceAttribute
 			admissible := snapshot.Values(subject, rule.FromAttribute, now)
@@ -143,7 +143,7 @@ func (s *Service) compileEligibility(products []catalog.Product, subject string,
 				sort.Strings(admissible)
 			}
 			if !subsetOfSorted(requested, admissible) {
-				return nil, notEligible(fmt.Sprintf("申请的 %s 范围超出申请人对数据产品 %s 的资格包络", name, product.Name))
+				return nil, notEligible(fmt.Sprintf("申请的 %s 范围超出申请人对数据产品 %s 的可申请范围", name, product.Name))
 			}
 			if trace.Envelope == nil {
 				trace.Envelope = make(map[string]eligibilityEnvelopeTrace)

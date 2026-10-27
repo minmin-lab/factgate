@@ -72,6 +72,12 @@ type DraftRequest struct {
 	// decision comes later than the request; the OA does so and decides
 	// "narrowed" (KB1-LOOP-147). Nil for a root task.
 	ParentExpiresAt *time.Time `json:"parent_expires_at,omitempty"`
+	// Submitted marks a draft the agent already submitted for its human
+	// subject (KB1-LOOP-149; the Catalog's delegated_authorization
+	// agent_submits): the task is AWAITING_APPROVAL from its creation, so
+	// the OA creates the draft pending, offers no submission and sends no
+	// submitted callback. False otherwise.
+	Submitted bool `json:"submitted,omitempty"`
 }
 
 // CanonicalJSON implements the JSON Canonicalization Scheme in RFC 8785 for

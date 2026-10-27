@@ -84,6 +84,10 @@ func publicDelegatedAuthorization(delegated catalog.DelegatedAuthorization) map[
 		public["personal_scope"] = delegated.PersonalScope
 		public["personal_rule"] = "根任务的所有产品都声明了 " + delegated.PersonalScope + "、且申请值恰为申请人本人的同名属性值时，由申请人本人确认，不论部门"
 	}
+	if delegated.AgentSubmits {
+		public["agent_submits"] = true
+		public["agent_submits_rule"] = "任务创建即由 agent 代人类主体提交：状态为 AWAITING_APPROVAL、OA 草稿即为待审批，人只需在 OA 批准"
+	}
 	return public
 }
 
@@ -456,10 +460,18 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if viewBinding != nil {
 		manifest.ViewBindingDigest = viewBinding.Digest
 	}
+	// Under agent_submits (KB1-LOOP-149) the agent submits the task for its
+	// human subject: the draft is created pending and the task awaits
+	// approval from its creation, so a person only approves.
+	agentSubmitted := s.agentSubmits()
+	initialState := control.TaskAwaitingSubmission
+	if agentSubmitted {
+		initialState = control.TaskAwaitingApproval
+	}
 	draftRequest := approval.DraftRequest{
 		Manifest:     manifest,
 		ApprovalMode: string(policy.ApprovalRoute.Mode), Approver: policy.ApprovalRoute.Approver,
-		MemberConfirm: memberConfirm,
+		MemberConfirm: memberConfirm, Submitted: agentSubmitted,
 	}
 	if issuedBy != nil {
 		draftRequest.IssuedBy = issuedBy.Subject
@@ -491,6 +503,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
 		VerifyApprover: selfConfirm || memberConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
 		Chain: chain, SelfConfirm: selfConfirm, MemberConfirm: memberConfirm, IssuedBy: issuedBy,
+		AgentSubmitted: agentSubmitted,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -502,9 +515,15 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if err != nil {
 		return nil, err
 	}
+	if agentSubmitted && draft.State != "pending" {
+		// An OA that took the draft as unsubmitted would wait for a person to
+		// submit what TaskGate already treats as submitted.
+		return nil, apierr.Wrap(apierr.CodeApprovalUnavailable, "OA 未把 agent 代交的草稿建为待审批；任务未创建",
+			fmt.Errorf("draft %s state %q", draft.DraftID, draft.State))
+	}
 	if err := s.store.CreateTask(ctx, control.Task{
 		ID: taskID, PrincipalID: taskPrincipalID, Objective: args.Objective,
-		State: control.TaskAwaitingSubmission, CatalogVersion: s.catalog.CatalogVersion,
+		State: initialState, CatalogVersion: s.catalog.CatalogVersion,
 		Sensitivity:    string(policy.Sensitivity),
 		RequestContext: pendingJSON, ApprovalRef: draft.DraftID, CreatedAt: now, UpdatedAt: now,
 		RootTaskID: rootTaskID, ParentTaskID: args.ParentTaskID,
@@ -519,8 +538,20 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 			return nil, err
 		}
 	}
+	if agentSubmitted {
+		submission := map[string]any{"human_subject": humanSubject, "agent_id": taskPrincipalID, "draft_id": draft.DraftID,
+			"approver": policy.ApprovalRoute.Approver, "self_confirm": selfConfirm, "member_confirm": memberConfirm}
+		if issuedBy != nil {
+			submission["issuer_subject"] = issuedBy.Subject
+		}
+		payload, _ := json.Marshal(submission)
+		if _, err := s.store.AppendAuditEvent(ctx, control.AuditEvent{TaskID: taskID, Actor: principal.ID,
+			EventType: "TASK_SUBMITTED_BY_AGENT", OccurredAt: now, Payload: payload}); err != nil {
+			return nil, err
+		}
+	}
 	result := map[string]any{
-		"task_id": taskID, "state": control.TaskAwaitingSubmission, "oa_url": draft.URL,
+		"task_id": taskID, "state": initialState, "oa_url": draft.URL,
 		"approval_mode": string(policy.ApprovalRoute.Mode), "sensitivity": string(policy.Sensitivity),
 		"approver": policy.ApprovalRoute.Approver, "approval_route": publicApprovalRoute(policy.ApprovalRoute),
 		"approver_chosen_by_requester": chosenApprover != "", "approver_authorized": approverAuthorized,
@@ -565,7 +596,10 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		// different OA link means the two configurations disagree.
 		s.logger.Warn("OA draft link differs from PUBLIC_OA_BASE_URL", "task_id", taskID, "oa_url", draft.URL)
 	}
-	mergeTaskFlow(result, s.taskFlow(control.Task{State: control.TaskAwaitingSubmission, RequestContext: pendingJSON, ApprovalRef: draft.DraftID}))
+	if agentSubmitted {
+		result["agent_submitted"] = true
+	}
+	mergeTaskFlow(result, s.taskFlow(control.Task{State: initialState, RequestContext: pendingJSON, ApprovalRef: draft.DraftID}))
 	return result, nil
 }
 

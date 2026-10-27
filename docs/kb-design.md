@@ -125,7 +125,7 @@ kb_publications:
 
 实现备注（K2.4 已落地，权威见 internal/catalog/knowledge.go 与 docs/catalog-guide.md "Knowledge Products"）：视图把 kb.* 的
 `department` 列别名为 `kb_department`，以免与 demo Catalog 既有的中文 `department` Scope 冲突；`classification` 作第二个强制
-Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住。`attributes[].scope` 必须与属性同名。片段由
+Scope，领导层专属章节由 `clearance` 属性的可申请范围在申请时挡住。`attributes[].scope` 必须与属性同名。片段由
 `catalog.MergeYAMLFragment` 追加进既有 Catalog（只追加顶层序列，不改写既有键）。
 校验（K2.4）：三个 Product 存在、均为 V4 publication、source_namespace 前缀一致、`values` 产品字段含
 `field/value_type/canonical_value/value_text/value_numeric/value_date`；`attributes[].scope` 必须是本 knowledge product 的 mandatory scope 且为 enum；
@@ -150,7 +150,7 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 规范形（h_N 的原像）：
 - 过滤原子：`(attribute, op, canonical_literal)`，op ∈ {=, <>, <, <=, >, >=, in}（`in` 展开为同字段多原子，与现有
   predicate-footprint 的 IN 处理一致）；字面量按属性类型用现有 `CanonicalSQLValue` 规范化；原子按 (attribute, op, literal)
-  字节序排序去重；强制范围与资格包络注入后再排序，调用方原子只能与之相交。
+  字节序排序去重；强制范围与可申请范围注入后再排序，调用方原子只能与之相交。
 - 查询承诺：文本 → Unicode NFC → 大小写折叠 → 空白折叠为单空格并 trim → sha256；向量 → 维度核对 → int16 定点量化
   （scale 入 embedding.quantization）→ 小端字节串 → sha256。文本与向量二选一。
 - k：1 ≤ k ≤ k_max 的整数。
@@ -200,7 +200,7 @@ Scope，领导层专属章节由 `clearance` 属性的包络在申请时挡住�
 
 ## 6. 任务契约与资格
 
-T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1 的 eligibility 编译包络（`knowledge_products[].eligibility`
+T 不变。P：请求命名知识产品、属性范围与目的，先经阶段 1 的 eligibility 推出可申请范围（`knowledge_products[].eligibility`
 与 Product 同一结构与代码路径）；S 绑定 `kb_publications[].epoch` 的 manifest_digest（进入 Grant 的 catalog 绑定，
 与 snapshot publication 的 digest 绑定方式相同）；C 绑定 segmentation/embedding/extraction_rules 三个摘要、k_max、
 聚合白名单、generation_admitted；B 为同一三元组与 B_Q。临时授权 = 任务 TTL + 属性有效期窗口（阶段 1 已实现）。
@@ -451,7 +451,7 @@ effect.go 与 kboracle 都从 NormalForm 取 h_N，关键词形态自动覆盖�
     - chunks：doc_id、version、chunk_index、text_sha256，外加正文交付列 text；
     - documents：doc_id、version、title、chunk_count；
     - include_values 时加 values：field、value_type、canonical_value。
-  - 范围：缺省为申请人的资格包络（department 与 classification）。调用方可以给更窄的范围。资格先于审批，沿用现有 compileEligibility。
+  - 范围：缺省为申请人的可申请范围（department 与 classification）。调用方可以给更窄的范围。资格先于审批，沿用现有 compileEligibility。
   - 下载清单进授权单的保留范围键 `kb_documents`：值是排序去重的 `"doc_id@version"` 字符串列表。
     - OA 原样显示该列表；缩小 = 取非空子集，沿用 `scopeValueNarrower`（internal/domain/authorization.go:526-545）。审批协议不改。
     - 该键不参与产品范围编译（不是目录 scope），由下载转换器自己判成员。
