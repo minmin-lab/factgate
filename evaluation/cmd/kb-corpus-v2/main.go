@@ -3,6 +3,11 @@
 // Claude Code invocation (claude -p) that writes Chinese prose; every document
 // is validated against its plan before it is appended to documents.jsonl, and
 // the run's cost is recorded. The result is frozen by digest, not regenerable.
+//
+// -plan v3 sends the five-grade v3 plan (kbcorpus.PlanV3) instead and stamps
+// the manifest with the v3 version and generator. A run holds <out>/.lock
+// (created with O_EXCL, holding its pid) so two runs never append to the same
+// output directory.
 package main
 
 import (
@@ -16,8 +21,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"taskbound.local/agent-data-gateway/evaluation/kbcorpus"
@@ -53,6 +61,7 @@ func main() {
 	budgetUSD := flag.Float64("budget-usd", 120, "stop when cumulative cost exceeds this")
 	freeze := flag.String("freeze", "", "write manifest-v2.json here at the end (also written to -out)")
 	parallel := flag.Int("parallel", 1, "batches generated concurrently")
+	planName := flag.String("plan", "v2", "metadata plan: v2 (four grades, kbcorpus.Generate) or v3 (five grades, kbcorpus.PlanV3)")
 	flag.Parse()
 	if *parallel < 1 {
 		*parallel = 1
@@ -60,7 +69,21 @@ func main() {
 	if *claudeBin == "" {
 		fatal(fmt.Errorf("claude executable is required (-claude-bin or CLAUDE_CODE_EXECPATH)"))
 	}
-	plans, err := kbcorpus.Generate(kbcorpus.Spec{Seed: *seed, Documents: *documents})
+	spec := kbcorpus.Spec{Seed: *seed, Documents: *documents}
+	var plans []kbcorpus.Document
+	var err error
+	manifestVersion, manifestGenerator := kbcorpus.VersionV2, kbcorpus.GeneratorV2
+	prompt, apply := kbcorpus.BatchPrompt, kbcorpus.ApplyGenerated
+	switch *planName {
+	case "v2":
+		plans, err = kbcorpus.Generate(spec)
+	case "v3":
+		plans, err = kbcorpus.PlanV3(spec)
+		manifestVersion, manifestGenerator = kbcorpus.VersionV3, kbcorpus.GeneratorV3
+		prompt, apply = kbcorpus.BatchPromptV3, kbcorpus.ApplyGeneratedV3
+	default:
+		err = fmt.Errorf("-plan must be v2 or v3, got %q", *planName)
+	}
 	if err != nil {
 		fatal(err)
 	}
@@ -72,8 +95,12 @@ func main() {
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		fatal(err)
 	}
+	acquireLock(filepath.Join(*out, ".lock"))
 	outputPath := filepath.Join(*out, "documents.jsonl")
 	applied := loadExisting(outputPath)
+	if err := checkSamePlan(applied, plans); err != nil {
+		fatal(fmt.Errorf("%s was generated from a different plan than -plan %s -seed %d: %w", outputPath, *planName, *seed, err))
+	}
 	batchesPath := filepath.Join(*out, "batches.jsonl")
 	batchesFile, err := os.OpenFile(batchesPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -139,7 +166,7 @@ func main() {
 						record.DocIDs = append(record.DocIDs, versionKey(doc.DocID, doc.Version))
 					}
 					started := time.Now()
-					docs, cost, err := generateBatch(*claudeBin, *model, batch, appliedSnapshot)
+					docs, cost, err := generateBatch(*claudeBin, *model, prompt, apply, batch, appliedSnapshot)
 					record.DurationMS = time.Since(started).Milliseconds()
 					record.CostUSD = cost
 					if err != nil {
@@ -226,8 +253,8 @@ func main() {
 	}
 	counts := kbcorpus.CountDocuments(docs)
 	sum := sha256.Sum256(data)
-	manifest := kbcorpus.ManifestV2{Version: kbcorpus.VersionV2, Generator: kbcorpus.GeneratorV2,
-		PlanSpec: kbcorpus.Spec{Seed: *seed, Documents: *documents}, PlanSHA256: hex.EncodeToString(planDigest[:]),
+	manifest := kbcorpus.ManifestV2{Version: manifestVersion, Generator: manifestGenerator,
+		PlanSpec: spec, PlanSHA256: hex.EncodeToString(planDigest[:]),
 		Model: *model, BatchSize: *batchSize, Batches: countLines(batchesPath), Retries: retries, TotalCostUSD: sumCost(batchesPath),
 		Counts: counts, DocumentsBytes: int64(len(data)), DocumentsSHA256: hex.EncodeToString(sum[:])}
 	encoded, _ := json.MarshalIndent(manifest, "", "  ")
@@ -242,6 +269,48 @@ func main() {
 	}
 	fmt.Printf("documents=%d versions=%d planned=%d generated_now=%d cost_usd=%.4f sha256=%s\n",
 		counts.Documents, counts.Versions, len(plans), generated, manifest.TotalCostUSD, manifest.DocumentsSHA256)
+	releaseLock()
+}
+
+// lockPath is the held <out>/.lock, removed on normal exit, on fatal and on
+// SIGINT/SIGTERM. A SIGKILL leaves it behind; the refusal message says how to
+// clear it.
+var lockPath string
+
+func acquireLock(path string) {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			holder, _ := os.ReadFile(path)
+			fatal(fmt.Errorf("%s exists (pid %s): another run is writing this output directory; if no such process is running, remove the file and retry",
+				path, strings.TrimSpace(string(holder))))
+		}
+		fatal(err)
+	}
+	lockPath = path
+	_, writeErr := file.WriteString(strconv.Itoa(os.Getpid()) + "\n")
+	closeErr := file.Close()
+	if writeErr != nil {
+		fatal(writeErr)
+	}
+	if closeErr != nil {
+		fatal(closeErr)
+	}
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		received := <-signals
+		releaseLock()
+		fmt.Fprintf(os.Stderr, "kb-corpus-v2: %v received, lock released\n", received)
+		os.Exit(1)
+	}()
+}
+
+func releaseLock() {
+	if lockPath != "" {
+		_ = os.Remove(lockPath)
+		lockPath = ""
+	}
 }
 
 func versionKey(docID string, version int) string { return fmt.Sprintf("%s v%d", docID, version) }
@@ -274,8 +343,42 @@ func loadExisting(path string) map[string]kbcorpus.Document {
 	return applied
 }
 
-func generateBatch(claudeBin, model string, batch []kbcorpus.Document, applied map[string]kbcorpus.Document) ([]kbcorpus.Document, float64, error) {
-	prompt, err := kbcorpus.BatchPrompt(kbcorpus.PlanItems(batch))
+// checkSamePlan refuses to resume into an output directory whose documents
+// disagree with the current plan on any planned attribute (a v2 directory
+// resumed with -plan v3, or another seed): resuming would skip their keys as
+// done and stamp the manifest with the wrong plan. Keys outside the plan are
+// left alone, as before.
+func checkSamePlan(applied map[string]kbcorpus.Document, plans []kbcorpus.Document) error {
+	byKey := make(map[string]kbcorpus.Document, len(plans))
+	for _, plan := range plans {
+		byKey[versionKey(plan.DocID, plan.Version)] = plan
+	}
+	for key, doc := range applied {
+		plan, ok := byKey[key]
+		if !ok {
+			continue
+		}
+		if doc.Classification != plan.Classification || doc.JobRole != plan.JobRole || doc.DocumentType != plan.DocumentType ||
+			doc.Department != plan.Department || len(doc.Sections) != len(plan.Sections) {
+			return fmt.Errorf("%s: document attributes differ from the plan", key)
+		}
+		for index, section := range doc.Sections {
+			if section.Heading != plan.Sections[index].Heading || section.Classification != plan.Sections[index].Classification {
+				return fmt.Errorf("%s: section %d is %q [%s], plan has %q [%s]", key, index, section.Heading, section.Classification,
+					plan.Sections[index].Heading, plan.Sections[index].Classification)
+			}
+		}
+	}
+	return nil
+}
+
+// generateBatch renders the batch with render and validates each reply with
+// apply (ApplyGenerated for v2, ApplyGeneratedV3 for v3); any rejection fails
+// the whole batch, which the caller retries.
+func generateBatch(claudeBin, model string, render func([]kbcorpus.GenerationItem) (string, error),
+	apply func(kbcorpus.Document, kbcorpus.GeneratedDocument, *kbcorpus.Document) (kbcorpus.Document, error),
+	batch []kbcorpus.Document, applied map[string]kbcorpus.Document) ([]kbcorpus.Document, float64, error) {
+	prompt, err := render(kbcorpus.PlanItems(batch))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -321,7 +424,7 @@ func generateBatch(claudeBin, model string, batch []kbcorpus.Document, applied m
 				previous = &prior
 			}
 		}
-		doc, err := kbcorpus.ApplyGenerated(plan, item, previous)
+		doc, err := apply(plan, item, previous)
 		if err != nil {
 			return nil, envelope.TotalCostUSD, err
 		}
@@ -372,6 +475,7 @@ func sumCost(path string) float64 {
 }
 
 func fatal(err error) {
+	releaseLock()
 	fmt.Fprintln(os.Stderr, "kb-corpus-v2:", err)
 	os.Exit(1)
 }

@@ -609,8 +609,10 @@ func compileAndBind(ctx context.Context, spec Spec, prepared Prepared, files []F
 	}
 	manifest.Counts = Counts{Documents: len(seen), DocumentVersions: len(prepared.Documents), Chunks: len(prepared.Chunks),
 		Values: len(prepared.Values), Labels: len(prepared.Labels)}
+	// LeadershipChunks counts the highest grade of either vocabulary:
+	// leadership (corpus v1/v2) and top_secret (corpus v3).
 	for _, chunk := range prepared.Chunks {
-		if chunk.Classification == "leadership" {
+		if chunk.Classification == kbcorpus.ClassificationLeadership || chunk.Classification == kbcorpus.ClassificationTopSecret {
 			manifest.Counts.LeadershipChunks++
 		}
 	}

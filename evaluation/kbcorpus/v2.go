@@ -27,7 +27,20 @@ var departmentNamesZH = map[string]string{
 
 var documentTypeNamesZH = map[string]string{"contract": "合同", "approval": "审批单", "policy": "制度", "report": "报告"}
 
-var classificationNamesZH = map[string]string{"public": "公开", "internal": "内部", "confidential": "机密", "leadership": "领导层专属"}
+// classificationNamesZH names both grade vocabularies: v1/v2 (public,
+// internal, confidential, leadership) and v3 (public, internal, secret,
+// confidential, top_secret).
+var classificationNamesZH = map[string]string{"public": "公开", "internal": "内部", "confidential": "机密", "leadership": "领导层专属",
+	"secret": "秘密", "top_secret": "绝密"}
+
+// nameZH looks a value up in a Chinese name table and falls back to the value
+// itself when the table does not name it.
+func nameZH(names map[string]string, value string) string {
+	if name, ok := names[value]; ok {
+		return name
+	}
+	return value
+}
 
 // GenerationItem is one document version the model must write. For a second
 // version only the last section is requested; the earlier sections are copied
@@ -62,16 +75,16 @@ func PlanItems(plans []Document) []GenerationItem {
 	items := make([]GenerationItem, 0, len(plans))
 	for _, plan := range plans {
 		item := GenerationItem{DocID: plan.DocID, Version: plan.Version, DocumentType: plan.DocumentType,
-			DocumentTypeZH: documentTypeNamesZH[plan.DocumentType], Department: plan.Department, DepartmentZH: departmentNamesZH[plan.Department],
-			Classification: plan.Classification, ClassificationZH: classificationNamesZH[plan.Classification],
+			DocumentTypeZH: nameZH(documentTypeNamesZH, plan.DocumentType), Department: plan.Department, DepartmentZH: nameZH(departmentNamesZH, plan.Department),
+			Classification: plan.Classification, ClassificationZH: nameZH(classificationNamesZH, plan.Classification),
 			Labels: append([]string{}, plan.Labels...), ValidFrom: plan.ValidFrom, ValidUntil: plan.ValidUntil, Fields: plan.Fields}
 		if plan.Version > 1 {
 			item.RevisionOf = fmt.Sprintf("%s v%d", plan.DocID, plan.Version-1)
 			last := plan.Sections[len(plan.Sections)-1]
-			item.Sections = []SectionPlan{{Index: len(plan.Sections) - 1, Heading: last.Heading, Classification: last.Classification, ClassificationZH: classificationNamesZH[last.Classification]}}
+			item.Sections = []SectionPlan{{Index: len(plan.Sections) - 1, Heading: last.Heading, Classification: last.Classification, ClassificationZH: nameZH(classificationNamesZH, last.Classification)}}
 		} else {
 			for index, section := range plan.Sections {
-				item.Sections = append(item.Sections, SectionPlan{Index: index, Heading: section.Heading, Classification: section.Classification, ClassificationZH: classificationNamesZH[section.Classification]})
+				item.Sections = append(item.Sections, SectionPlan{Index: index, Heading: section.Heading, Classification: section.Classification, ClassificationZH: nameZH(classificationNamesZH, section.Classification)})
 			}
 		}
 		item.SectionCount = len(item.Sections)
@@ -80,8 +93,32 @@ func PlanItems(plans []Document) []GenerationItem {
 	return items
 }
 
-// BatchPrompt renders the instruction for one batch.
+// promptGradeRuleV2 is rule 5 of the four-grade (v2) prompt, unchanged.
+const promptGradeRuleV2 = `5. 密级为 leadership（领导层专属）的节要写成只有管理层才能看到的评估或决策内容；其他节不得泄露该节内容。
+`
+
+// promptGradeRuleV3 is rule 5 of the five-grade (v3) prompt.
+const promptGradeRuleV3 = `5. 每节的 classification 是该节密级，五级由低到高为 public（公开）、internal（内部）、secret（秘密）、confidential（机密）、top_secret（绝密）。内容的敏感程度要与本节密级相称：top_secret（绝密）的节写成只有管理层才能看到的评估或决策内容；confidential（机密）与 secret（秘密）的节写成限定知悉范围的敏感业务细节；高密级节的内容不得出现在密级更低的节中。
+`
+
+// promptGradeNameRuleV3 is rule 8 of the five-grade (v3) prompt: a section's
+// prose must not name a grade other than its own.
+const promptGradeNameRuleV3 = `8. 正文不得写出与本节密级不符的密级名（例如秘密级的节不得出现"机密""绝密"字样）。
+`
+
+// BatchPrompt renders the instruction for one batch of the four-grade (v2)
+// plan. Its text is unchanged from corpus v2.
 func BatchPrompt(items []GenerationItem) (string, error) {
+	return batchPrompt(items, promptGradeRuleV2, "")
+}
+
+// BatchPromptV3 renders the instruction for one batch of the five-grade (v3)
+// plan: rule 5 names the five grades and rule 8 forbids naming another grade.
+func BatchPromptV3(items []GenerationItem) (string, error) {
+	return batchPrompt(items, promptGradeRuleV3, promptGradeNameRuleV3)
+}
+
+func batchPrompt(items []GenerationItem, gradeRule, extraRule string) (string, error) {
 	plan, err := json.MarshalIndent(items, "", " ")
 	if err != nil {
 		return "", err
@@ -95,10 +132,13 @@ func BatchPrompt(items []GenerationItem) (string, error) {
 2. 每份文档输出的 sections 数量必须恰好等于该文档的 section_count，index 必须与计划中列出的 index 完全一致；绝不新增或删除节；不要输出 heading 和 classification（计划已给定）。
 3. 每节 text 为 150 到 400 个汉字的连贯段落，不含换行、不含 "## "。文风按文档类型：合同像合同条款，审批单像审批说明，制度像制度条文，报告像工作报告。
 4. 正文必须自然地提到计划 fields 里的值（编号、金额、对方、日期等按原样出现，金额可带"元"）。
-5. 密级为 leadership（领导层专属）的节要写成只有管理层才能看到的评估或决策内容；其他节不得泄露该节内容。
-6. revision_of 非空的条目是修订版：只需写出计划中给出的那一节（最后一节），内容应是对原节的修订，其余节会从原版复制。
+`)
+	out.WriteString(gradeRule)
+	out.WriteString(`6. revision_of 非空的条目是修订版：只需写出计划中给出的那一节（最后一节），内容应是对原节的修订，其余节会从原版复制。
 7. title 为 8 到 30 个汉字的标题，体现部门与主题；不同文档的标题与正文不要雷同。
-
+`)
+	out.WriteString(extraRule)
+	out.WriteString(`
 元数据计划：
 `)
 	out.Write(plan)
