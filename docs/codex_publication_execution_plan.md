@@ -2850,3 +2850,4 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-27 12:56 UTC+8] KB1-LOOP-147 **作者放行后重建：OA e16d51d1…（分组下拉）与网关 7a777b91…（规则文字）上线，密级标准名与分组在线上核过，冒烟与审批场景通过**。
   - 待审闸门：作者 11:50 的 task_388d0ad1… 仍 AWAITING_APPROVAL，作者回复"重建"后才重建（该草稿随之丢失）。两个知识产品激活，网关 0 条 ERROR，公网登录页 200。
   - **实跑**：以 staff 登录，身份下拉三个 optgroup（管理线/业务线/研发线，各 9 个账号，分管领导在首位），staff 在组外最前；场景 C 草稿页摘要"密级 内部、绝密；部门 工程部、财务部"，无"领导层专属"，审批进度六级显示名正确；场景 D 草稿显示第一级缩小后的"内部；财务部"（预期）。kb-formal-smoke -usability 两个知识产品退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized。
+- [2026-10-27 12:59 UTC+8] KB1-LOOP-147 **作者定：身份下拉一选即切，不再点按钮**。CSP 只允许同源脚本，故 OA 自己提供 /switch.js（选中即提交并隐藏按钮；无脚本时按钮仍在），导航里引用。oademo 测试断言脚本引用与 /switch.js 内容；oademo ok。

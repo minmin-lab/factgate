@@ -281,6 +281,7 @@ func (s *Server) Handler() http.Handler {
 	router.Post("/login", s.login)
 	router.With(s.requireSession, s.requireCSRF).Post("/logout", s.logout)
 	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
+	router.Get("/switch.js", switchScript)
 	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
 	router.Group(func(protected chi.Router) {

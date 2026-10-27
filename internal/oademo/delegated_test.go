@@ -140,8 +140,11 @@ func TestAccountSwitchIsOfferedOnlyInTheSharedPasswordMode(t *testing.T) {
 	_, httpServer, _ := delegatedOA(t, true)
 	staff := login(t, httpServer.URL, "staff", "shared")
 	page := get(t, staff, httpServer.URL+"/tasks")
-	if !strings.Contains(page, `action="/switch"`) || !strings.Contains(page, `<option value="staff" selected>`) {
+	if !strings.Contains(page, `action="/switch"`) || !strings.Contains(page, `<option value="staff" selected>`) || !strings.Contains(page, `<script src="/switch.js">`) {
 		t.Fatalf("no account switcher: %s", page)
+	}
+	if status, script := getStatus(t, http.DefaultClient, httpServer.URL+"/switch.js"); status != http.StatusOK || !strings.Contains(script, `form.submit()`) {
+		t.Fatalf("switch script %d: %s", status, script)
 	}
 	// The switcher is grouped by business line: the ungrouped tester first,
 	// then each line in the labels file's order with the members it has.
