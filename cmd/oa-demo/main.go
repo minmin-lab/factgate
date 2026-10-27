@@ -56,6 +56,7 @@ func main() {
 		ExtraUsers:       extraUsersFromEnv(),
 		OmitBuiltinUsers: omitBuiltin,
 		AllowSwitch:      omitBuiltin && os.Getenv("OA_SHARED_PASSWORD") != "",
+		DefaultAccount:   env("OA_DEFAULT_ACCOUNT", ""),
 		Labels:           labels,
 		ReceiptSigner:    receiptSigner,
 		Logger:           logger,

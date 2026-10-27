@@ -62,6 +62,9 @@ type Config struct {
 	// AllowSwitch offers a logged-in user a switch to any other configured
 	// account without a password (the shared-password demo mode only).
 	AllowSwitch bool
+	// DefaultAccount is the identity a password-only login starts as; empty
+	// means the first requester in switcher order.
+	DefaultAccount string
 	// Labels are display names for Catalog identifiers (pages.go).
 	Labels        Labels
 	HTTPClient    *http.Client
@@ -369,6 +372,11 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 // defaultAccount is the identity a password-only login lands on in the
 // shared-password mode: the first requester (the tester's own account).
 func (s *Server) defaultAccount() string {
+	if name := strings.ToLower(strings.TrimSpace(s.config.DefaultAccount)); name != "" {
+		if _, ok := s.users[name]; ok {
+			return name
+		}
+	}
 	options := s.loginOptions()
 	if len(options) == 0 {
 		return ""

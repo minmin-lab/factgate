@@ -302,6 +302,26 @@ func TestADelegatedDecisionIsShortenedToTheParentsRemainingTime(t *testing.T) {
 // the session starts as the default (first requester) account, and the
 // identity is switched afterwards. A login that names an account still works
 // (the scripts do that).
+func TestAConfiguredDefaultAccountWinsOverSwitcherOrder(t *testing.T) {
+	gateway := &fakeGateway{answers: map[string]fakeAnswer{}}
+	callback := httptest.NewServer(gateway)
+	t.Cleanup(callback.Close)
+	server, err := New(Config{ServiceToken: "service", CallbackSecret: "callback", SessionSecret: "session", CallbackURL: callback.URL,
+		OmitBuiltinUsers: true, AllowSwitch: true, DefaultAccount: "staff",
+		ExtraUsers: []ExtraUser{{Name: "staff", Role: "both", Password: "shared"}, {Name: "engineering-a-head", Role: "both", Password: "shared"},
+			{Name: "finance-admin", Role: "approver", Password: "shared"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if server.defaultAccount() != "staff" {
+		t.Fatalf("default account %q, want the configured staff over engineering-a-head", server.defaultAccount())
+	}
+	server.config.DefaultAccount = "nobody"
+	if server.defaultAccount() != "engineering-a-head" {
+		t.Fatalf("an unknown configured default did not fall back to switcher order: %q", server.defaultAccount())
+	}
+}
+
 func TestPasswordOnlyLoginLandsOnTheDefaultAccount(t *testing.T) {
 	_, httpServer, _ := delegatedOA(t, true)
 	page := get(t, http.DefaultClient, httpServer.URL+"/login")

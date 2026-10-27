@@ -181,7 +181,7 @@ OA Demo 对回调最多尝试 3 次。企业 OA 应采用持久化 Outbox、指�
 - `GET /tasks`：待办（待提交或待审批、与本人相关的草稿）；`GET /history`：本人提交、代开或审批过的全部草稿；`GET /tasks/{draftID}`：查看草稿（一句话摘要、审批进度、范围与预算；Task ID、摘要等技术标识折叠在"技术细节"里）。
 - `POST /tasks/{draftID}/submit`：申请人本人或代开人（草稿的 issued_by）可提交；成员确认子任务（草稿的 `member_confirm`）的受托成员也可提交并确认；待办总览与"切换到 X 并提交"对这类草稿指向该成员。
 - `POST /tasks/{draftID}/decision`：有审批能力的账号可批准/拒绝/缩小指派给自己的 pending 人工任务。缩小表单是勾选框（`approved_products`、`column:<产品>`、`scope:<范围>`、`scope_from:/scope_to:<范围>` 多值字段）；脚本仍可提交原来的 JSON 字段 `approved_products`、`approved_columns`、`mandatory_scope`。
-- `POST /switch`：共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下切换到任一配置账号，不用再输口令；其他模式返回 404。
+- `POST /switch`：共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下切换到任一配置账号，不用再输口令；其他模式返回 404。只输口令登录的起始身份由 `OA_DEFAULT_ACCOUNT` 指定，缺省取切换顺序里的第一个申请人。
 - `OA_LABELS_FILE`：可选 YAML（`scopes`、`values`、`products` 三个映射，加 `groups` 列表），给目录标识符配中文显示名；`groups` 每项 `{label, members}` 把身份切换下拉按业务线分组（`<optgroup>`），不在任何组里的账号排在最前；缺省显示标识符、不分组。
 - 修改操作使用 CSRF Token；会话 Cookie 为签名值、`HttpOnly`、`SameSite=Lax`，有 TLS 时才设置 `Secure`。
 - 密码启动时转换为 bcrypt Hash，明文从内存配置结构清除。
