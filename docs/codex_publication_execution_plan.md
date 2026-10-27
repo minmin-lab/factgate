@@ -2886,3 +2886,10 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 作者 21:1x 在 Windows 侧 `nvidia-smi -lgc 1500,1500`，空闲读数仍 2280；我加 10 秒矩阵负载实测 SM 稳在 1500 MHz，判定锁定生效，免去重启。HDMI 未接。21:19 切换：停 CPU 预热与服务，起 cuda 服务（批 16、停 150 ms），续跑 kb-publish 预热；21:34 结束，新增 45006 条向量（缓存 185845），服务 0 次 500，GPU 59–66 度，无掉卡。
   - 过失：停服务用 `pkill -f "uvicorn …"`，模式匹配到工具 shell 自身命令行，shell 被杀（退出 144）。违反 AGENTS 查证做法第 6 条。防再犯：本会话后续一律用方括号技巧 `pkill -f "[u]vicorn …"`；本条即第一次登记。
   - 闸门（单独一步）：控制库 ACTIVE 45、ARCHIVED 210、AWAITING 4，最近 3 小时无新建待审；重建按已批准方案清空全部任务。
+- [2026-10-27 21:43 UTC+8] KB1-LOOP-148 **第二轮上线：五级密级语料、六张报表、五层岗位与中心、三条通用规则全部在演示栈实跑通过**（实跑）。
+  - 重建：21:36 deploy-148.sh（down -v → promote-148 → up.sh → 隧道 → shim），21:39:36 READY，共 3 分 25 秒。第一次启动被我自己的前置检查拦下（只看了 CPU 预热日志），改为核最近一次预热日志后重跑；栈未受影响。
+  - 结果：两个 epoch policy-kb-2026-10-bge-v3 / policy-kb-small-2026-10-v3 激活（大库发布 71 秒，缓存全命中）；原件 10469；报表六个发布物 sidecar 装入，manifest 摘要与 C+D 在临时库跑出的逐一相同；目录 kb-demo-v2-reports-five-grades-v1，14 个关系，schema_digest bafe622c…，catalog sha 8dcccf87…；网关 36a6f986…（51a6caeb）、OA 14ebbda2…（6e897fc5）；控制库 103 主体；公网 OA 200，只输口令默认身份 staff，切换下拉 53 账号五组；shim、隧道在跑。
+  - 验收 verify-148.sh：smoke.py、demo-approver、demo-project、demo-delegated、demo-personal、demo-center、demo-admin、demo-hr、demo-reports、demo-leader 十个脚本全部退出 0（员工个人记录本人确认只见本人；中心主任本中心 9 人本人确认；管理员本部门按中心汇总；HR 全公司考勤本人确认、全公司工资项目走 vp-admin 且一年期；混合任务检索 5 命中 + KPI 聚合 8 行；副总条线 KPI、总经理绝密文档本人确认）。
+  - 冒烟首跑失败：链探测按每层首值申请到 top_secret，staff 的密级包络只到 secret（我在属性方案里设的员工上限），NOT_ELIGIBLE。我定：测试员工 staff 放开五级（第一轮"员工可申请任意密级、由链决定审批"的定法，且否则员工申请永远触发不到总经理层），60 个 E-KB2 示例主体保持分级；原地重跑属性脚本、--force-recreate 网关（目录不变、数据不丢）后两个知识产品冒烟均退出 0：链角色 requester_director, department_director, director, director, vice_president, vice_president, general_manager，实际决定者逐一相同；eligibility_other_department NOT_ELIGIBLE；usability_like_rows 3；目录摘要 8dcccf87… 与 catalog.yaml 一致。
+  - 正式轮守卫：evaluation/kbformal 未改；kb-formal profiles、config/catalog.yaml、compose.yaml 无 diff；冻结清单测试通过（kbcorpus 包 ok）。
+  - 未做：demo-misroute.sh 与 catalog-misrouted.yaml 仍是第一轮词汇；GPU 锁频由作者在 Windows 侧 `nvidia-smi -rgc` 解除。
