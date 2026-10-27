@@ -2878,3 +2878,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 全量 16:10:51 启动，20:33:18 主跑结束（10448 版本，1148 批，107 次失败重试：JSON 多余字段 16、节长度不足若干、密级名错配校验拦下 ≥4 批；名义费用 18.17 USD）；20:40:58 续跑补齐 21 个版本（名义累计 18.22 USD）。输出 /home/wmm/kb-demo/corpus-v3/documents.jsonl，sha256 a0ac1c00f18304d638eda487385f62ad9bb903b61205d2d9418c265b10293fc3，manifest version taskgate-kb-corpus-v3，batches 1151。
   - 核查：10469 版本、10000 文档、无重复；文档级 public 1828 / internal 4768 / secret 1390 / confidential 949 / top_secret 1534；节级 9084 / 23859 / 7030 / 4627 / 3583（共 48183 块，与 v2 块数相同）；文档级 = 节最高级 0 例外；正文他级密级名 0 处；10469 份正文标题与 sections 字段逐一匹配；中文标题七种；节长 100–354 字。
   - NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v3，sha 核对一致。specs/policy-kb-v3.json 与 small 已填入语料 sha；PDF 渲染中（24 进程）。
+- [2026-10-27 21:13 UTC+8] KB1-LOOP-148 **PDF 原件渲染完成；向量预热先以 CPU 起跑**（实跑）。
+  - render.py 24 进程 20:41–20:55 渲染 10469 份 PDF（822 MB）到 /home/wmm/kb-pdf/originals-v3/v3；清单移到 /home/wmm/kb-pdf/v3-manifest.jsonl（sha 984b0834…），版本集合与语料完全一致；specs/policy-kb-v3.json 与 small 的 corpus/files sha 已填（无占位）。
+  - 预热：GPU 仍未锁频（21:10 实测 2280 MHz），按掉卡史不在未锁频时用 GPU；21:12 以 CPU 服务（device=cpu）起 kb-publish 预热（不可达库 DSN，只写缓存），pid 2089953，日志 prewarm-cpu.log。第一次尝试在服务就绪前启动（连接拒绝，added=0），脚本已改为等健康检查。作者若锁频并拔 HDMI 可中途切 GPU，缓存按文本去重不重复算。
+  - 部署脚本 /home/wmm/kb-demo/deploy-148.sh（前置：最近一次预热 added>0、source/ 与 bin 提交一致、specs 无占位；顺序 down → promote-148 → up → 隧道 → shim）已备，未运行。
