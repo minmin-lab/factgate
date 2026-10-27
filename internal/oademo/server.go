@@ -474,9 +474,15 @@ func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
 	s.mu.RLock()
 	drafts := make([]Draft, 0, len(s.drafts))
+	// In the shared-password mode the page also lists what waits for the
+	// other accounts (otherTodos); the formal round's OA scans only its own.
+	var open []Draft
 	for _, draft := range s.drafts {
 		if draft.open() && visible(draft, data) {
 			drafts = append(drafts, cloneDraft(draft))
+		}
+		if s.config.AllowSwitch && draft.open() {
+			open = append(open, cloneDraft(draft))
 		}
 	}
 	s.mu.RUnlock()
@@ -485,7 +491,7 @@ func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 	for _, draft := range drafts {
 		views = append(views, s.view(draft))
 	}
-	s.render(w, "tasks", map[string]any{"Session": data, "Views": views})
+	s.render(w, "tasks", map[string]any{"Session": data, "Views": views, "Others": s.otherTodos(data, open)})
 }
 
 func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
@@ -504,13 +510,17 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// taskPage is what the task page renders: the view, and whether the session
-// may submit or decide the draft now.
+// taskPage is what the task page renders: the view, whether the session
+// may submit or decide the draft now, the switch to whoever acts on it
+// instead (shared-password mode), and whether the page refreshes itself.
 func (s *Server) taskPage(data sessionData, draft Draft) map[string]any {
+	canDecide := draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username)
 	return map[string]any{"Session": data, "View": s.view(draft),
 		"CanSubmit":   draft.State == "draft" && draft.relatesAsRequester(data.Username),
-		"CanDecide":   draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username),
-		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject)}
+		"CanDecide":   canDecide,
+		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject),
+		"SwitchTo":    s.switchOffer(data, draft),
+		"Refresh":     s.awaitsChange(draft, canDecide)}
 }
 
 // draftAccess decides whether the logged-in user may open a draft: a

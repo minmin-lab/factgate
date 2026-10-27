@@ -53,17 +53,26 @@ func (g *fakeGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(answer.body))
 }
 
+// event waits for the callback: the OA sends it from a goroutine, so it may
+// arrive after the action's response (reading the events once made the
+// delegated tests flaky).
 func (g *fakeGateway) event(t *testing.T, draft, actor, status string) callbackEvent {
 	t.Helper()
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	for _, event := range g.events {
-		if event.DraftID == draft && event.Actor == actor && event.Status == status {
-			return event
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		g.mu.Lock()
+		for _, event := range g.events {
+			if event.DraftID == draft && event.Actor == actor && event.Status == status {
+				g.mu.Unlock()
+				return event
+			}
 		}
+		g.mu.Unlock()
+		if time.Now().After(deadline) {
+			t.Fatalf("no %s callback by %s for %s", status, actor, draft)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatalf("no %s callback by %s for %s", status, actor, draft)
-	return callbackEvent{}
 }
 
 func chainOA(t *testing.T) (*Server, *httptest.Server, *fakeGateway) {

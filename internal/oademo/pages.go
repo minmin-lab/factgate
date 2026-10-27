@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -327,6 +328,8 @@ func (s *Server) history(w http.ResponseWriter, r *http.Request) {
 // switchAccount re-signs the session for another configured account. It is
 // offered only in the shared-password mode (Config.AllowSwitch): the accounts
 // then share one password, so switching reveals nothing a login would not.
+// It lands on next when that is the to-do list or a draft's page, otherwise
+// on the to-do list.
 func (s *Server) switchAccount(w http.ResponseWriter, r *http.Request) {
 	if !s.config.AllowSwitch {
 		http.NotFound(w, r)
@@ -340,7 +343,118 @@ func (s *Server) switchAccount(w http.ResponseWriter, r *http.Request) {
 	expires := s.config.Clock().Add(8 * time.Hour)
 	http.SetCookie(w, &http.Cookie{Name: "oa_session", Value: s.signSession(username, expires), Path: "/", HttpOnly: true,
 		SameSite: http.SameSiteLaxMode, Secure: r.TLS != nil, Expires: expires})
-	http.Redirect(w, r, "/tasks", http.StatusSeeOther)
+	next := "/tasks"
+	if candidate := r.Form.Get("next"); switchNext.MatchString(candidate) {
+		next = candidate
+	}
+	http.Redirect(w, r, next, http.StatusSeeOther)
+}
+
+// switchNext is where a switch may land: the to-do list or one draft's page.
+// Anything else (another site, "//host", "..", a query) falls back to /tasks.
+var switchNext = regexp.MustCompile(`^/tasks(/[A-Za-z0-9_-]+)?$`)
+
+// canAct reports whether username may act on the draft now: submit it (its
+// requester or issuer, while unsubmitted) or decide it (its current
+// approver, while pending) -- the checks submitDraft and decideDraft make.
+func (s *Server) canAct(draft Draft, username string) bool {
+	account, ok := s.users[strings.ToLower(username)]
+	if !ok {
+		return false
+	}
+	switch draft.State {
+	case "draft":
+		return draft.relatesAsRequester(username)
+	case "pending":
+		return account.CanApprove && draft.ApprovalMode == "manual" && strings.EqualFold(draft.Approver, username)
+	}
+	return false
+}
+
+// todoAccount is one other account's to-dos on the to-do page.
+type todoAccount struct {
+	ID, Name string
+	Drafts   []todoRow
+}
+
+type todoRow struct{ ID, State, Objective, Subject string }
+
+// otherTodos is the shared-password mode's overview of what waits for the
+// other accounts: in the switcher's order, each account that may act on an
+// open draft now, with those drafts newest first.
+func (s *Server) otherTodos(data sessionData, open []Draft) []todoAccount {
+	if !data.AllowSwitch || len(open) == 0 {
+		return nil
+	}
+	sort.Slice(open, func(i, j int) bool { return open[i].CreatedAt.After(open[j].CreatedAt) })
+	seen := map[string]bool{data.Username: true}
+	var accounts []todoAccount
+	for _, group := range data.AccountGroups {
+		for _, option := range group.Accounts {
+			if seen[option.ID] {
+				continue
+			}
+			seen[option.ID] = true
+			account := todoAccount{ID: option.ID, Name: option.Name}
+			for _, draft := range open {
+				if s.canAct(draft, option.ID) {
+					account.Drafts = append(account.Drafts, todoRow{ID: draft.ID, State: draft.State,
+						Objective: draft.Manifest.DeclaredObjective, Subject: s.displayName(draft.Manifest.HumanSubject)})
+				}
+			}
+			if len(account.Drafts) > 0 {
+				accounts = append(accounts, account)
+			}
+		}
+	}
+	return accounts
+}
+
+// switchOffer is the task page's one-click switch to whoever acts on the
+// draft now, when that is not the session (the shared-password mode only).
+type switchOffer struct{ ID, Name, Action string }
+
+func (s *Server) switchOffer(data sessionData, draft Draft) *switchOffer {
+	if !data.AllowSwitch {
+		return nil
+	}
+	var candidates []string
+	action := ""
+	switch {
+	case draft.State == "pending" && !strings.EqualFold(draft.Approver, data.Username):
+		candidates, action = []string{draft.Approver}, "审批"
+	case draft.State == "draft" && !draft.relatesAsRequester(data.Username):
+		candidates, action = []string{draft.Manifest.HumanSubject, draft.IssuedBy}, "提交"
+	}
+	for _, candidate := range candidates {
+		if name := strings.ToLower(candidate); name != "" && s.canAct(draft, name) {
+			return &switchOffer{ID: name, Name: s.users[name].Name, Action: action}
+		}
+	}
+	return nil
+}
+
+// answerWait is how long a decided draft's page keeps refreshing while
+// TaskGate's answer (the next approver, or why no grant was issued) has not
+// arrived; a final approval TaskGate simply takes leaves no note, so the
+// refresh ends with the window.
+const answerWait = 10 * time.Second
+
+// awaitsChange reports whether the task page should refresh itself: the
+// draft waits for someone else's decision (the approver's own page does not
+// refresh, so it keeps a narrowing form being filled in), or for TaskGate's
+// answer to a decision just made.
+func (s *Server) awaitsChange(draft Draft, canDecide bool) bool {
+	switch draft.State {
+	case "pending":
+		return !canDecide
+	case "approved", "narrowed":
+		if draft.Note != "" || len(draft.History) == 0 {
+			return false
+		}
+		return s.config.Clock().Sub(draft.History[len(draft.History)-1].At) < answerWait
+	}
+	return false
 }
 
 func draftIDParam(r *http.Request) string { return chi.URLParam(r, "draftID") }
@@ -352,7 +466,7 @@ func draftIDParam(r *http.Request) string { return chi.URLParam(r, "draftID") }
 func switchScript(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	_, _ = w.Write([]byte(`document.addEventListener("DOMContentLoaded", function () {
-  var form = document.querySelector('form[action="/switch"]');
+  var form = document.querySelector('nav form[action="/switch"]');
   if (!form) { return; }
   var select = form.querySelector('select[name="username"]');
   var button = form.querySelector('button[type="submit"]');
@@ -431,17 +545,18 @@ func (f formValues) get(key string) string {
 }
 
 const pageTemplates = `
-{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-bound OA Demo</title><style>
-body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:920px;margin:32px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:8px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8;margin-right:6px}nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}nav a{margin-right:12px}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}.summary{font-size:1.1em;line-height:1.6}.progress{list-style:none;padding:0;margin:8px 0}.progress li{padding:6px 0;border-bottom:1px dashed #e3e8ee}.progress .done::before{content:"✓ ";color:#2e7d32}.progress .current::before{content:"▶ ";color:#1769aa}.choices label{display:inline-block;margin:4px 12px 4px 0}details{margin-top:16px}details summary{cursor:pointer;color:#617080}code{word-break:break-all}table.history{width:100%;border-collapse:collapse}table.history td,table.history th{text-align:left;padding:8px 6px;border-bottom:1px solid #e3e8ee;vertical-align:top}
+{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}<title>Task-bound OA Demo</title><style>
+body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:920px;margin:32px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:8px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8;margin-right:6px}nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}nav a{margin-right:12px}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}.summary{font-size:1.1em;line-height:1.6}.progress{list-style:none;padding:0;margin:8px 0}.progress li{padding:6px 0;border-bottom:1px dashed #e3e8ee}.progress .done::before{content:"✓ ";color:#2e7d32}.progress .current::before{content:"▶ ";color:#1769aa}.choices label{display:inline-block;margin:4px 12px 4px 0}details{margin-top:16px}details summary{cursor:pointer;color:#617080}code{word-break:break-all}table.history{width:100%;border-collapse:collapse}table.history td,table.history th{text-align:left;padding:8px 6px;border-bottom:1px solid #e3e8ee;vertical-align:top}ul.todos{list-style:none;padding:0;margin:8px 0}ul.todos li{padding:8px 0;border-bottom:1px dashed #e3e8ee}
 </style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
 {{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1>{{if .PasswordOnly}}<p class="muted">输入口令登录。登录后默认是普通员工 {{.Default}} 的身份，页面右上角可随时切换为任一管理员、主任或分管领导。</p>{{else}}<p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{end}}{{if .Error}}<p class="error">{{if .PasswordOnly}}口令错误{{else}}用户名或密码错误{{end}}</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}">{{if not .PasswordOnly}}<p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p>{{end}}<p><label>{{if .PasswordOnly}}口令{{else}}密码{{end}}<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
 {{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{roleLabel .Role}}</div><div><a href="/tasks">待办</a><a href="/history">审批记录</a>{{if .AllowSwitch}}<form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>身份 <select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label> <button type="submit">切换身份</button></form><script src="/switch.js"></script> {{end}}<form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></nav>{{end}}
-{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>待办</h1><p class="muted">待提交或待审批的工单；已办结的在<a href="/history">审批记录</a>。</p>{{range .Views}}<div class="card"><span class="tag">{{stateLabel .Draft.State}}</span><span class="tag">{{.Kind}}</span><h2><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a></h2><p class="summary">{{.Summary}}</p><p class="muted">{{if .Draft.Approver}}当前审批人 {{.Draft.Approver}} · {{end}}Task {{.Draft.Manifest.TaskID}}</p>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无待办。</p></div>{{end}}{{template "foot" .}}{{end}}
+{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>待办</h1><p class="muted">待提交或待审批的工单；已办结的在<a href="/history">审批记录</a>。</p>{{range .Views}}<div class="card"><span class="tag">{{stateLabel .Draft.State}}</span><span class="tag">{{.Kind}}</span><h2><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a></h2><p class="summary">{{.Summary}}</p><p class="muted">{{if .Draft.Approver}}当前审批人 {{.Draft.Approver}} · {{end}}Task {{.Draft.Manifest.TaskID}}</p>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无待办。</p></div>{{end}}{{if .Others}}<h2>其他身份的待办</h2><p class="muted">以下工单正等待其他身份处理；点“切换并打开”即切换到该身份并打开工单。</p>{{range .Others}}{{$account := .ID}}<div class="card"><h3>{{.Name}}（{{len .Drafts}} 张）</h3><ul class="todos">{{range .Drafts}}<li><span class="tag">{{stateLabel .State}}</span>{{.Objective}} <span class="muted">· 申请人 {{.Subject}}</span> <form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="username" value="{{$account}}"><input type="hidden" name="next" value="/tasks/{{.ID}}"><button type="submit">切换并打开</button></form></li>{{end}}</ul></div>{{end}}{{end}}{{template "foot" .}}{{end}}
 {{define "history"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批记录</h1><p class="muted">你提交、代开或审批过的全部工单，按最近变动排序。</p>{{if .Views}}<div class="card"><table class="history"><tr><th>工单</th><th>状态</th><th>审批记录</th></tr>{{range .Views}}<tr><td><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a><br><span class="muted">{{.Kind}} · 申请人 {{.Draft.Manifest.HumanSubject}}{{if .Draft.IssuedBy}} · 代开人 {{.Draft.IssuedBy}}{{end}}</span></td><td>{{stateLabel .Draft.State}}</td><td>{{range .Progress}}{{if eq .Status "done"}}{{.Who}} {{.Decision}}（{{.When}}）<br>{{else}}等待 {{.Who}} {{.Label}}<br>{{end}}{{end}}{{if .Draft.Note}}<span class="muted">{{.Draft.Note}}</span>{{end}}</td></tr>{{end}}</table></div>{{else}}<div class="card"><p>暂无记录。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$view := .View}}{{$draft := .View.Draft}}{{$envelope := .View.Envelope}}<div class="card"><span class="tag">{{stateLabel $draft.State}}</span><span class="tag">{{$view.Kind}}</span><h1>{{$draft.Manifest.DeclaredObjective}}</h1><p class="summary">{{$view.Summary}}</p>
-{{if $view.Progress}}<h2>审批进度</h2><ol class="progress">{{range $view.Progress}}<li class="{{.Status}}">{{if eq .Status "done"}}{{.Who}} {{.Decision}} · {{.When}}{{else}}等待 {{.Who}}{{.Label}}{{end}}</li>{{end}}</ol>{{end}}{{if $draft.Note}}<p class="note">{{$draft.Note}}</p>{{end}}
+{{if $view.Progress}}<h2>审批进度</h2><ol class="progress">{{range $view.Progress}}<li class="{{.Status}}">{{if eq .Status "done"}}{{.Who}} {{.Decision}} · {{.When}}{{else}}等待 {{.Who}}{{.Label}}{{end}}</li>{{end}}</ol>{{end}}{{if $draft.Note}}<p class="note">{{$draft.Note}}</p>{{end}}{{if .Refresh}}<p class="muted">等待处理结果，本页每 3 秒自动刷新。</p>{{end}}
 <h2>{{if $envelope.Granted}}上一级批准的范围{{else}}申请的范围{{end}}</h2>{{if $envelope.Granted}}<p class="muted">本级在此基础上批准或缩小，不能扩大。</p>{{end}}<dl>{{range $view.Scopes}}<dt>{{.Label}}</dt><dd>{{if .Enum}}{{range $i, $v := .Values}}{{if $i}}、{{end}}{{$v.Label}}{{end}}{{else}}{{.From}} 至 {{.To}}{{end}}</dd>{{end}}<dt>数据产品与字段</dt><dd>{{range $view.Products}}<strong>{{.Label}}</strong>：{{range $i, $c := .Columns}}{{if $i}}、{{end}}{{$c}}{{end}}<br>{{end}}</dd><dt>预算与有效期</dt><dd>最多 {{$envelope.Budget.MaxQueries}} 次查询，每次最多 {{$envelope.Budget.MaxResultRows}} 行；有效期 {{humanDuration $envelope.Budget.TaskTTLMS}}{{if $envelope.Granted}}（从最后一级批准时起算）{{end}}</dd></dl>
+{{with .SwitchTo}}<form method="post" action="/switch"><input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="username" value="{{.ID}}"><input type="hidden" name="next" value="/tasks/{{$draft.ID}}"><button type="submit">切换到 {{.Name}} 并{{.Action}}</button></form>{{end}}
 {{if .CanSubmit}}<form method="post" action="/tasks/{{$draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}
 {{if .CanDecide}}<form class="inline" method="post" action="/tasks/{{$draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">{{if .SelfConfirm}}确认{{else}}按原申请批准{{end}}</button></form> <form class="inline" method="post" action="/tasks/{{$draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form>
 <form class="narrow" method="post" action="/tasks/{{$draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p class="muted">去掉不该给的项即可，只能缩小，不能扩大。</p>{{range $view.Scopes}}<p><strong>{{.Label}}</strong><br><span class="choices">{{if .Enum}}{{$scope := .Name}}{{range .Values}}<label><input type="checkbox" name="scope:{{$scope}}" value="{{.Value}}" checked> {{.Label}}</label>{{end}}{{else}}<label>从 <input type="date" name="scope_from:{{.Name}}" value="{{.From}}" min="{{.From}}" max="{{.To}}"></label> <label>至 <input type="date" name="scope_to:{{.Name}}" value="{{.To}}" min="{{.From}}" max="{{.To}}"></label>{{end}}</span></p>{{end}}<p><strong>数据产品与字段</strong></p>{{range $view.Products}}<p><label><input type="checkbox" name="approved_products" value="{{.Name}}" checked> <strong>{{.Label}}</strong></label><br><span class="choices">{{$product := .Name}}{{range .Columns}}<label><input type="checkbox" name="column:{{$product}}" value="{{.}}" checked> {{.}}</label>{{end}}</span></p>{{end}}<div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{$envelope.Budget.MaxQueries}}" value="{{$envelope.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{$envelope.Budget.MaxResultRows}}" value="{{$envelope.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{$envelope.Budget.MaxDBMS}}" value="{{$envelope.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{$envelope.Budget.PerQueryTimeoutMS}}" value="{{$envelope.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{$envelope.Budget.TaskTTLMS}}" value="{{$envelope.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}
