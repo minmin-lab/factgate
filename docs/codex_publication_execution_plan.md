@@ -2882,3 +2882,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - render.py 24 进程 20:41–20:55 渲染 10469 份 PDF（822 MB）到 /home/wmm/kb-pdf/originals-v3/v3；清单移到 /home/wmm/kb-pdf/v3-manifest.jsonl（sha 984b0834…），版本集合与语料完全一致；specs/policy-kb-v3.json 与 small 的 corpus/files sha 已填（无占位）。
   - 预热：GPU 仍未锁频（21:10 实测 2280 MHz），按掉卡史不在未锁频时用 GPU；21:12 以 CPU 服务（device=cpu）起 kb-publish 预热（不可达库 DSN，只写缓存），pid 2089953，日志 prewarm-cpu.log。第一次尝试在服务就绪前启动（连接拒绝，added=0），脚本已改为等健康检查。作者若锁频并拔 HDMI 可中途切 GPU，缓存按文本去重不重复算。
   - 部署脚本 /home/wmm/kb-demo/deploy-148.sh（前置：最近一次预热 added>0、source/ 与 bin 提交一致、specs 无占位；顺序 down → promote-148 → up → 隧道 → shim）已备，未运行。
+- [2026-10-27 21:35 UTC+8] KB1-LOOP-148 **GPU 预热完成；我犯了一次 pkill -f 自匹配**（实跑）。
+  - 作者 21:1x 在 Windows 侧 `nvidia-smi -lgc 1500,1500`，空闲读数仍 2280；我加 10 秒矩阵负载实测 SM 稳在 1500 MHz，判定锁定生效，免去重启。HDMI 未接。21:19 切换：停 CPU 预热与服务，起 cuda 服务（批 16、停 150 ms），续跑 kb-publish 预热；21:34 结束，新增 45006 条向量（缓存 185845），服务 0 次 500，GPU 59–66 度，无掉卡。
+  - 过失：停服务用 `pkill -f "uvicorn …"`，模式匹配到工具 shell 自身命令行，shell 被杀（退出 144）。违反 AGENTS 查证做法第 6 条。防再犯：本会话后续一律用方括号技巧 `pkill -f "[u]vicorn …"`；本条即第一次登记。
+  - 闸门（单独一步）：控制库 ACTIVE 45、ARCHIVED 210、AWAITING 4，最近 3 小时无新建待审；重建按已批准方案清空全部任务。
