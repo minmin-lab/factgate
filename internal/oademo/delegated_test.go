@@ -228,7 +228,8 @@ func TestCheckboxNarrowingMatchesTheJSONForm(t *testing.T) {
 }
 
 func TestHumanDurationAndKinds(t *testing.T) {
-	for ms, want := range map[int64]string{1_800_000: "30 分钟", 7_200_000: "2 小时", 86_400_000: "1 天", 31_536_000_000: "1 年", 1_500: "1500 毫秒"} {
+	for ms, want := range map[int64]string{1_800_000: "30 分钟", 7_200_000: "2 小时", 86_400_000: "1 天", 31_536_000_000: "1 年", 1_500: "1.5 秒",
+		599_998: "10 分钟", 129_600_000: "1.5 天", 500: "500 毫秒"} {
 		if got := humanDuration(ms); got != want {
 			t.Fatalf("humanDuration(%d) = %q, want %q", ms, got, want)
 		}
@@ -244,5 +245,42 @@ func TestHumanDurationAndKinds(t *testing.T) {
 	draft.Manifest.ParentTaskID = "root"
 	if kindLabel(draft) != "项目内查询" {
 		t.Fatalf("a child task is %q", kindLabel(draft))
+	}
+}
+
+// A delegated task's decision may not outlive its parent: the OA shortens
+// the TTL to what the parent has left and decides "narrowed".
+func TestADelegatedDecisionIsShortenedToTheParentsRemainingTime(t *testing.T) {
+	server, httpServer, gateway := delegatedOA(t, false)
+	request := staffDraft(t, "staff", "", 30*time.Minute)
+	parentExpiry := server.config.Clock().UTC().Add(10 * time.Minute)
+	request.ParentExpiresAt = &parentExpiry
+	draft := createDraft(t, httpServer.URL, request)
+	staff := login(t, httpServer.URL, "staff", "shared")
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, "有效期 10 分钟") {
+		t.Fatalf("the page does not show the parent's bound: %s", page)
+	}
+	if status := act(t, staff, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("submit: %d", status)
+	}
+	if status := act(t, staff, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
+		t.Fatalf("approve: %d", status)
+	}
+	settled := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "narrowed" })
+	event := gateway.event(t, draft, "staff", "narrowed")
+	if event.ApprovedGrant == nil || event.ApprovedGrant.Budget.TaskTTLMS > (10*time.Minute).Milliseconds() ||
+		event.ApprovedGrant.ExpiresAt.After(parentExpiry) || settled.ApprovalReceipt.Decision != approval.ApprovalDecisionNarrow {
+		t.Fatalf("shortened grant %+v receipt %+v", event.ApprovedGrant, settled.ApprovalReceipt)
+	}
+	// A parent that already expired refuses the decision.
+	expired := staffDraft(t, "staff", "", 30*time.Minute)
+	past := server.config.Clock().UTC().Add(-time.Minute)
+	expired.ParentExpiresAt = &past
+	gone := createDraft(t, httpServer.URL, expired)
+	if status := act(t, staff, httpServer.URL, gone, "submit", nil); status != http.StatusOK {
+		t.Fatalf("submit: %d", status)
+	}
+	if status := act(t, staff, httpServer.URL, gone, "decision", url.Values{"decision": {"approved"}}); status != http.StatusConflict {
+		t.Fatalf("deciding under an expired parent = %d, want 409", status)
 	}
 }

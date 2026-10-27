@@ -62,6 +62,12 @@ type DraftRequest struct {
 	// IssuedBy is the subject who issued the task for its human subject and
 	// may submit the draft in their place (KB1-LOOP-147); empty otherwise.
 	IssuedBy string `json:"issued_by,omitempty"`
+	// ParentExpiresAt is the parent grant's expiry of a delegated task. A
+	// grant is re-issued at decision time with the manifest's TTL, so an
+	// approver must shorten the TTL to what the parent has left when the
+	// decision comes later than the request; the OA does so and decides
+	// "narrowed" (KB1-LOOP-147). Nil for a root task.
+	ParentExpiresAt *time.Time `json:"parent_expires_at,omitempty"`
 }
 
 // CanonicalJSON implements the JSON Canonicalization Scheme in RFC 8785 for

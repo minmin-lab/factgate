@@ -63,7 +63,9 @@ Content-Type: application/json
 }
 ```
 
-所有审批请求都必须包含 `"approver":"bob"`。OA 必须返回 HTTP `201 Created`；响应不允许未知字段，`draft_id` 与 `url` 必须非空。Demo 同时返回 `state: draft`：
+所有审批请求都必须包含 `"approver":"bob"`。OA 必须返回 HTTP `201 Created`；响应不允许未知字段，`draft_id` 与 `url` 必须非空。Demo 同时返回 `state: draft`。
+
+manifest 之外还有两个可选的路由元数据字段（KB1-LOOP-147，不进摘要）：`issued_by`（代开人，可代为提交）与 `parent_expires_at`（委托任务父授权的到期时刻）。授权在决定时刻按 manifest 的 TTL 重新签发，决定晚于申请时子授权会超出父授权而被 TaskGate 以 409 拒绝；OA 须把 TTL 缩到父授权剩余时间，并按"缩小后批准"（narrowed）发出。Demo OA 自动这样做。
 
 ```json
 {

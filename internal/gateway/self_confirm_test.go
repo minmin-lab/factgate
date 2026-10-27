@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"taskbound.local/agent-data-gateway/internal/apierr"
 	"taskbound.local/agent-data-gateway/internal/approval"
@@ -182,5 +183,50 @@ func TestCallbackRefusesAnUnmarkedSelfApproval(t *testing.T) {
 	other := pendingContext{ApprovalMode: "manual", Approver: "bob"}
 	if !validCallbackActor(oaCallbackEvent{Status: "approved", Actor: "bob"}, other, "alice") {
 		t.Fatal("an ordinary approval was refused")
+	}
+}
+
+// A child's TTL is cut to the parent's remaining time when requested, but a
+// grant is re-issued from its decision time: a decision that comes later
+// outlives the parent unless its TTL is shortened, which the OA does as a
+// narrowing (approval.DraftRequest.ParentExpiresAt).
+func TestAChildDecidedLaterMustShortenItsTTLToTheParent(t *testing.T) {
+	h := newSelfConfirmHarness(t, true)
+	_, root, rootDraft, err := h.request("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code := h.approve(root, rootDraft, "bob"); code != http.StatusOK {
+		t.Fatalf("root approval = %d", code)
+	}
+	rootGrant, err := h.store.GetGrant(context.Background(), root.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, child, draft, err := h.request(root.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if draft.ParentExpiresAt == nil || !draft.ParentExpiresAt.Equal(rootGrant.ExpiresAt) {
+		t.Fatalf("child draft parent expiry %v, want the root grant's %v", draft.ParentExpiresAt, rootGrant.ExpiresAt)
+	}
+	// The decision comes a minute later: as made, the child would outlive the root.
+	h.clock.value = h.clock.value.Add(time.Minute)
+	asMade, err := domain.CoreFromManifest(draft.Manifest, draft.ManifestDigest, h.clock.value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code := sendGatewayCallback(t, h.gatewayHarness, signedFinalCallback(t, h.gatewayHarness, child, draft, "approved", "alice", asMade), "").Code; code != http.StatusConflict {
+		t.Fatalf("a child decided a minute later as made = %d, want 409", code)
+	}
+	// Shortened to the parent's remaining time, as a narrowing, it is accepted.
+	shortened := asMade
+	shortened.Budget.TaskTTLMS = rootGrant.ExpiresAt.Sub(h.clock.value).Milliseconds()
+	shortened.ExpiresAt = h.clock.value.UTC().Add(time.Duration(shortened.Budget.TaskTTLMS) * time.Millisecond)
+	if code := sendGatewayCallback(t, h.gatewayHarness, signedFinalCallback(t, h.gatewayHarness, child, draft, "narrowed", "alice", shortened), "").Code; code != http.StatusOK {
+		t.Fatalf("the shortened child decision = %d", code)
+	}
+	if got := h.state(child.ID); got.State != control.TaskActive {
+		t.Fatalf("child after the shortened decision %s", got.State)
 	}
 }

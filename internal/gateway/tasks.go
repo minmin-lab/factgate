@@ -375,6 +375,10 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if issuedBy != nil {
 		draftRequest.IssuedBy = issuedBy.Subject
 	}
+	if parentCore != nil {
+		parentExpiry := parentCore.ExpiresAt
+		draftRequest.ParentExpiresAt = &parentExpiry
+	}
 	snapshotSHA256, err := approval.AuthorizationSnapshotSHA256(draftRequest)
 	if err != nil {
 		return nil, err

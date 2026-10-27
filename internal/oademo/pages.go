@@ -2,6 +2,7 @@ package oademo
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"sort"
@@ -66,22 +67,24 @@ func (l Labels) product(name string) string {
 	return name
 }
 
-// humanDuration says a millisecond count the way people do.
+// humanDuration says a millisecond count the way people do: in the largest
+// unit the duration reaches, rounded to one decimal (a parent's remaining
+// time is rarely a whole number of anything).
 func humanDuration(ms int64) string {
 	d := time.Duration(ms) * time.Millisecond
-	switch {
-	case d >= 24*time.Hour && d%(24*time.Hour) == 0:
-		days := int64(d / (24 * time.Hour))
-		if days%365 == 0 {
-			return fmt.Sprintf("%d 年", days/365)
+	units := []struct {
+		unit time.Duration
+		name string
+	}{{365 * 24 * time.Hour, "年"}, {24 * time.Hour, "天"}, {time.Hour, "小时"}, {time.Minute, "分钟"}, {time.Second, "秒"}}
+	for _, candidate := range units {
+		if d < candidate.unit {
+			continue
 		}
-		return fmt.Sprintf("%d 天", days)
-	case d >= time.Hour && d%time.Hour == 0:
-		return fmt.Sprintf("%d 小时", int64(d/time.Hour))
-	case d >= time.Minute && d%time.Minute == 0:
-		return fmt.Sprintf("%d 分钟", int64(d/time.Minute))
-	case d >= time.Second && d%time.Second == 0:
-		return fmt.Sprintf("%d 秒", int64(d/time.Second))
+		value := math.Round(float64(d)/float64(candidate.unit)*10) / 10
+		if value == math.Trunc(value) {
+			return fmt.Sprintf("%d %s", int64(value), candidate.name)
+		}
+		return fmt.Sprintf("%.1f %s", value, candidate.name)
 	}
 	return fmt.Sprintf("%d 毫秒", ms)
 }
@@ -183,6 +186,12 @@ func (s *Server) productRows(products []string, columns map[string][]string) []p
 // view builds what the task page shows for a draft.
 func (s *Server) view(draft Draft) draftView {
 	envelope := draft.Envelope()
+	if draft.ParentExpiresAt != nil {
+		// What a decision now could grant at most: the parent's remaining time.
+		if allowed := draft.ParentExpiresAt.Sub(s.config.Clock().UTC()).Truncate(time.Millisecond).Milliseconds(); allowed > 0 && allowed < envelope.Budget.TaskTTLMS {
+			envelope.Budget.TaskTTLMS = allowed
+		}
+	}
 	view := draftView{Draft: draft, Kind: kindLabel(draft), Envelope: envelope,
 		Scopes: s.scopeRows(envelope.Scope), Products: s.productRows(envelope.Products, envelope.Columns)}
 	var parts []string

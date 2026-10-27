@@ -118,7 +118,10 @@ type Draft struct {
 	Approver       string                           `json:"approver,omitempty"`
 	// IssuedBy is the administrator who issued the task for its human
 	// subject (KB1-LOOP-147); they may submit the draft in their place.
-	IssuedBy        string                      `json:"issued_by,omitempty"`
+	IssuedBy string `json:"issued_by,omitempty"`
+	// ParentExpiresAt bounds a delegated task's grant: a decision later than
+	// the request shortens the TTL to what the parent has left.
+	ParentExpiresAt *time.Time                  `json:"parent_expires_at,omitempty"`
 	ApprovedGrant   *approval.TaskGrantCoreV1   `json:"approved_grant,omitempty"`
 	ApprovalReceipt *approval.ApprovalReceiptV1 `json:"approval_receipt,omitempty"`
 	State           string                      `json:"state"`
@@ -318,7 +321,8 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 	draft := &Draft{
 		ID: randomID("oa"), Manifest: cloneManifest(request.Manifest), ManifestDigest: request.ManifestDigest,
 		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver), IssuedBy: strings.ToLower(request.IssuedBy),
-		State: "draft", CreatedAt: now, UpdatedAt: now,
+		ParentExpiresAt: cloneTime(request.ParentExpiresAt),
+		State:           "draft", CreatedAt: now, UpdatedAt: now,
 	}
 	s.mu.Lock()
 	s.drafts[draft.ID] = draft
@@ -604,6 +608,22 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 		candidate = &grant
 		protocolDecision = approval.ApprovalDecisionNarrow
 		state = "narrowed"
+	}
+	if candidate != nil && draft.ParentExpiresAt != nil {
+		// A delegated task may not outlive its parent: a grant is re-issued
+		// from now with its TTL, so the TTL is shortened to what the parent
+		// has left, which makes an approve-as-made a narrowing.
+		allowed := draft.ParentExpiresAt.Sub(issuedAt).Truncate(time.Millisecond).Milliseconds()
+		if allowed <= 0 {
+			s.mu.Unlock()
+			http.Error(w, "the parent authorization has expired", http.StatusConflict)
+			return
+		}
+		if candidate.Budget.TaskTTLMS > allowed {
+			candidate.Budget.TaskTTLMS = allowed
+			candidate.ExpiresAt = issuedAt.UTC().Add(time.Duration(allowed) * time.Millisecond)
+			protocolDecision, state = approval.ApprovalDecisionNarrow, "narrowed"
+		}
 	}
 	if err := s.issueDecision(draft, protocolDecision, data.Username, issuedAt, candidate); err != nil {
 		s.mu.Unlock()
@@ -1012,6 +1032,14 @@ func decodeStrictJSON(raw string, target any) error {
 		return errors.New("trailing JSON is forbidden")
 	}
 	return nil
+}
+
+func cloneTime(source *time.Time) *time.Time {
+	if source == nil {
+		return nil
+	}
+	value := source.UTC()
+	return &value
 }
 
 func cloneGrantPointer(source *approval.TaskGrantCoreV1) *approval.TaskGrantCoreV1 {
