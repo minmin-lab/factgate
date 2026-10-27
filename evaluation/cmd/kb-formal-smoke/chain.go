@@ -71,10 +71,12 @@ func oaPassword(env map[string]string, subject string) string {
 // smokeChain requests the requester's own department and another one,
 // including a trigger value of every escalation layer, so the chain has every
 // kind of step: the requester's department approver, the other department's
-// approver, and each layer's leaders in layer order. The approvers who decided
-// must be the chain request_data_task announced, in order.
+// approver, and each layer's leaders in layer order. A layer's scope that the
+// departments do not cover starts from narrow, a value outside every layer.
+// The approvers who decided must be the chain request_data_task announced, in
+// order.
 func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, approvers *chainApprovers,
-	chain *catalog.ApprovalChain, products []string, columns map[string][]string, ownDepartment string) error {
+	chain *catalog.ApprovalChain, products []string, columns map[string][]string, ownDepartment, narrow string) error {
 	layers := chain.Layers()
 	if len(layers) == 0 {
 		return errors.New("the chain has no escalation to exercise")
@@ -97,7 +99,7 @@ func smokeChain(ctx context.Context, summary map[string]any, provisioner *kbform
 		}
 		values, _ := scope[layer.Scope].([]string)
 		if len(values) == 0 {
-			values = []string{"internal"}
+			values = []string{narrow}
 		}
 		if !containsString(values, layer.Values[0]) {
 			values = append(values, layer.Values[0])

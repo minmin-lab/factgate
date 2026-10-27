@@ -17,9 +17,10 @@ import (
 // the task-flow hints and the voiding of a pending task, the precise refusals
 // for a relation name and for missing columns, and LIKE in query_sql. Every
 // check names the evidence it read; refusals cost nothing, and the one query
-// is LIMIT 3 so a small budget profile is not drawn down.
+// is LIMIT 3 so a small budget profile is not drawn down. The deficient task
+// is scoped to classifications; likePattern must match a title in scope.
 func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, alice *kbformal.MCPClient,
-	product catalog.KnowledgeProduct, fullTask string) error {
+	product catalog.KnowledgeProduct, fullTask string, classifications []string, likePattern string) error {
 	chunks, documents := product.Products.Chunks, product.Products.Documents
 	wantColumns := fmt.Sprintf(`{%q:["chunk_index","doc_id","text_sha256","version"],%q:["doc_id","version"]}`, chunks, documents)
 	listed, err := alice.Call(ctx, "list_data_products", map[string]any{})
@@ -50,7 +51,7 @@ func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kb
 	deficient := kbformal.TaskRequest{Objective: "KB1-LOOP-137 smoke: identity columns only",
 		Products: []string{chunks, documents},
 		Columns:  map[string][]string{chunks: {"doc_id", "version", "chunk_index"}, documents: {"doc_id", "version"}},
-		Scope:    map[string]any{"kb_department": []string{"finance"}, "classification": []string{"internal", "public"}}}
+		Scope:    map[string]any{"kb_department": []string{"finance"}, "classification": classifications}}
 	pending, err := alice.Call(ctx, "request_data_task", map[string]any{"objective": deficient.Objective,
 		"data_products": deficient.Products, "columns": deficient.Columns, "scopes": deficient.Scope})
 	if err != nil {
@@ -94,7 +95,9 @@ func smokeUsability(ctx context.Context, summary map[string]any, provisioner *kb
 		return fmt.Errorf("search naming the chunks relation: want INVALID_REQUEST suggesting %s, got %v %v", product.Name, err, detailsOf(refusal))
 	}
 
-	like := fmt.Sprintf("SELECT doc_id, title FROM %s WHERE title LIKE '%%报销%%' ORDER BY doc_id LIMIT 3", documents)
+	// likePattern carries no quote (checked at flag parsing), so it is a
+	// literal as is.
+	like := fmt.Sprintf("SELECT doc_id, title FROM %s WHERE title LIKE '%s' ORDER BY doc_id LIMIT 3", documents, likePattern)
 	queried, err := alice.Call(ctx, "query_sql", map[string]any{"task_id": fullTask, "request_id": "smoke-usability-like", "sql": like})
 	if err != nil {
 		return fmt.Errorf("query_sql with LIKE: %w", err)

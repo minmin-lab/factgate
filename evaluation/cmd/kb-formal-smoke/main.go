@@ -73,7 +73,24 @@ func run() error {
 	// role accounts, so its smoke requests as staff (KB1-LOOP-144).
 	requester := flag.String("requester", "alice", "the requesting subject: its OA account and MCP principal")
 	requesterToken := flag.String("requester-token-key", "TASKBOUND_ALICE_TOKEN", "env file key of the requester's MCP token")
+	// The probes' classification values and LIKE pattern default to the formal
+	// round's; a Catalog with other grades or another corpus names its own.
+	classificationList := flag.String("classifications", "internal,public",
+		"comma-separated low classifications the requester holds: the scope of the search task, the download tasks and the usability tasks")
+	narrowClassification := flag.String("narrow-classification", "internal",
+		"the one classification of single-value scopes: the eligibility probe's, and the chain probe's value outside the escalation layers")
+	likePattern := flag.String("like-pattern", "%报销%", "the usability check's LIKE pattern on document titles; it must match at least one title in scope")
 	flag.Parse()
+	classifications, err := splitClassifications(*classificationList)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(*narrowClassification) != *narrowClassification || *narrowClassification == "" {
+		return fmt.Errorf("-narrow-classification %q is empty or padded", *narrowClassification)
+	}
+	if *likePattern == "" || strings.Contains(*likePattern, "'") {
+		return fmt.Errorf("-like-pattern %q is empty or contains a quote", *likePattern)
+	}
 	env, err := readEnvFile(*envFile)
 	if err != nil {
 		return err
@@ -121,7 +138,7 @@ func run() error {
 			chunks:    {"doc_id", "version", "chunk_index", "text_sha256", "kb_department", "classification", "job_role", "valid_until"},
 			documents: {"doc_id", "version", "title", "document_type", "kb_department", "classification"},
 		},
-		Scope: map[string]any{"kb_department": []string{"finance"}, "classification": []string{"internal", "public"}}}
+		Scope: map[string]any{"kb_department": []string{"finance"}, "classification": classifications}}
 	started := time.Now()
 	taskID, created, err := provisioner.Provision(ctx, request)
 	if err != nil {
@@ -181,7 +198,7 @@ func run() error {
 		return fmt.Errorf("fetch of an unreturned chunk: want CHUNK_NOT_RETURNED, got %v", err)
 	}
 	summary["fetch_unreturned_code"] = toolErr.Code
-	if err := smokeDownload(ctx, summary, provisioner, alice, verifier, profile, product, taskID, rows, timeout); err != nil {
+	if err := smokeDownload(ctx, summary, provisioner, alice, verifier, profile, product, taskID, rows, classifications, timeout); err != nil {
 		return fmt.Errorf("download task: %w", err)
 	}
 	// Eligibility through file principals: another department is refused before
@@ -189,12 +206,12 @@ func run() error {
 	if token := tokens["sales-staff"]; token != "" {
 		sales := kbformal.NewMCPClient(*gateway, token, timeout)
 		request := map[string]any{"objective": "K4.10 smoke eligibility", "data_products": []string{chunks, documents},
-			"columns": request.Columns, "scopes": map[string]any{"kb_department": []string{"finance"}, "classification": []string{"internal"}}}
+			"columns": request.Columns, "scopes": map[string]any{"kb_department": []string{"finance"}, "classification": []string{*narrowClassification}}}
 		_, err := sales.Call(ctx, "request_data_task", request)
 		if !errors.As(err, &toolErr) || toolErr.Code != "NOT_ELIGIBLE" {
 			return fmt.Errorf("sales-staff requesting finance: want NOT_ELIGIBLE, got %v", err)
 		}
-		request["scopes"] = map[string]any{"kb_department": []string{"sales"}, "classification": []string{"internal"}}
+		request["scopes"] = map[string]any{"kb_department": []string{"sales"}, "classification": []string{*narrowClassification}}
 		admitted, err := sales.Call(ctx, "request_data_task", request)
 		if err != nil {
 			return fmt.Errorf("sales-staff requesting sales: %w", err)
@@ -211,18 +228,32 @@ func run() error {
 	}
 	if chain != nil {
 		// alice and staff are both finance requesters.
-		if err := smokeChain(ctx, summary, provisioner, approvers, chain, request.Products, request.Columns, "finance"); err != nil {
+		if err := smokeChain(ctx, summary, provisioner, approvers, chain, request.Products, request.Columns, "finance", *narrowClassification); err != nil {
 			return fmt.Errorf("approval chain: %w", err)
 		}
 	}
 	if *usability {
-		if err := smokeUsability(ctx, summary, provisioner, alice, product, taskID); err != nil {
+		if err := smokeUsability(ctx, summary, provisioner, alice, product, taskID, classifications, *likePattern); err != nil {
 			return fmt.Errorf("usability: %w", err)
 		}
 	}
 	encoded, _ := json.MarshalIndent(summary, "", " ")
 	fmt.Println(string(encoded))
 	return nil
+}
+
+// splitClassifications parses -classifications: comma-separated, no empty or
+// repeated value.
+func splitClassifications(list string) ([]string, error) {
+	var values []string
+	for _, value := range strings.Split(list, ",") {
+		value = strings.TrimSpace(value)
+		if value == "" || containsString(values, value) {
+			return nil, fmt.Errorf("-classifications %q has an empty or repeated value", list)
+		}
+		values = append(values, value)
+	}
+	return values, nil
 }
 
 // checkRows requires the retrieval shape (doc_id, version, chunk_index,
@@ -247,7 +278,7 @@ func checkRows(rows [][]any) ([][]any, error) {
 // smokeDownload is the deployed-path check of the document download task.
 func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbformal.Provisioner, alice *kbformal.MCPClient,
 	verifier kbformal.ReceiptVerifier, profile *catalog.Catalog, product catalog.KnowledgeProduct, searchTask string, rows [][]any,
-	timeout time.Duration) error {
+	classifications []string, timeout time.Duration) error {
 	type ref struct {
 		DocID   string `json:"doc_id"`
 		Version any    `json:"version"`
@@ -261,12 +292,12 @@ func smokeDownload(ctx context.Context, summary map[string]any, provisioner *kbf
 			documents = append(documents, ref{DocID: fmt.Sprint(row[0]), Version: row[1]})
 		}
 	}
-	// The documents are search hits of the finance internal/public task, so
-	// that scope is the narrowest one. Without scopes the request takes the
-	// applicant's whole envelope, which reaches leadership and, since the
-	// classification-conditioned routes (KB1-LOOP-130), an approver other
-	// than the provisioner's.
-	scopes := map[string]any{"kb_department": []string{"finance"}, "classification": []string{"internal", "public"}}
+	// The documents are search hits of the finance task at the low
+	// classifications, so that scope is the narrowest one. Without scopes the
+	// request takes the applicant's whole envelope, which reaches leadership
+	// and, since the classification-conditioned routes (KB1-LOOP-130), an
+	// approver other than the provisioner's.
+	scopes := map[string]any{"kb_department": []string{"finance"}, "classification": classifications}
 	taskID, created, err := provisioner.ProvisionDownload(ctx, map[string]any{"objective": "K7.3 smoke: download two search hits",
 		"knowledge_product": product.Name, "documents": documents, "scopes": scopes})
 	if err != nil {
