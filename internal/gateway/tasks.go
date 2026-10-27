@@ -78,7 +78,7 @@ func publicApprovalRoute(route catalog.ApprovalRoute) map[string]any {
 	if chain := route.Chain; chain != nil {
 		delete(public, "approver")
 		org := map[string]any{"department_scope": chain.DepartmentScope, "directors": chain.Directors,
-			"rule": "依次审批：申请人所在部门的审批人 → 每个被申请部门的审批人 → 申请范围命中某个升级层（如机密、领导层专属文档）时，再由该层上每个被申请部门的负责人审批；审批人缩小范围后，后续环节按缩小后的范围重算"}
+			"rule": "依次审批：申请人所在部门的审批人 → 每个被申请部门的审批人 → 申请范围命中某个升级层（如机密、绝密文档）时，再由该层上每个被申请部门的负责人审批；审批人缩小范围后，后续环节按缩小后的范围重算"}
 		if layers := chain.Layers(); len(layers) > 0 {
 			escalations := make([]map[string]any, 0, len(layers))
 			for _, layer := range layers {

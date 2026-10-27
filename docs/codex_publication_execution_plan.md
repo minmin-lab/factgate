@@ -2844,3 +2844,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 待审闸门单独一步：三个待审均为已放行丢弃或我的探测任务，无作者新任务。--force-recreate oa-demo；curl 公网登录页：200、cache-control no-store、无 username 框、含"默认是普通员工 staff"。
   - **实跑**：kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized（脚本带用户名登录的路径照旧）。
 - [2026-10-27 11:53 UTC+8] KB1-LOOP-147 **作者定：身份下拉按分管领导分层**。OA 标签文件加 `groups`（build-catalog.py 从 LINES 生成：每条线一组，组名"管理线（分管领导 leader-admin）"等，成员先分管领导、再按部门列管理员与主任），切换下拉用 `<optgroup>` 渲染，无组账号（staff）排最前。oademo 测试断言分组顺序通过。目录内容未变（重新生成比对一致），只换 config/oa-labels.yaml 与 OA 镜像。
+- [2026-10-27 11:59 UTC+8] KB1-LOOP-147 **作者定：密级显示名改为标准制度名（作者原话"还显示 领导层专属，应该改成标准的密级制度名称了"）**。
+  - 对应关系：public 公开、internal 内部、confidential 机密、leadership 绝密。依据：语料正文里 confidential 级段落本身写着"机密"（evaluation/kbcorpus/v2.go:30），所以 confidential 只能叫机密，leadership 取标准最高级绝密；数据里没有"秘密"档。只改显示：config/oa-labels.yaml（build-catalog.py CLASSIFICATION_NAMES）、tester-guide.md、网关 publicApprovalRoute 的规则说明文字（tasks.go）。存储值、目录、论文均不动；目录重新生成比对一致。
+  - 待办：网关镜像因说明文字要重建；OA 只需重建（标签文件挂载）。作者 11:50 建的 task_388d0ad1… 仍在 AWAITING_APPROVAL，重建 OA 前等作者。
