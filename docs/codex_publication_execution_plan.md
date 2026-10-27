@@ -2874,3 +2874,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - OA 只输口令时默认身份会落到 engineering-a-head（both 账号按名排序）：加 OA_DEFAULT_ACCOUNT（6e897fc5，测试覆盖），compose.demo.next.yaml 设为 staff；OA 镜像重建中。
   - 部署前置已备：source/ 对齐 51a6caeb、bin/ 重建（新 bin-attest 能解析新目录，snapshot-index 入 SHA256SUMS）、up.sh 已应用 reports/up-reports.patch 并指向 v3 specs、specs/policy-kb-v3.json 与 small（sha 占位）、lib.sh.next（v3 epoch、原件目录 originals-v3）、promote-148.sh（down 后、up 前替换 *.next）、/home/wmm/logs/kb1/corpus-v3/prewarm-gpu.sh（节流服务 + 不可达库预热）。网关镜像 36a6f986…（51a6caeb）。
   - 未实跑项（部署后验证）：个人记录 SQL 在精确暴露记账下能否转成规范计划；HR 全公司任务 employee_id 102 个值是否触及谓词足迹上限；demo-misroute.sh 仍是第一轮词汇。
+- [2026-10-27 20:41 UTC+8] KB1-LOOP-148 **五级语料 v3 生成完成并核查通过**（实跑）。
+  - 全量 16:10:51 启动，20:33:18 主跑结束（10448 版本，1148 批，107 次失败重试：JSON 多余字段 16、节长度不足若干、密级名错配校验拦下 ≥4 批；名义费用 18.17 USD）；20:40:58 续跑补齐 21 个版本（名义累计 18.22 USD）。输出 /home/wmm/kb-demo/corpus-v3/documents.jsonl，sha256 a0ac1c00f18304d638eda487385f62ad9bb903b61205d2d9418c265b10293fc3，manifest version taskgate-kb-corpus-v3，batches 1151。
+  - 核查：10469 版本、10000 文档、无重复；文档级 public 1828 / internal 4768 / secret 1390 / confidential 949 / top_secret 1534；节级 9084 / 23859 / 7030 / 4627 / 3583（共 48183 块，与 v2 块数相同）；文档级 = 节最高级 0 例外；正文他级密级名 0 处；10469 份正文标题与 sections 字段逐一匹配；中文标题七种；节长 100–354 字。
+  - NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v3，sha 核对一致。specs/policy-kb-v3.json 与 small 已填入语料 sha；PDF 渲染中（24 进程）。
