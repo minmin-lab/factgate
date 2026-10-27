@@ -427,9 +427,9 @@ type sessionData struct {
 	CanRequest  bool
 	CanApprove  bool
 	CSRF        string
-	// AllowSwitch and Accounts feed the account switcher in the navigation.
-	AllowSwitch bool
-	Accounts    []loginOption
+	// AllowSwitch and AccountGroups feed the account switcher in the navigation.
+	AllowSwitch   bool
+	AccountGroups []accountGroupView
 }
 
 func (s *Server) requireSession(next http.Handler) http.Handler {
@@ -443,7 +443,7 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role,
 			CanRequest: account.CanRequest, CanApprove: account.CanApprove, CSRF: s.csrf(r), AllowSwitch: s.config.AllowSwitch}
 		if s.config.AllowSwitch {
-			data.Accounts = s.loginOptions()
+			data.AccountGroups = s.accountGroups()
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, data)))
 	})

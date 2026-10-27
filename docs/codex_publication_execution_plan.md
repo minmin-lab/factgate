@@ -2843,3 +2843,4 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - [2026-10-27 11:43 UTC+8] KB1-LOOP-147 **OA 镜像 4a776394…（ca814cb1）已上线：公网登录页只有口令框、带 no-store；冒烟与审批场景通过**。
   - 待审闸门单独一步：三个待审均为已放行丢弃或我的探测任务，无作者新任务。--force-recreate oa-demo；curl 公网登录页：200、cache-control no-store、无 username 框、含"默认是普通员工 staff"。
   - **实跑**：kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized（脚本带用户名登录的路径照旧）。
+- [2026-10-27 11:53 UTC+8] KB1-LOOP-147 **作者定：身份下拉按分管领导分层**。OA 标签文件加 `groups`（build-catalog.py 从 LINES 生成：每条线一组，组名"管理线（分管领导 leader-admin）"等，成员先分管领导、再按部门列管理员与主任），切换下拉用 `<optgroup>` 渲染，无组账号（staff）排最前。oademo 测试断言分组顺序通过。目录内容未变（重新生成比对一致），只换 config/oa-labels.yaml 与 OA 镜像。

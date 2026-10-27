@@ -25,7 +25,8 @@ func delegatedOA(t *testing.T, allowSwitch bool) (*Server, *httptest.Server, *fa
 	server, err := New(Config{ServiceToken: "service", CallbackSecret: "callback", SessionSecret: "session",
 		CallbackURL: callback.URL, OmitBuiltinUsers: true, AllowSwitch: allowSwitch,
 		Labels: Labels{Scopes: map[string]string{"department": "部门"}, Values: map[string]map[string]string{"department": {"销售部": "销售部（Sales）"}},
-			Products: map[string]string{"expense_summary": "费用汇总"}},
+			Products: map[string]string{"expense_summary": "费用汇总"},
+			Groups:   []AccountGroup{{Label: "管理线", Members: []string{"leader-admin", "finance-admin"}}, {Label: "业务线", Members: []string{"sales-admin"}}}},
 		ExtraUsers: []ExtraUser{
 			{Name: "staff", Role: "both", Password: "shared", DisplayName: "普通员工"},
 			{Name: "finance-admin", Role: "approver", Password: "shared", DisplayName: "财务部管理员"},
@@ -141,6 +142,13 @@ func TestAccountSwitchIsOfferedOnlyInTheSharedPasswordMode(t *testing.T) {
 	page := get(t, staff, httpServer.URL+"/tasks")
 	if !strings.Contains(page, `action="/switch"`) || !strings.Contains(page, `<option value="staff" selected>`) {
 		t.Fatalf("no account switcher: %s", page)
+	}
+	// The switcher is grouped by business line: the ungrouped tester first,
+	// then each line in the labels file's order with the members it has.
+	staffAt, adminGroup, salesGroup := strings.Index(page, `<option value="staff"`), strings.Index(page, `<optgroup label="管理线">`), strings.Index(page, `<optgroup label="业务线">`)
+	if staffAt < 0 || adminGroup < staffAt || salesGroup < adminGroup || !strings.Contains(page, `<optgroup label="管理线"><option value="finance-admin">`) ||
+		!strings.Contains(page, `<optgroup label="业务线"><option value="sales-admin">`) {
+		t.Fatalf("the switcher is not grouped: %s", page)
 	}
 	match := csrfField.FindStringSubmatch(page)
 	response, err := staff.PostForm(httpServer.URL+"/switch", url.Values{"csrf": {match[1]}, "username": {"finance-admin"}})

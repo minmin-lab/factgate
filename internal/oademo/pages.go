@@ -28,6 +28,60 @@ type Labels struct {
 	Scopes   map[string]string            `yaml:"scopes" json:"scopes"`
 	Values   map[string]map[string]string `yaml:"values" json:"values"`
 	Products map[string]string            `yaml:"products" json:"products"`
+	// Groups arrange the account switcher: each group (a business line under
+	// its leader) lists its accounts in display order; accounts in no group
+	// come first, ungrouped.
+	Groups []AccountGroup `yaml:"groups" json:"groups"`
+}
+
+// AccountGroup is one <optgroup> of the account switcher.
+type AccountGroup struct {
+	Label   string   `yaml:"label" json:"label"`
+	Members []string `yaml:"members" json:"members"`
+}
+
+// accountGroups arranges the configured accounts by Labels.Groups: the
+// ungrouped ones first (label empty), then each group with the members it
+// actually has, in the group's order.
+func (s *Server) accountGroups() []accountGroupView {
+	options := s.loginOptions()
+	byID := make(map[string]loginOption, len(options))
+	grouped := map[string]bool{}
+	for _, option := range options {
+		byID[option.ID] = option
+	}
+	for _, group := range s.config.Labels.Groups {
+		for _, member := range group.Members {
+			grouped[strings.ToLower(member)] = true
+		}
+	}
+	var views []accountGroupView
+	var loose []loginOption
+	for _, option := range options {
+		if !grouped[option.ID] {
+			loose = append(loose, option)
+		}
+	}
+	if len(loose) > 0 {
+		views = append(views, accountGroupView{Accounts: loose})
+	}
+	for _, group := range s.config.Labels.Groups {
+		view := accountGroupView{Label: group.Label}
+		for _, member := range group.Members {
+			if option, ok := byID[strings.ToLower(member)]; ok {
+				view.Accounts = append(view.Accounts, option)
+			}
+		}
+		if len(view.Accounts) > 0 {
+			views = append(views, view)
+		}
+	}
+	return views
+}
+
+type accountGroupView struct {
+	Label    string
+	Accounts []loginOption
 }
 
 // LoadLabels reads a labels YAML file; an empty path yields no labels.
@@ -365,7 +419,7 @@ body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}
 </style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
 {{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1>{{if .PasswordOnly}}<p class="muted">输入口令登录。登录后默认是普通员工 {{.Default}} 的身份，页面右上角可随时切换为任一管理员、主任或分管领导。</p>{{else}}<p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{end}}{{if .Error}}<p class="error">{{if .PasswordOnly}}口令错误{{else}}用户名或密码错误{{end}}</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}">{{if not .PasswordOnly}}<p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p>{{end}}<p><label>{{if .PasswordOnly}}口令{{else}}密码{{end}}<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{roleLabel .Role}}</div><div><a href="/tasks">待办</a><a href="/history">审批记录</a>{{if .AllowSwitch}}<form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>身份 <select name="username">{{$current := .Username}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}（{{roleLabel .Role}}）</option>{{end}}</select></label> <button type="submit">切换身份</button></form> {{end}}<form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></nav>{{end}}
+{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{roleLabel .Role}}</div><div><a href="/tasks">待办</a><a href="/history">审批记录</a>{{if .AllowSwitch}}<form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>身份 <select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label> <button type="submit">切换身份</button></form> {{end}}<form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></nav>{{end}}
 {{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>待办</h1><p class="muted">待提交或待审批的工单；已办结的在<a href="/history">审批记录</a>。</p>{{range .Views}}<div class="card"><span class="tag">{{stateLabel .Draft.State}}</span><span class="tag">{{.Kind}}</span><h2><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a></h2><p class="summary">{{.Summary}}</p><p class="muted">{{if .Draft.Approver}}当前审批人 {{.Draft.Approver}} · {{end}}Task {{.Draft.Manifest.TaskID}}</p>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无待办。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "history"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批记录</h1><p class="muted">你提交、代开或审批过的全部工单，按最近变动排序。</p>{{if .Views}}<div class="card"><table class="history"><tr><th>工单</th><th>状态</th><th>审批记录</th></tr>{{range .Views}}<tr><td><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a><br><span class="muted">{{.Kind}} · 申请人 {{.Draft.Manifest.HumanSubject}}{{if .Draft.IssuedBy}} · 代开人 {{.Draft.IssuedBy}}{{end}}</span></td><td>{{stateLabel .Draft.State}}</td><td>{{range .Progress}}{{if eq .Status "done"}}{{.Who}} {{.Decision}}（{{.When}}）<br>{{else}}等待 {{.Who}} {{.Label}}<br>{{end}}{{end}}{{if .Draft.Note}}<span class="muted">{{.Draft.Note}}</span>{{end}}</td></tr>{{end}}</table></div>{{else}}<div class="card"><p>暂无记录。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$view := .View}}{{$draft := .View.Draft}}{{$envelope := .View.Envelope}}<div class="card"><span class="tag">{{stateLabel $draft.State}}</span><span class="tag">{{$view.Kind}}</span><h1>{{$draft.Manifest.DeclaredObjective}}</h1><p class="summary">{{$view.Summary}}</p>
