@@ -2,6 +2,7 @@ package oademo
 
 import (
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -282,5 +283,52 @@ func TestADelegatedDecisionIsShortenedToTheParentsRemainingTime(t *testing.T) {
 	}
 	if status := act(t, staff, httpServer.URL, gone, "decision", url.Values{"decision": {"approved"}}); status != http.StatusConflict {
 		t.Fatalf("deciding under an expired parent = %d, want 409", status)
+	}
+}
+
+// In the shared-password mode the login page asks for the password only;
+// the session starts as the default (first requester) account, and the
+// identity is switched afterwards. A login that names an account still works
+// (the scripts do that).
+func TestPasswordOnlyLoginLandsOnTheDefaultAccount(t *testing.T) {
+	_, httpServer, _ := delegatedOA(t, true)
+	page := get(t, http.DefaultClient, httpServer.URL+"/login")
+	if strings.Contains(page, `name="username"`) || !strings.Contains(page, "默认是普通员工 staff") {
+		t.Fatalf("the shared-password login page: %s", page)
+	}
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	match := csrfField.FindStringSubmatch(get(t, client, httpServer.URL+"/login"))
+	response, err := client.PostForm(httpServer.URL+"/login", url.Values{"csrf": {match[1]}, "password": {"shared"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if tasks := get(t, client, httpServer.URL+"/tasks"); !strings.Contains(tasks, "staff / 申请人兼审批人") || !strings.Contains(tasks, "切换身份") {
+		t.Fatalf("after a password-only login: %s", tasks)
+	}
+	if response.Header.Get("Cache-Control") != "" && response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("cache-control %q", response.Header.Get("Cache-Control"))
+	}
+	freshJar, _ := cookiejar.New(nil)
+	fresh := &http.Client{Jar: freshJar}
+	match = csrfField.FindStringSubmatch(get(t, fresh, httpServer.URL+"/login"))
+	wrong, err := fresh.PostForm(httpServer.URL+"/login", url.Values{"csrf": {match[1]}, "password": {"wrong"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrong.Body.Close()
+	if !strings.Contains(wrong.Request.URL.String(), "error=invalid") {
+		t.Fatalf("a wrong password landed on %s", wrong.Request.URL)
+	}
+	// Naming the account still works, as the scripts do.
+	admin := login(t, httpServer.URL, "finance-admin", "shared")
+	if tasks := get(t, admin, httpServer.URL+"/tasks"); !strings.Contains(tasks, "finance-admin / 审批人") {
+		t.Fatalf("a named login: %s", tasks)
+	}
+	// Outside the shared-password mode the page still asks for the account.
+	_, fixed, _ := delegatedOA(t, false)
+	if page := get(t, http.DefaultClient, fixed.URL+"/login"); !strings.Contains(page, `name="username"`) {
+		t.Fatal("the account chooser is gone outside the shared-password mode")
 	}
 }

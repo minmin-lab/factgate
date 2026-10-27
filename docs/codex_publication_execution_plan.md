@@ -2837,3 +2837,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
     - kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；链检查公布角色 requester_director、department_director、director、director、leader、leader，实际决定者逐一相同；目录摘要 cdfa5568… 等于 catalog.yaml。
   - **正式轮不受影响**：正式 profile 与 config/catalog.yaml 无 chain/escalations/delegated_authorization（KB1-LOOP-147 阶段 2 的守卫），compose.yaml 无 OA_EXTRA_USERS；kb-formal-smoke 对无链目录的路径未改。
   - **交同事**：tester-guide.md 已更新（角色、六级链、项目与授权单、OA 新操作）；另有 ADMIN_FINANCE_MCP_TOKEN 可选私发。
+- [2026-10-27 11:37 UTC+8] KB1-LOOP-147 **作者定：共享口令模式下 OA 登录页只要口令，身份登录后再切**（作者原话"角色切换改成登录后，登录页面只要一个密码就行了"）。
+  - 实现：AllowSwitch 模式登录页只有口令框，口令通过即以第一个申请人账号（staff）开会话，右上角"身份"下拉 + "切换身份"按钮换账号（去掉被 CSP 挡住的 onchange 自动提交）；表单带 username 的登录照旧（approve.py、kbformal 客户端不用改）；口令先对默认账号核，不中再逐账号核，以兼容各账号口令不同的配置；其他模式登录页不变。全部响应加 Cache-Control: no-store（作者反馈公网看到"旧页面"，curl 核实公网已是新版、cf-cache-status DYNAMIC，判为浏览器缓存或旧草稿链接）。
+  - **实跑**：oademo 新增 TestPasswordOnlyLoginLandsOnTheDefaultAccount（无账号框、默认 staff、错口令回 error=invalid、带账号登录仍可、非共享模式仍有账号框）；oademo、approval、cmd/oa-demo ok，make hygiene 通过。adapters.md 与 tester-guide.md 已改。待重建 OA 镜像并重建 OA（会丢内存草稿）。

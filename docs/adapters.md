@@ -169,7 +169,7 @@ OA Demo 对回调最多尝试 3 次。企业 OA 应采用持久化 Outbox、指�
 
 ## OA Demo 页面与会话
 
-- `GET/POST /login`：Alice/Bob 登录。
+- `GET/POST /login`：登录。共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下登录页只要口令，会话从第一个申请人账号开始，之后用 `/switch` 换身份；表单带 `username` 时仍按该账号登录（脚本用）。其他模式选账号加密码。所有响应带 `Cache-Control: no-store`。
 - `GET /tasks`：待办（待提交或待审批、与本人相关的草稿）；`GET /history`：本人提交、代开或审批过的全部草稿；`GET /tasks/{draftID}`：查看草稿（一句话摘要、审批进度、范围与预算；Task ID、摘要等技术标识折叠在"技术细节"里）。
 - `POST /tasks/{draftID}/submit`：申请人本人或代开人（草稿的 issued_by）可提交。
 - `POST /tasks/{draftID}/decision`：有审批能力的账号可批准/拒绝/缩小指派给自己的 pending 人工任务。缩小表单是勾选框（`approved_products`、`column:<产品>`、`scope:<范围>`、`scope_from:/scope_to:<范围>` 多值字段）；脚本仍可提交原来的 JSON 字段 `approved_products`、`approved_columns`、`mandatory_scope`。

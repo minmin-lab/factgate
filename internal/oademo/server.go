@@ -356,7 +356,33 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	csrf := randomID("login")
 	http.SetCookie(w, &http.Cookie{Name: "oa_login_csrf", Value: csrf, Path: "/login", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: r.TLS != nil, MaxAge: 600})
-	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error"), "Users": s.loginOptions()})
+	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error"), "Users": s.loginOptions(),
+		"PasswordOnly": s.config.AllowSwitch, "Default": s.defaultAccount()})
+}
+
+// defaultAccount is the identity a password-only login lands on in the
+// shared-password mode: the first requester (the tester's own account).
+func (s *Server) defaultAccount() string {
+	options := s.loginOptions()
+	if len(options) == 0 {
+		return ""
+	}
+	return options[0].ID
+}
+
+// passwordOnlyLogin resolves the account of a login that named none (the
+// shared-password mode): the default account, or any account the password
+// opens, so a mode with distinct passwords still logs the right person in.
+func (s *Server) passwordOnlyLogin(password string) (string, bool) {
+	if name := s.defaultAccount(); name != "" && bcrypt.CompareHashAndPassword(s.users[name].PasswordHash, []byte(password)) == nil {
+		return name, true
+	}
+	for _, option := range s.loginOptions() {
+		if bcrypt.CompareHashAndPassword(s.users[option.ID].PasswordHash, []byte(password)) == nil {
+			return option.ID, true
+		}
+	}
+	return "", false
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -365,6 +391,15 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username := strings.ToLower(strings.TrimSpace(r.Form.Get("username")))
+	if username == "" && s.config.AllowSwitch {
+		// The shared-password mode: one password, the identity is chosen after.
+		name, valid := s.passwordOnlyLogin(r.Form.Get("password"))
+		if !valid {
+			http.Redirect(w, r, "/login?error=invalid", http.StatusSeeOther)
+			return
+		}
+		username = name
+	}
 	account, ok := s.users[username]
 	passwordValid := false
 	if ok {
@@ -1142,6 +1177,7 @@ func randomID(prefix string) string {
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'")
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
