@@ -2827,3 +2827,13 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - **修法**：approval.DraftRequest 加 `parent_expires_at`（manifest 之外，不进摘要），网关在委托任务的草稿上带父授权到期；OA 决定时把 TTL 缩到父授权剩余毫秒并改以 narrowed 发出（approve-as-made 要求摘要相等，缩 TTL 只能是 narrowing），父已过期则 409；任务页显示的有效期按父剩余时间封顶。humanDuration 改为按最大单位四舍五入到一位小数。adapters.md 记录两个路由元数据字段与该规则。
   - **实跑**：gateway 新增 TestAChildDecidedLaterMustShortenItsTTLToTheParent（时钟推进 1 分钟后原样批准 409；缩到父剩余并以 narrowed 批准 200，ACTIVE）；oademo 新增 TestADelegatedDecisionIsShortenedToTheParentsRemainingTime（页面显示 10 分钟；approve 变 narrowed，TTL ≤ 父剩余；父已过期 409）；db-test-env 下 internal/gateway、catalog、cmd/gateway、kbformal 全部 ok；oademo、approval、cmd/oa-demo ok；make hygiene 通过。
   - **下一步**：提交、推送、重建两个镜像、重建 OA 与网关、重跑 demo-project.py 与其余脚本。
+- [2026-10-27 11:26 UTC+8] KB1-LOOP-147 **演示栈部署完成（网关 106ac6ae…、OA 4d6e0cb9…，均从 e6d1cc96 构建），项目与代开单两条路径、五个审批场景、两个知识产品的正式冒烟全部在新部署上实跑通过**。
+  - **部署**：待审闸门单独一步查到 2 个待审（作者已放行丢弃的 task_f1837153…，和我旧目录上的探测子任务 task_c9cde856…）；--force-recreate OA 与网关；两个知识产品激活，网关 0 条 ERROR；shim 在跑；公网 OA 200。旧目录下的 ACTIVE 任务按目录版本不匹配失效。
+  - **实跑（全部在新目录 cdfa5568… 与新镜像上）**：
+    - demo-project.py：项目 finance+sales+marketing/internal 由 finance-admin → marketing-admin → sales-admin 批准，ACTIVE，有效期 24h（kb-large-v1）；子任务 approver=staff、self_confirm=true，staff 提交并确认后 ACTIVE，search row_count=3；委托给 principal_finance_staff 的子任务仍由 staff 确认，ACTIVE；撤销项目 cascaded 两个子任务，子任务再 search 为 TASK_NOT_ACTIVE；confidential 项目链加两位主任，leadership 再加两位分管领导。控制库核实两个子任务的决定均为 narrowed（OA 把 TTL 缩到父剩余），子授权 expires_at ≤ 父授权。脚本一处修正：委托子任务的状态要用受托主体（finance-staff）的令牌读，其 agent 才是任务主体。
+    - demo-delegated.py：通过（同上一条记录，expires_at 2027-10-27）。
+    - smoke.py：两种预算均经 finance-admin → engineering-admin → engineering-director → leader-rd 四级 ACTIVE，检索与聚合有结果。
+    - demo-approver.py：A 一级、B 两级、C 六级（admin、admin、主任、主任、领导、领导）、D 第一级缩小后当场 ACTIVE、E 指定 sales-director 归档 approver_not_authorized。
+    - kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；链检查公布角色 requester_director、department_director、director、director、leader、leader，实际决定者逐一相同；目录摘要 cdfa5568… 等于 catalog.yaml。
+  - **正式轮不受影响**：正式 profile 与 config/catalog.yaml 无 chain/escalations/delegated_authorization（KB1-LOOP-147 阶段 2 的守卫），compose.yaml 无 OA_EXTRA_USERS；kb-formal-smoke 对无链目录的路径未改。
+  - **交同事**：tester-guide.md 已更新（角色、六级链、项目与授权单、OA 新操作）；另有 ADMIN_FINANCE_MCP_TOKEN 可选私发。
