@@ -65,7 +65,15 @@ Content-Type: application/json
 
 所有审批请求都必须包含 `"approver":"bob"`。OA 必须返回 HTTP `201 Created`；响应不允许未知字段，`draft_id` 与 `url` 必须非空。Demo 同时返回 `state: draft`。
 
-manifest 之外还有两个可选的路由元数据字段（KB1-LOOP-147，不进摘要）：`issued_by`（代开人，可代为提交）与 `parent_expires_at`（委托任务父授权的到期时刻）。授权在决定时刻按 manifest 的 TTL 重新签发，决定晚于申请时子授权会超出父授权而被 TaskGate 以 409 拒绝；OA 须把 TTL 缩到父授权剩余时间，并按"缩小后批准"（narrowed）发出。Demo OA 自动这样做。
+manifest 之外还有三个可选的路由元数据字段（KB1-LOOP-147/148，不进摘要）：`issued_by`（代开人，可代为提交）、`member_confirm`（成员确认的子任务：`approver` 是受托成员，成员可提交并批准，manifest 的 `human_subject` 仍是父任务的负责人）与 `parent_expires_at`（委托任务父授权的到期时刻）。授权在决定时刻按 manifest 的 TTL 重新签发，决定晚于申请时子授权会超出父授权而被 TaskGate 以 409 拒绝；OA 须把 TTL 缩到父授权剩余时间，并按"缩小后批准"（narrowed）发出。Demo OA 自动这样做。
+
+目录启用 `delegated_authorization` 时（catalog-guide.md"长期授权模型"），这些字段与审批人由下列请求参数和规则产生：
+
+- `request_data_task`：
+  - 可选 `budget_profile`（目录预算档，须与路由预算档同一 `exposure_profile_version`；块不存在时传入即 `INVALID_REQUEST`）；
+  - 申请在申请人本人职权内、或只含本人的个人记录时，草稿的 `approver` 等于 `human_subject`（本人确认，返回 `self_service: true`），申请人提交并批准；
+  - 带 `parent_task_id` 与指向另一个人的 `delegate_principal_id` 时，草稿带 `member_confirm: true`，`approver` 是受托成员（返回 `member_confirm: true`）。
+- `issue_data_authorization`：`for_principal_id`（员工的查询主体，可属于任何部门，其资格包络须覆盖所开范围）、`budget_profile`（必填）、`objective`、`data_products`、`columns`、`scopes`（数据范围只能是发单人的部门）；草稿带 `issued_by`，`approver` 是发单人。
 
 ```json
 {
@@ -129,7 +137,7 @@ Body 契约：
 
 | 状态 | 允许 actor | 状态变化 | 额外要求 |
 |---|---|---|---|
-| `submitted` | `alice` | `AWAITING_SUBMISSION → AWAITING_APPROVAL` | 无 |
+| `submitted` | `alice`（人类主体；代开单另含 `issued_by`，成员确认的子任务另含受托成员） | `AWAITING_SUBMISSION → AWAITING_APPROVAL` | 无 |
 | `approved`（自动） | 已认证申请人 `alice` | `AWAITING_APPROVAL → ACTIVE` | 完整 Grant + Ed25519 回执 |
 | `approved`（人工） | Catalog 指定的 `bob` | `AWAITING_APPROVAL → ACTIVE` | 完整 Grant + Ed25519 回执 |
 | `narrowed` | Catalog 指定的 `bob` | `AWAITING_APPROVAL → ACTIVE` | 严格收缩 Grant + `decision=narrow` 回执 |
@@ -171,7 +179,7 @@ OA Demo 对回调最多尝试 3 次。企业 OA 应采用持久化 Outbox、指�
 
 - `GET/POST /login`：登录。共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下登录页只要口令，会话从第一个申请人账号开始，之后用 `/switch` 换身份；表单带 `username` 时仍按该账号登录（脚本用）。其他模式选账号加密码。所有响应带 `Cache-Control: no-store`。
 - `GET /tasks`：待办（待提交或待审批、与本人相关的草稿）；`GET /history`：本人提交、代开或审批过的全部草稿；`GET /tasks/{draftID}`：查看草稿（一句话摘要、审批进度、范围与预算；Task ID、摘要等技术标识折叠在"技术细节"里）。
-- `POST /tasks/{draftID}/submit`：申请人本人或代开人（草稿的 issued_by）可提交。
+- `POST /tasks/{draftID}/submit`：申请人本人或代开人（草稿的 issued_by）可提交；成员确认子任务（草稿的 `member_confirm`）的受托成员也可提交并确认；待办总览与"切换到 X 并提交"对这类草稿指向该成员。
 - `POST /tasks/{draftID}/decision`：有审批能力的账号可批准/拒绝/缩小指派给自己的 pending 人工任务。缩小表单是勾选框（`approved_products`、`column:<产品>`、`scope:<范围>`、`scope_from:/scope_to:<范围>` 多值字段）；脚本仍可提交原来的 JSON 字段 `approved_products`、`approved_columns`、`mandatory_scope`。
 - `POST /switch`：共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下切换到任一配置账号，不用再输口令；其他模式返回 404。
 - `OA_LABELS_FILE`：可选 YAML（`scopes`、`values`、`products` 三个映射，加 `groups` 列表），给目录标识符配中文显示名；`groups` 每项 `{label, members}` 把身份切换下拉按业务线分组（`<optgroup>`），不在任何组里的账号排在最前；缺省显示标识符、不分组。

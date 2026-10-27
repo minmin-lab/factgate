@@ -55,6 +55,16 @@ const issueSubjects = `  - subject: alice
     attributes: {department: [engineering], job_family: [dept_admin]}
   - subject: hr-admin
     attributes: {department: [hr], job_family: [dept_admin]}
+  - subject: sales-clerk
+    attributes:
+      department: [sales]
+      job_family: [staff, finance_controller]
+      clearance: [public, internal]
+  - subject: sales-staff
+    attributes:
+      department: [sales]
+      job_family: [staff]
+      clearance: [public, internal]
 `
 
 type issueHarness struct {
@@ -227,4 +237,38 @@ func TestIssuingIsAbsentWithoutTheCatalogBlock(t *testing.T) {
 	}
 	_, err := callGatewayTool(h.service, h.alice, issueTool.Name, issueArgs(h.staff.ID, "final-v5-concurrency-v1", "finance"))
 	requireToolCode(t, err, apierr.CodeForbidden)
+}
+
+// An authorization is issued by the data's department (KB1-LOOP-148): the
+// employee may belong to another department, the chain starts at the
+// issuer's, and the employee's own envelope must cover the scope.
+func TestAdministratorIssuesTheirDepartmentsDataToAnotherDepartmentsEmployee(t *testing.T) {
+	h := newIssueHarness(t, true)
+	employees := map[string]mcp.Principal{}
+	for _, subject := range []string{"sales-clerk", "sales-staff"} {
+		principal := mcp.Principal{ID: "principal-" + subject, Subject: subject, Role: "query"}
+		if err := h.store.CreatePrincipal(context.Background(), control.Principal{ID: principal.ID, Subject: subject, Role: "query", CreatedAt: h.clock.value}); err != nil {
+			t.Fatal(err)
+		}
+		employees[subject] = principal
+	}
+	result := mustCallGatewayTool(t, h.service, h.alice, issueTool.Name, issueArgs(employees["sales-clerk"].ID, "final-v5-concurrency-v1", "finance"))
+	root := h.task(result["task_id"].(string))
+	draft := h.approval.requests[len(h.approval.requests)-1]
+	if result["approver"] != "alice" || result["human_subject"] != "sales-clerk" || draft.Approver != "alice" || draft.IssuedBy != "alice" ||
+		root.PrincipalID != employees["sales-clerk"].ID {
+		t.Fatalf("cross-department issuance %v draft approver %q issued_by %q", result, draft.Approver, draft.IssuedBy)
+	}
+	if code := h.callback(root, draft, "submitted", "alice"); code != http.StatusOK {
+		t.Fatalf("the issuer submitting = %d", code)
+	}
+	if code := h.callback(root, draft, "approved", "alice"); code != http.StatusOK || h.task(root.ID).State != control.TaskActive {
+		t.Fatalf("the issuer approving = %d, state %s", code, h.task(root.ID).State)
+	}
+	// The scope still has to be the issuer's department.
+	_, err := callGatewayTool(h.service, h.alice, issueTool.Name, issueArgs(employees["sales-clerk"].ID, "final-v5-concurrency-v1", "sales"))
+	requireToolCode(t, err, apierr.CodeInvalidRequest)
+	// An employee whose envelope does not reach finance cannot be given it.
+	_, err = callGatewayTool(h.service, h.alice, issueTool.Name, issueArgs(employees["sales-staff"].ID, "final-v5-concurrency-v1", "finance"))
+	requireToolCode(t, err, apierr.CodeNotEligible)
 }

@@ -345,6 +345,7 @@ approval_routes:
       escalations:                           # 升级层，按链上顺序；KB1-LOOP-147
         - role: director                     # 本层步骤的角色名，小写标识符，层间唯一，不得是 requester_director / department_director
           label: 部门主任                     # 展示名，可省略
+          # level: 0                         # 可选，长期授权模型下的职权层级（见下节）；省略即序号加 1
           scope: classification
           values: [confidential, leadership]
           leaders: {finance: finance-director, sales: sales-director, ...}  # 须覆盖全部部门
@@ -372,6 +373,46 @@ approval_routes:
   - 任一级拒绝，任务即归档。
 - **申请人自选审批人**：`approver` 只替换第一级，并照常在回调时核验。
 - **可见性**：`request_data_task` 返回 `approval_chain`（每步含 `role`、`role_label`、`approver`）；`get_task_status` 与 `wait_for_approval` 返回当前审批人和每一步的状态（approved / current / pending）；每级审批回调的答复含 `next_role` 与 `next_role_label`。
+
+### 长期授权模型（`delegated_authorization`，KB1-LOOP-147/148；演示功能，不属论文主张）
+
+顶层块 `delegated_authorization` 打开演示的粗粒度长期授权模型。块本身进目录摘要，所以每张 manifest 与回执都绑定了它是否打开；没有这个块的目录（正式轮）行为完全不变。
+
+```yaml
+delegated_authorization:
+  issuer_role: {attribute: job_family, any_of: [dept_admin]}  # 代开单（issue_data_authorization）所需角色，必填
+  child_self_confirm: true          # 子任务由树的人类主体本人确认
+  authority_attribute: authority_departments  # 列出主体有职权的部门的属性；省略即 authority_departments
+  center_scope: center              # 中心范围（枚举）；省略即不启用中心规则
+  center_attribute: authority_center  # 列出主体所辖中心的属性；省略即 authority_center
+  personal_scope: employee_id       # 个人记录范围（枚举）；申请人同名属性是本人的值；省略即不启用
+products:
+  - name: attendance_records
+    steward_department: hr          # 数据管家部门，须是每条审批链 department_scope 的取值
+    scopes: [kb_department, classification, center, employee_id]
+    ...
+```
+
+以下规则只在块存在时生效，只作用于申请人自己发起的任务；代开单（`issue_data_authorization`）照旧从发单人那一级起排、不走这些规则。审批人照常在建草稿前与每级回调时核验权限。
+
+1. **职权层级**。链上每一步有层级：两类部门审批人（`requester_director`、`department_director`）为 0；升级层的层级取该层可选的 `level`（整数，0 到层数），省略时为它在 `escalations` 里的序号 i（从 0 数）加 1。例如作者定部门主任与部门管理员同层，演示目录把主任层写 `level: 0`。`level` 只影响下面的职权判断，不改变链上的顺序与谁出现在链上。申请人的层级是组织架构里点到他的各处层级的最大值（是 `directors` 的人为 0，都不是为 -1）。排链时：
+   - 某一步的层级不高于申请人的层级、且该步的部门都在申请人的职权部门（`authority_attribute`）内：申请人本人代表这一步，删去；
+   - 某一步点到申请人本人、而本人对该步部门无职权：按部门改由组织图里该步之后、不是本人的第一层的人审批；
+   - 申请范围含职权外的部门（跨部门）时，申请人本部门那一步若按第一条被删，改由组织图顺序里申请人所在位置之后、不是本人的第一层的人审批，与 `level` 无关（部门管理员跨部门 → 本部门主任；主任跨部门 → 分管领导）；
+   - 例（主任层 `level: 0`）：管理员申请本部门秘密 → 本人确认；机密 → [分管领导]；绝密 → [分管领导, 总经理]；管理员跨部门内部 → [本部门主任, 对方管理员]；主任跨部门 → [分管领导, 对方管理员]；
+   - 同一人只出现一次（保留第一次出现的位置，同角色时合并部门）；找不到可替换的人即 `APPROVER_NOT_AUTHORIZED`。
+   - 链上一步不剩时，任务由申请人本人确认（self-service）：审批人是申请人，返回 `self_service: true` 与 `self_confirm: true`，申请人登录 OA 提交并批准即生效；此时不能用 `approver` 指定他人（`INVALID_REQUEST`）。
+   - 中心：申请只含本部门、只含本人所辖中心（`center_scope` 的值都在 `center_attribute` 内）、不触发任何升级层，且所有产品都声明了 `center_scope` 时，同样由申请人本人确认；超出本中心则按上面的规则（通常是本部门管理员审批）。
+   - 职权快照在申请时记入任务的私有路由记录，审批人缩小范围后每一级都按同一份记录重算。
+2. **个人记录自助**。根任务的所有产品都声明了 `personal_scope`，且该范围的申请值恰好等于申请人同名属性的值集合（非空）时，任务由申请人本人确认，不论部门。只申请别人的记录由资格包络挡下（`NOT_ELIGIBLE`），与本规则无关；含未声明该范围的产品（如文档）的混合任务不适用本规则。
+3. **数据管家**。任务的所有产品都声明了 `steward_department` 时，申请范围里既不在申请人职权内、也不是申请人本部门的部门，一律换成管家部门再排链（例：HR 管理员申请全公司考勤 → 只剩 hr → 本人确认；财务管理员申请财务与销售的考勤 → 本部门主任 + HR 管理员）。混合任务（含未声明管家的产品）按部门常规排链。
+4. **成员确认**。`request_data_task` 带 `parent_task_id` 并用 `delegate_principal_id` 委托给另一个人的查询主体时：任务的人类主体仍是父任务的（委托收缩检查不变），审批人是受托成员本人，资格包络按成员编译；成员可在 OA 提交并批准，回执上的审批人即成员；返回 `member_confirm: true`，`get_task_status` 的 `waiting_for` 为 `member_submission` / `member_confirmation`。委托给自己（或同一人类主体）的子任务仍按 `child_self_confirm` 由本人确认。
+
+块打开时另有两项：
+
+- `request_data_task` 可选 `budget_profile`：取目录里的预算档替换路由的预算档，须与路由预算档的 `exposure_profile_version` 相同（返回 `budget_source: requested_profile`）；块不存在时传入即 `INVALID_REQUEST`。子任务仍与父授权取交。
+- `issue_data_authorization`（代开单）：数据范围只能是发单人自己的部门（数据属主），链从发单人的部门起排、第一步须是发单人；员工可以属于任何部门，但员工本人的资格包络须覆盖所开范围。
+- `list_data_products` 返回 `delegated_authorization`，说明以上规则与所用属性名；`request_data_task` 的工具说明与入参 schema 也随之列出 `budget_profile`。
 
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。

@@ -42,7 +42,7 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 	for _, route := range s.catalog.ApprovalRoutes {
 		routes = append(routes, publicApprovalRoute(route))
 	}
-	return map[string]any{
+	result := map[string]any{
 		"catalog_version": s.catalog.CatalogVersion,
 		"sql_profile":     catalogReportingSQLProfile,
 		"products":        products,
@@ -58,7 +58,33 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 			"无权者在 OA 批准后不签发授权，任务以 approver_not_authorized 归档。返回值的 approver_authorized 预告结果。" +
 			"带 approval_chain 的路由按组织架构多级审批（申请人部门主任 → 被申请部门主任 → 领导级文档的分管领导），" +
 			"每一级都在 TaskGate 核验审批人权限，最后一级批准后才签发授权；approver 参数只替换第一级。",
-	}, nil
+	}
+	if delegated := s.delegated(); delegated != nil {
+		result["delegated_authorization"] = publicDelegatedAuthorization(*delegated)
+	}
+	return result, nil
+}
+
+// publicDelegatedAuthorization says what the Catalog's long-lived
+// authorization model changes for a requester (KB1-LOOP-147/148).
+func publicDelegatedAuthorization(delegated catalog.DelegatedAuthorization) map[string]any {
+	public := map[string]any{
+		"authority_attribute": delegated.AuthorityAttributeName(),
+		"child_self_confirm":  delegated.ChildSelfConfirm,
+		"rules": "职权层级：审批链上申请人本人有职权的环节（该环节部门都在申请人的职权部门内、且层级不高于申请人）由申请人本人代表，删去；" +
+			"点到申请人本人而本人无该职权的环节，改由该部门更高一层的人审批；范围含职权外部门时，申请人本部门这一级改由高于本人的最近一层审批；同一人只出现一次。" +
+			"链上不剩任何环节时任务由申请人本人确认（self_service）。数据管家：任务的产品都声明了 steward_department 时，范围中既不在申请人职权内、也不是申请人本部门的部门改由管家部门审批。" +
+			"代开单（issue_data_authorization）与带 delegate_principal_id 的成员子任务不走这些规则。",
+	}
+	if delegated.CenterScope != "" {
+		public["center_scope"], public["center_attribute"] = delegated.CenterScope, delegated.CenterAttributeName()
+		public["center_rule"] = "申请只含本部门、只含本人所辖中心（" + delegated.CenterScope + "）、不触发任何升级层，且所有产品都声明了该范围时，由申请人本人确认"
+	}
+	if delegated.PersonalScope != "" {
+		public["personal_scope"] = delegated.PersonalScope
+		public["personal_rule"] = "根任务的所有产品都声明了 " + delegated.PersonalScope + "、且申请值恰为申请人本人的同名属性值时，由申请人本人确认，不论部门"
+	}
+	return public
 }
 
 // publicApprovalRoute is what a requester may know about a route: which
@@ -105,6 +131,11 @@ type taskRequestArgs struct {
 	// checked against the data products' rules when the approval arrives, so
 	// a wrong choice yields no grant.
 	Approver string `json:"approver,omitempty"`
+	// BudgetProfile optionally chooses a Catalog budget profile in place of
+	// the route's (KB1-LOOP-148): accepted only under the Catalog's
+	// delegated_authorization block, and only a profile of the route's
+	// exposure version (chooseBudgetProfile).
+	BudgetProfile string `json:"budget_profile,omitempty"`
 	// issuance is set by issue_data_authorization only (issue.go): the task
 	// is created for another principal with a chosen budget profile.
 	issuance *issuanceRequest
@@ -152,6 +183,11 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	var parentCore *domain.TaskGrantCoreV1
 	var inheritedViewBinding *pendingViewBinding
 	var issuedBy *issuerRecord
+	// memberSubject is set for a member-confirmed child (KB1-LOOP-148): a
+	// child task delegated to another person's principal under the Catalog's
+	// delegated_authorization block. The tree's human subject stays the
+	// parent's; the member is its approver and its eligibility subject.
+	memberSubject := ""
 	if args.ParentTaskID == "" {
 		if args.DelegatePrincipalID != "" {
 			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "delegate_principal_id 只能与 parent_task_id 一起使用"}
@@ -208,6 +244,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		}
 		taskPrincipalID = delegate.ID
 		humanSubject = protocol.Core.HumanSubject
+		if s.delegated() != nil && strings.TrimSpace(args.DelegatePrincipalID) != "" && !strings.EqualFold(delegate.Subject, humanSubject) {
+			memberSubject = strings.ToLower(strings.TrimSpace(delegate.Subject))
+		}
 		rootTaskID = parentTask.RootTaskID
 		if rootTaskID == "" {
 			rootTaskID = parentTask.ID
@@ -234,6 +273,15 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
 	}
 	budgetSource := "catalog_profile"
+	if requested := strings.TrimSpace(args.BudgetProfile); requested != "" {
+		if s.delegated() == nil {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "budget_profile 只在目录启用 delegated_authorization 时可选；缺省按路由的预算档"}
+		}
+		if err := s.chooseBudgetProfile(&policy, requested); err != nil {
+			return nil, err
+		}
+		budgetSource = "requested_profile"
+	}
 	if issuedBy != nil {
 		if err := s.applyIssuance(&policy, principal, scope, args.issuance, now); err != nil {
 			return nil, err
@@ -250,7 +298,13 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	// Eligibility precedes approval: a request outside the envelope compiled
 	// from the human subject's attested attributes is rejected here and never
 	// becomes an OA draft. An approver can only narrow what passes this gate.
-	eligibility, err := s.compileEligibility(policy.Products, humanSubject, scope, now)
+	// A member-confirmed child is bounded by the member's attributes (and,
+	// through delegation, by its parent's grant).
+	eligibilitySubject := humanSubject
+	if memberSubject != "" {
+		eligibilitySubject = memberSubject
+	}
+	eligibility, err := s.compileEligibility(policy.Products, eligibilitySubject, scope, now)
 	if err != nil {
 		return nil, err
 	}
@@ -270,38 +324,72 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		chain               *pendingChain
 		chainSteps          []map[string]any
 	)
-	// A child task under the delegated-authorization model is confirmed by
-	// the tree's own human subject (KB1-LOOP-147, demo): the root was
-	// approved by someone else, the child can only narrow it and shares its
-	// ledger, so the confirmation is the requester's own. A root task never
-	// takes this path.
-	selfConfirm := parentCore != nil && s.childSelfConfirm()
-	if selfConfirm {
+	// Under the delegated-authorization model (KB1-LOOP-147/148, demo):
+	//   - a child delegated to another member is confirmed by that member;
+	//   - any other child is confirmed by the tree's own human subject when
+	//     child_self_confirm is on: the root was approved by someone else, the
+	//     child can only narrow it and shares its ledger;
+	//   - a root task asking only for the requester's own personal records,
+	//     or one whose whole chain the requester holds the authority for, is
+	//     self-service: the requester confirms it (approval_chain.go).
+	// An issued task never takes these paths: its issuer approves first.
+	delegated := s.delegated()
+	memberConfirm := parentCore != nil && memberSubject != ""
+	selfConfirm := parentCore != nil && !memberConfirm && s.childSelfConfirm()
+	selfService := parentCore == nil && issuedBy == nil && s.personalSelfService(policy.Products, humanSubject, scope, now)
+	switch {
+	case memberConfirm:
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, memberSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "成员确认的子任务由受托成员本人确认，不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = memberSubject
+		policy.ApprovalRoute.Chain = nil
+	case selfConfirm:
 		if chosenApprover != "" && !strings.EqualFold(chosenApprover, humanSubject) {
 			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "本人确认的子任务不能指定其他审批人；不传 approver 即可"}
 		}
 		policy.ApprovalRoute.Approver = humanSubject
 		policy.ApprovalRoute.Chain = nil
-	} else if route := policy.ApprovalRoute.Chain; route != nil {
+	case selfService:
+	case policy.ApprovalRoute.Chain != nil:
 		// An approval chain: TaskGate derives every step from the org chart
 		// and verifies each approver when they approve; a chosen approver
-		// replaces only the first step (approval_chain.go).
-		planned, steps, chainErr := s.planApprovalChain(*route, humanSubject, chosenApprover, scopeValueSets(scope), now)
+		// replaces only the first step (approval_chain.go). An issued task's
+		// chain starts at the issuer's department, the data's owner.
+		origin := chainOrigin{DepartmentOf: humanSubject, Rules: delegated != nil && issuedBy == nil, Products: policy.Products}
+		if issuedBy != nil {
+			origin.DepartmentOf = issuedBy.Subject
+		}
+		planned, steps, self, chainErr := s.planApprovalChain(*policy.ApprovalRoute.Chain, humanSubject, origin, chosenApprover, scopeValueSets(scope), now)
 		if chainErr != nil {
 			return nil, chainErr
+		}
+		if self {
+			selfService = true
+			break
 		}
 		chain, chainSteps = &planned, steps
 		policy.ApprovalRoute.Approver, _ = steps[0]["approver"].(string)
 		if issuedBy != nil && !strings.EqualFold(policy.ApprovalRoute.Approver, principal.Subject) {
 			return nil, &mcp.ToolError{Code: apierr.CodeApproverNotAuthorized,
-				Message: fmt.Sprintf("发单人 %s 不是该员工所在部门的审批人（目录组织架构指定 %s）", principal.Subject, policy.ApprovalRoute.Approver)}
+				Message: fmt.Sprintf("发单人 %s 不是数据所属部门的审批人（目录组织架构指定 %s）", principal.Subject, policy.ApprovalRoute.Approver)}
 		}
 		if chosenApprover != "" {
 			authorized, _ := steps[0]["approver_authorized"].(bool)
 			approverAuthorized = &authorized
 		}
-	} else if approverEligibility, approverAuthorized, err = s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != ""); err != nil {
-		return nil, err
+	default:
+		if approverEligibility, approverAuthorized, err = s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != ""); err != nil {
+			return nil, err
+		}
+	}
+	if selfService {
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, humanSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "该申请在申请人本人职权内（或只含本人记录），由申请人本人确认，不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = humanSubject
+		policy.ApprovalRoute.Chain = nil
+		selfConfirm = true
 	}
 	if len(reservedScope) > 0 {
 		if args.ParentTaskID != "" {
@@ -371,6 +459,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	draftRequest := approval.DraftRequest{
 		Manifest:     manifest,
 		ApprovalMode: string(policy.ApprovalRoute.Mode), Approver: policy.ApprovalRoute.Approver,
+		MemberConfirm: memberConfirm,
 	}
 	if issuedBy != nil {
 		draftRequest.IssuedBy = issuedBy.Subject
@@ -400,8 +489,8 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
 		Eligibility: eligibility, ApproverEligibility: approverEligibility,
-		VerifyApprover: selfConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
-		Chain: chain, SelfConfirm: selfConfirm, IssuedBy: issuedBy,
+		VerifyApprover: selfConfirm || memberConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
+		Chain: chain, SelfConfirm: selfConfirm, MemberConfirm: memberConfirm, IssuedBy: issuedBy,
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -456,6 +545,12 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if selfConfirm {
 		result["self_confirm"] = true
+	}
+	if selfService {
+		result["self_service"] = true
+	}
+	if memberConfirm {
+		result["member_confirm"] = true
 	}
 	if issuedBy != nil {
 		result["issued_by"], result["human_subject"] = issuedBy.Subject, humanSubject

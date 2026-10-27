@@ -508,3 +508,66 @@ func TestTheDraftPageRefreshesWhileItWaits(t *testing.T) {
 		t.Fatalf("an approved draft with a note: %s", page)
 	}
 }
+
+// A member-confirmed child (KB1-LOOP-148): the project's owner stays the
+// human subject, the member is the approver, submits and confirms; the
+// overview and the switch point to the member; a stranger may do neither.
+func TestTheMemberSubmitsAndConfirmsAMemberConfirmedChild(t *testing.T) {
+	server, httpServer, gateway := delegatedOA(t, true)
+	request := staffDraft(t, "staff", "", time.Hour)
+	request.Manifest.HumanSubject = "finance-admin"
+	digest, err := approval.ManifestDigest(request.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.ManifestDigest, request.MemberConfirm = digest, true
+	draft := createDraft(t, httpServer.URL, request)
+	if stored := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "draft" }); !stored.MemberConfirm || stored.Approver != "staff" {
+		t.Fatalf("the draft did not keep member_confirm: %+v", stored.MemberConfirm)
+	}
+
+	// The owner's page and a stranger's overview point to the member.
+	owner := login(t, httpServer.URL, "finance-admin", "shared")
+	if page := get(t, owner, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, ">切换到 普通员工 并提交<") ||
+		!strings.Contains(page, "由项目成员 普通员工（staff） 本人确认") {
+		t.Fatalf("the owner is not sent to the member: %s", page)
+	}
+	stranger := login(t, httpServer.URL, "sales-admin", "shared")
+	list := get(t, stranger, httpServer.URL+"/tasks")
+	at := strings.Index(list, "其他身份的待办")
+	if at < 0 || !strings.Contains(list[at:], "<h3>普通员工（1 张）</h3>") || strings.Contains(list[at:], "<h3>财务部管理员（") {
+		t.Fatalf("the overview does not point to the member: %s", list)
+	}
+	if status := act(t, stranger, httpServer.URL, draft, "submit", nil); status != http.StatusForbidden {
+		t.Fatalf("a stranger submitting = %d, want 403", status)
+	}
+
+	member := login(t, httpServer.URL, "staff", "shared")
+	page := get(t, member, httpServer.URL+"/tasks/"+draft)
+	if !strings.Contains(page, "提交申请") || strings.Contains(page, "切换到 ") {
+		t.Fatalf("the member's page: %s", page)
+	}
+	if status := act(t, member, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("the member submitting = %d", status)
+	}
+	if event := gateway.event(t, draft, "staff", "submitted"); event.Status != "submitted" {
+		t.Fatalf("submit event %+v", event)
+	}
+	page = get(t, member, httpServer.URL+"/tasks/"+draft)
+	if !strings.Contains(page, ">确认<") || !strings.Contains(page, "成员确认") {
+		t.Fatalf("a member-confirmed draft does not read as one: %s", page)
+	}
+	if status := act(t, stranger, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusForbidden {
+		t.Fatalf("a stranger deciding = %d, want 403", status)
+	}
+	if status := act(t, member, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
+		t.Fatalf("the member confirming = %d", status)
+	}
+	awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "approved" })
+	if event := gateway.event(t, draft, "staff", "approved"); event.ApprovalReceipt == nil || event.ApprovalReceipt.ApproverID != "staff" {
+		t.Fatalf("confirmation receipt %+v", event.ApprovalReceipt)
+	}
+	if history := get(t, member, httpServer.URL+"/history"); !strings.Contains(history, draft) || !strings.Contains(history, "确认成员 staff") {
+		t.Fatalf("the member's history: %s", history)
+	}
+}

@@ -16,17 +16,19 @@ import (
 
 // Issued authorizations (KB1-LOOP-147; the delegated-authorization demo, not
 // a paper claim). A department administrator's agent opens a long-lived
-// authorization for an employee of the administrator's own department: the
-// task is the employee's (its human subject and principal are the employee's),
-// the administrator is its first approver, and the administrator may submit
-// the draft, so one OA login submits and approves it. The scope must stay
-// inside the administrator's department; a cross-department authorization is
-// a project the employee requests themselves. The issuer is recorded in the
+// authorization for an employee: the task is the employee's (its human
+// subject and principal are the employee's), the administrator is its first
+// approver, and the administrator may submit the draft, so one OA login
+// submits and approves it. The scope must stay inside the administrator's
+// department, which owns the data; the employee may belong to any department
+// (KB1-LOOP-148) as long as their eligibility envelope covers the scope. A
+// cross-department authorization is a project the employee requests
+// themselves. The issuer is recorded in the
 // task's private context, on the OA draft and in a TASK_ISSUED_FOR audit
 // event; the approval receipt binds the administrator as approver as usual.
 
 var issueTool = mcp.Tool{Name: "issue_data_authorization",
-	Description: "部门管理员为本部门员工开一张长期授权单（根任务）：for_principal_id 是员工的主体 id，budget_profile 选目录里的预算档（如一年期）。申请人记为该员工，管理员本人是第一审批人并可代为提交，范围只能是管理员自己的部门（跨部门请让员工自己申请项目）。需要目录启用 delegated_authorization 且管理员具备 issuer_role。",
+	Description: "部门管理员给员工开一张长期授权单（根任务）：for_principal_id 是员工的主体 id（员工可以属于任何部门，但须对所开范围有资格），budget_profile 选目录里的预算档（如一年期）。申请人记为该员工，管理员本人是第一审批人并可代为提交；数据范围只能是管理员自己的部门（数据属主），审批链从管理员的部门起排。需要目录启用 delegated_authorization 且管理员具备 issuer_role。",
 	InputSchema: objectSchema(map[string]any{
 		"for_principal_id": map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
 		"objective":        map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
@@ -102,7 +104,9 @@ func (s *Service) issuedPrincipal(ctx context.Context, issuer mcp.Principal, for
 // applyIssuance confines an issued authorization to the issuer's own
 // department and replaces the route's budget with the chosen profile. It
 // needs a chain route: the chain's org chart is what makes the issuer the
-// department's approver.
+// department's approver. The employee may belong to any department
+// (KB1-LOOP-148): the chain starts at the issuer's department, which owns the
+// data, and the employee's own eligibility envelope must still cover it.
 func (s *Service) applyIssuance(policy *catalog.TaskPolicy, issuer mcp.Principal, scope map[string]any,
 	issuance *issuanceRequest, now time.Time) error {
 	chain := policy.ApprovalRoute.Chain
@@ -124,7 +128,16 @@ func (s *Service) applyIssuance(policy *catalog.TaskPolicy, issuer mcp.Principal
 				Message: fmt.Sprintf("代开单只能分配本部门（%s）的资源，范围含 %s；跨部门请由员工自己发起项目申请", departments[0], department)}
 		}
 	}
-	profile, ok := s.catalog.LookupBudgetProfile(issuance.BudgetProfile)
+	return s.chooseBudgetProfile(policy, issuance.BudgetProfile)
+}
+
+// chooseBudgetProfile replaces a task's budget with a chosen Catalog profile
+// (issue_data_authorization, and request_data_task's budget_profile under the
+// delegated-authorization block). The profile must exist and keep the
+// route's exposure profile version: a choice changes the capacity, never the
+// accounting semantics.
+func (s *Service) chooseBudgetProfile(policy *catalog.TaskPolicy, name string) error {
+	profile, ok := s.catalog.LookupBudgetProfile(name)
 	if !ok {
 		return &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "budget_profile 不是目录里的预算档"}
 	}
@@ -133,6 +146,30 @@ func (s *Service) applyIssuance(policy *catalog.TaskPolicy, issuer mcp.Principal
 	}
 	policy.Budget, policy.BudgetProfile = profile.Budget(), profile.Name
 	return nil
+}
+
+// personalSelfService reports whether a root task asks only for the
+// requester's own personal records (KB1-LOOP-148): the Catalog names a
+// personal scope, every requested product declares it, and its requested
+// values are exactly the requester's own values of the same-named attribute.
+// Such a task is confirmed by the requester, whatever the department.
+func (s *Service) personalSelfService(products []catalog.Product, subject string, scope map[string]any, now time.Time) bool {
+	delegated := s.delegated()
+	if delegated == nil || delegated.PersonalScope == "" || s.principalAttributes == nil ||
+		!everyProductDeclares(products, delegated.PersonalScope) {
+		return false
+	}
+	requested, ok := scopeStringValues(scope[delegated.PersonalScope])
+	own := sortedValues(s.principalAttributes.Values(subject, delegated.PersonalScope, now))
+	if !ok || len(requested) == 0 || len(requested) != len(own) {
+		return false
+	}
+	for index := range requested {
+		if requested[index] != own[index] {
+			return false
+		}
+	}
+	return true
 }
 
 // issuedOrOwnedTask is ownedTask for the tools an issuer may also use on the

@@ -62,6 +62,10 @@ type DraftRequest struct {
 	// IssuedBy is the subject who issued the task for its human subject and
 	// may submit the draft in their place (KB1-LOOP-147); empty otherwise.
 	IssuedBy string `json:"issued_by,omitempty"`
+	// MemberConfirm marks a child task delegated to another member's agent
+	// (KB1-LOOP-148): Approver is that member, who may also submit the draft;
+	// the manifest's human subject stays the parent's. False otherwise.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
 	// ParentExpiresAt is the parent grant's expiry of a delegated task. A
 	// grant is re-issued at decision time with the manifest's TTL, so an
 	// approver must shorten the TTL to what the parent has left when the

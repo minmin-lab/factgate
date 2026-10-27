@@ -28,10 +28,12 @@ const (
 // approver and the human requester from the task's own request context.
 func (s *Service) taskFlow(task control.Task) map[string]any {
 	var pending struct {
-		Approver    string `json:"approver"`
-		SelfConfirm bool   `json:"self_confirm"`
-		Manifest    struct {
+		Approver      string `json:"approver"`
+		SelfConfirm   bool   `json:"self_confirm"`
+		MemberConfirm bool   `json:"member_confirm"`
+		Manifest      struct {
 			HumanSubject string `json:"human_subject"`
+			ParentTaskID string `json:"parent_task_id"`
 		} `json:"authorization_manifest"`
 	}
 	if task.State == control.TaskAwaitingSubmission || task.State == control.TaskAwaitingApproval {
@@ -41,12 +43,24 @@ func (s *Service) taskFlow(task control.Task) map[string]any {
 	switch task.State {
 	case control.TaskAwaitingSubmission:
 		flow["waiting_for"], flow["next_action"] = "requester_submission", "human_submit_in_oa"
-		if pending.SelfConfirm {
+		switch {
+		case pending.MemberConfirm:
+			flow["waiting_for"], flow["approver"] = "member_submission", pending.Approver
+			flow["next_action_hint"] = "这是委托给项目成员的子任务，由成员" + quotedOrEmpty(pending.Approver) + "本人确认：成员登录 OA 打开草稿，点“提交申请”再点“批准”即可生效；agent 不能代为操作。不再需要的任务可用 revoke_task 作废"
+		case pending.SelfConfirm && pending.Manifest.ParentTaskID == "":
+			flow["next_action_hint"] = "该申请在申请人" + quotedOrEmpty(pending.Manifest.HumanSubject) + "本人职权内（或只含本人记录），由本人确认：登录 OA 打开草稿，点“提交申请”再点“批准”即可生效；agent 不能代为操作。不再需要的任务可用 revoke_task 作废"
+		case pending.SelfConfirm:
 			flow["next_action_hint"] = "这是项目内的子任务，由申请人" + quotedOrEmpty(pending.Manifest.HumanSubject) + "本人确认：登录 OA 打开草稿，点“提交申请”再点“批准”即可生效；agent 不能代为操作。不再需要的任务可用 revoke_task 作废"
-		} else {
+		default:
 			flow["next_action_hint"] = "需要申请人" + quotedOrEmpty(pending.Manifest.HumanSubject) + "本人登录 OA 打开草稿并点“提交申请”；agent 不能代为提交。提交后任务进入 AWAITING_APPROVAL，等待审批人" + quotedOrEmpty(pending.Approver) + "。不再需要的任务可用 revoke_task 作废"
 		}
 	case control.TaskAwaitingApproval:
+		if pending.MemberConfirm {
+			flow["waiting_for"], flow["next_action"] = "member_confirmation", "human_confirm_in_oa"
+			flow["approver"] = pending.Approver
+			flow["next_action_hint"] = "等待项目成员" + quotedOrEmpty(pending.Approver) + "本人在 OA 点“批准”确认；可再次调用 wait_for_approval（每次至多 45 秒）继续等待，不再需要时用 revoke_task 作废"
+			break
+		}
 		if pending.SelfConfirm {
 			flow["waiting_for"], flow["next_action"] = "requester_confirmation", "human_confirm_in_oa"
 			flow["approver"] = pending.Approver

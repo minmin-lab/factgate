@@ -172,10 +172,16 @@ type pendingContext struct {
 	// Chain is the routing record of an approval-chain task
 	// (approval_chain.go); Approver is then its first step's approver.
 	Chain *pendingChain `json:"approval_chain,omitempty"`
-	// SelfConfirm marks a child task the Catalog's delegated-authorization
-	// model lets its own human subject confirm: Approver is then the human
-	// subject. The approval callback refuses a self-approval without it.
+	// SelfConfirm marks a task the Catalog's delegated-authorization model
+	// lets its own human subject confirm (a child task, or a self-service
+	// root task): Approver is then the human subject. The approval callback
+	// refuses a self-approval without it.
 	SelfConfirm bool `json:"self_confirm,omitempty"`
+	// MemberConfirm marks a child task delegated to another member's
+	// principal under the delegated-authorization model (KB1-LOOP-148):
+	// Approver is then that member, who may also submit the draft; the human
+	// subject stays the parent's.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
 	// IssuedBy names the department administrator who issued this task for
 	// its human subject (issue.go); they may submit the draft and watch or
 	// revoke the task.

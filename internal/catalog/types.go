@@ -117,6 +117,12 @@ type Product struct {
 	// consulted. A request outside the envelope is rejected and never reaches
 	// an approver; an approver can only narrow a request inside it.
 	Eligibility *Eligibility `yaml:"eligibility,omitempty" json:"eligibility,omitempty"`
+	// StewardDepartment names the department that stewards this product's
+	// records company-wide (KB1-LOOP-148, the delegated-authorization demo;
+	// for example hr for personal records). A task whose every product
+	// declares one is routed, for the departments outside the requester's
+	// authority, to the steward department instead (ApprovalChain.StewardScope).
+	StewardDepartment string `yaml:"steward_department,omitempty" json:"steward_department,omitempty"`
 }
 
 const ViewContractV1 = "taskgate-view-contract-v1"

@@ -445,12 +445,15 @@ func (s *Service) validateRejectedReceipt(event oaCallbackEvent, manifest approv
 // subject submits, the pending approver decides. A record whose approver is
 // the human subject is a self-approval; it is allowed only when the request
 // side marked the task as self-confirmed (pendingContext.SelfConfirm), so an
-// unmarked record fails closed whatever named the approver.
+// unmarked record fails closed whatever named the approver. The issuer of an
+// issued task, and the member of a member-confirmed child (its approver), may
+// also submit.
 func validCallbackActor(event oaCallbackEvent, pending pendingContext, humanSubject string) bool {
 	switch event.Status {
 	case "submitted":
 		return strings.EqualFold(event.Actor, humanSubject) ||
-			(pending.IssuedBy != nil && strings.EqualFold(event.Actor, pending.IssuedBy.Subject))
+			(pending.IssuedBy != nil && strings.EqualFold(event.Actor, pending.IssuedBy.Subject)) ||
+			(pending.MemberConfirm && pending.Approver != "" && strings.EqualFold(event.Actor, pending.Approver))
 	case "approved", "narrowed", "rejected":
 		if strings.EqualFold(pending.Approver, humanSubject) && !pending.SelfConfirm {
 			return false

@@ -154,6 +154,26 @@ var auditTools = []mcp.Tool{
 	}, "receipt_id"), Annotations: map[string]any{"readOnlyHint": true}},
 }
 
+// delegatedRequestDataTaskTool is request_data_task as a Catalog with the
+// delegated_authorization block offers it (KB1-LOOP-148): an optional
+// budget_profile, and the rules that make a request self-service or
+// member-confirmed. A Catalog without the block lists the plain tool.
+func delegatedRequestDataTaskTool(base mcp.Tool) mcp.Tool {
+	properties := map[string]any{}
+	if existing, ok := base.InputSchema["properties"].(map[string]any); ok {
+		for name, schema := range existing {
+			properties[name] = schema
+		}
+	}
+	properties["budget_profile"] = map[string]any{"type": "string", "minLength": 1, "maxLength": 128}
+	required, _ := base.InputSchema["required"].([]string)
+	base.InputSchema = objectSchema(properties, required...)
+	base.Description += "本目录启用了长期授权模型（delegated_authorization）：budget_profile 可选，取目录里与路由同一 exposure 版本的预算档（如一年期）；" +
+		"申请只含本人的个人记录、或整条审批链都在申请人本人职权内（含中心主任本中心、数据管家部门的人员本人）时，任务由申请人本人确认（返回 self_service: true）；" +
+		"带 parent_task_id 并用 delegate_principal_id 委托给其他成员的子任务，由该成员本人确认、资格按该成员判定（返回 member_confirm: true）。"
+	return base
+}
+
 func taskIDSchema() map[string]any {
 	return objectSchema(map[string]any{"task_id": map[string]any{"type": "string"}}, "task_id")
 }
@@ -166,6 +186,11 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	case "query":
 		tools := append(append(append([]mcp.Tool(nil), queryTools...), retrievalToolsFor(s.catalog)...), downloadTools...)
 		if s.delegated() != nil {
+			for index := range tools {
+				if tools[index].Name == "request_data_task" {
+					tools[index] = delegatedRequestDataTaskTool(tools[index])
+				}
+			}
 			tools = append(tools, issueTool)
 		}
 		return tools

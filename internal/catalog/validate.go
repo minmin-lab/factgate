@@ -279,6 +279,10 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 		problems = append(problems, validateEligibility(fmt.Sprintf("products[%d].eligibility", index), product.Eligibility, product.Scopes, c.Scopes)...)
 	}
 	problems = append(problems, c.validateKnowledgeProducts()...)
+	if c.DelegatedAuthorization != nil {
+		problems = append(problems, validateDelegatedScopes("delegated_authorization", *c.DelegatedAuthorization, scopeDefinitions)...)
+	}
+	problems = append(problems, c.validateStewardDepartments(scopeDefinitions)...)
 	scopedProducts := make(map[string]string)
 	for index, route := range c.ApprovalRoutes {
 		// A conditioned route shares its fallback's product set and is

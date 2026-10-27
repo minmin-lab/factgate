@@ -119,6 +119,10 @@ type Draft struct {
 	// IssuedBy is the administrator who issued the task for its human
 	// subject (KB1-LOOP-147); they may submit the draft in their place.
 	IssuedBy string `json:"issued_by,omitempty"`
+	// MemberConfirm marks a child task delegated to a project member
+	// (KB1-LOOP-148): Approver is that member, who submits and confirms it;
+	// the manifest's human subject stays the project's owner.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
 	// ParentExpiresAt bounds a delegated task's grant: a decision later than
 	// the request shortens the TTL to what the parent has left.
 	ParentExpiresAt *time.Time                  `json:"parent_expires_at,omitempty"`
@@ -322,6 +326,7 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 	draft := &Draft{
 		ID: randomID("oa"), Manifest: cloneManifest(request.Manifest), ManifestDigest: request.ManifestDigest,
 		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver), IssuedBy: strings.ToLower(request.IssuedBy),
+		MemberConfirm:   request.MemberConfirm,
 		ParentExpiresAt: cloneTime(request.ParentExpiresAt),
 		State:           "draft", CreatedAt: now, UpdatedAt: now,
 	}
@@ -518,7 +523,7 @@ func (s *Server) taskPage(data sessionData, draft Draft) map[string]any {
 	return map[string]any{"Session": data, "View": s.view(draft),
 		"CanSubmit":   draft.State == "draft" && draft.relatesAsRequester(data.Username),
 		"CanDecide":   canDecide,
-		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject),
+		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject) || draft.MemberConfirm,
 		"SwitchTo":    s.switchOffer(data, draft),
 		"Refresh":     s.awaitsChange(draft, canDecide)}
 }
@@ -534,7 +539,7 @@ func draftAccess(draft *Draft, data sessionData) (int, string) {
 	case draft.relatesAsRequester(data.Username):
 		return http.StatusOK, ""
 	case !data.CanApprove:
-		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人或代开人可以打开和提交"
+		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人、代开人或确认成员可以打开和提交"
 	case draft.ApprovalMode != "manual":
 		return http.StatusForbidden, "此工单不需要人工审批"
 	case !draft.relatesAsApprover(data.Username):
@@ -566,7 +571,7 @@ func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 		status, message = draftAccess(draft, data)
 	}
 	if status == http.StatusOK && !draft.relatesAsRequester(data.Username) {
-		status, message = http.StatusForbidden, "只有申请人本人或代开人可以提交"
+		status, message = http.StatusForbidden, "只有申请人本人、代开人或确认成员可以提交"
 	}
 	if status == http.StatusOK && draft.State != "draft" {
 		status, message = http.StatusConflict, "draft cannot be submitted"

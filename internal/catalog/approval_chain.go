@@ -49,6 +49,11 @@ type ApprovalEscalation struct {
 	Values          []string          `yaml:"values" json:"values"`
 	Leaders         map[string]string `yaml:"leaders" json:"leaders"`
 	LeaderAuthority ApprovalAuthority `yaml:"leader_authority" json:"leader_authority"`
+	// Level is the layer's authority level under the delegated-authorization
+	// rules (KB1-LOOP-148): 0 ranks the layer with the department approvers
+	// (for example directors equal to department administrators). Nil means
+	// the layer's position, index+1. It never changes the chain's order.
+	Level *int `yaml:"level,omitempty" json:"level,omitempty"`
 }
 
 // ApprovalAuthority is checked against an approver's attested attributes:
@@ -145,6 +150,260 @@ func (chain ApprovalChain) Steps(requesterDepartment string, scope map[string][]
 	return steps, nil
 }
 
+// Delegated-authorization rules (KB1-LOOP-148; the demo's
+// delegated_authorization block, not a paper claim). Every step of a chain has
+// a position in the org chart -- the two director roles are position 0, the
+// i-th escalation layer (counting from zero) is position i+1 -- and a level:
+// 0 for the director roles, the layer's Level for a layer (its position when
+// unset). A requester's level is the highest level the org chart names them
+// on, their position the highest position; both are -1 when it names them
+// nowhere.
+
+// LayerLevel is the level of the index-th escalation layer.
+func LayerLevel(layer ApprovalEscalation, index int) int {
+	if layer.Level != nil {
+		return *layer.Level
+	}
+	return index + 1
+}
+
+// stepPosition is a step's position in the org chart; a role the chain does
+// not know ranks after every layer.
+func (chain ApprovalChain) stepPosition(step ApprovalStep) int {
+	switch step.Role {
+	case ApprovalStepRequesterDirector, ApprovalStepDepartmentDirector:
+		return 0
+	}
+	layers := chain.Layers()
+	for index, layer := range layers {
+		if layer.Role == step.Role {
+			return index + 1
+		}
+	}
+	return len(layers) + 1
+}
+
+// StepLevel is a step's level; a role the chain does not know ranks above
+// every layer.
+func (chain ApprovalChain) StepLevel(step ApprovalStep) int {
+	switch step.Role {
+	case ApprovalStepRequesterDirector, ApprovalStepDepartmentDirector:
+		return 0
+	}
+	layers := chain.Layers()
+	highest := 0
+	for index, layer := range layers {
+		if layer.Role == step.Role {
+			return LayerLevel(layer, index)
+		}
+		highest = max(highest, LayerLevel(layer, index))
+	}
+	return max(highest, len(layers)) + 1
+}
+
+// SubjectLevel is the highest level the org chart names subject on, -1 when
+// it names them nowhere.
+func (chain ApprovalChain) SubjectLevel(subject string) int {
+	level, _ := chain.subjectRank(subject)
+	return level
+}
+
+// subjectRank is the highest level and the highest position the org chart
+// names subject on, -1 and -1 when it names them nowhere.
+func (chain ApprovalChain) subjectRank(subject string) (level, position int) {
+	level, position = -1, -1
+	for _, approver := range chain.Directors {
+		if strings.EqualFold(approver, subject) {
+			level, position = 0, 0
+			break
+		}
+	}
+	for index, layer := range chain.Layers() {
+		for _, leader := range layer.Leaders {
+			if strings.EqualFold(leader, subject) {
+				level, position = max(level, LayerLevel(layer, index)), max(position, index+1)
+			}
+		}
+	}
+	return level, position
+}
+
+// StepsFor derives a requester's chain under the delegated-authorization
+// rules. Starting from Steps:
+//
+//   - a step the requester holds the authority for -- its level is at most
+//     the requester's and every department of the step is in authority -- is
+//     dropped: the requester stands in for it;
+//   - a step that names the requester without that authority is replaced, per
+//     department, by the next layer after the step, in org-chart order, that
+//     names someone else;
+//   - when the scope requests a department outside authority, the requester's
+//     own-department step, if dropped by the first rule, is replaced instead
+//     by the next layer after the requester's own position, in org-chart
+//     order, that names someone else: someone above the requester signs off
+//     the department's side of a cross-department request (an administrator's
+//     director, a director's vice president) whatever the layers' levels;
+//   - one approver appears once (their first step, departments merged when the
+//     role is the same).
+//
+// An empty result means the requester confirms the request themselves. A step
+// that cannot be replaced is an error. With an empty requesterSubject this is
+// Steps.
+func (chain ApprovalChain) StepsFor(requesterDepartment, requesterSubject string, authority []string,
+	scope map[string][]string) ([]ApprovalStep, error) {
+	steps, err := chain.Steps(requesterDepartment, scope)
+	if err != nil || requesterSubject == "" {
+		return steps, err
+	}
+	held := make(map[string]struct{}, len(authority))
+	for _, department := range authority {
+		held[department] = struct{}{}
+	}
+	within := func(departments []string) bool {
+		for _, department := range departments {
+			if _, ok := held[department]; !ok {
+				return false
+			}
+		}
+		return true
+	}
+	level, position := chain.subjectRank(requesterSubject)
+	crossing := !within(scope[chain.DepartmentScope])
+	out := make([]ApprovalStep, 0, len(steps))
+	for index, step := range steps {
+		covered := level >= chain.StepLevel(step) && within(step.Departments)
+		switch {
+		case covered && index == 0 && crossing:
+			// Steps puts the requester's own-department step first.
+			replacement, err := chain.above(position, requesterDepartment, requesterSubject)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, replacement)
+		case covered:
+		case strings.EqualFold(step.Approver, requesterSubject):
+			for _, department := range step.Departments {
+				replacement, err := chain.above(chain.stepPosition(step), department, requesterSubject)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, replacement)
+			}
+		default:
+			out = append(out, step)
+		}
+	}
+	return mergeApprovers(out), nil
+}
+
+// above is the step of the first escalation layer after position, in
+// org-chart order, whose leader for department is not subject.
+func (chain ApprovalChain) above(position int, department, subject string) (ApprovalStep, error) {
+	for index, layer := range chain.Layers() {
+		if index+1 <= position {
+			continue
+		}
+		leader, ok := layer.Leaders[department]
+		if !ok {
+			return ApprovalStep{}, fmt.Errorf("no %s is declared for department %q", layer.Role, department)
+		}
+		if strings.EqualFold(leader, subject) {
+			continue
+		}
+		return ApprovalStep{Role: layer.Role, Departments: []string{department}, Approver: leader, Label: layer.Label}, nil
+	}
+	return ApprovalStep{}, fmt.Errorf("no one above %s is declared to approve department %q", subject, department)
+}
+
+// mergeApprovers keeps each approver's first step; a later step of the same
+// approver and role adds its departments, any other later step of theirs is
+// dropped (an approver approves a task once).
+func mergeApprovers(steps []ApprovalStep) []ApprovalStep {
+	out := make([]ApprovalStep, 0, len(steps))
+	first := map[string]int{}
+	for _, step := range steps {
+		key := strings.ToLower(step.Approver)
+		index, seen := first[key]
+		if !seen {
+			first[key] = len(out)
+			step.Departments = append([]string(nil), step.Departments...)
+			out = append(out, step)
+			continue
+		}
+		if out[index].Role != step.Role {
+			continue
+		}
+		for _, department := range step.Departments {
+			if !containsString(out[index].Departments, department) {
+				out[index].Departments = append(out[index].Departments, department)
+			}
+		}
+		sort.Strings(out[index].Departments)
+	}
+	return out
+}
+
+// CenterCovers reports whether a center head confirms a request themselves:
+// it requests only their own department, only centers they head (scope
+// centerScope, non-empty), and triggers no escalation layer.
+func (chain ApprovalChain) CenterCovers(requesterDepartment string, scope map[string][]string, centerScope string, centers []string) bool {
+	departments := scope[chain.DepartmentScope]
+	requested := scope[centerScope]
+	if centerScope == "" || len(departments) == 0 || len(requested) == 0 {
+		return false
+	}
+	for _, department := range departments {
+		if department != requesterDepartment {
+			return false
+		}
+	}
+	for _, center := range requested {
+		if !containsString(centers, center) {
+			return false
+		}
+	}
+	for _, layer := range chain.Layers() {
+		if intersects(scope[layer.Scope], layer.Values) {
+			return false
+		}
+	}
+	return true
+}
+
+// StewardScope is the scope a chain is derived from when every requested
+// product has a steward department: each requested department that is
+// neither in the requester's authority nor the requester's own department is
+// replaced by the steward departments. The requester's own department keeps
+// its own approver (its step is first in every chain anyway).
+func (chain ApprovalChain) StewardScope(requesterDepartment string, authority, stewards []string,
+	scope map[string][]string) map[string][]string {
+	if len(stewards) == 0 {
+		return scope
+	}
+	out := make(map[string][]string, len(scope))
+	for name, values := range scope {
+		out[name] = values
+	}
+	var departments []string
+	add := func(department string) {
+		if !containsString(departments, department) {
+			departments = append(departments, department)
+		}
+	}
+	for _, department := range scope[chain.DepartmentScope] {
+		if department == requesterDepartment || containsString(authority, department) {
+			add(department)
+			continue
+		}
+		for _, steward := range stewards {
+			add(steward)
+		}
+	}
+	sort.Strings(departments)
+	out[chain.DepartmentScope] = departments
+	return out
+}
+
 // Authority returns what a step's approver must show.
 func (chain ApprovalChain) Authority(step ApprovalStep) (ApprovalAuthority, bool) {
 	switch step.Role {
@@ -192,6 +451,10 @@ func cloneApprovalChain(chain *ApprovalChain) *ApprovalChain {
 
 func cloneApprovalEscalation(source ApprovalEscalation) ApprovalEscalation {
 	escalation := source
+	if source.Level != nil {
+		level := *source.Level
+		escalation.Level = &level
+	}
 	escalation.Values = append([]string(nil), source.Values...)
 	escalation.Leaders = cloneStringMap(source.Leaders)
 	escalation.LeaderAuthority.Role.AnyOf = append([]string(nil), source.LeaderAuthority.Role.AnyOf...)
@@ -228,6 +491,7 @@ func validateApprovalChain(path string, chain ApprovalChain, scopes map[string]S
 	}
 	if chain.Escalation != nil {
 		problems = append(problems, validateApprovalEscalation(path+".escalation", *chain.Escalation, scopes, departments.AllowedValues)...)
+		problems = append(problems, validateLayerLevel(path+".escalation", *chain.Escalation, 1)...)
 	}
 	seen := map[string]struct{}{}
 	for index, layer := range chain.Escalations {
@@ -244,8 +508,17 @@ func validateApprovalChain(path string, chain ApprovalChain, scopes map[string]S
 			seen[layer.Role] = struct{}{}
 		}
 		problems = append(problems, validateApprovalEscalation(layerPath, layer, scopes, departments.AllowedValues)...)
+		problems = append(problems, validateLayerLevel(layerPath, layer, len(chain.Escalations))...)
 	}
 	return problems
+}
+
+// validateLayerLevel bounds an explicit layer level to 0..layers.
+func validateLayerLevel(path string, layer ApprovalEscalation, layers int) ValidationErrors {
+	if layer.Level != nil && (*layer.Level < 0 || *layer.Level > layers) {
+		return ValidationErrors{fieldError(path+".level", fmt.Sprintf("level must be between 0 and %d", layers), ErrInvalidApprovalRoute)}
+	}
+	return nil
 }
 
 func validateApprovalEscalation(path string, escalation ApprovalEscalation, scopes map[string]Scope, departments []string) ValidationErrors {
