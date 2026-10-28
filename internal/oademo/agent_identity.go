@@ -2,7 +2,6 @@ package oademo
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,18 +11,16 @@ import (
 	"time"
 )
 
-// The agent's identity (KB1-LOOP-151): the tester runs one agent with one MCP
-// token per label, and the person at the OA chooses which principal each
-// label acts as. TaskGate keeps the binding; the OA lists the labels and the
-// candidate principals and asks for a switch, signed like its callbacks
-// (POST Config.AgentIdentityURL, action "list" or "switch"). The control is a
-// second line of the navigation, independent of the OA account switcher, and
-// is offered only in the shared-password mode with the URL configured.
-
-// agentLabelCookie remembers which label the navigation shows. It is a
-// display preference only: a switch names its label in the form, and a label
-// TaskGate no longer lists falls back to the first.
-const agentLabelCookie = "oa_agent_label"
+// The agent's identity (KB1-LOOP-151): the testers share one agent token, of
+// one label, and the person at the OA chooses which principal that label acts
+// as. TaskGate keeps the binding; the OA lists the labels and the candidate
+// principals and asks for a switch, signed like its callbacks (POST
+// Config.AgentIdentityURL, action "list" or "switch"). The label is
+// Config.AgentIdentityLabel, or when that is empty the first, in label
+// order, that TaskGate lists (agentShown); there is no choice of label on the page, so every
+// tester drives the same token. The control is the navigation's second card,
+// beside and independent of the OA account card, and is offered only in the
+// shared-password mode with the URL configured.
 
 func (s *Server) agentIdentityEnabled() bool {
 	return s.config.AllowSwitch && s.config.AgentIdentityURL != ""
@@ -62,13 +59,24 @@ type agentIdentityList struct {
 	Candidates []agentCandidate `json:"candidates"`
 }
 
-func (l agentIdentityList) hasLabel(label string) bool {
-	for _, identity := range l.Identities {
-		if identity.Label == label {
-			return true
+// agentShown is the identity the navigation shows: the configured label's
+// when TaskGate lists it, or with no label configured the first by label.
+// ok is false when there is none to show.
+func (s *Server) agentShown(list agentIdentityList) (identity agentIdentity, ok bool) {
+	if want := s.config.AgentIdentityLabel; want != "" {
+		for _, listed := range list.Identities {
+			if listed.Label == want {
+				return listed, true
+			}
+		}
+		return agentIdentity{}, false
+	}
+	for _, listed := range list.Identities {
+		if !ok || listed.Label < identity.Label {
+			identity, ok = listed, true
 		}
 	}
-	return false
+	return identity, ok
 }
 
 // agentGatewayError is a failed call to the agent-identity endpoint, said in
@@ -142,11 +150,11 @@ func (s *Server) listAgentIdentities(ctx context.Context) (agentIdentityList, er
 	return list, err
 }
 
-// agentIdentitySwitch answers the navigation's agent form. action=select
-// shows another label (it sets the label cookie after checking TaskGate
-// lists the label; nothing is switched). Anything else asks TaskGate to bind
-// the label to principal_id in the name of the session's account. Both land
-// on next when switchNext allows it, otherwise on the to-do list.
+// agentIdentitySwitch answers the navigation's agent form: it asks TaskGate
+// to bind the label to principal_id in the name of the session's account.
+// The label must be the one the navigation shows (agentShown), so a form
+// cannot drive another token. It lands on next when switchNext allows it,
+// otherwise on the to-do list.
 func (s *Server) agentIdentitySwitch(w http.ResponseWriter, r *http.Request) {
 	if !s.agentIdentityEnabled() {
 		http.NotFound(w, r)
@@ -162,66 +170,42 @@ func (s *Server) agentIdentitySwitch(w http.ResponseWriter, r *http.Request) {
 	if candidate := r.Form.Get("next"); switchNext.MatchString(candidate) {
 		next = candidate
 	}
-	if r.Form.Get("action") == "select" {
-		list, err := s.listAgentIdentities(r.Context())
-		if err != nil {
-			http.Error(w, excerpt("agent 身份列表不可用："+agentFailure(err)), http.StatusBadGateway)
-			return
-		}
-		if !list.hasLabel(label) {
-			http.Error(w, "unknown agent label", http.StatusBadRequest)
-			return
-		}
-	} else {
-		principal := r.Form.Get("principal_id")
-		if strings.TrimSpace(principal) == "" {
-			http.Error(w, "principal_id is required", http.StatusBadRequest)
-			return
-		}
-		request := agentIdentityRequest{Action: "switch", Label: label, PrincipalID: principal, Actor: data.Username}
-		if err := s.callAgentIdentity(r.Context(), request, nil); err != nil {
-			http.Error(w, excerpt("agent 身份切换失败："+agentFailure(err)), http.StatusBadGateway)
-			return
-		}
+	principal := r.Form.Get("principal_id")
+	if strings.TrimSpace(principal) == "" {
+		http.Error(w, "principal_id is required", http.StatusBadRequest)
+		return
 	}
-	s.setAgentLabel(w, r, label)
+	list, err := s.listAgentIdentities(r.Context())
+	if err != nil {
+		http.Error(w, excerpt("agent 身份切换失败："+agentFailure(err)), http.StatusBadGateway)
+		return
+	}
+	if shown, ok := s.agentShown(list); !ok || shown.Label != label {
+		http.Error(w, "label is not the agent this OA shows", http.StatusBadRequest)
+		return
+	}
+	request := agentIdentityRequest{Action: "switch", Label: label, PrincipalID: principal, Actor: data.Username}
+	if err := s.callAgentIdentity(r.Context(), request, nil); err != nil {
+		http.Error(w, excerpt("agent 身份切换失败："+agentFailure(err)), http.StatusBadGateway)
+		return
+	}
 	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
-// setAgentLabel remembers the label for eight hours, as long as a session.
-// The value is base64url, since a label may hold bytes a cookie cannot.
-func (s *Server) setAgentLabel(w http.ResponseWriter, r *http.Request, label string) {
-	lifetime := 8 * time.Hour
-	http.SetCookie(w, &http.Cookie{Name: agentLabelCookie, Value: base64.RawURLEncoding.EncodeToString([]byte(label)), Path: "/",
-		HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: r.TLS != nil, Expires: s.config.Clock().Add(lifetime),
-		MaxAge: int(lifetime.Seconds())})
-}
-
-func agentLabelFromCookie(r *http.Request) string {
-	cookie, err := r.Cookie(agentLabelCookie)
-	if err != nil {
-		return ""
-	}
-	label, err := base64.RawURLEncoding.DecodeString(cookie.Value)
-	if err != nil {
-		return ""
-	}
-	return string(label)
-}
-
-// agentNav is the navigation's agent line. Unavailable says why TaskGate's
-// list could not be read; no Labels means TaskGate lists no agent.
+// agentNav is the navigation's agent card. Unavailable says why TaskGate's
+// list could not be read. Shown means there is a label to show: Label, the
+// Principal it acts as, the Binding sentence (when and by whom, possibly
+// empty) and the candidates. Otherwise Unregistered names the configured
+// label TaskGate does not list, and is empty when TaskGate lists no agent.
 type agentNav struct {
-	Unavailable string
-	Next        string
-	Labels      []agentLabelOption
-	Groups      []agentPrincipalGroup
-	Current     string
-}
-
-type agentLabelOption struct {
-	Label    string
-	Selected bool
+	Unavailable  string
+	Unregistered string
+	Next         string
+	Shown        bool
+	Label        string
+	Principal    string
+	Binding      string
+	Groups       []agentPrincipalGroup
 }
 
 type agentPrincipalGroup struct {
@@ -235,7 +219,8 @@ type agentPrincipalOption struct {
 }
 
 // agentNav reads TaskGate's list for the navigation (once per page; the demo
-// is small enough not to cache it). It is nil when the control is off.
+// is small enough not to cache it). It is nil when the control is off, and
+// the navigation then has no agent card.
 func (s *Server) agentNav(r *http.Request) *agentNav {
 	if !s.agentIdentityEnabled() {
 		return nil
@@ -246,23 +231,14 @@ func (s *Server) agentNav(r *http.Request) *agentNav {
 		nav.Unavailable = agentFailure(err)
 		return nav
 	}
-	if len(list.Identities) == 0 {
+	current, ok := s.agentShown(list)
+	if !ok {
+		nav.Unregistered = s.config.AgentIdentityLabel
 		return nav
 	}
-	current := list.Identities[0]
-	if chosen := agentLabelFromCookie(r); chosen != "" {
-		for _, identity := range list.Identities {
-			if identity.Label == chosen {
-				current = identity
-				break
-			}
-		}
-	}
-	for _, identity := range list.Identities {
-		nav.Labels = append(nav.Labels, agentLabelOption{Label: identity.Label, Selected: identity.Label == current.Label})
-	}
+	nav.Shown, nav.Label = true, current.Label
 	nav.Groups = s.agentPrincipalGroups(list.Candidates, current.PrincipalID)
-	nav.Current = s.agentCurrent(current, list.Candidates)
+	nav.Principal, nav.Binding = s.agentCurrent(current, list.Candidates)
 	return nav
 }
 
@@ -370,30 +346,31 @@ func (s *Server) agentPrincipalText(candidate agentCandidate) string {
 	return text
 }
 
-// agentCurrent says what the shown label is bound to, when, and by whom.
-func (s *Server) agentCurrent(identity agentIdentity, candidates []agentCandidate) string {
-	if identity.PrincipalID == "" && identity.Subject == "" {
-		return "未绑定"
-	}
-	principal := agentCandidate{PrincipalID: identity.PrincipalID, Subject: identity.Subject}
-	for _, candidate := range candidates {
-		if candidate.PrincipalID == identity.PrincipalID {
-			principal = candidate
-			break
+// agentCurrent says what the shown label is bound to (principal) and when
+// and by whom (binding; empty when TaskGate says neither).
+func (s *Server) agentCurrent(identity agentIdentity, candidates []agentCandidate) (principal, binding string) {
+	principal = "未绑定"
+	if identity.PrincipalID != "" || identity.Subject != "" {
+		bound := agentCandidate{PrincipalID: identity.PrincipalID, Subject: identity.Subject}
+		for _, candidate := range candidates {
+			if candidate.PrincipalID == identity.PrincipalID {
+				bound = candidate
+				break
+			}
 		}
+		principal = s.agentPrincipalText(bound)
 	}
-	text := s.agentPrincipalText(principal)
 	when := strings.TrimSpace(identity.BoundAt)
 	if at, err := time.Parse(time.RFC3339, when); err == nil {
 		when = pageTime(at)
 	}
 	switch by := strings.ToLower(strings.TrimSpace(identity.BoundBy)); {
 	case by != "" && when != "":
-		text += "，" + when + " 由 " + s.displayName(by) + " 切换"
+		binding = when + " 由 " + s.displayName(by) + " 切换"
 	case by != "":
-		text += "，由 " + s.displayName(by) + " 切换"
+		binding = "由 " + s.displayName(by) + " 切换"
 	case when != "":
-		text += "，" + when + " 绑定"
+		binding = when + " 绑定"
 	}
-	return text
+	return principal, binding
 }

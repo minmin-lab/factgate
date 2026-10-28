@@ -161,7 +161,7 @@ func TestAccountSwitchIsOfferedOnlyInTheSharedPasswordMode(t *testing.T) {
 	}
 	response.Body.Close()
 	page = get(t, staff, httpServer.URL+"/tasks")
-	if !strings.Contains(page, "finance-admin / 审批人") || !strings.Contains(page, `<option value="finance-admin" selected>`) {
+	if !strings.Contains(page, "finance-admin · 审批人") || !strings.Contains(page, `<option value="finance-admin" selected>`) {
 		t.Fatalf("after the switch: %s", page)
 	}
 	match = csrfField.FindStringSubmatch(page) // the session, and so its token, changed
@@ -336,7 +336,7 @@ func TestPasswordOnlyLoginLandsOnTheDefaultAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if tasks := get(t, client, httpServer.URL+"/tasks"); !strings.Contains(tasks, "staff / 申请人兼审批人") || !strings.Contains(tasks, "切换身份") {
+	if tasks := get(t, client, httpServer.URL+"/tasks"); !strings.Contains(tasks, "staff · 申请人兼审批人") || !strings.Contains(tasks, "切换身份") {
 		t.Fatalf("after a password-only login: %s", tasks)
 	}
 	if response.Header.Get("Cache-Control") != "" && response.Header.Get("Cache-Control") != "no-store" {
@@ -355,7 +355,7 @@ func TestPasswordOnlyLoginLandsOnTheDefaultAccount(t *testing.T) {
 	}
 	// Naming the account still works, as the scripts do.
 	admin := login(t, httpServer.URL, "finance-admin", "shared")
-	if tasks := get(t, admin, httpServer.URL+"/tasks"); !strings.Contains(tasks, "finance-admin / 审批人") {
+	if tasks := get(t, admin, httpServer.URL+"/tasks"); !strings.Contains(tasks, "finance-admin · 审批人") {
 		t.Fatalf("a named login: %s", tasks)
 	}
 	// Outside the shared-password mode the page still asks for the account.
@@ -397,7 +397,7 @@ func TestTheToDoPageListsOtherAccountsTodosAndSwitchesIntoThem(t *testing.T) {
 	}
 	body, _ := io.ReadAll(response.Body)
 	response.Body.Close()
-	if response.Request.URL.Path != "/tasks/"+draft || !strings.Contains(string(body), "finance-admin / 审批人") ||
+	if response.Request.URL.Path != "/tasks/"+draft || !strings.Contains(string(body), "finance-admin · 审批人") ||
 		!strings.Contains(string(body), `name="decision" value="approved"`) {
 		t.Fatalf("the switch landed on %s: %s", response.Request.URL, body)
 	}
@@ -416,7 +416,7 @@ func TestTheToDoPageListsOtherAccountsTodosAndSwitchesIntoThem(t *testing.T) {
 			t.Fatalf("switch with next %q: status %d location %q, want 303 /tasks", next, response.StatusCode, response.Header.Get("Location"))
 		}
 	}
-	if page := get(t, staff, httpServer.URL+"/tasks"); !strings.Contains(page, "staff / 申请人兼审批人") {
+	if page := get(t, staff, httpServer.URL+"/tasks"); !strings.Contains(page, "staff · 申请人兼审批人") {
 		t.Fatal("the switches did not land on staff")
 	}
 

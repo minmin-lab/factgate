@@ -68,9 +68,14 @@ type Config struct {
 	DefaultAccount string
 	// AgentIdentityURL is TaskGate's agent-identity endpoint (KB1-LOOP-151,
 	// agent_identity.go). With AllowSwitch the navigation gains a second,
-	// independent control that binds the tester's agent token, by label, to a
-	// principal. Empty leaves the control out and the pages unchanged.
+	// independent card that binds the testers' shared agent token, by label,
+	// to a principal. Empty leaves the card out.
 	AgentIdentityURL string
+	// AgentIdentityLabel is the label of that shared token. Empty means the
+	// first, in label order, that TaskGate lists; a label TaskGate does not
+	// list is said so on the page, with no control. It does nothing without
+	// the URL.
+	AgentIdentityLabel string
 	// Labels are display names for Catalog identifiers (pages.go).
 	Labels        Labels
 	HTTPClient    *http.Client

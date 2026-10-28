@@ -59,11 +59,14 @@ func main() {
 		DefaultAccount:   env("OA_DEFAULT_ACCOUNT", ""),
 		// OA_AGENT_IDENTITY_URL is TaskGate's agent-identity endpoint
 		// (KB1-LOOP-151); in the shared-password mode it adds the
-		// navigation's "my agent" line. Empty leaves it out.
+		// navigation's agent card. Empty leaves it out.
 		AgentIdentityURL: env("OA_AGENT_IDENTITY_URL", ""),
-		Labels:           labels,
-		ReceiptSigner:    receiptSigner,
-		Logger:           logger,
+		// OA_AGENT_LABEL is the label of the agent token the testers share;
+		// empty means the first, in label order, that TaskGate lists.
+		AgentIdentityLabel: env("OA_AGENT_LABEL", ""),
+		Labels:             labels,
+		ReceiptSigner:      receiptSigner,
+		Logger:             logger,
 	})
 	if err != nil {
 		logger.Error("initialize OA demo", "error", err)
