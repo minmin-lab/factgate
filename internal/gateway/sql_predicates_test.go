@@ -3,6 +3,7 @@ package gateway
 import (
 	"testing"
 
+	"taskbound.local/agent-data-gateway/internal/catalog"
 	"taskbound.local/agent-data-gateway/internal/physicalquery"
 	"taskbound.local/agent-data-gateway/internal/queryplan"
 	"taskbound.local/agent-data-gateway/internal/sqllowering"
@@ -98,5 +99,33 @@ func TestEffectiveSQLControlsResolveTheDefaults(t *testing.T) {
 	}
 	if declared["operators_declared"] != true || declared["aggregates_note"] != nil {
 		t.Fatalf("expense_summary controls %v", declared)
+	}
+}
+
+// TestEffectiveSQLControlsListLikeUnderEitherSpelling: a product declaring like
+// (or ~~) lists LIKE, as sqlpolicy authorizes it; ilike alone does not, and the
+// declaration is published as written.
+func TestEffectiveSQLControlsListLikeUnderEitherSpelling(t *testing.T) {
+	listsLike := func(controls map[string]any) bool {
+		for _, predicate := range controls["where_predicates"].([]map[string]string) {
+			if predicate["predicate"] == "LIKE" {
+				return true
+			}
+		}
+		return false
+	}
+	for _, operators := range [][]string{{"=", "like"}, {"=", "~~"}, {"=", "LIKE"}} {
+		controls := effectiveSQLControls(catalog.Product{AllowedOperators: operators})
+		if !listsLike(controls) || controls["operators_declared"] != true {
+			t.Fatalf("declared %q does not list LIKE: %v", operators, controls)
+		}
+		if published := controls["operators"].([]string); len(published) != 2 || published[1] != operators[1] {
+			t.Fatalf("declared %q published as %q", operators, published)
+		}
+	}
+	for _, operators := range [][]string{{"="}, {"=", "ilike"}, {"=", "not like"}} {
+		if controls := effectiveSQLControls(catalog.Product{AllowedOperators: operators}); listsLike(controls) {
+			t.Fatalf("declared %q lists LIKE: %v", operators, controls)
+		}
 	}
 }

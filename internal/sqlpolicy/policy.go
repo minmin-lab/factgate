@@ -38,7 +38,7 @@ func New(config Config) *Engine {
 	return &Engine{
 		defaultFunctions:  stringSet(functions),
 		defaultAggregates: stringSet(aggregates),
-		defaultOperators:  stringSet(operators),
+		defaultOperators:  operatorSet(operators),
 	}
 }
 
@@ -134,6 +134,33 @@ func stringSet(values []string) map[string]struct{} {
 	return result
 }
 
+// operatorAliases maps the Catalog's word spellings of the LIKE family to the
+// operator names PostgreSQL's AST carries, which operatorAllowed looks up
+// (LIKE parses to ~~). It renames only: declaring like admits ~~ and nothing
+// more, so ILIKE and NOT LIKE stay separately declared.
+var operatorAliases = map[string]string{
+	"like": "~~", "ilike": "~~*", "not like": "!~~", "not ilike": "!~~*",
+}
+
+// CanonicalOperator returns the AST operator name a declared operator
+// authorizes: a LIKE-family word becomes its symbol, any other name is
+// returned unchanged. Discovery calls it so what it lists is what Authorize
+// admits.
+func CanonicalOperator(operator string) string {
+	if canonical, ok := operatorAliases[strings.ToLower(strings.TrimSpace(operator))]; ok {
+		return canonical
+	}
+	return operator
+}
+
+func operatorSet(operators []string) map[string]struct{} {
+	canonical := make([]string, 0, len(operators))
+	for _, operator := range operators {
+		canonical = append(canonical, CanonicalOperator(operator))
+	}
+	return stringSet(canonical)
+}
+
 func sortedKeys(values map[string]struct{}) []string {
 	result := make([]string, 0, len(values))
 	for value := range values {
@@ -225,7 +252,7 @@ func (e *Engine) productPolicy(product ProductGrant) (productPolicy, error) {
 		columns:    stringSet(product.ApprovedColumns),
 		functions:  stringSet(functions),
 		aggregates: stringSet(aggregates),
-		operators:  stringSet(operators),
+		operators:  operatorSet(operators),
 	}, nil
 }
 

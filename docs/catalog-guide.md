@@ -168,7 +168,7 @@ products:
 - Reporting View 应只暴露业务所需字段。手机号、工资、银行卡等即使“不写入 Catalog”，若仍出现在 View 中，也不应向 `gateway_reader` 暴露。
 - 函数和聚合必须是未限定的小写名，且不能是文件、网络、管理、睡眠等禁止函数；运行时还会经过 SQL AST 的危险函数硬拒绝表。
 - Exposure V2 只允许 `count`、`sum`、`min`、`max`；`avg` 即使在传统 SQL allowlist 中存在，也不能进入 V2 计划。
-- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。
+- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。LIKE 写 `like` 或 `~~` 都可，ILIKE 写 `ilike` 或 `~~*`（NOT LIKE 写 `not like` 或 `!~~`，NOT ILIKE 写 `not ilike` 或 `!~~*`）；声明 `like` 只放行 LIKE，不顺带放行 ILIKE 或 NOT LIKE。
 
 ## Eligibility（资格先于审批）
 

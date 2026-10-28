@@ -47,15 +47,21 @@ func publicWherePredicates(predicates []sqlWherePredicate) []map[string]string {
 
 // effectiveSQLControls is what query_sql admits on one product: its declared
 // operators, or the policy's default set when it declares none, and its
-// declared aggregates, which are none when it declares none.
+// declared aggregates, which are none when it declares none. A declared
+// operator is matched under the name sqlpolicy authorizes it as, so a product
+// declaring like lists LIKE.
 func effectiveSQLControls(product catalog.Product) map[string]any {
 	operators, declared := product.AllowedOperators, len(product.AllowedOperators) > 0
 	if !declared {
 		operators = sqlpolicy.DefaultOperators()
 	}
+	authorized := make([]string, 0, len(operators))
+	for _, operator := range operators {
+		authorized = append(authorized, sqlpolicy.CanonicalOperator(operator))
+	}
 	admitted := []sqlWherePredicate{}
 	for _, predicate := range sqlWherePredicates {
-		if contains(operators, predicate.policyOperator) {
+		if contains(authorized, predicate.policyOperator) {
 			admitted = append(admitted, predicate)
 		}
 	}

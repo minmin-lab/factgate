@@ -34,11 +34,14 @@ var attestedPostgreSQLTypes = map[string]struct{}{
 	"timestamp with time zone": {}, "timestamp without time zone": {}, "uuid": {},
 }
 
+// safeOperators also admits the LIKE family under the names PostgreSQL's AST
+// gives them (LIKE is ~~, ILIKE ~~*, NOT LIKE !~~, NOT ILIKE !~~*); sqlpolicy
+// reads like and ilike as ~~ and ~~*, so either spelling grants the same one.
 var safeOperators = map[string]struct{}{
 	"=": {}, "<>": {}, "!=": {}, "<": {}, "<=": {}, ">": {}, ">=": {},
 	"+": {}, "-": {}, "*": {}, "/": {}, "%": {}, "and": {}, "or": {},
 	"not": {}, "like": {}, "ilike": {}, "in": {}, "between": {}, "is": {},
-	"is not": {},
+	"is not": {}, "~~": {}, "!~~": {}, "~~*": {}, "!~~*": {}, "not like": {}, "not ilike": {},
 }
 
 var forbiddenFunctions = map[string]struct{}{
