@@ -41,6 +41,9 @@ const agentIdentitySubjects = `  - subject: alice
       center: [finance-a]
       clearance: [public, internal]
       employee_id: [staff]
+      display_name: [周燕]
+      title: [会计]
+      employee_no: [E0007]
   - subject: sales-staff
     attributes:
       department: [sales]
@@ -427,10 +430,19 @@ func TestWhoamiTellsTheAgentWhoItIs(t *testing.T) {
 	}
 	got := mustCallGatewayTool(t, h.service, h.staff, "whoami", map[string]any{})
 	attributes := map[string]any{"department": []string{"finance"}, "job_family": []string{"staff"}, "center": []string{"finance-a"},
-		"clearance": []string{"internal", "public"}, "authority_departments": []string{}, "employee_id": []string{"staff"}}
+		"clearance": []string{"internal", "public"}, "authority_departments": []string{}, "employee_id": []string{"staff"},
+		"display_name": []string{"周燕"}, "title": []string{"会计"}, "employee_no": []string{"E0007"}}
 	if got["principal_id"] != h.staff.ID || got["subject"] != "staff" || got["role"] != "query" || got["catalog_version"] != h.catalog.CatalogVersion ||
 		!reflect.DeepEqual(got["attributes"], attributes) {
 		t.Fatalf("whoami %v", got)
+	}
+	// A subject without a name, post or staff number reports each empty,
+	// like any other attribute it lacks.
+	sales := mustCallGatewayTool(t, h.service, h.salesStaff, "whoami", map[string]any{})["attributes"].(map[string]any)
+	for _, key := range []string{"display_name", "title", "employee_no", "employee_id"} {
+		if !reflect.DeepEqual(sales[key], []string{}) {
+			t.Fatalf("sales-staff whoami %s = %v, want []", key, sales[key])
+		}
 	}
 	for _, absent := range []string{"agent_label", "bound_by", "bound_at"} {
 		if _, ok := got[absent]; ok {
@@ -479,7 +491,8 @@ func TestActingAsIsAddedToStructuredResults(t *testing.T) {
 	bound := h.staff
 	bound.AgentLabel = "lzj"
 	listed := mustCallGatewayTool(t, h.service, bound, "list_data_products", map[string]any{})
-	want := map[string]any{"principal_id": h.staff.ID, "subject": "staff", "agent_label": "lzj", "department": "finance", "job_family": "staff"}
+	want := map[string]any{"principal_id": h.staff.ID, "subject": "staff", "agent_label": "lzj", "department": "finance", "job_family": "staff",
+		"display_name": "周燕"}
 	if !reflect.DeepEqual(listed["acting_as"], want) {
 		t.Fatalf("acting_as %v, want %v", listed["acting_as"], want)
 	}
@@ -500,7 +513,8 @@ func TestActingAsIsAddedToStructuredResults(t *testing.T) {
 	if _, ok := listed["products"].([]map[string]any); !ok {
 		t.Fatalf("products became %T", listed["products"])
 	}
-	// A static principal: no agent_label; alice has no center but a department.
+	// A static principal: no agent_label; alice has no center and no
+	// display_name but a department.
 	if got := mustCallGatewayTool(t, h.service, h.alice, "get_sql_capabilities", map[string]any{})["acting_as"]; !reflect.DeepEqual(got,
 		map[string]any{"principal_id": h.alice.ID, "subject": "alice", "department": "finance", "job_family": "dept_admin"}) {
 		t.Fatalf("alice acting_as %v", got)

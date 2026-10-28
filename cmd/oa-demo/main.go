@@ -44,6 +44,14 @@ func main() {
 		logger.Error("load OA labels", "error", err)
 		os.Exit(1)
 	}
+	// OA_ORG_FILE is the organization tree (company, business lines,
+	// departments, centers, people) both identity cards pick from; empty
+	// keeps their flat switchers.
+	orgTree, err := oademo.LoadOrgTree(env("OA_ORG_FILE", ""))
+	if err != nil {
+		logger.Error("load OA organization tree", "error", err)
+		os.Exit(1)
+	}
 	oa, err := oademo.New(oademo.Config{
 		ServiceToken:     requiredEnv("OA_SERVICE_TOKEN"),
 		CallbackSecret:   requiredEnv("OA_CALLBACK_SECRET"),
@@ -65,6 +73,7 @@ func main() {
 		// empty means the first, in label order, that TaskGate lists.
 		AgentIdentityLabel: env("OA_AGENT_LABEL", ""),
 		Labels:             labels,
+		OrgTree:            orgTree,
 		ReceiptSigner:      receiptSigner,
 		Logger:             logger,
 	})

@@ -195,8 +195,10 @@ func (s *Server) agentIdentitySwitch(w http.ResponseWriter, r *http.Request) {
 // agentNav is the navigation's agent card. Unavailable says why TaskGate's
 // list could not be read. Shown means there is a label to show: Label, the
 // Principal it acts as, the Binding sentence (when and by whom, possibly
-// empty) and the candidates. Otherwise Unregistered names the configured
-// label TaskGate does not list, and is empty when TaskGate lists no agent.
+// empty) and the candidates, as Groups of a <select> or, with an
+// organization tree, as Tree (agentTree). Otherwise Unregistered names the
+// configured label TaskGate does not list, and is empty when TaskGate lists
+// no agent.
 type agentNav struct {
 	Unavailable  string
 	Unregistered string
@@ -206,6 +208,7 @@ type agentNav struct {
 	Principal    string
 	Binding      string
 	Groups       []agentPrincipalGroup
+	Tree         []orgNodeView
 }
 
 type agentPrincipalGroup struct {
@@ -237,7 +240,11 @@ func (s *Server) agentNav(r *http.Request) *agentNav {
 		return nav
 	}
 	nav.Shown, nav.Label = true, current.Label
-	nav.Groups = s.agentPrincipalGroups(list.Candidates, current.PrincipalID)
+	if s.config.OrgTree != nil {
+		nav.Tree = s.agentTree(list.Candidates, current.PrincipalID)
+	} else {
+		nav.Groups = s.agentPrincipalGroups(list.Candidates, current.PrincipalID)
+	}
 	nav.Principal, nav.Binding = s.agentCurrent(current, list.Candidates)
 	return nav
 }
@@ -346,8 +353,10 @@ func (s *Server) agentPrincipalText(candidate agentCandidate) string {
 	return text
 }
 
-// agentCurrent says what the shown label is bound to (principal) and when
-// and by whom (binding; empty when TaskGate says neither).
+// agentCurrent says what the shown label is bound to (principal: the
+// organization tree's line for a person it names, otherwise
+// agentPrincipalText) and when and by whom (binding; empty when TaskGate
+// says neither).
 func (s *Server) agentCurrent(identity agentIdentity, candidates []agentCandidate) (principal, binding string) {
 	principal = "未绑定"
 	if identity.PrincipalID != "" || identity.Subject != "" {
@@ -358,7 +367,11 @@ func (s *Server) agentCurrent(identity agentIdentity, candidates []agentCandidat
 				break
 			}
 		}
-		principal = s.agentPrincipalText(bound)
+		if person, ok := s.orgPeople[bound.Subject]; ok {
+			principal = person.line()
+		} else {
+			principal = s.agentPrincipalText(bound)
+		}
 	}
 	when := strings.TrimSpace(identity.BoundAt)
 	if at, err := time.Parse(time.RFC3339, when); err == nil {

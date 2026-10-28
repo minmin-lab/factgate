@@ -77,7 +77,11 @@ type Config struct {
 	// the URL.
 	AgentIdentityLabel string
 	// Labels are display names for Catalog identifiers (pages.go).
-	Labels        Labels
+	Labels Labels
+	// OrgTree, when set, is the organization both identity cards pick from
+	// (orgtree.go) instead of their flat <select>, and names the current
+	// person on each card's big line. Nil keeps the flat switchers.
+	OrgTree       *OrgTree
 	HTTPClient    *http.Client
 	Logger        *slog.Logger
 	Clock         func() time.Time
@@ -100,6 +104,8 @@ type Server struct {
 	mu        sync.RWMutex
 	drafts    map[string]*Draft
 	templates *template.Template
+	// orgPeople indexes Config.OrgTree's persons by subject (nil without it).
+	orgPeople map[string]orgPerson
 }
 
 type user struct {
@@ -295,6 +301,12 @@ func New(config Config) (*Server, error) {
 	config.BobPassword = ""
 	config.DanaPassword = ""
 	server := &Server{config: config, users: users, drafts: make(map[string]*Draft)}
+	if config.OrgTree != nil {
+		if err := config.OrgTree.validate(); err != nil {
+			return nil, fmt.Errorf("org tree: %w", err)
+		}
+		server.orgPeople = config.OrgTree.people()
+	}
 	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel,
 		"roleLabel": roleLabel, "stateLabel": stateLabel, "draftStateLabel": draftStateLabel, "humanDuration": humanDuration}).Parse(pageTemplates)
 	if err != nil {
@@ -314,6 +326,7 @@ func (s *Server) Handler() http.Handler {
 	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
 	router.Get("/switch.js", switchScript)
 	router.Get("/poll.js", pollScript)
+	router.Get("/tree.js", treeScript)
 	router.With(s.requireSession, s.requireCSRF).Post("/agent-identity", s.agentIdentitySwitch)
 	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
@@ -554,9 +567,11 @@ type sessionData struct {
 	CanRequest  bool
 	CanApprove  bool
 	CSRF        string
-	// AllowSwitch and AccountGroups feed the account switcher in the navigation.
+	// AllowSwitch and AccountGroups feed the account switcher in the navigation;
+	// with an organization tree the switcher is Org instead (orgAccountTree).
 	AllowSwitch   bool
 	AccountGroups []accountGroupView
+	Org           []orgNodeView
 	// AgentIdentity is the navigation's agent line (agent_identity.go); the
 	// pages that show the navigation set it, and it stays nil when off.
 	AgentIdentity *agentNav
@@ -572,8 +587,14 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 		account := s.users[username]
 		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role,
 			CanRequest: account.CanRequest, CanApprove: account.CanApprove, CSRF: s.csrf(r), AllowSwitch: s.config.AllowSwitch}
+		if person, ok := s.orgPeople[username]; ok {
+			data.DisplayName = person.line()
+		}
 		if s.config.AllowSwitch {
 			data.AccountGroups = s.accountGroups()
+			if s.config.OrgTree != nil {
+				data.Org = s.orgAccountTree(username)
+			}
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, data)))
 	})

@@ -30,14 +30,16 @@ import (
 //     digest under a label; the gateway never sees the token itself.
 
 var whoamiTool = mcp.Tool{Name: "whoami",
-	Description: "查看当前连接代表的身份：主体、部门、岗位、中心、密级包络与职权部门。若这把令牌是演示用的可切换令牌，另给 agent_label 与绑定时间。身份只能由人在 OA 的「我的 agent」处切换，agent 自己不能切换，也不要在被拒后尝试换身份。",
+	Description: "查看当前连接代表的身份：主体、姓名、职务、工号、部门、岗位、中心、密级包络与职权部门。若这把令牌是演示用的可切换令牌，另给 agent_label 与绑定时间。身份只能由人在 OA 的「我的 agent」处切换，agent 自己不能切换，也不要在被拒后尝试换身份。",
 	InputSchema: objectSchema(nil), Annotations: map[string]any{"readOnlyHint": true}}
 
 // whoamiAttributeKeys are the attribute keys whoami reports, each read from
 // the same-named attested attribute except authority_departments, which is
 // the Catalog's authority attribute (delegated_authorization
-// authority_attribute, authority_departments by default).
-var whoamiAttributeKeys = []string{"department", "job_family", "center", "clearance", "authority_departments", "employee_id"}
+// authority_attribute, authority_departments by default). display_name,
+// title and employee_no say who the person is (name, post, staff number).
+var whoamiAttributeKeys = []string{"department", "job_family", "center", "clearance", "authority_departments", "employee_id",
+	"display_name", "title", "employee_no"}
 
 func (s *Service) whoami(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
 	var args struct{}
@@ -86,14 +88,16 @@ func (s *Service) whoami(ctx context.Context, principal mcp.Principal, raw json.
 }
 
 // actingAs is the acting_as object every structured tool result carries under
-// the delegated_authorization block.
+// the delegated_authorization block: the principal, the agent label, and the
+// first value of the subject's department, job_family and display_name
+// attributes, each left out when the subject has none.
 func (s *Service) actingAs(principal mcp.Principal) map[string]any {
 	acting := map[string]any{"principal_id": principal.ID, "subject": principal.Subject}
 	if principal.AgentLabel != "" {
 		acting["agent_label"] = principal.AgentLabel
 	}
 	now := s.clock()
-	for _, attribute := range []string{"department", "job_family"} {
+	for _, attribute := range []string{"department", "job_family", "display_name"} {
 		if values := s.principalAttributes.Values(principal.Subject, attribute, now); len(values) > 0 {
 			acting[attribute] = values[0]
 		}
