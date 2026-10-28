@@ -418,7 +418,33 @@ func validateScope(path string, scope Scope) ValidationErrors {
 	default:
 		problems = append(problems, fieldError(path+".type", "type must be enum or date_range", ErrMissingField))
 	}
+	if len(scope.Order) > 0 {
+		if scope.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(path+".order", "only an enum scope can declare an order", ErrInvalidCatalog))
+		} else if !samePermutation(scope.Order, scope.AllowedValues) {
+			problems = append(problems, fieldError(path+".order", "order must list every allowed value exactly once, lowest first", ErrInvalidCatalog))
+		}
+	}
 	return problems
+}
+
+// samePermutation reports whether order lists exactly the values of allowed,
+// each once.
+func samePermutation(order, allowed []string) bool {
+	if len(order) != len(allowed) {
+		return false
+	}
+	remaining := make(map[string]int, len(allowed))
+	for _, value := range allowed {
+		remaining[value]++
+	}
+	for _, value := range order {
+		if remaining[value] == 0 {
+			return false
+		}
+		remaining[value]--
+	}
+	return true
 }
 
 func validateBudgetProfile(path string, profile BudgetProfile) ValidationErrors {

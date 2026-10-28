@@ -269,6 +269,10 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	if err != nil {
 		return nil, err
 	}
+	// An ordered Catalog scope widens downward here, before anything reads the
+	// scope (scope_order.go): the route, the eligibility gate, delegation and
+	// the manifest all see the whole set.
+	scope, scopeClosure := s.closeOrderedScopes(scope)
 	// The approval route may depend on the requested scope (a conditioned
 	// route sends, for example, leadership classification to a leadership
 	// approver), so it is resolved again once the scope is normalized; its
@@ -603,6 +607,9 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	}
 	if agentSubmitted {
 		result["agent_submitted"] = true
+	}
+	if len(scopeClosure) > 0 {
+		result["scope_closure"] = scopeClosure
 	}
 	mergeTaskFlow(result, s.taskFlow(control.Task{State: initialState, RequestContext: pendingJSON, ApprovalRef: draft.DraftID}))
 	return result, nil

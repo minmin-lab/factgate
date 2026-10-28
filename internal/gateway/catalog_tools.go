@@ -32,6 +32,9 @@ func (s *Service) describeDataProduct(_ context.Context, _ mcp.Principal, raw js
 		// collection; the Catalog forbids the two namespaces to overlap.
 		if kp, isKnowledge := s.catalog.LookupKnowledgeProduct(args.Name); isKnowledge {
 			result := s.publicKnowledgeProduct(kp)
+			if orders := s.scopeOrderOf(kp.Scopes); orders != nil {
+				result["scope_order"] = orders
+			}
 			result["catalog_version"] = s.catalog.CatalogVersion
 			return result, nil
 		}
@@ -43,6 +46,11 @@ func (s *Service) describeDataProduct(_ context.Context, _ mcp.Principal, raw js
 	}
 	if kp, role, isRelation := s.knowledgeRelationOf(product.Name); isRelation {
 		result["knowledge_product"] = map[string]any{"name": kp.Name, "role": role}
+	}
+	// An ordered mandatory scope widens downward when a task is requested
+	// (scope_order.go); its order, lowest first, is published with the product.
+	if orders := s.scopeOrderOf(product.Scopes); orders != nil {
+		result["scope_order"] = orders
 	}
 	result["catalog_version"] = s.catalog.CatalogVersion
 	return result, nil

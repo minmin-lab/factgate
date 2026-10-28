@@ -246,6 +246,13 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 			}
 			tools = append(tools, issueTool, whoamiTool)
 		}
+		if ordered := s.orderedScopesDescription(); ordered != "" {
+			for index := range tools {
+				if orderedScopeTools[tools[index].Name] {
+					tools[index].Description += ordered
+				}
+			}
+		}
 		if s.agentSubmits() {
 			for index := range tools {
 				tools[index] = agentSubmitsTool(tools[index])

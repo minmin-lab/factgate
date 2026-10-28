@@ -95,6 +95,25 @@ scopes:
 ```
 
 - `enum` 必须提供非空、唯一的 `allowed_values`，不能提供 `min/max`。
+- `enum` 可选 `order`（KB1-LOOP-152）：把该维度声明为有序维度，从低到高列出全部 `allowed_values`，必须恰是它的一个排列（不多、不少、不重复），
+  否则目录校验失败；`date_range` 不能声明 `order`。`allowed_values` 本身的写法不变（不要求按等级排）。
+  声明后，`request_data_task`、`request_download_task`（显式给 `scopes` 时；缺省取资格包络时同样补一次）与 `issue_data_authorization`
+  在申请时把该维度向下补全：取申请值中等级最高者，补上 `order` 里低于它的各级，再做资格判定、审批路由、委托子集校验并写入 manifest；
+  返回值的 `scope_closure` 按维度列出补进的值（没有补进时不给此键），审批人仍可删减。
+  补全后的整个集合受资格包络约束：主体的可申请值若不是向下封闭的（缺了中间某级），申请更高一级会因补进的低级不在包络内而 `NOT_ELIGIBLE`。
+  `order` **只影响申请时的补全，不改放行判定**：授权写了哪些值就只放行哪些值，查询、检索、下载与回执、审计都按授权里的完整集合，不读 `order`。
+  目录没有任何 `order` 时，申请、返回值与工具说明都与原来一致。`describe_data_product` 对声明了 `order` 的强制范围给 `scope_order`，
+  `list_data_products` 的 `scopes` 带 `order`；三个申请工具的说明里由目录生成一句"填最高一级即可"的提示。例：
+
+  ```yaml
+  - name: classification
+    type: enum
+    description: 密级
+    allowed_values: [confidential, internal, public, secret, top_secret]
+    order: [public, internal, secret, confidential, top_secret]
+  ```
+
+  申请 `classification: [secret]` 得到 `[internal, public, secret]`，`scope_closure: {classification: [public, internal]}`。
 - `date_range` 必须提供合法的 `YYYY-MM-DD` 最小/最大日期，不能提供 `allowed_values`。
 - 某产品列入 `scopes` 的每个名称都是强制范围，并且必须同时是该产品发布的字段。TaskIntent 缺任一强制范围时，任务申请失败，而不是退化为无范围授权。
 - 当前 Demo 的两个产品都强制 `department`；`expense_date` 是未绑定产品的扩展示例。

@@ -179,6 +179,11 @@ type Scope struct {
 	AllowedValues []string `yaml:"allowed_values,omitempty" json:"allowed_values,omitempty"`
 	Min           string   `yaml:"min,omitempty" json:"min,omitempty"`
 	Max           string   `yaml:"max,omitempty" json:"max,omitempty"`
+	// Order optionally makes an enum scope an ordered dimension: every
+	// allowed value, lowest first (KB1-LOOP-152). A request then widens
+	// downward at request time (DownClosure); it never changes what a grant
+	// admits. allowed_values keeps its own form.
+	Order []string `yaml:"order,omitempty" json:"order,omitempty"`
 }
 
 const (
