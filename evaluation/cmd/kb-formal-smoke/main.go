@@ -120,7 +120,17 @@ func run() error {
 	ctx := context.Background()
 	timeout := 60 * time.Second
 	summary := map[string]any{"catalog_sha256": profile.SHA256, "knowledge_product": product.Name, "epoch": product.IndexPublication}
-	alice := kbformal.NewMCPClient(*gateway, env[*requesterToken], timeout)
+	// The requester's token comes from the env file under -requester-token-key; when that key is
+	// absent, from the principal token file under the requester's subject (a deployment whose env
+	// file keeps only the credentials it hands out, KB1-LOOP-152).
+	requesterSecret := env[*requesterToken]
+	if requesterSecret == "" {
+		requesterSecret = tokens[*requester]
+	}
+	if requesterSecret == "" {
+		return fmt.Errorf("no MCP token for requester %q: neither %s in the env file nor an entry in the token file", *requester, *requesterToken)
+	}
+	alice := kbformal.NewMCPClient(*gateway, requesterSecret, timeout)
 	provisioner := &smokeProvisioner{Provisioner: &kbformal.Provisioner{Requester: alice,
 		Applicant: &kbformal.OAAccount{BaseURL: *oa, Username: *requester, Password: oaPassword(env, *requester), Timeout: timeout},
 		Approver:  &kbformal.OAAccount{BaseURL: *oa, Username: "bob", Password: env["OA_BOB_PASSWORD"], Timeout: timeout},
