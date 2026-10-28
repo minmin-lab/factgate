@@ -406,6 +406,7 @@ delegated_authorization:
   center_attribute: authority_center  # 列出主体所辖中心的属性；省略即 authority_center
   personal_scope: employee_id       # 个人记录范围（枚举）；申请人同名属性是本人的值；省略即不启用
   agent_submits: true               # agent 代人类主体提交：任务创建即 AWAITING_APPROVAL，人只在 OA 批准；省略即 false
+  pending_ttl: 72h                  # 待审任务（AWAITING_SUBMISSION / AWAITING_APPROVAL）自创建起的最长等待；到期归档为 expired 并通知 OA 撤回草稿；省略即永不过期
 products:
   - name: attendance_records
     steward_department: hr          # 数据管家部门，须是每条审批链 department_scope 的取值
@@ -435,6 +436,7 @@ products:
 - `list_data_products` 返回 `delegated_authorization`，说明以上规则与所用属性名；`request_data_task` 的工具说明与入参 schema 也随之列出 `budget_profile`。
 - `list_my_tasks`（KB1-LOOP-150）：每条任务另给 `kind`（`project` 项目，即申请时选了预算档的根任务；`task` 日常任务，即按路由缺省预算档的根任务；`child` 项目内子任务；`authorization` 代开授权单；块打开后新建的任务在私有请求上下文里记 `budget_profile` 与 `budget_profile_chosen`，此前的根任务没有这两项，分不出项目与日常任务，给 `root`）、`budget_profile`（建任务时记下的预算档名，子任务的实际预算是它与父授权取交；没有记录的旧任务取预算与之完全相同的档名，没有就省略）、`products`、`scopes`（ACTIVE/ARCHIVED 且有授权记录时取授权的范围，即审批人缩小后的范围，否则取申请范围）、`approver`（审批链任务待审批时是当前一步的审批人，否则是记录的第一审批人）、`self_confirm`、`member_confirm`、`agent_submitted`，代开单另给 `issued_by` 与 `human_subject`；私有请求上下文无法解码的任务只给基本字段并标 `detail_unavailable: true`。可选入参 `root_task_id`（只列该根任务及其后代中自己名下的）与 `kind`（在取回的一页内过滤，`next_cursor` 仍按未过滤的页给出）。只列本人主体名下的任务：代开单列在员工名下，开单人的列表里没有。块不存在时条目不变，传 `root_task_id` 或 `kind` 即 `INVALID_REQUEST`。
 - `agent_submits: true`（KB1-LOOP-149，作者 2026-10-28 定）：任何场景下提交都由 agent 代人类主体完成，人只审批。`request_data_task`、`request_download_task` 与 `issue_data_authorization` 建的任务创建即 `AWAITING_APPROVAL`（返回 `agent_submitted: true`），OA 草稿以 `submitted: true` 建为待审批、不发 `submitted` 回调（adapters.md），网关审计记一条 `TASK_SUBMITTED_BY_AGENT`（actor 是发起调用的主体，payload 含 `human_subject`、`agent_id`、`approver`、`self_confirm`、`member_confirm`、`draft_id`，代开单另含 `issuer_subject`）。`next_action` 直接是审批那一类（`await_approver_decision`，本人或成员确认为 `human_confirm_in_oa`），不会出现 `human_submit_in_oa`；上述工具与 `get_task_status`、`wait_for_approval`、`revoke_task` 的说明、以及 `list_data_products` 的 `delegated_authorization`（`agent_submits: true`）随之注明。开关缺省关，关时行为不变。
+- 撤回与待审过期（KB1-LOOP-137 待办，2026-10-28）：块存在时，任务被 revoke_task 撤销（含根任务级联归档的后代）或按 `pending_ttl` 过期后，网关向 OA `POST /api/drafts/{id}/withdraw`（同 /api/drafts 的服务令牌），OA 把草稿标为已撤销/已过期并移出待办；通知失败只记日志，迟到的回调仍被网关以 409 拒绝。`pending_ttl` 是正的 Go duration，进目录摘要。
 - 可切换的 agent 身份（KB1-LOOP-151，作者 2026-10-28 定）：演示时一把 MCP 令牌代表谁，由人在 OA「我的 agent」处切换，agent 自己不能切——令牌先以摘要登记（`POST /admin/v1/demo/agent-identities`，管理令牌之下，体为 `label`、`token_sha256`、`principal_id`、`by`，网关不见令牌明文），OA 以与审批回调相同的签名调 `POST /api/v1/oa/agent-identity`（`list` 列出绑定与候选主体，即已启用、属性快照认得的查询主体；`switch` 改绑，每次绑定记入 `demo_agent_identity_switches`），登记过的令牌先于静态主体表认证，切换从下一次请求起生效；块打开时另有 `whoami` 工具（主体、角色、部门、岗位、中心、密级、职权部门、员工号，可切换令牌另给 `agent_label`、`bound_by`、`bound_at`），且每个结构化工具结果顶层带 `acting_as`（`principal_id`、`subject`、可切换令牌的 `agent_label`、部门与岗位的首值）。块不存在时两个接口答 404，`whoami` 不列出、调用得 `FORBIDDEN`，结果不带 `acting_as`。
 
 - `budget_profile` 必须引用已定义 Profile。

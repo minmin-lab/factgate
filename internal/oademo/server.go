@@ -155,9 +155,13 @@ type Draft struct {
 	// Note is what TaskGate answered the last callback with when it did not
 	// simply take it: the next approver, why no grant was issued, or why the
 	// callback was refused.
-	Note      string    `json:"note,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Note string `json:"note,omitempty"`
+	// Withdrawal is TaskGate's notice that it archived the task while the
+	// draft still waited (KB1-LOOP-137): revoked, or expired while pending.
+	// The draft is then "withdrawn" and nobody may submit or decide it.
+	Withdrawal *approval.DraftWithdrawal `json:"withdrawal,omitempty"`
+	CreatedAt  time.Time                 `json:"created_at"`
+	UpdatedAt  time.Time                 `json:"updated_at"`
 }
 
 // DraftDecision is one approver's decision on a draft.
@@ -292,7 +296,7 @@ func New(config Config) (*Server, error) {
 	config.DanaPassword = ""
 	server := &Server{config: config, users: users, drafts: make(map[string]*Draft)}
 	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel,
-		"roleLabel": roleLabel, "stateLabel": stateLabel, "humanDuration": humanDuration}).Parse(pageTemplates)
+		"roleLabel": roleLabel, "stateLabel": stateLabel, "draftStateLabel": draftStateLabel, "humanDuration": humanDuration}).Parse(pageTemplates)
 	if err != nil {
 		return nil, err
 	}
@@ -312,6 +316,7 @@ func (s *Server) Handler() http.Handler {
 	router.With(s.requireSession, s.requireCSRF).Post("/agent-identity", s.agentIdentitySwitch)
 	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
+	router.Post("/api/drafts/{draftID}/withdraw", s.withdrawDraft)
 	router.Group(func(protected chi.Router) {
 		protected.Use(s.requireSession)
 		protected.Get("/", s.listDrafts)
@@ -368,6 +373,72 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 		"state":    draft.State,
 		"url":      approval.DraftPageURL(s.config.PublicBaseURL, draft.ID),
 	})
+}
+
+// withdrawDraft takes TaskGate's notice that a task was archived while its
+// draft still waited (KB1-LOOP-137): an unsubmitted or pending draft becomes
+// "withdrawn", leaves the to-do lists and offers no action; the history page
+// shows it revoked or expired. It is authenticated like createDraft. Repeating
+// it is idempotent, and a draft already decided (approved, narrowed, rejected,
+// not granted) is left as it is and answered unchanged.
+func (s *Server) withdrawDraft(w http.ResponseWriter, r *http.Request) {
+	if !constantToken(r.Header.Get("Authorization"), "Bearer "+s.config.ServiceToken) {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "unauthorized"})
+		return
+	}
+	var notice approval.DraftWithdrawal
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&notice); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	draftID := chi.URLParam(r, "draftID")
+	if notice.DraftID != draftID || notice.TaskID == "" || !approval.ValidWithdrawalReason(notice.Reason) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	now := s.config.Clock().UTC()
+	if notice.OccurredAt.IsZero() {
+		notice.OccurredAt = now
+	}
+	if notice.Actor == "" {
+		notice.Actor = "system"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[draftID]
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "unknown draft"})
+		return
+	}
+	if draft.Manifest.TaskID != notice.TaskID {
+		writeJSON(w, http.StatusConflict, map[string]any{"error": "the draft belongs to another task"})
+		return
+	}
+	if !draft.open() {
+		// Withdrawn already, or decided: nothing changes.
+		writeJSON(w, http.StatusOK, map[string]any{"draft_id": draft.ID, "state": draft.State, "unchanged": true})
+		return
+	}
+	withdrawal := notice
+	draft.State, draft.Withdrawal, draft.UpdatedAt = "withdrawn", &withdrawal, now
+	draft.Note = s.withdrawalNote(withdrawal)
+	writeJSON(w, http.StatusOK, map[string]any{"draft_id": draft.ID, "state": draft.State, "unchanged": false})
+}
+
+// withdrawalNote is what a withdrawn draft says instead of its actions.
+func (s *Server) withdrawalNote(withdrawal approval.DraftWithdrawal) string {
+	at := pageTime(withdrawal.OccurredAt)
+	if withdrawal.Reason == approval.WithdrawalExpired {
+		return "TaskGate 中此任务等待提交或审批超过时限，已于 " + at + " 过期作废；工单已撤回，无需再提交或审批。需要时请重新申请"
+	}
+	return "TaskGate 中此任务已由 " + s.displayName(withdrawal.Actor) + " 于 " + at + " 撤销；工单已撤回，无需再提交或审批"
 }
 
 // agentSubmittedNote is what an agent-submitted draft says until its first
@@ -941,6 +1012,10 @@ func cloneDraft(draft *Draft) Draft {
 	copy.ApprovedGrant = cloneGrantPointer(draft.ApprovedGrant)
 	copy.ApprovalReceipt = cloneReceiptPointer(draft.ApprovalReceipt)
 	copy.History = append([]DraftDecision(nil), draft.History...)
+	if draft.Withdrawal != nil {
+		withdrawal := *draft.Withdrawal
+		copy.Withdrawal = &withdrawal
+	}
 	return copy
 }
 

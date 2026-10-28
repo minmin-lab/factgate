@@ -1165,6 +1165,7 @@ func (s *Service) revokeTask(ctx context.Context, principal mcp.Principal, raw j
 	if err != nil {
 		return nil, err
 	}
+	s.notifyDraftWithdrawn(ctx, updated, control.TerminalRevoked, principal.Subject)
 	result := publicTask(updated)
 	result["in_flight_queries_cancelled"] = false
 	if task.ParentTaskID == "" {
@@ -1199,13 +1200,14 @@ func (s *Service) cascadeRevocation(ctx context.Context, rootTaskID, actor strin
 			if descendant.ID == rootTaskID || descendant.State == control.TaskArchived {
 				continue
 			}
-			_, err := s.store.TransitionTask(ctx, control.TaskTransition{
+			archived, err := s.store.TransitionTask(ctx, control.TaskTransition{
 				TaskID: descendant.ID, ExpectedFrom: descendant.State, To: control.TaskArchived,
 				Reason: control.TerminalRevoked, Actor: actor, Payload: payload,
 			})
 			switch {
 			case err == nil:
 				cascaded = append(cascaded, descendant.ID)
+				s.notifyDraftWithdrawn(ctx, archived, control.TerminalRevoked, actor)
 			case errors.Is(err, control.ErrInvalidStateChange), errors.Is(err, control.ErrConflict), errors.Is(err, control.ErrNotFound):
 				continue
 			default:

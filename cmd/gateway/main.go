@@ -426,7 +426,7 @@ func main() {
 	}
 	mountProfileDiagnostic(router, activatedSnapshotState, retention.AdminToken, service.ReadyError, store.DB())
 
-	go sweepExpired(ctx, store, logger)
+	go sweepExpired(ctx, store, service, logger)
 	go sweepPendingResultArtifacts(ctx, service, logger)
 	go sweepOrphanResultStaging(ctx, service, stagingOrphanTTL, logger)
 	go sweepRetention(ctx, store, retention, logger, service)
@@ -1096,7 +1096,11 @@ func postAuditCheckpointAnchor(ctx context.Context, config auditAnchorConfig, ch
 	return anchor, nil
 }
 
-func sweepExpired(ctx context.Context, store *control.Store, logger *slog.Logger) {
+// sweepExpired archives ACTIVE tasks past their grant expiry and then, under
+// the Catalog's delegated_authorization pending_ttl, the tasks that waited
+// too long for submission or approval (Service.SweepPendingExpiry, which does
+// nothing without the block or the field).
+func sweepExpired(ctx context.Context, store *control.Store, service *gatewayapp.Service, logger *slog.Logger) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -1128,6 +1132,11 @@ func sweepExpired(ctx context.Context, store *control.Store, logger *slog.Logger
 					break
 				}
 				afterID = tasks[len(tasks)-1].ID
+			}
+			if archived, err := service.SweepPendingExpiry(ctx, now); err != nil {
+				logger.Warn("pending-task expiry sweep", "error", err)
+			} else if len(archived) > 0 {
+				logger.Info("archived pending tasks past pending_ttl", "count", len(archived), "task_ids", archived)
 			}
 		}
 	}

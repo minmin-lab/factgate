@@ -105,7 +105,7 @@ const agentSubmittedWait = "申请人无需再提交。可再次调用 wait_for_
 var terminalAdvice = map[control.TerminalReason]string{
 	control.TerminalCompleted:             "任务已完成归档",
 	control.TerminalRevoked:               "任务已撤销",
-	control.TerminalExpired:               "任务已过期（期限从批准时起算，不能延长）；需要继续时重新申请",
+	control.TerminalExpired:               "任务已过期（批准后的期限或待审期限已到，不能延长）；需要继续时重新申请",
 	control.TerminalRejected:              "审批人已驳回；需要时修改申请后重新 request_data_task",
 	control.TerminalBudgetExhausted:       "任务预算已用完；需要时重新申请",
 	control.TerminalApproverNotAuthorized: "实际审批人对所批范围无权，TaskGate 未签发授权；请改选有权的审批人（见 list_data_products 的 approval_routes）后重新申请",

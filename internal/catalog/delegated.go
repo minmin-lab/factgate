@@ -1,6 +1,9 @@
 package catalog
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // DelegatedAuthorization is the demo's coarse-grained, long-lived
 // authorization model (KB1-LOOP-147; a demo feature, not a paper claim). It is
@@ -44,6 +47,26 @@ type DelegatedAuthorization struct {
 	// person only approves. Off, a person submits the draft in the OA first,
 	// as in the formal round. The Catalog digest binds the choice.
 	AgentSubmits bool `yaml:"agent_submits,omitempty" json:"agent_submits,omitempty"`
+	// PendingTTL bounds how long a task may wait for its submission or its
+	// approval (KB1-LOOP-137): a Go duration such as "72h", counted from the
+	// task's creation; the Gateway's expiry sweep then archives the task as
+	// expired and tells the OA to withdraw its draft. Empty means pending
+	// tasks never expire, as in the formal round. The Catalog digest binds it.
+	PendingTTL string `yaml:"pending_ttl,omitempty" json:"pending_ttl,omitempty"`
+}
+
+// PendingTTLDuration is PendingTTL parsed; zero when it is empty (pending
+// tasks do not expire). Validation has refused anything unparsable or not
+// positive, so zero never stands for a malformed value of a loaded Catalog.
+func (d DelegatedAuthorization) PendingTTLDuration() time.Duration {
+	if d.PendingTTL == "" {
+		return 0
+	}
+	parsed, err := time.ParseDuration(d.PendingTTL)
+	if err != nil || parsed <= 0 {
+		return 0
+	}
+	return parsed
 }
 
 // Default attribute names of the delegated-authorization rules.
@@ -83,6 +106,11 @@ func validateDelegatedAuthorization(path string, delegated DelegatedAuthorizatio
 		"center_attribute": delegated.CenterAttribute, "center_scope": delegated.CenterScope, "personal_scope": delegated.PersonalScope} {
 		if name != "" && !identifierPattern.MatchString(name) {
 			problems = append(problems, fieldError(path+"."+field, "must be a lowercase identifier", ErrInvalidApprovalRoute))
+		}
+	}
+	if delegated.PendingTTL != "" {
+		if parsed, err := time.ParseDuration(delegated.PendingTTL); err != nil || parsed <= 0 {
+			problems = append(problems, fieldError(path+".pending_ttl", "must be a positive duration such as 72h", ErrInvalidCatalog))
 		}
 	}
 	return problems
