@@ -168,7 +168,7 @@ products:
 - Reporting View 应只暴露业务所需字段。手机号、工资、银行卡等即使“不写入 Catalog”，若仍出现在 View 中，也不应向 `gateway_reader` 暴露。
 - 函数和聚合必须是未限定的小写名，且不能是文件、网络、管理、睡眠等禁止函数；运行时还会经过 SQL AST 的危险函数硬拒绝表。
 - Exposure V2 只允许 `count`、`sum`、`min`、`max`；`avg` 即使在传统 SQL allowlist 中存在，也不能进入 V2 计划。
-- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。LIKE 写 `like` 或 `~~` 都可，ILIKE 写 `ilike` 或 `~~*`（NOT LIKE 写 `not like` 或 `!~~`，NOT ILIKE 写 `not ilike` 或 `!~~*`）；声明 `like` 只放行 LIKE，不顺带放行 ILIKE 或 NOT LIKE。IN 写 `in`（只放行 IN 列表）或 `=`（同时放行等值比较与 IN）；NOT IN 写 `not in` 或 `<>`；BETWEEN 写 `between`，NOT BETWEEN 写 `not between`（各自只放行该形式，BETWEEN SYMMETRIC 不可授予）。词形大小写与首尾空白不计。AND/OR/NOT 与 IS [NOT] NULL 不是算子，不用声明，也不能用 `allowed_operators` 限制。
+- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。LIKE 写 `like` 或 `~~` 都可，ILIKE 写 `ilike` 或 `~~*`（NOT LIKE 写 `not like` 或 `!~~`，NOT ILIKE 写 `not ilike` 或 `!~~*`）；声明 `like` 只放行 LIKE，不顺带放行 ILIKE 或 NOT LIKE。IN 写 `in`（只放行 IN 列表）或 `=`（同时放行等值比较与 IN）；NOT IN 写 `not in` 或 `<>`；BETWEEN 写 `between`，NOT BETWEEN 写 `not between`（各自只放行该形式，BETWEEN SYMMETRIC 不可授予）。词形大小写与首尾空白不计。AND/OR/NOT 与 IS [NOT] NULL 不是算子，不用声明，也不能用 `allowed_operators` 限制。子查询谓词同样按算子门控——`IN (SELECT …)` 按 `in` 或 `=`，`NOT IN (SELECT …)` 按 `not in` 或 `<>`，`op ANY/ALL (SELECT …)` 按 op；EXISTS 与标量子查询不是算子，由子查询自身的列与产品校验约束。
 
 ## Eligibility（资格先于审批）
 
