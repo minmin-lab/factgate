@@ -220,7 +220,9 @@ func TestAgentIdentityIsOffWithoutTheURLOrTheSwitcher(t *testing.T) {
 		httpServer := agentIdentityOA(t, setup.allowSwitch, setup.url, setup.label)
 		staff := login(t, httpServer.URL, "staff", "shared")
 		page := get(t, staff, httpServer.URL+"/tasks")
-		if strings.Contains(page, "/agent-identity") || strings.Contains(page, "who-agent") || strings.Contains(page, "我的 agent") {
+		// The head styles #who-agent on every page; the card is in the body.
+		body := page[strings.Index(page, "</head>"):]
+		if strings.Contains(body, "/agent-identity") || strings.Contains(body, "who-agent") || strings.Contains(body, "MCP 角色切换") {
 			t.Fatalf("%+v: the agent card is offered: %s", setup, page)
 		}
 		// The OA account card stands alone, with its switcher in the
@@ -268,13 +270,13 @@ func TestAgentIdentityNavigationHasTwoCards(t *testing.T) {
 		t.Fatalf("navigation: %s", nav)
 	}
 	oa, agent := oaCard(page), agentCard(page)
-	if !strings.HasPrefix(oa, oaCardStart+`<div class="who-title">我在 OA 里是谁（审批用）</div><div class="who-name">普通员工</div>`+
+	if !strings.HasPrefix(oa, oaCardStart+`<div class="who-title">OA 角色切换（审批用）</div><div class="who-name">普通员工</div>`+
 		`<div class="who-note">staff · 申请人兼审批人</div><form class="who-pick" method="post" action="/switch"><input type="hidden" name="csrf" value="`) ||
 		!strings.Contains(oa, `"><label>换一个身份：<select name="username">`) || !strings.Contains(oa, `<option value="staff" selected>`) ||
 		!strings.HasSuffix(oa, `</select></label><button type="submit">切换身份</button></form></div>`) {
 		t.Fatalf("OA account card: %s", oa)
 	}
-	if !strings.HasPrefix(agent, agentCardStart+`<div class="who-title">我的 agent 是谁（申请与查询用）</div>`+
+	if !strings.HasPrefix(agent, agentCardStart+`<div class="who-title">MCP 角色切换（agent 申请与查询用）</div>`+
 		`<div class="who-name">财务部管理员（finance-admin） · 部门管理员</div>`+
 		`<div class="who-note">共用令牌 lzj · 2026-10-28 02:12 UTC 由 采购部管理员（procurement-admin） 切换</div>`+
 		`<div class="who-note">切换立即生效；切完对 agent 说一句「你被切换了，调 whoami 确认」。</div>`+
@@ -290,8 +292,8 @@ func TestAgentIdentityNavigationHasTwoCards(t *testing.T) {
 	}
 	// The cards' style is in the page's head.
 	head := page[:strings.Index(page, "</head>")]
-	for _, rule := range []string{`.whos{display:flex;flex-wrap:wrap;gap:16px;`, `.who{flex:1 1 320px;background:white;border:1px solid #dfe5eb;border-radius:8px;padding:12px 16px}`,
-		`.who-title{font-size:12px;color:#617080}`, `.who-name{font-size:17px;font-weight:700;`, `.who-pick select{box-sizing:border-box;width:100%;`} {
+	for _, rule := range []string{`.whos{display:flex;flex-wrap:wrap;gap:16px;`, `.who{flex:1 1 320px;background:white;border:1px solid #dfe5eb;border-left:4px solid #1769aa;border-radius:8px;padding:12px 16px}`,
+		`.who-title{font-size:15px;font-weight:700;color:#1769aa}`, `#who-agent{border-left-color:#2e7d32}`, `#who-agent .who-title{color:#2e7d32}`, `.who-name{font-size:17px;font-weight:700;`, `.who-pick select{box-sizing:border-box;width:100%;`} {
 		if !strings.Contains(head, rule) {
 			t.Fatalf("no %s in the head", rule)
 		}
@@ -373,7 +375,7 @@ func TestAgentIdentityUnregisteredLabelShowsNoForm(t *testing.T) {
 	staff := login(t, httpServer.URL, "staff", "shared")
 	page := get(t, staff, httpServer.URL+"/tasks")
 	card := agentCard(page)
-	if !strings.HasPrefix(card, agentCardStart+`<div class="who-title">我的 agent 是谁（申请与查询用）</div><div class="who-name error">网关未登记标签 tester</div></div></div>`) ||
+	if !strings.HasPrefix(card, agentCardStart+`<div class="who-title">MCP 角色切换（agent 申请与查询用）</div><div class="who-name error">网关未登记标签 tester</div></div></div>`) ||
 		strings.Contains(page, `action="/agent-identity"`) || strings.Contains(card, "<select") || strings.Contains(card, "切换立即生效") || !strings.Contains(page, `action="/switch"`) {
 		t.Fatalf("with an unregistered OA_AGENT_LABEL: %s", page)
 	}

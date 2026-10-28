@@ -313,6 +313,7 @@ func (s *Server) Handler() http.Handler {
 	router.With(s.requireSession, s.requireCSRF).Post("/logout", s.logout)
 	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
 	router.Get("/switch.js", switchScript)
+	router.Get("/poll.js", pollScript)
 	router.With(s.requireSession, s.requireCSRF).Post("/agent-identity", s.agentIdentitySwitch)
 	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
@@ -322,6 +323,7 @@ func (s *Server) Handler() http.Handler {
 		protected.Get("/", s.listDrafts)
 		protected.Get("/tasks", s.listDrafts)
 		protected.Get("/tasks/{draftID}", s.viewDraft)
+		protected.Get("/tasks/{draftID}/state", s.draftState)
 		protected.With(s.requireCSRF).Post("/tasks/{draftID}/submit", s.submitDraft)
 		protected.With(s.requireCSRF).Post("/tasks/{draftID}/decision", s.decideDraft)
 	})
@@ -640,17 +642,66 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "task", s.taskPage(data, draft))
 }
 
+// draftState answers the task page's poll (pollScript) with the session's
+// page version (pageVersion), under the page's own access rules: 404 for an
+// unknown draft, 403 for someone else's.
+func (s *Server) draftState(w http.ResponseWriter, r *http.Request) {
+	data := r.Context().Value(sessionContextKey{}).(sessionData)
+	s.mu.RLock()
+	stored, found := s.drafts[chi.URLParam(r, "draftID")]
+	var version string
+	status, message := http.StatusNotFound, ""
+	if found {
+		status, message = draftAccess(stored, data)
+		version = pageVersion(*stored, s.awaitsChange(*stored, decidesNow(*stored, data)))
+	}
+	s.mu.RUnlock()
+	if refuseDraftAccess(w, r, status, message) {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(map[string]string{"version": version})
+}
+
+// draftVersion changes whenever the task page would show something new:
+// another state or approver, another decision, TaskGate's note, the grant
+// or the receipt.
+func draftVersion(draft Draft) string {
+	return strings.Join([]string{draft.State, draft.Approver, strconv.Itoa(len(draft.History)),
+		strconv.FormatBool(draft.Note != ""), strconv.FormatBool(draft.ApprovedGrant != nil),
+		strconv.FormatBool(draft.ApprovalReceipt != nil)}, "|")
+}
+
+// pageVersion is the version a session's task page is rendered from and
+// polls against: draftVersion and whether the page awaits change
+// (awaitsChange), so a page rendered inside the answer window also reloads
+// once when the window closes and its waiting notice no longer applies. A
+// waiting page reloads once draftState answers a different one.
+func pageVersion(draft Draft, awaits bool) string {
+	return draftVersion(draft) + "|" + strconv.FormatBool(awaits)
+}
+
+// decidesNow reports whether the session may decide the draft now: it is
+// pending and assigned to the session's account, which can approve. The
+// task page and its poll (draftState) both use it.
+func decidesNow(draft Draft, data sessionData) bool {
+	return draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username)
+}
+
 // taskPage is what the task page renders: the view, whether the session
 // may submit or decide the draft now, the switch to whoever acts on it
-// instead (shared-password mode), and whether the page refreshes itself.
+// instead (shared-password mode), whether the page polls for changes, and
+// the draft's version it polls against.
 func (s *Server) taskPage(data sessionData, draft Draft) map[string]any {
-	canDecide := draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username)
+	canDecide := decidesNow(draft, data)
+	awaits := s.awaitsChange(draft, canDecide)
 	return map[string]any{"Session": data, "View": s.view(draft),
 		"CanSubmit":   draft.State == "draft" && draft.relatesAsRequester(data.Username),
 		"CanDecide":   canDecide,
 		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject) || draft.MemberConfirm,
 		"SwitchTo":    s.switchOffer(data, draft),
-		"Refresh":     s.awaitsChange(draft, canDecide)}
+		"Refresh":     awaits,
+		"Version":     pageVersion(draft, awaits)}
 }
 
 // draftAccess decides whether the logged-in user may open a draft: a

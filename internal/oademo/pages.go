@@ -490,16 +490,17 @@ func (s *Server) switchOffer(data sessionData, draft Draft) *switchOffer {
 	return nil
 }
 
-// answerWait is how long a decided draft's page keeps refreshing while
-// TaskGate's answer (the next approver, or why no grant was issued) has not
-// arrived; a final approval TaskGate simply takes leaves no note, so the
-// refresh ends with the window.
+// answerWait is how long a decided draft's page keeps polling for changes
+// while TaskGate's answer (the next approver, or why no grant was issued)
+// has not arrived; a final approval TaskGate simply takes leaves no note, so
+// a page rendered after the window no longer polls.
 const answerWait = 10 * time.Second
 
-// awaitsChange reports whether the task page should refresh itself: the
-// draft waits for someone else's decision (the approver's own page does not
-// refresh, so it keeps a narrowing form being filled in), or for TaskGate's
-// answer to a decision just made.
+// awaitsChange reports whether the task page should poll for changes
+// (pollScript) and reload when one comes: the draft waits for someone
+// else's decision (the approver's own page does not poll, so it keeps a
+// narrowing form being filled in), or for TaskGate's answer to a decision
+// just made.
 func (s *Server) awaitsChange(draft Draft, canDecide bool) bool {
 	switch draft.State {
 	case "pending":
@@ -538,6 +539,73 @@ document.addEventListener("DOMContentLoaded", function () {
   if (button) { button.hidden = true; }
   form.querySelector('select[name="principal_id"]').addEventListener("change", function () { form.submit(); });
 });
+`))
+}
+
+// pollScript keeps a waiting task page current without interrupting whoever
+// reads it; it replaced a meta refresh that reloaded the page every 3 s and
+// so closed an open menu and lost the scroll position and the selection.
+// It asks /tasks/{id}/state (draftState) for the draft's version every 3 s,
+// after two minutes every 10 s, and once the version differs from the one
+// the page was rendered from, reloads the page as soon as the user is idle:
+// no field, menu or button focused, no pointer button held, no text
+// selected, and no input, key, pointer or scroll in the last 2 s. It stops
+// after 3 failed polls in a row (an error status, a redirect such as to the
+// login page, or an answer without a version). Served from the OA itself
+// for the Content-Security-Policy, like switchScript.
+func pollScript(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	_, _ = w.Write([]byte(`(function () {
+  var meta = document.querySelector('meta[name="draft-version"]');
+  if (!meta || !window.fetch) { return; }
+  var shown = meta.getAttribute("content");
+  var stateURL = location.pathname.replace(/\/+$/, "") + "/state";
+  var started = new Date().getTime();
+  var lastActivity = 0;
+  var pointerHeld = false;
+  var pending = false;
+  var failures = 0;
+  function now() { return new Date().getTime(); }
+  function touched() { lastActivity = now(); }
+  document.addEventListener("input", touched, true);
+  document.addEventListener("keydown", touched, true);
+  document.addEventListener("scroll", touched, true);
+  document.addEventListener("pointerdown", function () { pointerHeld = true; touched(); }, true);
+  document.addEventListener("pointerup", function () { pointerHeld = false; touched(); }, true);
+  document.addEventListener("pointercancel", function () { pointerHeld = false; }, true);
+  function idle() {
+    var active = document.activeElement;
+    var tag = active && active.tagName ? active.tagName.toUpperCase() : "";
+    if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") { return false; }
+    if (pointerHeld) { return false; }
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (selection && String(selection) !== "") { return false; }
+    return now() - lastActivity >= 2000;
+  }
+  function schedule() {
+    setTimeout(tick, now() - started < 120000 ? 3000 : 10000);
+  }
+  function settle() {
+    if (idle()) { location.reload(); return; }
+    schedule();
+  }
+  function tick() {
+    if (pending) { settle(); return; }
+    fetch(stateURL, { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }).then(function (response) {
+      if (!response.ok || response.redirected) { throw new Error("state answered " + response.status); }
+      return response.json();
+    }).then(function (state) {
+      if (!state || typeof state.version !== "string") { throw new Error("state has no version"); }
+      failures = 0;
+      if (state.version !== shown) { pending = true; settle(); return; }
+      schedule();
+    }).catch(function () {
+      failures += 1;
+      if (failures < 3) { schedule(); }
+    });
+  }
+  schedule();
+})();
 `))
 }
 
@@ -610,16 +678,16 @@ func (f formValues) get(key string) string {
 }
 
 const pageTemplates = `
-{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{{if .Refresh}}<meta http-equiv="refresh" content="3">{{end}}<title>Task-bound OA Demo</title><style>
-body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:920px;margin:32px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:8px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8;margin-right:6px}nav .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}nav a{margin-right:12px}.whos{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}.who{flex:1 1 320px;background:white;border:1px solid #dfe5eb;border-radius:8px;padding:12px 16px}.who-title{font-size:12px;color:#617080}.who-name{font-size:17px;font-weight:700;margin:4px 0 2px}.who-note{font-size:13px;color:#617080}.who-pick{display:flex;align-items:center;gap:8px;margin-top:8px}.who-pick label{display:flex;align-items:center;flex:1 1 auto;min-width:0;white-space:nowrap}.who-pick select{box-sizing:border-box;width:100%;min-width:0}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}.summary{font-size:1.1em;line-height:1.6}.progress{list-style:none;padding:0;margin:8px 0}.progress li{padding:6px 0;border-bottom:1px dashed #e3e8ee}.progress .done::before{content:"✓ ";color:#2e7d32}.progress .current::before{content:"▶ ";color:#1769aa}.choices label{display:inline-block;margin:4px 12px 4px 0}details{margin-top:16px}details summary{cursor:pointer;color:#617080}code{word-break:break-all}table.history{width:100%;border-collapse:collapse}table.history td,table.history th{text-align:left;padding:8px 6px;border-bottom:1px solid #e3e8ee;vertical-align:top}ul.todos{list-style:none;padding:0;margin:8px 0}ul.todos li{padding:8px 0;border-bottom:1px dashed #e3e8ee}
+{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{{if .Refresh}}<meta name="draft-version" content="{{.Version}}"><script src="/poll.js" defer></script>{{end}}<title>Task-bound OA Demo</title><style>
+body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:920px;margin:32px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:8px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8;margin-right:6px}nav .bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}nav a{margin-right:12px}.whos{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}.who{flex:1 1 320px;background:white;border:1px solid #dfe5eb;border-left:4px solid #1769aa;border-radius:8px;padding:12px 16px}.who-title{font-size:15px;font-weight:700;color:#1769aa}#who-agent{border-left-color:#2e7d32}#who-agent .who-title{color:#2e7d32}.who-name{font-size:17px;font-weight:700;margin:4px 0 2px}.who-note{font-size:13px;color:#617080}.who-pick{display:flex;align-items:center;gap:8px;margin-top:8px}.who-pick label{display:flex;align-items:center;flex:1 1 auto;min-width:0;white-space:nowrap}.who-pick select{box-sizing:border-box;width:100%;min-width:0}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}.note{background:#fff7e0;border:1px solid #f0d58a;border-radius:8px;padding:10px 12px}ol.history{padding-left:20px}a{color:#1769aa;text-decoration:none}.summary{font-size:1.1em;line-height:1.6}.progress{list-style:none;padding:0;margin:8px 0}.progress li{padding:6px 0;border-bottom:1px dashed #e3e8ee}.progress .done::before{content:"✓ ";color:#2e7d32}.progress .current::before{content:"▶ ";color:#1769aa}.choices label{display:inline-block;margin:4px 12px 4px 0}details{margin-top:16px}details summary{cursor:pointer;color:#617080}code{word-break:break-all}table.history{width:100%;border-collapse:collapse}table.history td,table.history th{text-align:left;padding:8px 6px;border-bottom:1px solid #e3e8ee;vertical-align:top}ul.todos{list-style:none;padding:0;margin:8px 0}ul.todos li{padding:8px 0;border-bottom:1px dashed #e3e8ee}
 </style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
-{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1>{{if .PasswordOnly}}<p class="muted">输入口令登录。登录后默认是普通员工 {{.Default}} 的身份，页面顶部「我在 OA 里是谁」一栏可随时切换为任一管理员、主任或分管领导。</p>{{else}}<p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{end}}{{if .Error}}<p class="error">{{if .PasswordOnly}}口令错误{{else}}用户名或密码错误{{end}}</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}">{{if not .PasswordOnly}}<p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p>{{end}}<p><label>{{if .PasswordOnly}}口令{{else}}密码{{end}}<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div class="bar"><strong>Task-bound OA</strong><div><a href="/tasks">待办</a><a href="/history">审批记录</a><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></div><div class="whos"><div class="who" id="who-oa"><div class="who-title">我在 OA 里是谁（审批用）</div><div class="who-name">{{.DisplayName}}</div><div class="who-note">{{.Username}} · {{roleLabel .Role}}</div>{{if .AllowSwitch}}<form class="who-pick" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>换一个身份：<select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label><button type="submit">切换身份</button></form>{{end}}</div>{{with .AgentIdentity}}<div class="who" id="who-agent"><div class="who-title">我的 agent 是谁（申请与查询用）</div>{{if .Unavailable}}<div class="who-name error">网关暂不可用（{{.Unavailable}}）</div>{{else if .Shown}}<div class="who-name">{{.Principal}}</div><div class="who-note">共用令牌 {{.Label}}{{if .Binding}} · {{.Binding}}{{end}}</div><div class="who-note">切换立即生效；切完对 agent 说一句「你被切换了，调 whoami 确认」。</div><form class="who-pick" method="post" action="/agent-identity"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="next" value="{{.Next}}"><input type="hidden" name="label" value="{{.Label}}"><label>换一个身份：<select name="principal_id">{{range .Groups}}<optgroup label="{{.Label}}">{{range .Options}}<option value="{{.PrincipalID}}"{{if .Selected}} selected{{end}}>{{.Text}}</option>{{end}}</optgroup>{{end}}</select></label><button type="submit">切换身份</button></form>{{else if .Unregistered}}<div class="who-name error">网关未登记标签 {{.Unregistered}}</div>{{else}}<div class="who-name muted">网关没有登记任何 agent</div>{{end}}</div>{{end}}</div>{{if .AllowSwitch}}<script src="/switch.js"></script>{{end}}</nav>{{end}}
+{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1>{{if .PasswordOnly}}<p class="muted">输入口令登录。登录后默认是普通员工 {{.Default}} 的身份，页面顶部「OA 角色切换」一栏可随时切换为任一管理员、主任或分管领导。</p>{{else}}<p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{end}}{{if .Error}}<p class="error">{{if .PasswordOnly}}口令错误{{else}}用户名或密码错误{{end}}</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}">{{if not .PasswordOnly}}<p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p>{{end}}<p><label>{{if .PasswordOnly}}口令{{else}}密码{{end}}<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
+{{define "nav"}}<nav><div class="bar"><strong>Task-bound OA</strong><div><a href="/tasks">待办</a><a href="/history">审批记录</a><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></div><div class="whos"><div class="who" id="who-oa"><div class="who-title">OA 角色切换（审批用）</div><div class="who-name">{{.DisplayName}}</div><div class="who-note">{{.Username}} · {{roleLabel .Role}}</div>{{if .AllowSwitch}}<form class="who-pick" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>换一个身份：<select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label><button type="submit">切换身份</button></form>{{end}}</div>{{with .AgentIdentity}}<div class="who" id="who-agent"><div class="who-title">MCP 角色切换（agent 申请与查询用）</div>{{if .Unavailable}}<div class="who-name error">网关暂不可用（{{.Unavailable}}）</div>{{else if .Shown}}<div class="who-name">{{.Principal}}</div><div class="who-note">共用令牌 {{.Label}}{{if .Binding}} · {{.Binding}}{{end}}</div><div class="who-note">切换立即生效；切完对 agent 说一句「你被切换了，调 whoami 确认」。</div><form class="who-pick" method="post" action="/agent-identity"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="next" value="{{.Next}}"><input type="hidden" name="label" value="{{.Label}}"><label>换一个身份：<select name="principal_id">{{range .Groups}}<optgroup label="{{.Label}}">{{range .Options}}<option value="{{.PrincipalID}}"{{if .Selected}} selected{{end}}>{{.Text}}</option>{{end}}</optgroup>{{end}}</select></label><button type="submit">切换身份</button></form>{{else if .Unregistered}}<div class="who-name error">网关未登记标签 {{.Unregistered}}</div>{{else}}<div class="who-name muted">网关没有登记任何 agent</div>{{end}}</div>{{end}}</div>{{if .AllowSwitch}}<script src="/switch.js"></script>{{end}}</nav>{{end}}
 {{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>待办</h1><p class="muted">待提交或待审批的工单；已办结的在<a href="/history">审批记录</a>。</p>{{range .Views}}<div class="card"><span class="tag">{{draftStateLabel .Draft}}</span><span class="tag">{{.Kind}}</span><h2><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a></h2><p class="summary">{{.Summary}}</p><p class="muted">{{if .Draft.Approver}}当前审批人 {{.Draft.Approver}} · {{end}}Task {{.Draft.Manifest.TaskID}}</p>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无待办。</p></div>{{end}}{{if .Others}}<h2>其他身份的待办</h2><p class="muted">以下工单正等待其他身份处理；点“切换并打开”即切换到该身份并打开工单。</p>{{range .Others}}{{$account := .ID}}<div class="card"><h3>{{.Name}}（{{len .Drafts}} 张）</h3><ul class="todos">{{range .Drafts}}<li><span class="tag">{{stateLabel .State}}</span>{{.Objective}} <span class="muted">· 申请人 {{.Subject}}</span> <form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="username" value="{{$account}}"><input type="hidden" name="next" value="/tasks/{{.ID}}"><button type="submit">切换并打开</button></form></li>{{end}}</ul></div>{{end}}{{end}}{{template "foot" .}}{{end}}
 {{define "history"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批记录</h1><p class="muted">你提交、代开或审批过的全部工单，按最近变动排序。</p>{{if .Views}}<div class="card"><table class="history"><tr><th>工单</th><th>状态</th><th>审批记录</th></tr>{{range .Views}}<tr><td><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a><br><span class="muted">{{.Kind}} · 申请人 {{.Draft.Manifest.HumanSubject}}{{if .Draft.IssuedBy}} · 代开人 {{.Draft.IssuedBy}}{{end}}{{if .Draft.MemberConfirm}} · 确认成员 {{.Draft.Approver}}{{end}}{{if .Draft.AgentSubmitted}} · agent 代为提交{{end}}</span></td><td>{{draftStateLabel .Draft}}</td><td>{{range .Progress}}{{if eq .Status "done"}}{{.Who}} {{.Decision}}（{{.When}}）<br>{{else}}等待 {{.Who}} {{.Label}}<br>{{end}}{{end}}{{if .Draft.Note}}<span class="muted">{{.Draft.Note}}</span>{{end}}</td></tr>{{end}}</table></div>{{else}}<div class="card"><p>暂无记录。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$view := .View}}{{$draft := .View.Draft}}{{$envelope := .View.Envelope}}<div class="card"><span class="tag">{{draftStateLabel $draft}}</span><span class="tag">{{$view.Kind}}</span><h1>{{$draft.Manifest.DeclaredObjective}}</h1><p class="summary">{{$view.Summary}}</p>
-{{if $view.Progress}}<h2>审批进度</h2><ol class="progress">{{range $view.Progress}}<li class="{{.Status}}">{{if eq .Status "done"}}{{.Who}} {{.Decision}} · {{.When}}{{else}}等待 {{.Who}}{{.Label}}{{end}}</li>{{end}}</ol>{{end}}{{if $draft.Note}}<p class="note">{{$draft.Note}}</p>{{end}}{{if .Refresh}}<p class="muted">等待处理结果，本页每 3 秒自动刷新。</p>{{end}}
+{{if $view.Progress}}<h2>审批进度</h2><ol class="progress">{{range $view.Progress}}<li class="{{.Status}}">{{if eq .Status "done"}}{{.Who}} {{.Decision}} · {{.When}}{{else}}等待 {{.Who}}{{.Label}}{{end}}</li>{{end}}</ol>{{end}}{{if $draft.Note}}<p class="note">{{$draft.Note}}</p>{{end}}{{if .Refresh}}<p class="muted">等待处理结果，有新进展时本页自动更新；你在页面上操作时不会被打断。</p>{{end}}
 <h2>{{if $envelope.Granted}}上一级批准的范围{{else}}申请的范围{{end}}</h2>{{if $envelope.Granted}}<p class="muted">本级在此基础上批准或缩小，不能扩大。</p>{{end}}<dl>{{range $view.Scopes}}<dt>{{.Label}}</dt><dd>{{if .Enum}}{{range $i, $v := .Values}}{{if $i}}、{{end}}{{$v.Label}}{{end}}{{else}}{{.From}} 至 {{.To}}{{end}}</dd>{{end}}<dt>数据产品与字段</dt><dd>{{range $view.Products}}<strong>{{.Label}}</strong>：{{range $i, $c := .Columns}}{{if $i}}、{{end}}{{$c}}{{end}}<br>{{end}}</dd><dt>预算与有效期</dt><dd>最多 {{$envelope.Budget.MaxQueries}} 次查询，每次最多 {{$envelope.Budget.MaxResultRows}} 行；有效期 {{humanDuration $envelope.Budget.TaskTTLMS}}{{if $envelope.Granted}}（从最后一级批准时起算）{{end}}</dd></dl>
 {{with .SwitchTo}}<form method="post" action="/switch"><input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="username" value="{{.ID}}"><input type="hidden" name="next" value="/tasks/{{$draft.ID}}"><button type="submit">切换到 {{.Name}} 并{{.Action}}</button></form>{{end}}
 {{if .CanSubmit}}<form method="post" action="/tasks/{{$draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}

@@ -120,7 +120,7 @@ func TestWithdrawTakesAPendingDraftOffTheToDoListsAndShowsItRevoked(t *testing.T
 		}
 		page := get(t, client, httpServer.URL+"/tasks/"+draft)
 		if strings.Contains(page, `name="decision"`) || strings.Contains(page, `/submit"`) || strings.Contains(page, "提交申请") ||
-			strings.Contains(page, "切换到 ") || strings.Contains(page, `http-equiv="refresh"`) {
+			strings.Contains(page, "切换到 ") || strings.Contains(page, `/poll.js`) {
 			t.Fatalf("%s's page of the withdrawn draft offers an action: %s", name, page)
 		}
 		if !strings.Contains(page, note) || !strings.Contains(page, `<span class="tag">已撤销</span>`) {

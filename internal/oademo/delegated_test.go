@@ -1,12 +1,14 @@
 package oademo
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -473,26 +475,34 @@ func TestTheDraftPageOffersTheSwitchToWhoeverActsNow(t *testing.T) {
 	}
 }
 
-// The draft page refreshes itself while it waits for someone else's
-// decision, or for TaskGate's answer to a decision just made; the approver's
-// own page (a narrowing form being filled in) and settled pages do not.
+// The draft page updates itself while it waits for someone else's
+// decision, or for TaskGate's answer to a decision just made: it polls the
+// draft's version (poll.js) and reloads only on a change, never on a timer;
+// the approver's own page (a narrowing form being filled in) and settled
+// pages do not poll.
 func TestTheDraftPageRefreshesWhileItWaits(t *testing.T) {
-	const refresh = `<meta http-equiv="refresh" content="3">`
+	const (
+		pollTag     = `<script src="/poll.js"`
+		versionMeta = `<meta name="draft-version"`
+		waiting     = "等待处理结果，有新进展时本页自动更新；你在页面上操作时不会被打断。"
+	)
+	polls := func(page string) bool { return strings.Contains(page, pollTag) && strings.Contains(page, versionMeta) }
+	pollsAtAll := func(page string) bool { return strings.Contains(page, pollTag) || strings.Contains(page, versionMeta) }
 	server, httpServer, gateway := delegatedOA(t, true)
 	draft := createDraft(t, httpServer.URL, staffDraft(t, "finance-admin", "", time.Hour))
 	staff := login(t, httpServer.URL, "staff", "shared")
 	admin := login(t, httpServer.URL, "finance-admin", "shared")
-	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); strings.Contains(page, refresh) {
-		t.Fatal("an unsubmitted draft's page refreshes")
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); pollsAtAll(page) {
+		t.Fatal("an unsubmitted draft's page polls")
 	}
 	if status := act(t, staff, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
 		t.Fatalf("submit: %d", status)
 	}
-	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, refresh) || !strings.Contains(page, "每 3 秒自动刷新") {
-		t.Fatalf("a pending draft's page does not refresh for the requester: %s", page)
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !polls(page) || !strings.Contains(page, waiting) || strings.Contains(page, "http-equiv") {
+		t.Fatalf("a pending draft's page does not poll for the requester, or reloads on a timer: %s", page)
 	}
-	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); strings.Contains(page, refresh) {
-		t.Fatal("the approver's own page refreshes and would reset the narrowing form")
+	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); pollsAtAll(page) {
+		t.Fatal("the approver's own page polls and would reset the narrowing form")
 	}
 	if status := act(t, admin, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
 		t.Fatalf("approve: %d", status)
@@ -501,20 +511,20 @@ func TestTheDraftPageRefreshesWhileItWaits(t *testing.T) {
 	if settled := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "approved" }); settled.Note != "" {
 		t.Fatalf("a plain approval left a note: %q", settled.Note)
 	}
-	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, refresh) {
-		t.Fatal("the page does not refresh while TaskGate's answer may still come")
+	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); !polls(page) || !strings.Contains(page, waiting) {
+		t.Fatal("the page does not poll while TaskGate's answer may still come")
 	}
 	// The window closes 10 seconds after the decision.
 	server.mu.Lock()
 	decided := server.drafts[draft]
 	decided.History[len(decided.History)-1].At = server.config.Clock().UTC().Add(-11 * time.Second)
 	server.mu.Unlock()
-	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); strings.Contains(page, refresh) {
-		t.Fatal("an approved draft's page still refreshes after the answer window")
+	if page := get(t, admin, httpServer.URL+"/tasks/"+draft); pollsAtAll(page) || strings.Contains(page, waiting) {
+		t.Fatal("an approved draft's page still polls after the answer window")
 	}
 
 	// An approval whose answer arrived (here: the callback failed) carries a
-	// note and does not refresh.
+	// note and does not poll.
 	failing := createDraft(t, httpServer.URL, staffDraft(t, "finance-admin", "", time.Hour))
 	gateway.answer(failing, "finance-admin", "approved", http.StatusConflict, `{"error":"callback actor is not allowed"}`)
 	if status := act(t, staff, httpServer.URL, failing, "submit", nil); status != http.StatusOK {
@@ -524,8 +534,104 @@ func TestTheDraftPageRefreshesWhileItWaits(t *testing.T) {
 		t.Fatalf("approve: %d", status)
 	}
 	awaitDraft(t, server, failing, func(d Draft) bool { return d.State == "approved" && d.Note != "" })
-	if page := get(t, admin, httpServer.URL+"/tasks/"+failing); strings.Contains(page, refresh) || !strings.Contains(page, "callback actor is not allowed") {
+	if page := get(t, admin, httpServer.URL+"/tasks/"+failing); pollsAtAll(page) || !strings.Contains(page, "callback actor is not allowed") {
 		t.Fatalf("an approved draft with a note: %s", page)
+	}
+}
+
+// The waiting page's poll: /tasks/{id}/state answers the session's page
+// version under the page's own access rules; the version changes with the
+// decision, and once more when the answer window closes, so a page that
+// waited for TaskGate's answer drops its waiting notice. poll.js is served
+// without a session, like switch.js.
+func TestTheDraftStateEndpointReportsChanges(t *testing.T) {
+	const waiting = "等待处理结果，有新进展时本页自动更新"
+	server, httpServer, gateway := delegatedOA(t, true)
+	// The test clock, set before the first request: moving it forward
+	// closes the answer window.
+	var skew atomic.Int64
+	server.config.Clock = func() time.Time { return time.Now().Add(time.Duration(skew.Load())) }
+	draft := createDraft(t, httpServer.URL, staffDraft(t, "finance-admin", "", time.Hour))
+	staff := login(t, httpServer.URL, "staff", "shared")
+	admin := login(t, httpServer.URL, "finance-admin", "shared")
+	version := func(client *http.Client) string {
+		t.Helper()
+		response, err := client.Get(httpServer.URL + "/tasks/" + draft + "/state")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		var state map[string]string
+		if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "application/json; charset=utf-8" ||
+			json.NewDecoder(response.Body).Decode(&state) != nil || state["version"] == "" {
+			t.Fatalf("state: status %d, content type %q, body %v", response.StatusCode, response.Header.Get("Content-Type"), state)
+		}
+		return state["version"]
+	}
+	unsubmitted := version(staff)
+	if status := act(t, staff, httpServer.URL, draft, "submit", nil); status != http.StatusOK {
+		t.Fatalf("submit: %d", status)
+	}
+	pending := version(staff)
+	stored := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "pending" })
+	// The requester's page waits; the approver's own page does not.
+	if pending == unsubmitted || version(staff) != pending || pending != pageVersion(stored, true) || version(admin) != pageVersion(stored, false) {
+		t.Fatalf("versions: unsubmitted %q, pending %q, the approver's %q", unsubmitted, pending, version(admin))
+	}
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, `<meta name="draft-version" content="`+pending+`">`) {
+		t.Fatalf("the waiting page does not carry the version it polls against (%q): %s", pending, page)
+	}
+
+	if status := act(t, admin, httpServer.URL, draft, "decision", url.Values{"decision": {"approved"}}); status != http.StatusOK {
+		t.Fatalf("approve: %d", status)
+	}
+	gateway.event(t, draft, "finance-admin", "approved")
+	settled := awaitDraft(t, server, draft, func(d Draft) bool { return d.State == "approved" })
+	if settled.Note != "" {
+		t.Fatalf("a plain final approval left a note: %q", settled.Note)
+	}
+	decided := version(staff)
+	if decided == pending || decided != pageVersion(settled, true) {
+		t.Fatalf("the version did not change with the decision, or the page does not wait for the answer: %q", decided)
+	}
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); !strings.Contains(page, `<meta name="draft-version" content="`+decided+`">`) ||
+		!strings.Contains(page, `<script src="/poll.js"`) || !strings.Contains(page, waiting) {
+		t.Fatalf("inside the answer window the page does not wait with version %q: %s", decided, page)
+	}
+	// No answer comes (TaskGate took the final approval): when the window
+	// closes the version changes once more, and the reloaded page no longer
+	// waits or polls.
+	skew.Store(int64(answerWait + time.Second))
+	if closed := version(staff); closed == decided || closed != pageVersion(settled, false) {
+		t.Fatalf("the version did not change when the answer window closed: %q", closed)
+	}
+	if page := get(t, staff, httpServer.URL+"/tasks/"+draft); strings.Contains(page, waiting) || strings.Contains(page, "/poll.js") ||
+		strings.Contains(page, `<meta name="draft-version"`) {
+		t.Fatalf("after the answer window the page still waits: %s", page)
+	}
+
+	stranger := login(t, httpServer.URL, "sales-admin", "shared")
+	if status, body := getStatus(t, stranger, httpServer.URL+"/tasks/"+draft+"/state"); status != http.StatusForbidden || strings.Contains(body, "version") {
+		t.Fatalf("someone else's draft state = %d %s, want 403", status, body)
+	}
+	if status, _ := getStatus(t, staff, httpServer.URL+"/tasks/draft_unknown/state"); status != http.StatusNotFound {
+		t.Fatalf("an unknown draft's state = %d, want 404", status)
+	}
+	anonymous := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	if status, body := getStatus(t, anonymous, httpServer.URL+"/tasks/"+draft+"/state"); status != http.StatusSeeOther || strings.Contains(body, "version") {
+		t.Fatalf("the state without a session = %d %s, want a redirect to the login", status, body)
+	}
+
+	response, err := http.Get(httpServer.URL + "/poll.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	script, _ := io.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK || !strings.HasPrefix(response.Header.Get("Content-Type"), "text/javascript") ||
+		!strings.Contains(string(script), `"/state"`) || !strings.Contains(string(script), `meta[name="draft-version"]`) ||
+		!strings.Contains(string(script), `credentials: "same-origin"`) {
+		t.Fatalf("poll.js: status %d, content type %q: %s", response.StatusCode, response.Header.Get("Content-Type"), script)
 	}
 }
 
