@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -65,6 +66,11 @@ type Config struct {
 	// DefaultAccount is the identity a password-only login starts as; empty
 	// means the first requester in switcher order.
 	DefaultAccount string
+	// AgentIdentityURL is TaskGate's agent-identity endpoint (KB1-LOOP-151,
+	// agent_identity.go). With AllowSwitch the navigation gains a second,
+	// independent control that binds the tester's agent token, by label, to a
+	// principal. Empty leaves the control out and the pages unchanged.
+	AgentIdentityURL string
 	// Labels are display names for Catalog identifiers (pages.go).
 	Labels        Labels
 	HTTPClient    *http.Client
@@ -216,6 +222,11 @@ func New(config Config) (*Server, error) {
 	if _, err := url.ParseRequestURI(config.PublicBaseURL); err != nil {
 		return nil, fmt.Errorf("invalid public base URL: %w", err)
 	}
+	if config.AgentIdentityURL != "" {
+		if _, err := url.ParseRequestURI(config.AgentIdentityURL); err != nil {
+			return nil, fmt.Errorf("invalid agent identity URL: %w", err)
+		}
+	}
 	if config.HTTPClient == nil {
 		config.HTTPClient = &http.Client{Timeout: 5 * time.Second}
 	}
@@ -293,6 +304,7 @@ func (s *Server) Handler() http.Handler {
 	router.With(s.requireSession, s.requireCSRF).Post("/logout", s.logout)
 	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
 	router.Get("/switch.js", switchScript)
+	router.With(s.requireSession, s.requireCSRF).Post("/agent-identity", s.agentIdentitySwitch)
 	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
 	router.Group(func(protected chi.Router) {
@@ -467,6 +479,9 @@ type sessionData struct {
 	// AllowSwitch and AccountGroups feed the account switcher in the navigation.
 	AllowSwitch   bool
 	AccountGroups []accountGroupView
+	// AgentIdentity is the navigation's agent line (agent_identity.go); the
+	// pages that show the navigation set it, and it stays nil when off.
+	AgentIdentity *agentNav
 }
 
 func (s *Server) requireSession(next http.Handler) http.Handler {
@@ -508,6 +523,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
+	data.AgentIdentity = s.agentNav(r)
 	s.mu.RLock()
 	drafts := make([]Draft, 0, len(s.drafts))
 	// In the shared-password mode the page also lists what waits for the
@@ -541,9 +557,11 @@ func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 		draft = cloneDraft(stored)
 	}
 	s.mu.RUnlock()
-	if !refuseDraftAccess(w, r, status, message) {
-		s.render(w, "task", s.taskPage(data, draft))
+	if refuseDraftAccess(w, r, status, message) {
+		return
 	}
+	data.AgentIdentity = s.agentNav(r)
+	s.render(w, "task", s.taskPage(data, draft))
 }
 
 // taskPage is what the task page renders: the view, whether the session
@@ -864,31 +882,52 @@ func (s *Server) sendCallback(ctx context.Context, event callbackEvent) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	timestamp := strconv.FormatInt(s.config.Clock().Unix(), 10)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.config.CallbackURL, bytes.NewReader(body))
+	status, responseBody, err := s.signedPost(ctx, s.config.CallbackURL, event.EventID, body)
 	if err != nil {
 		return nil, err
 	}
+	if status < 200 || status >= 300 {
+		// The Gateway explains a rejection only in its response body; keep an
+		// excerpt so the retry log says why activation did not happen.
+		return nil, fmt.Errorf("callback status %d: %s", status, excerpt(string(responseBody)))
+	}
+	return responseBody, nil
+}
+
+// signedPost posts a JSON body to the Gateway the way it authenticates the
+// OA: X-OA-Event-ID, X-OA-Timestamp and X-OA-Signature, an HMAC of the
+// timestamp and the raw body under the callback secret. It returns the status
+// and at most 64 KiB of the answer.
+func (s *Server) signedPost(ctx context.Context, target, eventID string, body []byte) (int, []byte, error) {
+	timestamp := strconv.FormatInt(s.config.Clock().Unix(), 10)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
+	if err != nil {
+		return 0, nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-OA-Event-ID", event.EventID)
+	req.Header.Set("X-OA-Event-ID", eventID)
 	req.Header.Set("X-OA-Timestamp", timestamp)
 	req.Header.Set("X-OA-Signature", approval.Sign([]byte(s.config.CallbackSecret), timestamp, body))
 	resp, err := s.config.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
 	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// The Gateway explains a rejection only in its response body; keep an
-		// excerpt so the retry log says why activation did not happen.
-		excerpt := strings.TrimSpace(string(responseBody))
-		if len(excerpt) > 512 {
-			excerpt = excerpt[:512]
-		}
-		return nil, fmt.Errorf("callback status %d: %s", resp.StatusCode, excerpt)
+	return resp.StatusCode, responseBody, nil
+}
+
+// excerpt trims text to at most 512 bytes, cut at a character boundary.
+func excerpt(text string) string {
+	text = strings.TrimSpace(text)
+	if len(text) <= 512 {
+		return text
 	}
-	return responseBody, nil
+	cut := 512
+	for cut > 0 && !utf8.RuneStart(text[cut]) {
+		cut--
+	}
+	return text[:cut]
 }
 
 func cloneDraft(draft *Draft) Draft {

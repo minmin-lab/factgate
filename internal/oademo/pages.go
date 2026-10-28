@@ -144,6 +144,9 @@ func humanDuration(ms int64) string {
 	return fmt.Sprintf("%d 毫秒", ms)
 }
 
+// pageTime is how the pages show a moment: to the minute, in UTC.
+func pageTime(at time.Time) string { return at.UTC().Format("2006-01-02 15:04") + " UTC" }
+
 const longLivedTTL = 30 * 24 * time.Hour
 
 // kindLabel names what a draft is: a long-lived authorization (a project), a
@@ -275,7 +278,7 @@ func (s *Server) view(draft Draft) draftView {
 	}
 	for _, decision := range draft.History {
 		view.Progress = append(view.Progress, progressRow{Who: s.displayName(decision.Actor), Label: s.approverLabel(draft, decision.Actor),
-			Status: "done", Decision: decisionLabel(decision.Decision), When: decision.At.UTC().Format("2006-01-02 15:04") + " UTC"})
+			Status: "done", Decision: decisionLabel(decision.Decision), When: pageTime(decision.At)})
 	}
 	if draft.State == "pending" && draft.Approver != "" {
 		view.Progress = append(view.Progress, progressRow{Who: s.displayName(draft.Approver), Label: s.approverLabel(draft, draft.Approver), Status: "current"})
@@ -345,6 +348,7 @@ func visible(draft *Draft, data sessionData) bool {
 // history lists every draft the session relates to, newest change first.
 func (s *Server) history(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
+	data.AgentIdentity = s.agentNav(r)
 	s.mu.RLock()
 	drafts := make([]Draft, 0, len(s.drafts))
 	for _, draft := range s.drafts {
@@ -496,9 +500,11 @@ func (s *Server) awaitsChange(draft Draft, canDecide bool) bool {
 func draftIDParam(r *http.Request) string { return chi.URLParam(r, "draftID") }
 
 // switchScript submits the account switcher as soon as an identity is
-// chosen. The page's Content-Security-Policy allows scripts from the OA
-// itself only, so it is served here rather than written inline; without
-// scripts the "切换身份" button stays.
+// chosen, and likewise the agent line (agent_identity.go): choosing a label
+// shows it (action=select), choosing a principal switches the label to it.
+// The page's Content-Security-Policy allows scripts from the OA itself only,
+// so it is served here rather than written inline; without scripts the
+// "切换身份" and "切换 agent 身份" buttons stay.
 func switchScript(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	_, _ = w.Write([]byte(`document.addEventListener("DOMContentLoaded", function () {
@@ -508,6 +514,15 @@ func switchScript(w http.ResponseWriter, _ *http.Request) {
   var button = form.querySelector('button[type="submit"]');
   if (button) { button.hidden = true; }
   select.addEventListener("change", function () { form.submit(); });
+});
+document.addEventListener("DOMContentLoaded", function () {
+  var form = document.querySelector('nav form[action="/agent-identity"]');
+  if (!form) { return; }
+  var action = form.querySelector('input[name="action"]');
+  var button = form.querySelector('button[type="submit"]');
+  if (button) { button.hidden = true; }
+  form.querySelector('select[name="label"]').addEventListener("change", function () { action.value = "select"; form.submit(); });
+  form.querySelector('select[name="principal_id"]').addEventListener("change", function () { action.value = "switch"; form.submit(); });
 });
 `))
 }
@@ -586,7 +601,7 @@ body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}
 </style></head><body><div class="wrap">{{end}}
 {{define "foot"}}</div></body></html>{{end}}
 {{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1>{{if .PasswordOnly}}<p class="muted">输入口令登录。登录后默认是普通员工 {{.Default}} 的身份，页面右上角可随时切换为任一管理员、主任或分管领导。</p>{{else}}<p class="muted">申请人提交自己的申请；审批人只看到指派给自己或自己审批过的工单。</p>{{end}}{{if .Error}}<p class="error">{{if .PasswordOnly}}口令错误{{else}}用户名或密码错误{{end}}</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}">{{if not .PasswordOnly}}<p><label>用户<br><select name="username">{{range .Users}}<option value="{{.ID}}">{{.Name}}（{{.ID}}，{{roleLabel .Role}}）</option>{{end}}</select></label></p>{{end}}<p><label>{{if .PasswordOnly}}口令{{else}}密码{{end}}<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{roleLabel .Role}}</div><div><a href="/tasks">待办</a><a href="/history">审批记录</a>{{if .AllowSwitch}}<form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>身份 <select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label> <button type="submit">切换身份</button></form><script src="/switch.js"></script> {{end}}<form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div></nav>{{end}}
+{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{if ne .DisplayName .Username}}{{.DisplayName}} · {{end}}{{.Username}} / {{roleLabel .Role}}</div><div><a href="/tasks">待办</a><a href="/history">审批记录</a>{{if .AllowSwitch}}<form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{.CSRF}}"><label>身份 <select name="username">{{$current := .Username}}{{range .AccountGroups}}{{if .Label}}<optgroup label="{{.Label}}">{{end}}{{range .Accounts}}<option value="{{.ID}}"{{if eq .ID $current}} selected{{end}}>{{.Name}}</option>{{end}}{{if .Label}}</optgroup>{{end}}{{end}}</select></label> <button type="submit">切换身份</button></form><script src="/switch.js"></script> {{end}}<form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></div>{{with .AgentIdentity}}<div class="agent" style="flex-basis:100%">{{if .Unavailable}}<span class="error">agent 身份：网关暂不可用（{{.Unavailable}}）</span>{{else if .Labels}}<form class="inline" method="post" action="/agent-identity"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="next" value="{{.Next}}"><input type="hidden" name="action" value="switch"><label>我的 agent <select name="label">{{range .Labels}}<option value="{{.Label}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></label> <label>身份 <select name="principal_id">{{range .Groups}}<optgroup label="{{.Label}}">{{range .Options}}<option value="{{.PrincipalID}}"{{if .Selected}} selected{{end}}>{{.Text}}</option>{{end}}</optgroup>{{end}}</select></label> <button type="submit">切换 agent 身份</button></form> <span class="muted">当前：{{.Current}}</span>{{else}}<span class="muted">agent 身份：网关没有登记任何 agent</span>{{end}}</div>{{end}}</nav>{{end}}
 {{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>待办</h1><p class="muted">待提交或待审批的工单；已办结的在<a href="/history">审批记录</a>。</p>{{range .Views}}<div class="card"><span class="tag">{{stateLabel .Draft.State}}</span><span class="tag">{{.Kind}}</span><h2><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a></h2><p class="summary">{{.Summary}}</p><p class="muted">{{if .Draft.Approver}}当前审批人 {{.Draft.Approver}} · {{end}}Task {{.Draft.Manifest.TaskID}}</p>{{if .Draft.Note}}<p class="note">{{.Draft.Note}}</p>{{end}}</div>{{else}}<div class="card"><p>暂无待办。</p></div>{{end}}{{if .Others}}<h2>其他身份的待办</h2><p class="muted">以下工单正等待其他身份处理；点“切换并打开”即切换到该身份并打开工单。</p>{{range .Others}}{{$account := .ID}}<div class="card"><h3>{{.Name}}（{{len .Drafts}} 张）</h3><ul class="todos">{{range .Drafts}}<li><span class="tag">{{stateLabel .State}}</span>{{.Objective}} <span class="muted">· 申请人 {{.Subject}}</span> <form class="inline" method="post" action="/switch"><input type="hidden" name="csrf" value="{{$.Session.CSRF}}"><input type="hidden" name="username" value="{{$account}}"><input type="hidden" name="next" value="/tasks/{{.ID}}"><button type="submit">切换并打开</button></form></li>{{end}}</ul></div>{{end}}{{end}}{{template "foot" .}}{{end}}
 {{define "history"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批记录</h1><p class="muted">你提交、代开或审批过的全部工单，按最近变动排序。</p>{{if .Views}}<div class="card"><table class="history"><tr><th>工单</th><th>状态</th><th>审批记录</th></tr>{{range .Views}}<tr><td><a href="/tasks/{{.Draft.ID}}">{{.Draft.Manifest.DeclaredObjective}}</a><br><span class="muted">{{.Kind}} · 申请人 {{.Draft.Manifest.HumanSubject}}{{if .Draft.IssuedBy}} · 代开人 {{.Draft.IssuedBy}}{{end}}{{if .Draft.MemberConfirm}} · 确认成员 {{.Draft.Approver}}{{end}}{{if .Draft.AgentSubmitted}} · agent 代为提交{{end}}</span></td><td>{{stateLabel .Draft.State}}</td><td>{{range .Progress}}{{if eq .Status "done"}}{{.Who}} {{.Decision}}（{{.When}}）<br>{{else}}等待 {{.Who}} {{.Label}}<br>{{end}}{{end}}{{if .Draft.Note}}<span class="muted">{{.Draft.Note}}</span>{{end}}</td></tr>{{end}}</table></div>{{else}}<div class="card"><p>暂无记录。</p></div>{{end}}{{template "foot" .}}{{end}}
 {{define "task"}}{{template "head" .}}{{template "nav" .Session}}{{$view := .View}}{{$draft := .View.Draft}}{{$envelope := .View.Envelope}}<div class="card"><span class="tag">{{stateLabel $draft.State}}</span><span class="tag">{{$view.Kind}}</span><h1>{{$draft.Manifest.DeclaredObjective}}</h1><p class="summary">{{$view.Summary}}</p>

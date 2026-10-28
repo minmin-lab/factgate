@@ -183,6 +183,7 @@ OA Demo 对回调最多尝试 3 次。企业 OA 应采用持久化 Outbox、指�
 - `POST /tasks/{draftID}/decision`：有审批能力的账号可批准/拒绝/缩小指派给自己的 pending 人工任务。缩小表单是勾选框（`approved_products`、`column:<产品>`、`scope:<范围>`、`scope_from:/scope_to:<范围>` 多值字段）；脚本仍可提交原来的 JSON 字段 `approved_products`、`approved_columns`、`mandatory_scope`。
 - `POST /switch`：共享口令模式（`OA_BUILTIN_USERS=off` 且设 `OA_SHARED_PASSWORD`）下切换到任一配置账号，不用再输口令；其他模式返回 404。只输口令登录的起始身份由 `OA_DEFAULT_ACCOUNT` 指定，缺省取切换顺序里的第一个申请人。
 - `OA_LABELS_FILE`：可选 YAML（`scopes`、`values`、`products` 三个映射，加 `groups` 列表），给目录标识符配中文显示名；`groups` 每项 `{label, members}` 把身份切换下拉按业务线分组（`<optgroup>`），不在任何组里的账号排在最前；缺省显示标识符、不分组。
+- `POST /agent-identity`（KB1-LOOP-151）：共享口令模式且设了 `OA_AGENT_IDENTITY_URL`（网关的 `/api/v1/oa/agent-identity` 地址）时，页眉多一行「我的 agent」：选一个已登记的 agent 令牌标签，把它当前代表的主体切换为按部门分组的任一候选主体（公司领导单独一组）。表单 `action=select` 只换页眉显示的标签（存 cookie `oa_agent_label`）；`action=switch` 以与审批回调相同的签名调网关，`actor` 为当前 OA 账号。与 `/switch` 相互独立：换 OA 审批身份不影响 agent 身份。未配置时页面与之前逐字节相同。
 - 修改操作使用 CSRF Token；会话 Cookie 为签名值、`HttpOnly`、`SameSite=Lax`，有 TLS 时才设置 `Secure`。
 - 密码启动时转换为 bcrypt Hash，明文从内存配置结构清除。
 - 账号：

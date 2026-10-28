@@ -372,7 +372,13 @@ func main() {
 		{Token: aliceToken, Principal: mcp.Principal{ID: "principal_alice", Subject: "alice", Role: "query"}},
 		{Token: carolToken, Principal: mcp.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor"}},
 	}, digestIdentities)
-	mcpServer, err := mcp.NewServer(authenticator, service, logger)
+	var mcpAuthenticator mcp.Authenticator = authenticator
+	if logicalCatalog.DelegatedAuthorization != nil {
+		// The demo's switchable agent identities (KB1-LOOP-151) are consulted
+		// before the static tokens; the formal round keeps the static table.
+		mcpAuthenticator = &gatewayapp.AgentIdentityAuthenticator{Store: store, Fallback: authenticator, Logger: logger}
+	}
+	mcpServer, err := mcp.NewServer(mcpAuthenticator, service, logger)
 	if err != nil {
 		logger.Error("initialize MCP server", "error", err)
 		os.Exit(1)
@@ -411,9 +417,13 @@ func main() {
 		router.Handle("/mcp", mcpServer)
 	}
 	router.Handle("/api/v1/oa/callback", service.OACallbackHandler())
+	router.Handle("/api/v1/oa/agent-identity", service.OAAgentIdentityHandler())
 	router.Handle("/api/v1/results/{result_id}/download", service.ResultDownloadHandler())
 	router.Handle("/api/v1/kb/documents/download", service.DocumentDownloadHandler())
 	mountRetentionAdmin(router, store, retention, logger, service)
+	if logicalCatalog.DelegatedAuthorization != nil {
+		mountDemoAgentIdentityAdmin(router, retention.AdminToken, service.AdminAgentIdentityHandler())
+	}
 	mountProfileDiagnostic(router, activatedSnapshotState, retention.AdminToken, service.ReadyError, store.DB())
 
 	go sweepExpired(ctx, store, logger)
@@ -759,6 +769,20 @@ func mountRetentionAdmin(router chi.Router, store *control.Store, config retenti
 		r.Put("/admin/v1/retention/legal-holds/{task_id}", setRetentionHoldHandler(store))
 		r.Delete("/admin/v1/retention/legal-holds/{task_id}", clearRetentionHoldHandler(store))
 		r.Post("/admin/v1/result-encryption-keys/{key_id}/erase", eraseResultEncryptionKeyHandler(store))
+	})
+}
+
+// mountDemoAgentIdentityAdmin mounts the demo's agent-identity registration
+// (KB1-LOOP-151) behind the admin token; without an admin token nothing is
+// mounted. The gateway mounts it only under the Catalog's
+// delegated_authorization block.
+func mountDemoAgentIdentityAdmin(router chi.Router, adminToken string, handler http.Handler) {
+	if strings.TrimSpace(adminToken) == "" {
+		return
+	}
+	router.Group(func(r chi.Router) {
+		r.Use(adminTokenAuth(adminToken))
+		r.Method(http.MethodPost, "/admin/v1/demo/agent-identities", handler)
 	})
 }
 

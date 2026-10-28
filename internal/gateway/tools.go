@@ -244,7 +244,7 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 					tools[index] = delegatedListMyTasksTool(tools[index], vocabulary)
 				}
 			}
-			tools = append(tools, issueTool)
+			tools = append(tools, issueTool, whoamiTool)
 		}
 		if s.agentSubmits() {
 			for index := range tools {
@@ -289,6 +289,14 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 			result, err = s.rebindDataTask(ctx, principal, raw)
 		case issueTool.Name:
 			result, err = s.issueDataAuthorization(ctx, principal, raw)
+		case whoamiTool.Name:
+			// Listed and served only under the delegated_authorization block;
+			// without it, forbidden like every other unlisted tool.
+			if s.delegated() == nil {
+				err = forbidden()
+			} else {
+				result, err = s.whoami(ctx, principal, raw)
+			}
 		case executePlanTool.Name:
 			result, err = s.executePlan(ctx, principal, raw)
 		case "query_sql":
@@ -340,7 +348,13 @@ func (s *Service) CallTool(ctx context.Context, principal mcp.Principal, name st
 	if err != nil {
 		return mcp.ToolResult{}, toolError(err)
 	}
-	return mcp.ToolResult{Structured: result}, nil
+	if s.delegated() == nil || result == nil {
+		return mcp.ToolResult{Structured: result}, nil
+	}
+	// Under the delegated_authorization block every structured result says
+	// whom it was produced for (KB1-LOOP-151): the agent's identity can be
+	// switched in the OA between two calls.
+	return mcp.ToolResult{Structured: withActingAs(result, s.actingAs(principal))}, nil
 }
 
 func (s *Service) principalEnabled(ctx context.Context, principal mcp.Principal) error {

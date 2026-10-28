@@ -27,6 +27,11 @@ type Principal struct {
 	ID      string `json:"id"`
 	Subject string `json:"subject"`
 	Role    string `json:"role"`
+	// AgentLabel names the demo agent-identity binding the bearer token was
+	// resolved through (KB1-LOOP-151; a person switches it in the OA). It is
+	// empty for every statically configured token, so comparisons and
+	// encodings of such principals are unchanged.
+	AgentLabel string `json:"agent_label,omitempty"`
 }
 
 type TokenIdentity struct {
@@ -261,6 +266,9 @@ func (s *Server) dispatch(ctx context.Context, principal Principal, rpcRequest r
 			logArguments := []any{"trace_id", traceID, "tool", params.Name, "subject", principal.Subject, "code", code, "error", err}
 			if toolErr != nil && toolErr.Cause != nil {
 				logArguments = append(logArguments, "cause", toolErr.Cause)
+			}
+			if principal.AgentLabel != "" {
+				logArguments = append(logArguments, "agent_label", principal.AgentLabel)
 			}
 			s.logger.Warn("MCP tool failed", logArguments...)
 			errorBody := map[string]any{"code": code, "message": message}

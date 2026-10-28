@@ -57,6 +57,10 @@ func main() {
 		OmitBuiltinUsers: omitBuiltin,
 		AllowSwitch:      omitBuiltin && os.Getenv("OA_SHARED_PASSWORD") != "",
 		DefaultAccount:   env("OA_DEFAULT_ACCOUNT", ""),
+		// OA_AGENT_IDENTITY_URL is TaskGate's agent-identity endpoint
+		// (KB1-LOOP-151); in the shared-password mode it adds the
+		// navigation's "my agent" line. Empty leaves it out.
+		AgentIdentityURL: env("OA_AGENT_IDENTITY_URL", ""),
 		Labels:           labels,
 		ReceiptSigner:    receiptSigner,
 		Logger:           logger,
