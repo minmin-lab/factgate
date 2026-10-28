@@ -75,3 +75,4 @@ tmp/
 
 # KB-1 synthetic corpus: regenerated from the committed manifest, never stored.
 /evaluation/kbcorpus/raw/
+/kb-formal-smoke
