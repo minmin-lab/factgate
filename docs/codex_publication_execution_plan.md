@@ -3002,3 +3002,9 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 证据镜像：/mnt/ctg-pto-dev/factgate-evidence/kb-demo-157/（34 个文件，SHA256SUMS 在 NAS 上核过；不含 principal-tokens.json）。冒烟日志待预置项目种完后重跑一次落盘补入。
   - 欠账：kb-formal-smoke 与 v3 不兼容（令牌文件 {"env"} 标记、写死 sales-staff、机密/绝密探针），本轮验收改用 smoke-v3 + v3/demo-*.py 场景脚本，修 kb-formal-smoke 另立项；docs/adapters.md 未记 /state、/poll.js、OA_ORG_FILE；旧 tester-guide.md 与 kb-demo 下旧脚本（identities.py、approve.py 旧映射、demo-*.py、smoke.py）仍写旧账号，由 v3/ 取代；作者本机 ~/.claude.json 的 factgate 令牌在重建前就已不是任何主体，需作者改为 TESTER_MCP_TOKEN（周雨）或他人令牌。
   - 进行中：子代理种预置项目（P1-P8）、每日活人脚本、场景脚本移植、新员工入职包。Cloudflare 隧道待种完并换新测试指南后再开。
+- [2026-10-29 00:34 UTC+8] KB1-LOOP-157 第四步（收尾）：预置内容种入、场景脚本移植、入职小册子生成；隧道待作者亲手开；交接 docs/handoff_2026-10-29.md。
+  - 预置（子代理 Opus 产，编排者复核【实跑】list_my_tasks 与控制库计数）：v3/seeded.json 88 项——项目 P1–P6（P5 工程+采购版 NOT_ELIGIBLE：中心主任无 request_reach，改单部门；P6 故意留陈卫东待审批）、6 个子任务、72 张一年期入职授权单（P7 周雨 + P8 其余 71 名员工，各由本部门管理员开单并批）、周雨 3 张本人任务。控制库 ACTIVE 88 / ARCHIVED 32 / AWAITING_APPROVAL 2。daily-life.py 跑过一次（提四批二拒一留一；OA 拒绝表单无理由栏，理由只记日志）。
+  - 场景脚本：demo-personal/center/admin/hr/leader/project/delegated/reports/approver、smoke.py 按角色键移植到 v3/，子代理报全 exit 0；编排者亲跑 demo-personal.py exit 0（本人记录自确认、本人工资条自确认、同事记录 NOT_ELIGIBLE）。子代理一处自己的 bug（幂等重跑覆盖审批人历史）已修并从 approval_events 只读恢复。
+  - 冒烟重跑落盘 v3/smoke-v3-20261029.log（exit 0）；NAS 镜像 kb-demo-157 更新至 54 文件、SHA256SUMS 核过、不含令牌文件。线上 OA 以 zhouyu 登录核过：两棵树 248 个可选项、0 缺人、0"其他"。
+  - 入职小册子 onboarding-{zhouyu,gaolei,lishuhua,chenweidong}.md（令牌与口令只留占位），编排者通读 zhouyu 版。旧 tester-guide.md 作废。
+  - **未完成**：Cloudflare 隧道 `cloudflare-connect.sh start` 被权限策略拦下（External Ingress Tunnel），按 AGENTS.md 不绕过，请作者亲手执行。作者本机 MCP 令牌需作者自改为 TESTER_MCP_TOKEN。daily-life.py 未装定时。
