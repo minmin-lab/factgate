@@ -42,7 +42,7 @@ var queryTools = []mcp.Tool{
 			objectSchema(map[string]any{"from": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}),
 		}}},
 	}, "objective", "data_products", "columns", "scopes")},
-	{Name: "list_my_tasks", Description: "列出当前 Alice 身份自己的任务。", InputSchema: objectSchema(map[string]any{
+	{Name: "list_my_tasks", Description: "列出自己名下的任务：自己发起的任务，以及管理员为自己开的授权单。可按 state 过滤。", InputSchema: objectSchema(map[string]any{
 		"state":  map[string]any{"type": "string", "enum": []string{"AWAITING_SUBMISSION", "AWAITING_APPROVAL", "ACTIVE", "ARCHIVED"}},
 		"cursor": map[string]any{"type": "string"},
 	}), Annotations: map[string]any{"readOnlyHint": true}},
@@ -157,8 +157,10 @@ var auditTools = []mcp.Tool{
 // delegatedRequestDataTaskTool is request_data_task as a Catalog with the
 // delegated_authorization block offers it (KB1-LOOP-148): an optional
 // budget_profile, and the rules that make a request self-service or
-// member-confirmed. A Catalog without the block lists the plain tool.
-func delegatedRequestDataTaskTool(base mcp.Tool) mcp.Tool {
+// member-confirmed; since KB1-LOOP-150 also that a chosen profile makes a
+// project and no profile a day task, naming the Catalog's profiles. A Catalog
+// without the block lists the plain tool.
+func delegatedRequestDataTaskTool(base mcp.Tool, vocabulary budgetVocabulary) mcp.Tool {
 	properties := map[string]any{}
 	if existing, ok := base.InputSchema["properties"].(map[string]any); ok {
 		for name, schema := range existing {
@@ -170,7 +172,34 @@ func delegatedRequestDataTaskTool(base mcp.Tool) mcp.Tool {
 	base.InputSchema = objectSchema(properties, required...)
 	base.Description += "本目录启用了长期授权模型（delegated_authorization）：budget_profile 可选，取目录里与路由同一 exposure 版本的预算档（如一年期）；" +
 		"申请只含本人的个人记录、或整条审批链都在申请人本人职权内（含中心主任本中心、数据管家部门的人员本人）时，任务由申请人本人确认（返回 self_service: true）；" +
-		"带 parent_task_id 并用 delegate_principal_id 委托给其他成员的子任务，由该成员本人确认、资格按该成员判定（返回 member_confirm: true）。"
+		"带 parent_task_id 并用 delegate_principal_id 委托给其他成员的子任务，由该成员本人确认、资格按该成员判定（返回 member_confirm: true）。" +
+		"要立项目（长期、可反复在其下开子任务）就填 budget_profile" + vocabulary.chosenExample() + "；不填则是按审批路由缺省预算档" + vocabulary.defaultList() + "的日常任务。"
+	return base
+}
+
+// delegatedListMyTasksTool is list_my_tasks as a Catalog with the
+// delegated_authorization block offers it (KB1-LOOP-150): every task is said
+// to be a project, a day task, a child inside a project or an issued
+// authorization, with its budget profile, products, scopes and approval
+// roles, and the list can be confined to one project or one kind. The terms
+// and the Catalog's budget profiles are in the description, so an agent has
+// the words. A Catalog without the block lists the plain tool.
+func delegatedListMyTasksTool(base mcp.Tool, vocabulary budgetVocabulary) mcp.Tool {
+	properties := map[string]any{}
+	if existing, ok := base.InputSchema["properties"].(map[string]any); ok {
+		for name, schema := range existing {
+			properties[name] = schema
+		}
+	}
+	properties["root_task_id"] = map[string]any{"type": "string", "minLength": 1}
+	properties["kind"] = map[string]any{"type": "string", "enum": []string{taskKindProject, taskKindTask, taskKindChild, taskKindAuthorization, taskKindRoot}}
+	required, _ := base.InputSchema["required"].([]string)
+	base.InputSchema = objectSchema(properties, required...)
+	base.Description += "本目录启用了长期授权模型。术语：项目 = 申请时选了预算档（budget_profile）的根任务" + vocabulary.chosenExample() +
+		"；日常任务 = 申请时没选、按审批路由缺省预算档" + vocabulary.defaultList() + "的根任务；子任务 = 挂在项目下（parent_task_id）的任务；授权单 = 管理员代开给员工的根任务。" +
+		"每条任务另给 kind（project 项目 / task 日常任务 / child 子任务 / authorization 授权单；本功能上线前建的根任务分不出项目与日常任务，给 root）、" +
+		"budget_profile、products、scopes、approver、self_confirm、member_confirm、issued_by、agent_submitted。" +
+		"回答“有哪些项目”时用 kind=project 过滤；root_task_id 可列某个项目及其子任务。"
 	return base
 }
 
@@ -206,9 +235,13 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 	case "query":
 		tools := append(append(append([]mcp.Tool(nil), queryTools...), retrievalToolsFor(s.catalog)...), downloadTools...)
 		if s.delegated() != nil {
+			vocabulary := budgetVocabularyOf(s.catalog)
 			for index := range tools {
-				if tools[index].Name == "request_data_task" {
-					tools[index] = delegatedRequestDataTaskTool(tools[index])
+				switch tools[index].Name {
+				case "request_data_task":
+					tools[index] = delegatedRequestDataTaskTool(tools[index], vocabulary)
+				case "list_my_tasks":
+					tools[index] = delegatedListMyTasksTool(tools[index], vocabulary)
 				}
 			}
 			tools = append(tools, issueTool)

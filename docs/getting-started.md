@@ -239,6 +239,7 @@ route 都是人工审批。正常批准把完整 Catalog Profile 交给 Agent，
 
 ## 6. 预算、结果与审计
 
+- `list_my_tasks`：列出自己名下的任务（自己发起的任务，以及管理员为自己开的授权单），可按 `state` 过滤；每页最多 100 条，用 `next_cursor` 续读。
 - `get_task_context`：获批产品、字段、Scope、凭证与期限。
 - `get_budget`：查询数、累计行数和累计 DB 毫秒的上限、已用、预留和剩余值，并在 exposure 启用时返回根任务三维账本。
 - `get_query_result`：Alice 按 `task_id + query_id` 读取自己的 `result_id` 与结果摘要，不返回完整行。

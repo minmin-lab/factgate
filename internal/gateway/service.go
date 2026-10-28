@@ -191,6 +191,14 @@ type pendingContext struct {
 	// KB1-LOOP-149): it was created AWAITING_APPROVAL with a pending OA
 	// draft, and no submitted callback is expected.
 	AgentSubmitted bool `json:"agent_submitted,omitempty"`
+	// BudgetProfile names the Catalog budget profile the task was requested
+	// under, and BudgetProfileChosen says the requester (or an issuer) chose
+	// it instead of taking the route's default (KB1-LOOP-150): a root task
+	// with a chosen profile is a project, one without is a day task
+	// (list_tasks.go). Recorded only under the delegated_authorization block;
+	// absent without it and on records written before.
+	BudgetProfile       string `json:"budget_profile,omitempty"`
+	BudgetProfileChosen bool   `json:"budget_profile_chosen,omitempty"`
 }
 
 // delegated is the Catalog's delegated-authorization model, nil when the

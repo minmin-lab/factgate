@@ -277,6 +277,7 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
 	}
 	budgetSource := "catalog_profile"
+	profileChosen := false
 	if requested := strings.TrimSpace(args.BudgetProfile); requested != "" {
 		if s.delegated() == nil {
 			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "budget_profile 只在目录启用 delegated_authorization 时可选；缺省按路由的预算档"}
@@ -284,13 +285,13 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		if err := s.chooseBudgetProfile(&policy, requested); err != nil {
 			return nil, err
 		}
-		budgetSource = "requested_profile"
+		budgetSource, profileChosen = "requested_profile", true
 	}
 	if issuedBy != nil {
 		if err := s.applyIssuance(&policy, principal, scope, args.issuance, now); err != nil {
 			return nil, err
 		}
-		budgetSource = "issued_profile"
+		budgetSource, profileChosen = "issued_profile", true
 	}
 	if parentCore != nil {
 		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
@@ -504,6 +505,10 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 		VerifyApprover: selfConfirm || memberConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
 		Chain: chain, SelfConfirm: selfConfirm, MemberConfirm: memberConfirm, IssuedBy: issuedBy,
 		AgentSubmitted: agentSubmitted,
+	}
+	if delegated != nil {
+		// The project/day-task distinction list_my_tasks reports (KB1-LOOP-150).
+		pending.BudgetProfile, pending.BudgetProfileChosen = policy.BudgetProfile, profileChosen
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -846,17 +851,42 @@ func (s *Service) listMyTasks(ctx context.Context, principal mcp.Principal, raw 
 	var args struct {
 		State  control.TaskState `json:"state,omitempty"`
 		Cursor string            `json:"cursor,omitempty"`
+		// RootTaskID and Kind exist only under the Catalog's
+		// delegated_authorization block (KB1-LOOP-150, list_tasks.go).
+		RootTaskID string `json:"root_task_id,omitempty"`
+		Kind       string `json:"kind,omitempty"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	tasks, err := s.store.ListTasks(ctx, control.TaskFilter{PrincipalID: principal.ID, State: args.State, AfterID: args.Cursor, Limit: 100})
+	delegated := s.delegated() != nil
+	if !delegated && (args.RootTaskID != "" || args.Kind != "") {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "root_task_id 与 kind 只在目录启用 delegated_authorization 时可用"}
+	}
+	if args.Kind != "" && !validTaskKind(args.Kind) {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "kind 只能是 project、task、child、authorization 或 root"}
+	}
+	tasks, err := s.store.ListTasks(ctx, control.TaskFilter{PrincipalID: principal.ID, State: args.State, AfterID: args.Cursor, Limit: 100,
+		RootTaskID: args.RootTaskID})
 	if err != nil {
 		return nil, err
 	}
 	items := make([]map[string]any, 0, len(tasks))
 	for _, task := range tasks {
-		items = append(items, publicTask(task))
+		if !delegated {
+			items = append(items, publicTask(task))
+			continue
+		}
+		// The kind filter applies within the page: next_cursor below still
+		// follows the unfiltered page, so a filtered page may be short or
+		// empty while more tasks remain.
+		item, kind, err := s.listedTask(ctx, task)
+		if err != nil {
+			return nil, err
+		}
+		if args.Kind == "" || kind == args.Kind {
+			items = append(items, item)
+		}
 	}
 	next := ""
 	if len(tasks) == 100 {
