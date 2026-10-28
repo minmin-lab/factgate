@@ -34,14 +34,20 @@ var attestedPostgreSQLTypes = map[string]struct{}{
 	"timestamp with time zone": {}, "timestamp without time zone": {}, "uuid": {},
 }
 
-// safeOperators also admits the LIKE family under the names PostgreSQL's AST
-// gives them (LIKE is ~~, ILIKE ~~*, NOT LIKE !~~, NOT ILIKE !~~*); sqlpolicy
-// reads like and ilike as ~~ and ~~*, so either spelling grants the same one.
+// safeOperators is the set of operator names sqlpolicy gates by name, so each
+// admits something declared alone, except != (PostgreSQL parses it as <>, so
+// only <> admits it). The LIKE family is admitted under its word or its AST
+// symbol (LIKE is ~~, ILIKE ~~*, NOT LIKE !~~, NOT ILIKE !~~*). in admits an
+// IN list alone and not in a NOT IN list alone, while = and <> admit those
+// lists as well as the comparison; between and not between admit only that
+// form, and BETWEEN SYMMETRIC cannot be granted. AND, OR, NOT and IS [NOT]
+// NULL are structural nodes allowed_operators never constrains, so they are
+// not words here.
 var safeOperators = map[string]struct{}{
 	"=": {}, "<>": {}, "!=": {}, "<": {}, "<=": {}, ">": {}, ">=": {},
-	"+": {}, "-": {}, "*": {}, "/": {}, "%": {}, "and": {}, "or": {},
-	"not": {}, "like": {}, "ilike": {}, "in": {}, "between": {}, "is": {},
-	"is not": {}, "~~": {}, "!~~": {}, "~~*": {}, "!~~*": {}, "not like": {}, "not ilike": {},
+	"+": {}, "-": {}, "*": {}, "/": {}, "%": {}, "like": {}, "ilike": {},
+	"in": {}, "not in": {}, "between": {}, "not between": {},
+	"~~": {}, "!~~": {}, "~~*": {}, "!~~*": {}, "not like": {}, "not ilike": {},
 }
 
 var forbiddenFunctions = map[string]struct{}{

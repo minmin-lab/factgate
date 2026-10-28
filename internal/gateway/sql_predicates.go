@@ -11,21 +11,28 @@ import (
 // here and describes it; TestSQLWherePredicatesDescribeTheLowerer lowers a
 // sample of every entry, admitted and rejected, so the two cannot drift.
 // policyOperator is the operator name sqlpolicy authorizes the predicate as
-// (an IN list is "=", NOT IN is "<>", LIKE is "~~").
+// (an IN list is "=", NOT IN is "<>", LIKE is "~~"); policyWords are further
+// names that admit it alone (in for IN, not in for NOT IN). Declaring any one
+// lists the predicate.
 type sqlWherePredicate struct {
 	predicate, form, planOperator, policyOperator string
+	policyWords                                   []string
+}
+
+func (p sqlWherePredicate) policyOperators() []string {
+	return append([]string{p.policyOperator}, p.policyWords...)
 }
 
 var sqlWherePredicates = []sqlWherePredicate{
-	{"=", "column = literal", "=", "="},
-	{"<>", "column <> literal（!= 同义）", "<>", "<>"},
-	{"<", "column < literal", "<", "<"},
-	{"<=", "column <= literal", "<=", "<="},
-	{">", "column > literal", ">", ">"},
-	{">=", "column >= literal", ">=", ">="},
-	{"IN", "column IN (literal, ...)", "IN", "="},
-	{"NOT IN", "column NOT IN (literal, ...)", "NOT IN", "<>"},
-	{"LIKE", "text_column LIKE 'pattern'：只支持正向、区分大小写、字面量模式（% 与 _ 是通配符）", "LIKE", "~~"},
+	{"=", "column = literal", "=", "=", nil},
+	{"<>", "column <> literal（!= 同义）", "<>", "<>", nil},
+	{"<", "column < literal", "<", "<", nil},
+	{"<=", "column <= literal", "<=", "<=", nil},
+	{">", "column > literal", ">", ">", nil},
+	{">=", "column >= literal", ">=", ">=", nil},
+	{"IN", "column IN (literal, ...)", "IN", "=", []string{"in"}},
+	{"NOT IN", "column NOT IN (literal, ...)", "NOT IN", "<>", []string{"not in"}},
+	{"LIKE", "text_column LIKE 'pattern'：只支持正向、区分大小写、字面量模式（% 与 _ 是通配符）", "LIKE", "~~", nil},
 }
 
 // sqlWhereRejected names what the profile refuses and how to rewrite it.
@@ -48,8 +55,8 @@ func publicWherePredicates(predicates []sqlWherePredicate) []map[string]string {
 // effectiveSQLControls is what query_sql admits on one product: its declared
 // operators, or the policy's default set when it declares none, and its
 // declared aggregates, which are none when it declares none. A declared
-// operator is matched under the name sqlpolicy authorizes it as, so a product
-// declaring like lists LIKE.
+// operator is matched under the key sqlpolicy authorizes it as, so a product
+// declaring like lists LIKE and one declaring in lists IN but not =.
 func effectiveSQLControls(product catalog.Product) map[string]any {
 	operators, declared := product.AllowedOperators, len(product.AllowedOperators) > 0
 	if !declared {
@@ -57,12 +64,15 @@ func effectiveSQLControls(product catalog.Product) map[string]any {
 	}
 	authorized := make([]string, 0, len(operators))
 	for _, operator := range operators {
-		authorized = append(authorized, sqlpolicy.CanonicalOperator(operator))
+		authorized = append(authorized, sqlpolicy.OperatorKey(operator))
 	}
 	admitted := []sqlWherePredicate{}
 	for _, predicate := range sqlWherePredicates {
-		if contains(authorized, predicate.policyOperator) {
-			admitted = append(admitted, predicate)
+		for _, operator := range predicate.policyOperators() {
+			if contains(authorized, operator) {
+				admitted = append(admitted, predicate)
+				break
+			}
 		}
 	}
 	aggregates := append([]string{}, product.AllowedAggregates...)

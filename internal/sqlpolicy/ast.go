@@ -607,27 +607,61 @@ func (a *analyzer) validateOperator(current *scope, body map[string]any, allowOu
 	if len(operators) != 1 {
 		return columnBinding{}, reject(CodeOperatorNotAllowed)
 	}
-	if !a.operatorAllowed(operators[0], operands.Sources) {
+	kind, _ := body["kind"].(string)
+	if !a.operatorAllowed(operatorKeys(kind, operators[0]), operands.Sources) {
 		return columnBinding{}, reject(CodeOperatorNotAllowed)
 	}
 	return operands, nil
 }
 
-func (a *analyzer) operatorAllowed(name string, sources productSet) bool {
+// operatorKeys returns the keys an A_Expr is authorized under; declaring any
+// one of them admits it. pg_query names an IN list by its element operator (=
+// for IN, <> for NOT IN), so = and <> keep admitting IN and NOT IN, and in and
+// not in admit the list alone, not a scalar comparison, IS DISTINCT FROM or =
+// ANY. The BETWEEN family carries uppercase words and is looked up by their
+// lowercase, so between admits neither NOT BETWEEN nor BETWEEN SYMMETRIC. Any
+// other kind, or none, is looked up by its operator name alone.
+func operatorKeys(kind, name string) []string {
+	switch kind {
+	case "AEXPR_IN":
+		switch name {
+		case "=":
+			return []string{name, "in"}
+		case "<>":
+			return []string{name, "not in"}
+		}
+	case "AEXPR_BETWEEN", "AEXPR_NOT_BETWEEN", "AEXPR_BETWEEN_SYM", "AEXPR_NOT_BETWEEN_SYM":
+		return []string{strings.ToLower(name)}
+	}
+	return []string{name}
+}
+
+// operatorAllowed reports whether every source product declares at least one
+// of keys, or, for an expression over no product, whether the task-global set
+// holds one.
+func (a *analyzer) operatorAllowed(keys []string, sources productSet) bool {
 	if len(sources) == 0 {
-		_, ok := a.taskGlobalOperators[name]
-		return ok
+		return holdsAny(a.taskGlobalOperators, keys)
 	}
 	for productName := range sources {
 		product, ok := a.products[productName]
 		if !ok {
 			return false
 		}
-		if _, ok := product.operators[name]; !ok {
+		if !holdsAny(product.operators, keys) {
 			return false
 		}
 	}
 	return true
+}
+
+func holdsAny(set map[string]struct{}, keys []string) bool {
+	for _, key := range keys {
+		if _, ok := set[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *scope) addRelation(relation relationBinding) error {
