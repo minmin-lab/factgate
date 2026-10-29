@@ -3008,3 +3008,6 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 冒烟重跑落盘 v3/smoke-v3-20261029.log（exit 0）；NAS 镜像 kb-demo-157 更新至 54 文件、SHA256SUMS 核过、不含令牌文件。线上 OA 以 zhouyu 登录核过：两棵树 248 个可选项、0 缺人、0"其他"。
   - 入职小册子 onboarding-{zhouyu,gaolei,lishuhua,chenweidong}.md（令牌与口令只留占位），编排者通读 zhouyu 版。旧 tester-guide.md 作废。
   - **未完成**：Cloudflare 隧道 `cloudflare-connect.sh start` 被权限策略拦下（External Ingress Tunnel），按 AGENTS.md 不绕过，请作者亲手执行。作者本机 MCP 令牌需作者自改为 TESTER_MCP_TOKEN。daily-life.py 未装定时。
+- [2026-10-29 09:02 UTC+8] KB1-LOOP-157 第五步：第三轮演示设计图（作者 2026-10-29 要求"更新设计图，调用设计工具，讲清系统架构、任务与项目、密级关系，覆盖预置项目与任务、各部门运营生产、新人入职旅程、文档与报表场景、多视角体验"）。
+  - 产物：Design 画布 https://claude.ai/artifact/5z4hCjNoZAUxFyc5vqcGy3（私有，作者自行分享），9 张画板：0 总览、1 系统架构（agent→隧道→网关→五个存储；OA↔网关回调与身份切换）、2 组织架构（124 人全上图）、3 密级关系（五级阶梯、谁能申请、触发层、文档取最高节、报表固定、三条规则）、4 任务与项目（project/child/task/authorization 关系 + 状态机）、5 预置项目地图（P1–P6 + 三环）、6 各部门运营生产场景（12 卡）、7 新人入职旅程（九步）、8 多视角体验路线（六人）。人名、链、状态按 seeded.json/org.yaml 手工抄录，未用脚本生成（画布规范要求逐文件手写）。源文件留档 /home/wmm/kb-demo/v3/design-canvas/。
+  - 未验证：按画布类型规范未做渲染核对；作者看图后若有错位再改。
