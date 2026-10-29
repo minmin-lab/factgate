@@ -323,6 +323,18 @@ func main() {
 		logger.Error("initialize result delivery", "error", err)
 		os.Exit(1)
 	}
+	// GATEWAY_REUSE_COVERING_TASK (the demo only; default off): a plain root
+	// request that one of the requester's ACTIVE tasks already covers is
+	// answered with that task. Not a Catalog key, so turning it on leaves the
+	// Catalog digest, and every existing task, untouched.
+	reuseCoveringTask, err := boolEnv("GATEWAY_REUSE_COVERING_TASK", false)
+	if err != nil {
+		logger.Error("invalid covering-task reuse switch", "error", err)
+		os.Exit(1)
+	}
+	if reuseCoveringTask {
+		logger.Info("covered task requests reuse the requester's active task", "env", "GATEWAY_REUSE_COVERING_TASK")
+	}
 	connectorMaxConnections, err := positiveInt64Env("GATEWAY_CONNECTOR_MAX_CONNECTIONS", int64(dataconnector.DefaultMaxConnections))
 	if err != nil || connectorMaxConnections > 4096 {
 		logger.Error("invalid Business PostgreSQL connector connection limit", "error", "must be between 1 and 4096")
@@ -352,7 +364,8 @@ func main() {
 		PreviewMaxBytes:          previewMaxBytes, DeliveryBaseURL: deliveryBaseURL,
 		DeliverySigningKey: deliverySigningKey, DeliveryTTL: deliveryTTL,
 		DownloadTimeout: downloadTimeout, DownloadConcurrency: int(downloadConcurrency64),
-		OAPublicBaseURL: oaPublicBaseURLFromEnv(logger),
+		OAPublicBaseURL:   oaPublicBaseURLFromEnv(logger),
+		ReuseCoveringTask: reuseCoveringTask,
 	})
 	if err != nil {
 		logger.Error("initialize gateway service", "error", err)

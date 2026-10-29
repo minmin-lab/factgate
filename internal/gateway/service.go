@@ -90,6 +90,11 @@ type Config struct {
 	// task's status carries its draft link again (approval.DraftPageURL); the
 	// draft id is the stored approval reference, so nothing new is persisted.
 	OAPublicBaseURL string
+	// ReuseCoveringTask answers a plain root request that one of the
+	// requester's ACTIVE tasks already covers with that task instead of a new
+	// one (reuse_task.go; GATEWAY_REUSE_COVERING_TASK, the demo only). Off,
+	// every request creates a task as before.
+	ReuseCoveringTask bool
 }
 
 type Service struct {
@@ -120,6 +125,7 @@ type Service struct {
 	downloadTimeout          time.Duration
 	downloadSlots            chan struct{}
 	oaPublicBaseURL          string
+	reuseCoveringTask        bool
 	pendingSettles           atomic.Int64
 	artifactRecoveryFailures atomic.Int64
 	artifactRecoveryRunning  atomic.Bool
@@ -307,6 +313,7 @@ func New(config Config) (*Service, error) {
 		downloadSlots:              make(chan struct{}, config.DownloadConcurrency),
 		highCardinalityDerivations: make(chan struct{}, 1),
 		oaPublicBaseURL:            strings.TrimRight(config.OAPublicBaseURL, "/"),
+		reuseCoveringTask:          config.ReuseCoveringTask,
 	}
 	// The first background reconciliation clears this gate. Liveness can start
 	// immediately, but readiness must not race ahead of durable PENDING intents.

@@ -273,6 +273,19 @@ func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args 
 	// scope (scope_order.go): the route, the eligibility gate, delegation and
 	// the manifest all see the whole set.
 	scope, scopeClosure := s.closeOrderedScopes(scope)
+	// With GATEWAY_REUSE_COVERING_TASK on (the demo; reuse_task.go), a plain
+	// root request one of the requester's ACTIVE tasks already covers is
+	// answered with that task: no task row, no OA draft. Never a child, an
+	// issuance or a download task.
+	if s.reuseCoveringTask && args.ParentTaskID == "" && args.DelegatePrincipalID == "" && args.issuance == nil && len(reservedScope) == 0 {
+		reused, err := s.answerWithCoveringTask(ctx, principal, args, policy.Products, columns, scope, scopeClosure, now)
+		if err != nil {
+			return nil, err
+		}
+		if reused != nil {
+			return reused, nil
+		}
+	}
 	// The approval route may depend on the requested scope (a conditioned
 	// route sends, for example, leadership classification to a leadership
 	// approver), so it is resolved again once the scope is normalized; its

@@ -258,6 +258,11 @@ func (s *Service) ListTools(principal mcp.Principal) []mcp.Tool {
 				tools[index] = agentSubmitsTool(tools[index])
 			}
 		}
+		if s.reuseCoveringTask {
+			for index := range tools {
+				tools[index] = reuseCoveringTaskTool(tools[index])
+			}
+		}
 		return tools
 	case "auditor":
 		return append([]mcp.Tool(nil), auditTools...)
