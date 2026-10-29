@@ -3035,3 +3035,7 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 发现：query_sql 不接受位置序号 `ORDER BY 1,2`（SQL_NOT_LOWERABLE，只接受选中列或聚合别名），agent 写 SQL 要用列名；记入指南。
   - 作者 14:33 自建的那张 KPI 日常任务（task_8f656acd…）仍 AWAITING_APPROVAL，与 S4 目标文字不同未合并，72 小时后自动过期；tester 标签当时指向张桂兰（作者 14:30 切的），未动。make-onboarding 因标签不指向周雨被守卫挡下，小册子待标签切回后重生成。
   - 关系图 Version 12：三环"入职就有"补岗位常备授权，各视角"已有"更新；生成器样式改为从 v3 目录读（暂存区随重启清空，记忆 author-scripts-location 同类）。
+- [2026-10-29 16:41 UTC+8] KB1-LOOP-157 第十二步：作者 15:01 以张桂兰再测，agent 仍直接 request_data_task 建单等 OA（没先 list_my_tasks）。裁决：靠提示词不可靠，网关侧"复用先于建单"——提交 55e431eb（已推 origin）：环境开关 GATEWAY_REUSE_COVERING_TASK（缺省关，正式轮不变；不加目录键以免作废已有任务），开时 request_data_task 先找申请人名下生效中、未到期、产品与列全批准、每个范围维度闭包后为超集、且按 query_sql 同样检查仍可查的任务，取到期最晚者原样返回（reused_existing_task、reuse_note、approval_chain 空），不建行不建草稿，记审计 TASK_REQUEST_REUSED_EXISTING；子任务/委托/代开/下载不复用；开关开时两个工具描述各加一句。
+  - 复核【编排者实跑】：gofmt 无新增、build/vet 过、带 kb-test-postgres 的 internal/gateway -run 'Reuse|Request' 28 个 PASS（子代理另报全包 ok 63.5s、14 处变异各至少一测 FAIL）；冻结件零 diff。
+  - 部署【实跑】：网关镜像 812c6133…（55e431eb，build-157r-gateway.log），compose.demo.yaml 网关环境加开关（备份 .before-157-reuse），只重建网关容器 16:39，OA 与目录未动、已有任务全部保留；网关日志 INFO 确认开关。verify-reuse.py（张桂兰自己的令牌）：覆盖请求 → reused=True、ACTIVE、任务数 6→6、查询 4 部门各 96 行；多一个财务部的更宽请求 → 新建 AWAITING_APPROVAL（已撤销）。demo-center.py 过；demo-personal.py A/B 因复用改变预期而 FAIL（行为正确、脚本预期过时），子代理正按"覆盖即复用、未覆盖走链"改全部场景脚本并重跑。
+  - 已知限制：被复用的任务曝光额度耗尽时不归档，agent 会一直拿到同一张耗尽的任务，须 complete/revoke 后才能新建。关系图 Version 13 第四节加"复用先于建单"；入职小册子模板加"agent 使用要点"（含 ORDER BY 要用列名）。
