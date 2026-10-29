@@ -3030,3 +3030,8 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - 本机：机器 ~13:56 重启（uptime 22 min），容器全部 Exited、数据卷完好；按 start.sh 步骤 compose start 四个数据服务 → OA → 网关 → shim，14:19 全部 healthy；王建国 whoami 正常（v2 目录）、控制库 ACTIVE 386 / AWAITING 1、tester → 周雨 不变，无需重种。**自己的错**：pkill -f 模式匹配到自己的 shell（exit 144），违反查证做法第 6 条；无后果。
   - 仍待作者：Cloudflare 隧道 `cloudflare-connect.sh start` 第二次被权限策略拦下（External Ingress Tunnel），作者亲手执行；重启后栈不自启，可考虑 Windows 计划任务在登录时跑 start.sh（未做）。
 - [2026-10-29 14:21 UTC+8] KB1-LOOP-157 第十步：公网隧道由作者 14:20 亲手启动，脚本误报"connector exited"。实查【实跑】：连接器 pid 32705 在跑、日志 14:20:28 注册 4 条连接、公网 OA 200、MCP 401（无令牌的正常应答）。根因：cloudflare-connect.sh 的 running() 用 grep 查 /proc/<pid>/cmdline，本机 grep 是 ugrep 包装、对 /proc 内容漏匹配（记忆 tool-shell-grep-wrapper 已记同类）。改为 bash 模式匹配（备份 cloudflare-connect.sh.before-157），status 现报 running。本机栈与隧道均在线，同事可按原地址测试。
+- [2026-10-29 14:45 UTC+8] KB1-LOOP-157 第十一步：按岗位的常备授权（作者 14:33 以张桂兰问"看我分管的销售、市场等部门今年的月度 KPI"仍要建单自确认，指出"设计图说已预制"）。已种 S4/S5/S6 共 52 张一年期（全部 TaskGate 判 self_confirm，本人在 OA 确认，无一被拒）：S4 三位副总分管四部门 + 总经理全集团的月度 KPI 与预算执行（秘密级）；S5 12 主任 + 12 管理员本部门同上；S6 24 位中心主任本中心四人的考勤、请假、差旅。控制库 ACTIVE 386 → 438。
+  - 复核【编排者实跑，张桂兰自己的令牌】：list_my_tasks 有 S4；KPI 按部门各 96 行（marketing/operations/sales/support）、预算执行 4 行，查询前后任务数不变（5）。子代理另验刘国栋 12 部门、黄玉梅仅财务部、白洁琼本中心恰 4 人、黄玉梅 S5 查考勤 PRODUCT_NOT_APPROVED、重跑全跳过。
+  - 发现：query_sql 不接受位置序号 `ORDER BY 1,2`（SQL_NOT_LOWERABLE，只接受选中列或聚合别名），agent 写 SQL 要用列名；记入指南。
+  - 作者 14:33 自建的那张 KPI 日常任务（task_8f656acd…）仍 AWAITING_APPROVAL，与 S4 目标文字不同未合并，72 小时后自动过期；tester 标签当时指向张桂兰（作者 14:30 切的），未动。make-onboarding 因标签不指向周雨被守卫挡下，小册子待标签切回后重生成。
+  - 关系图 Version 12：三环"入职就有"补岗位常备授权，各视角"已有"更新；生成器样式改为从 v3 目录读（暂存区随重启清空，记忆 author-scripts-location 同类）。
