@@ -3051,3 +3051,10 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - ①（子代理 Opus 执行，编排者以张桂兰令牌复核【实跑】）：S4/S5 的 28 张"经营数据查询"撤销后按真实项目重建为 27 个年度经营分析项目（三位副总的条线、总经理的全集团、23 位主任与管理员的本部门；目标写明按季度对照月度 KPI 与预算执行），全部 self_confirm 本人确认；黄玉梅不另立，由她负责的 P1 覆盖（编排者裁决，避免新申请被复用成 P1 而丢项目），seed-roles.py 新增 covered 结果并先撤旧再建新（否则复用规则会把新申请吃掉）。张桂兰"看我分管部门 KPI"复用新项目、任务数 10→10；黄玉梅同样请求复用 P1。控制库 ACTIVE 440 / ARCHIVED 105 / AWAITING 1。
   - ②：授权关系图重排为 一 两样东西（个人看板与项目）、二 员工怎么用、三 部门领导怎么用（均带提示词表）、四 实跑场景、五 参数模板、六至十五原各节、末尾不编号"管理员怎么配置个人看板与项目"；全文 授权单→个人看板（接口 kind 仍为 authorization，模板注明）；入职小册子模板同改。Version 17。Design 画布未同步（作者定以本页为准）。
   - 待办：tester 标签被作者切到白洁琼，make-onboarding 守卫停；切回周雨后重生成四份小册子。demo-leader.py 打印文字仍写"S4（分管条线经营数据）"，行为不受影响。
+- [2026-11-02 10:44 UTC+8] KB1-LOOP-157 第十七步：2026-11-02 作者"启动mcp"，演示栈与 8083 恢复；P6 已过期并重建；公网隧道未启动，等作者亲手 start。
+  - 现状【实跑】：今日开机 09:36、09:41、10:31，上一次开机 10-31 10:50；kbdemo 全部容器 Exited(255) 且 docker 显示 2 days ago，factgate MCP 报 ECONNREFUSED。按 start.sh 顺序 compose start 数据服务 → OA → 网关 → shim，10:39 六个容器 healthy，8082/8083/8092/25434/28090/29000 监听。
+  - 复核【实跑】：用 ~/.claude.json 里的真实配置直连 8083，initialize 200（taskbound-agent-data-gateway 2.1.0），tools/list 200、24 个工具。本会话启动时已连接失败，会话内 factgate 工具仍不可用，需作者重连一次。
+  - 栈已停约两天【推断，来自 docker 的 2 days ago 与开机记录，无停止时刻的直接证据】：约在 10-31 10:30 前后，此后未被拉起；停止原因未定。
+  - P6【实跑】：旧 task_c3a4d936 72h 到期后，网关 10:39 起来时归档为 expired，AWAITING 归 0，无需撤销。seed-projects.py --only P6 重建为 task_ce8edb55…，经田立军、陈颖、张雪松三级 OA 审批后停在陈卫东。seeded.json 与备份 seeded.json.before-1102 逐键比对：437 条未丢，仅 P6 变；脚本打印的 85 条不含 S 项，不是丢失。控制库 ACTIVE 434 / ARCHIVED 112 / AWAITING_APPROVAL 1。
+  - 决定：未整段跑 start.sh，末尾隧道步骤跳过（此前两次被权限策略拦下，台账定为作者亲手执行）；ps 复核无 cloudflared 进程。放弃：替作者启动对外入口。
+  - 仍待作者：cloudflare-connect.sh start；开机自启 start.sh 的计划任务仍未做，今日这类停机还会复现。
