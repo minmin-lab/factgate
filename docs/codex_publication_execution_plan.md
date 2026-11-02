@@ -3058,3 +3058,8 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
   - P6【实跑】：旧 task_c3a4d936 72h 到期后，网关 10:39 起来时归档为 expired，AWAITING 归 0，无需撤销。seed-projects.py --only P6 重建为 task_ce8edb55…，经田立军、陈颖、张雪松三级 OA 审批后停在陈卫东。seeded.json 与备份 seeded.json.before-1102 逐键比对：437 条未丢，仅 P6 变；脚本打印的 85 条不含 S 项，不是丢失。控制库 ACTIVE 434 / ARCHIVED 112 / AWAITING_APPROVAL 1。
   - 决定：未整段跑 start.sh，末尾隧道步骤跳过（此前两次被权限策略拦下，台账定为作者亲手执行）；ps 复核无 cloudflared 进程。放弃：替作者启动对外入口。
   - 仍待作者：cloudflare-connect.sh start；开机自启 start.sh 的计划任务仍未做，今日这类停机还会复现。
+- [2026-11-02 10:44 UTC+8] KB1-LOOP-157 第十八步：NAS 上 git 不可用，kb-dev 推不出去；ed17a2c6 及本条只在本地，需作者恢复。
+  - 现象【实跑】：git push nas kb-dev 报 sh: /opt/bin/git-receive-pack: No such file or directory。NAS uptime 2 天 11 小时（约 10-30 23:19 起）；非登录与 bash -lc 下均无 git，/opt/bin 不存在，ls /opt 现为 Permission denied，/volume1 深度 4 内搜不到 git-receive-pack，也无 Entware 目录。
+  - 原因未定，候选包括：NAS 重启后 /opt 未恢复挂载或权限被改、Entware 被移除或升级清掉。本机无法区分，恢复需要 NAS root，未尝试。
+  - 影响：push 路线（docs/agents/environment.md:87）不可用；构建器要求 HEAD==origin，改代码后的镜像构建也会被挡。ledger-only 提交不影响运行中的栈。
+  - 改口：我在对话里一度说"推错了远端，应推 origin"。根因：只看了分支的跟踪配置，该查 environment.md:87 没查。nas 才是规定路线，origin 走 https 无凭证，随后那次失败不说明任何问题。
