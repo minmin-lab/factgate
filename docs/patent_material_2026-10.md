@@ -51,4 +51,4 @@ OA 可用性改动（一次登录切换账号、待办/审批记录、勾选式�
 ## E. 作者裁决（2026-11-03）
 
 作者定：专利材料按「未公开」口径整理，不考虑 arXiv/Zenodo（论文核心）与 GitHub（仓库）的公开状态；编排者已在对话中说明中国绝对新颖性与第 24 条宽限期的理解，法域与时效由代理人核。
-交底书 v1：docs/patent_disclosure_2026-11.md。
+交底书 v2（按 CBA 模板格式）：docs/patent_disclosure_2026-11.md；docx/pdf 在 NAS PTO/2026/11/专利 factgate/。
