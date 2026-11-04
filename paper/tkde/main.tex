@@ -1220,7 +1220,7 @@ The archived \RQFourVFourOracleFacts{}-Fact RQ4 check
 (\RQFourVFourGatesPassed{}/\RQFourVFourGatesTotal{} gates, one index build)
 shares the FactID encoder and is only derivation-independent. RQ1--RQ3
 and RQ5 are regenerated at the submission commit; the campaign is sealed at
-\FinalVFivePublicationCommit{}. RQ2
+that commit (Section~\ref{sec:repro-boundary}). RQ2
 (\RQTwoExposureCases{} cases, \RQTwoExposureMismatches{} mismatches)
 requires equal Result/Dependency sets and zero bidirectional charge. RQ3
 (\RQThreeCases{} cases, deterministic and as PostgreSQL race tests) covers
@@ -1249,8 +1249,7 @@ result-heavy releases of 100--100,000 rows with 4 or 16 columns. Modes
 are direct (the same SQL against PostgreSQL without \system), novel (the first
 governed execution), and the replays; ``sealed campaign'' denotes the frozen
 protocol's runs (retained pilots are supplementary, never eligible). The frozen
-campaign (\FinalVFivePublicationCampaign{}, commit
-\FinalVFivePublicationCommit{}) executed all
+campaign (identified in the supplement) executed all
 \FinalVFivePublicationTotalCells{} frozen cells:
 \FinalVFivePublicationProfileCells{} profile cells across
 \FinalVFivePublicationDeployments{} fresh deployments of
@@ -1420,6 +1419,7 @@ byte-identical grouped SQL on pinned PostgreSQL~16.14, ProvSQL~1.11.0, and
 a boundary that is asymmetric by construction and ranks nothing.
 
 \subsection{Reproducibility Boundary}
+\label{sec:repro-boundary}
 
 All measurements ran on one laptop-class WSL2 host with a digest-pinned
 PostgreSQL 16.14 image (supplement). The artifact is the repository at the
