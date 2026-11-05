@@ -72,3 +72,7 @@ tmp/
 /v5-smoke-adapter
 /view-contract
 /view-scale
+
+# KB-1 synthetic corpus: regenerated from the committed manifest, never stored.
+/evaluation/kbcorpus/raw/
+/kb-formal-smoke

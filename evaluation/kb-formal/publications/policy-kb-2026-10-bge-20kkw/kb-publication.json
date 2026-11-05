@@ -1,0 +1,174 @@
+{
+  "version": "taskgate-kb-publication-v1",
+  "knowledge_product": "policy_kb",
+  "collection": "policy_v1_20k",
+  "epoch": "policy-kb-2026-10-bge-20kkw",
+  "source_id": "taskgate-demo-travel",
+  "catalog_source": "travel_demo",
+  "source_namespace": "kb.policy",
+  "schema_digest": "f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48",
+  "corpus_sha256": "785ed1fdd60988be511a19d827ae7a46de7ba271587c73f1de620a06b2742481",
+  "segmentation": {
+    "function": "section-window-v1",
+    "window_chars": 800
+  },
+  "segmentation_digest": "5ad3e43e0c87be1604d55c31773ba545b87fc7d9f4edacf01f9418df60fa5e7c",
+  "embedding": {
+    "model": "bge-m3",
+    "dimension": 1024,
+    "weights_sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38"
+  },
+  "embedding_digest": "c6272f675e59dd4b2c6d4fd5fbcda22057e928a07ab29a503214e6b446b68d4b",
+  "extraction_rules": [
+    {
+      "document_type": "contract",
+      "field": "amount",
+      "type": "numeric",
+      "source": "frontmatter",
+      "scope": "document"
+    },
+    {
+      "document_type": "contract",
+      "field": "counterparty",
+      "type": "text",
+      "source": "frontmatter",
+      "scope": "document"
+    },
+    {
+      "document_type": "contract",
+      "field": "signed_on",
+      "type": "date",
+      "source": "frontmatter",
+      "scope": "document"
+    },
+    {
+      "document_type": "approval",
+      "field": "approved_amount",
+      "type": "numeric",
+      "source": "frontmatter",
+      "scope": "document"
+    },
+    {
+      "document_type": "policy",
+      "field": "effective_on",
+      "type": "date",
+      "source": "frontmatter",
+      "scope": "document"
+    },
+    {
+      "document_type": "report",
+      "field": "headline_metric",
+      "type": "numeric",
+      "source": "frontmatter",
+      "scope": "document"
+    }
+  ],
+  "extraction_rules_digest": "793ca8f82fa97fb38a546408db9710935402f1f786e6405a6832a22392713c3b",
+  "document_types": [
+    "contract",
+    "approval",
+    "policy",
+    "report"
+  ],
+  "retrieval": {
+    "k_max": 20,
+    "aggregates": [
+      "count",
+      "sum",
+      "min",
+      "max"
+    ],
+    "keyword": true
+  },
+  "collation": {
+    "name": "en_US.utf8",
+    "version": "2.36"
+  },
+  "vocabulary": {
+    "departments": [
+      "engineering",
+      "finance",
+      "hr",
+      "it",
+      "legal",
+      "marketing",
+      "operations",
+      "procurement",
+      "product",
+      "research",
+      "sales",
+      "support"
+    ],
+    "classifications": [
+      "confidential",
+      "internal",
+      "leadership",
+      "public"
+    ],
+    "job_roles": [
+      "director",
+      "executive",
+      "hr",
+      "manager",
+      "staff"
+    ],
+    "labels": [
+      "audit",
+      "budget",
+      "compliance",
+      "hiring",
+      "incident",
+      "merger",
+      "payroll",
+      "pricing",
+      "roadmap",
+      "training",
+      "travel",
+      "vendor"
+    ]
+  },
+  "counts": {
+    "documents": 20000,
+    "document_versions": 20989,
+    "chunks": 96401,
+    "leadership_chunks": 6999,
+    "values": 31821,
+    "labels": 12
+  },
+  "publications": {
+    "chunks": {
+      "product": "policy_kb_chunks",
+      "publication_name": "policy-kb-2026-10-bge-20kkw-chunks",
+      "source_relation": "reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_chunks",
+      "ordinal_sidecar": "taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_chunks",
+      "source_namespace": "kb.policy.chunks",
+      "row_count": 96401,
+      "manifest_digest": "5eb6bb856d8e7939b3ea8ec35ca8438adad3261a90325971a00b88490ffeeedb",
+      "dictionary_digest": "ed65a6e555b95b2c5184ad2a5ccbd08c197e7906a6316102bc3dbedbbe2431a0",
+      "sidecar_digest": "8f803f4ca848a1008f20b735c702aacae009da79aacd223645c4f6af691c011b"
+    },
+    "documents": {
+      "product": "policy_kb_documents",
+      "publication_name": "policy-kb-2026-10-bge-20kkw-documents",
+      "source_relation": "reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_documents",
+      "ordinal_sidecar": "taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_documents",
+      "source_namespace": "kb.policy.documents",
+      "row_count": 20989,
+      "manifest_digest": "cb1471356223ecbf19d22262c1000e3c4e5e02eea6f058f2e33224e04c203cf1",
+      "dictionary_digest": "54dcafb262a2ae709c13f3ab933b46377bce9304d58cec374e3a2366eff466e5",
+      "sidecar_digest": "5985ba0fd38bdcd264a534595fd06ac228601880beac150a1ad880ae56cf3ad9"
+    },
+    "values": {
+      "product": "policy_kb_values",
+      "publication_name": "policy-kb-2026-10-bge-20kkw-values",
+      "source_relation": "reporting.kb_policy_kb_policy_kb_2026_10_bge_20kkw_values",
+      "ordinal_sidecar": "taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_20kkw_values",
+      "source_namespace": "kb.policy.values",
+      "row_count": 31821,
+      "manifest_digest": "b4cbcfbfad6535620a9f1ec96d6ade84d55380a888f6b627d6bf6139d9db63e1",
+      "dictionary_digest": "c728f04737eb28dcf661375f55661e5437925495c5ba408c829f4312688d9f9f",
+      "sidecar_digest": "2f6b61668befa12c911b4d53e4f50ec479af14368214880c5e15f5b65aa49021"
+    }
+  },
+  "manifest_digest": "1430b553c677ee3cbd1d299868598d9876c6bd5bf5d256edd03ab0a12268c850"
+}

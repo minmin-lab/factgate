@@ -1,0 +1,55 @@
+{
+  "version": "taskgate-kb-corpus-v2",
+  "generator": "evaluation/cmd/kb-corpus-v2",
+  "plan_spec": {
+    "seed": 20261015,
+    "documents": 10000
+  },
+  "plan_sha256": "2944399d9fafc1d4933d3168622793e97fe64743cffdf3f181284fe232d428d8",
+  "model": "claude-haiku-5-5",
+  "batch_size": 10,
+  "batches": 1182,
+  "retries": 0,
+  "total_cost_usd": 17.606934199999994,
+  "counts": {
+    "documents": 10000,
+    "versions": 10469,
+    "sections": 48183,
+    "leadership_sections": 3583,
+    "by_type": {
+      "approval": 2549,
+      "contract": 2706,
+      "policy": 2585,
+      "report": 2629
+    },
+    "by_department": {
+      "engineering": 826,
+      "finance": 894,
+      "hr": 845,
+      "it": 844,
+      "legal": 913,
+      "marketing": 869,
+      "operations": 836,
+      "procurement": 863,
+      "product": 888,
+      "research": 892,
+      "sales": 887,
+      "support": 912
+    },
+    "by_classification": {
+      "confidential": 2591,
+      "internal": 5279,
+      "leadership": 571,
+      "public": 2028
+    },
+    "by_role": {
+      "director": 889,
+      "executive": 571,
+      "hr": 858,
+      "manager": 3436,
+      "staff": 4715
+    }
+  },
+  "documents_bytes": 59545641,
+  "documents_sha256": "2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62"
+}

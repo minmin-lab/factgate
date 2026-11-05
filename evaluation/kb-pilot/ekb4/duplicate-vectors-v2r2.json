@@ -1,0 +1,22 @@
+{
+ "version": "kb-duplicate-text-vectors-v1",
+ "campaign_class": "kb-pilot",
+ "publication_eligible": false,
+ "generated_at": "2026-10-17T12:06:32+08:00",
+ "database": "kbe2e5 (kb-test-pgvector container)",
+ "server": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+ "collection": "policy_bge_v2",
+ "publication": "policy-kb-2026-10-bge-v2 revision 2 (kb-publication.json sha256 82748a3e..., chunks manifest c26dfa81...)",
+ "check": {
+  "query": "SELECT count(*) AS dup_groups, sum(n) AS chunks_in_groups, count(*) FILTER (WHERE distinct_vecs > 1) AS groups_with_differing_vectors FROM (SELECT text_sha256, count(*) n, count(DISTINCT embedding::text) distinct_vecs FROM kb.chunks WHERE collection='policy_bge_v2' GROUP BY text_sha256 HAVING count(*) > 1) g",
+  "duplicate_text_groups": 1692,
+  "chunks_in_groups": 3384,
+  "groups_with_differing_vectors": 0
+ },
+ "positive_control": {
+  "purpose": "the same distinct-vector count must separate two different texts",
+  "query": "WITH two AS (SELECT DISTINCT text_sha256 FROM kb.chunks WHERE collection='policy_bge_v2' ORDER BY text_sha256 LIMIT 2) SELECT count(DISTINCT embedding::text) FROM kb.chunks WHERE collection='policy_bge_v2' AND text_sha256 IN (SELECT text_sha256 FROM two)",
+  "distinct_vectors": 2,
+  "expected": 2
+ }
+}

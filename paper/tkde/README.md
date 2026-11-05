@@ -93,6 +93,18 @@ This default build does not run measurements or invoke
 regenerates `generated/evidence.tex` from those existing artifacts, and then
 compiles the paper and supplement.
 
+A build that exits 0 can still render wrongly, so check what the PDFs show
+after every build:
+
+```sh
+python3 paper/tkde/check-rendered.py
+```
+
+It fails on any overfull box or rendered escape artifact in the supplement
+(a printed backslash before `_ % & # $`, an unresolved `??`, a raw macro
+name) and reports the main text as warnings while it is frozen; it needs
+PyMuPDF on the host and proves its own patterns on known samples first.
+
 Validate source-controlled evidence and regenerate the LaTeX evidence macros:
 
 ```sh

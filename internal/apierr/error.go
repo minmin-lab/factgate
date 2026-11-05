@@ -30,6 +30,28 @@ const (
 	CodeSubqueryUnsupported      = "SUBQUERY_UNSUPPORTED"
 	CodeViewSemanticChanged      = "VIEW_SEMANTIC_CHANGED"
 	CodeViewQueryUnsupported     = "VIEW_QUERY_UNSUPPORTED"
+	// CodeNotEligible rejects a task request whose subject or scope falls
+	// outside the Catalog eligibility envelope; it never reaches an approver.
+	CodeNotEligible = "NOT_ELIGIBLE"
+	// Retrieval (knowledge product) rejections. Every one is closed-form: the
+	// request is outside the admitted retrieval language and nothing executed.
+	CodeRetrievalFilterUnsupported = "RETRIEVAL_FILTER_UNSUPPORTED"
+	CodeRetrievalQueryUnsupported  = "RETRIEVAL_QUERY_UNSUPPORTED"
+	CodeRetrievalKExceeded         = "RETRIEVAL_K_EXCEEDED"
+	CodeRetrievalScopeExceeded     = "RETRIEVAL_SCOPE_EXCEEDED"
+	CodeChunkNotReturned           = "CHUNK_NOT_RETURNED"
+	CodeAggregateUnsupported       = "AGGREGATE_UNSUPPORTED"
+	// Document download (docs/kb-design.md §12). Searching and downloading are
+	// separate task kinds; a download names a document of the approved list;
+	// a document is delivered whole or not at all.
+	CodeTaskKindMismatch        = "TASK_KIND_MISMATCH"
+	CodeDownloadNotApproved     = "DOWNLOAD_NOT_APPROVED"
+	CodeDocumentNotDownloadable = "DOCUMENT_NOT_DOWNLOADABLE"
+	// CodeApproverNotAuthorized rejects a task request whose resolved
+	// approver may not approve it: the approver is the requester, or a route
+	// that verifies its approver finds them outside the task's envelope. It
+	// never reaches the OA.
+	CodeApproverNotAuthorized = "APPROVER_NOT_AUTHORIZED"
 )
 
 // Error contains a stable machine-readable code and a client-safe explanation.

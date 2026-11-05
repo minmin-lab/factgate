@@ -1,0 +1,133 @@
+{
+  "version": "taskgate-snapshot-index-input-v1",
+  "publication_name": "policy-kb-2026-10-bge-v2kw-chunks",
+  "catalog_source": "travel_demo",
+  "source_relation": "reporting.kb_policy_kb_policy_kb_2026_10_bge_v2kw_chunks",
+  "ordinal_sidecar": "taskgate_ordinal.kb_policy_kb_policy_kb_2026_10_bge_v2kw_chunks",
+  "entity_key_fields": [
+    "doc_id",
+    "version",
+    "chunk_index"
+  ],
+  "snapshot": {
+    "source_id": "taskgate-demo-travel",
+    "source_namespace": "kb.policy.chunks",
+    "snapshot": "policy-kb-2026-10-bge-v2kw",
+    "schema_digest": "f9dcd0b0663ef7ea0422a4ed8626325da91fa62e5e304782974428797418ac48",
+    "fields": [
+      {
+        "name": "doc_id",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "doc_id",
+        "canonical_field_id": "policy_kb_chunks.doc_id",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "version",
+        "sql_type": "integer"
+      },
+      {
+        "name": "version",
+        "canonical_field_id": "policy_kb_chunks.version",
+        "sql_type": "integer"
+      },
+      {
+        "name": "chunk_index",
+        "sql_type": "integer"
+      },
+      {
+        "name": "chunk_index",
+        "canonical_field_id": "policy_kb_chunks.chunk_index",
+        "sql_type": "integer"
+      },
+      {
+        "name": "text_sha256",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "text_sha256",
+        "canonical_field_id": "policy_kb_chunks.text_sha256",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "kb_department",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "kb_department",
+        "canonical_field_id": "policy_kb_chunks.kb_department",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "classification",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "classification",
+        "canonical_field_id": "policy_kb_chunks.classification",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "job_role",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "job_role",
+        "canonical_field_id": "policy_kb_chunks.job_role",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "labels",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "labels",
+        "canonical_field_id": "policy_kb_chunks.labels",
+        "sql_type": "text",
+        "collation": "en_US.utf8",
+        "collation_version": "2.36"
+      },
+      {
+        "name": "valid_until",
+        "sql_type": "date"
+      },
+      {
+        "name": "valid_until",
+        "canonical_field_id": "policy_kb_chunks.valid_until",
+        "sql_type": "date"
+      }
+    ],
+    "rows": null
+  },
+  "expected_digests": {
+    "sidecar_digest": "02ec8fdea8b6a2efe11c694f585aeb4c630cccdba267c78b362db3e17b025c1b",
+    "dictionary_digest": "a450bcd8b989d9ced0e18f18da58a716881d61ec253e9cad5529d6a01f729a85",
+    "manifest_digest": "7bd8e02b9115987ad815258b272004d79006b745c7bd0a79d9a57709024e89c9",
+    "cold_payload_digest": "28652480ee5833d2338b2184f9c6d546d77a70cf5a20e6af37320c33c4246463",
+    "hot_index_digest": "8f123569475511308456658832553decc51cd14a81eec0ecad7109077b336db4"
+  }
+}

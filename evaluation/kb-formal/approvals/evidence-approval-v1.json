@@ -1,0 +1,10 @@
+{
+  "version": "taskgate-kb-formal-evidence-approval-v1",
+  "approval_id": "APPROVE-KB-EVIDENCE-v1",
+  "approval_status": "AUTHOR_APPROVED",
+  "author": {"name": "wuminmin", "approved_on": "2026-10-17"},
+  "approved_registration": {"path": "evaluation/kb-formal/kb-publication-evidence-v1.json", "sha256": "ffd08529cdcda2151596b1d0da883ffb9e362aea6c08f85777adc10a2f72d393", "bytes": 3102},
+  "campaign": "kb-formal-publication-20261017",
+  "campaign_evidence_sha256": "ab68ddcab4086efc7eeef637ca286588cf07451b30cfce2d5b311cf8f66ed911",
+  "scope": {"campaign_class": "kb-publication", "promotes": "E-KB1, E-KB2(a), E-KB2(b), E-KB3, E-KB4, E-KB5 macros of the supplement"}
+}

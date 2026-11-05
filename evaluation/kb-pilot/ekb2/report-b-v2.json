@@ -1,0 +1,56 @@
+{
+ "arms": [
+  {
+   "deployment": 1,
+   "department": "sales",
+   "requestable_chunks": 3773,
+   "steps": 11,
+   "leaked_chunks": 191,
+   "leak_bound_chunks": 200,
+   "first_refusal_step": 11,
+   "refusal_code": "EXPOSURE_BUDGET_EXHAUSTED",
+   "after_expiry_code": "TASK_NOT_ACTIVE",
+   "after_expiry_new_chunks": 0,
+   "charged_release": 764
+  },
+  {
+   "deployment": 2,
+   "department": "finance",
+   "requestable_chunks": 3803,
+   "steps": 11,
+   "leaked_chunks": 200,
+   "leak_bound_chunks": 200,
+   "first_refusal_step": 11,
+   "refusal_code": "EXPOSURE_BUDGET_EXHAUSTED",
+   "after_expiry_code": "TASK_NOT_ACTIVE",
+   "after_expiry_new_chunks": 0,
+   "charged_release": 800
+  },
+  {
+   "deployment": 3,
+   "department": "hr",
+   "requestable_chunks": 3596,
+   "steps": 11,
+   "leaked_chunks": 200,
+   "leak_bound_chunks": 200,
+   "first_refusal_step": 11,
+   "refusal_code": "EXPOSURE_BUDGET_EXHAUSTED",
+   "after_expiry_code": "TASK_NOT_ACTIVE",
+   "after_expiry_new_chunks": 0,
+   "charged_release": 800
+  }
+ ],
+ "budget": {
+  "influence": 2400,
+  "k_max": 20,
+  "outcome": 64,
+  "queries": 256,
+  "release_cells": 800
+ },
+ "campaign_class": "kb-pilot",
+ "generated_at": "2026-10-16T15:26:22Z",
+ "publication_eligible": false,
+ "publication_epoch": "policy-kb-2026-10-bge-v2",
+ "ttl_seconds": 120,
+ "version": "taskgate-kb-ekb2b-report-v1"
+}

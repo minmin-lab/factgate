@@ -1141,3 +1141,42 @@ func writeOrdinalDigestPart(writer digestWriter, value string) {
 type rowQueryer interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
+
+// RootReleaseContains reports, for each ref, whether the root family of
+// taskID has already settled that Fact into its Release set. The retrieval
+// tools run under the V5 profile, whose root head is the V5 one; a V4 head is
+// consulted when no V5 head exists. A family that has settled nothing yet
+// contains no ref.
+func (s *Store) RootReleaseContains(ctx context.Context, taskID string, refs []ordinal.FactRef) ([]bool, error) {
+	const op = "root release contains"
+	if err := s.checkOpen(op); err != nil {
+		return nil, err
+	}
+	result := make([]bool, len(refs))
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, opErr(op, ErrConflict, err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var releaseSet string
+	err = tx.QueryRowContext(ctx, `SELECT COALESCE(h.release_set_sha256,'')
+FROM tasks t JOIN v5_exposure_root_heads h ON h.root_task_id=t.root_task_id WHERE t.id=$1`, taskID).Scan(&releaseSet)
+	if isNoRows(err) {
+		err = tx.QueryRowContext(ctx, `SELECT COALESCE(h.release_set_sha256,'')
+FROM tasks t JOIN v4_exposure_root_heads h ON h.root_task_id=t.root_task_id WHERE t.id=$1`, taskID).Scan(&releaseSet)
+	}
+	if isNoRows(err) || (err == nil && releaseSet == "") {
+		return result, nil
+	}
+	if err != nil {
+		return nil, opErr(op, ErrConflict, err)
+	}
+	set, _, err := loadOrdinalSetTx(ctx, tx, releaseSet)
+	if err != nil {
+		return nil, opErr(op, ErrConflict, err)
+	}
+	for i, ref := range refs {
+		result[i] = set.static.Contains(ref)
+	}
+	return result, nil
+}

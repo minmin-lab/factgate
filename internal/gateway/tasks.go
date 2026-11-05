@@ -29,28 +29,138 @@ func (s *Service) listDataProducts(_ context.Context, _ mcp.Principal, raw json.
 		if err != nil {
 			return nil, err
 		}
+		if kp, role, found := s.knowledgeRelationOf(product.Name); found {
+			publicProduct["knowledge_product"] = map[string]any{"name": kp.Name, "role": role}
+		}
 		products = append(products, publicProduct)
 	}
-	return map[string]any{
+	knowledgeProducts := make([]map[string]any, 0, len(s.catalog.KnowledgeProducts))
+	for _, kp := range s.catalog.KnowledgeProducts {
+		knowledgeProducts = append(knowledgeProducts, s.publicKnowledgeProduct(kp))
+	}
+	routes := make([]map[string]any, 0, len(s.catalog.ApprovalRoutes))
+	for _, route := range s.catalog.ApprovalRoutes {
+		routes = append(routes, publicApprovalRoute(route))
+	}
+	result := map[string]any{
 		"catalog_version": s.catalog.CatalogVersion,
 		"sql_profile":     catalogReportingSQLProfile,
 		"products":        products,
-		"scopes":          append([]catalog.Scope(nil), s.catalog.Scopes...),
-	}, nil
+		// Knowledge products are searched by their own name (search, fetch,
+		// aggregate, request_download_task); their relations are the products
+		// above that point back to them.
+		"knowledge_products": knowledgeProducts,
+		"scopes":             append([]catalog.Scope(nil), s.catalog.Scopes...),
+		"approval_routes":    routes,
+		"approval_routing": "缺省由目录路由选审批人：按申请产品的最高敏感级（及产品级路由的产品集合）选路由，" +
+			"带 scope_condition 的路由在申请范围含其所列任一值时优先（按声明顺序）。申请时也可以用 request_data_task 或 request_download_task 的 " +
+			"approver 参数指定任一审批人，覆盖路由。无论审批人从哪来，TaskGate 都在签发授权前按数据产品规则核验实际审批人：" +
+			"无权者在 OA 批准后不签发授权，任务以 approver_not_authorized 归档。返回值的 approver_authorized 预告结果。" +
+			"带 approval_chain 的路由按组织架构多级审批（申请人部门主任 → 被申请部门主任 → 领导级文档的分管领导），" +
+			"每一级都在 TaskGate 核验审批人权限，最后一级批准后才签发授权；approver 参数只替换第一级。",
+	}
+	if delegated := s.delegated(); delegated != nil {
+		result["delegated_authorization"] = publicDelegatedAuthorization(*delegated)
+	}
+	return result, nil
+}
+
+// publicDelegatedAuthorization says what the Catalog's long-lived
+// authorization model changes for a requester (KB1-LOOP-147/148).
+func publicDelegatedAuthorization(delegated catalog.DelegatedAuthorization) map[string]any {
+	public := map[string]any{
+		"authority_attribute": delegated.AuthorityAttributeName(),
+		"child_self_confirm":  delegated.ChildSelfConfirm,
+		"rules": "职权层级：审批链上申请人本人有职权的环节（该环节部门都在申请人的职权部门内、且层级不高于申请人）由申请人本人代表，删去；" +
+			"点到申请人本人而本人无该职权的环节，改由该部门更高一层的人审批；范围含职权外部门时，申请人本部门这一级改由高于本人的最近一层审批；同一人只出现一次。" +
+			"链上不剩任何环节时任务由申请人本人确认（self_service）。数据管家：任务的产品都声明了 steward_department 时，范围中既不在申请人职权内、也不是申请人本部门的部门改由管家部门审批。" +
+			"代开单（issue_data_authorization）与带 delegate_principal_id 的成员子任务不走这些规则。",
+	}
+	if delegated.CenterScope != "" {
+		public["center_scope"], public["center_attribute"] = delegated.CenterScope, delegated.CenterAttributeName()
+		public["center_rule"] = "申请只含本部门、只含本人所辖中心（" + delegated.CenterScope + "）、不触发任何升级层，且所有产品都声明了该范围时，由申请人本人确认"
+	}
+	if delegated.PersonalScope != "" {
+		public["personal_scope"] = delegated.PersonalScope
+		public["personal_rule"] = "根任务的所有产品都声明了 " + delegated.PersonalScope + "、且申请值恰为申请人本人的同名属性值时，由申请人本人确认，不论部门"
+	}
+	if delegated.AgentSubmits {
+		public["agent_submits"] = true
+		public["agent_submits_rule"] = "任务创建即由 agent 代人类主体提交：状态为 AWAITING_APPROVAL、OA 草稿即为待审批，人只需在 OA 批准"
+	}
+	return public
+}
+
+// publicApprovalRoute is what a requester may know about a route: which
+// requests it takes and who approves them.
+func publicApprovalRoute(route catalog.ApprovalRoute) map[string]any {
+	public := map[string]any{"sensitivity": route.Sensitivity, "mode": route.Mode, "approver": route.Approver,
+		"budget_profile": route.BudgetProfile}
+	if len(route.Products) > 0 {
+		public["products"] = append([]string(nil), route.Products...)
+	}
+	if len(route.ScopeCondition) > 0 {
+		public["scope_condition"] = route.ScopeCondition
+	}
+	if route.VerifyApprover {
+		public["verify_approver"] = true
+	}
+	if chain := route.Chain; chain != nil {
+		delete(public, "approver")
+		org := map[string]any{"department_scope": chain.DepartmentScope, "directors": chain.Directors,
+			"rule": "依次审批：申请人所在部门的审批人 → 每个被申请部门的审批人 → 申请范围命中某个升级层（如机密、绝密文档）时，再由该层上每个被申请部门的负责人审批；审批人缩小范围后，后续环节按缩小后的范围重算"}
+		if layers := chain.Layers(); len(layers) > 0 {
+			escalations := make([]map[string]any, 0, len(layers))
+			for _, layer := range layers {
+				escalations = append(escalations, map[string]any{"role": layer.Role, "label": layer.Label,
+					"scope": layer.Scope, "values": layer.Values, "leaders": layer.Leaders})
+			}
+			org["escalations"] = escalations
+		}
+		public["approval_chain"] = org
+	}
+	return public
+}
+
+// taskRequestArgs is request_data_task's input.
+type taskRequestArgs struct {
+	Objective           string              `json:"objective"`
+	ParentTaskID        string              `json:"parent_task_id,omitempty"`
+	DelegatePrincipalID string              `json:"delegate_principal_id,omitempty"`
+	DataProducts        []string            `json:"data_products"`
+	Columns             map[string][]string `json:"columns"`
+	Scopes              map[string]any      `json:"scopes"`
+	// Approver optionally names who approves, overriding the Catalog route
+	// (as a misconfigured or hand-routed approval flow would). The approver is
+	// checked against the data products' rules when the approval arrives, so
+	// a wrong choice yields no grant.
+	Approver string `json:"approver,omitempty"`
+	// BudgetProfile optionally chooses a Catalog budget profile in place of
+	// the route's (KB1-LOOP-148): accepted only under the Catalog's
+	// delegated_authorization block, and only a profile of the route's
+	// exposure version (chooseBudgetProfile).
+	BudgetProfile string `json:"budget_profile,omitempty"`
+	// issuance is set by issue_data_authorization only (issue.go): the task
+	// is created for another principal with a chosen budget profile.
+	issuance *issuanceRequest
 }
 
 func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, raw json.RawMessage) (any, error) {
-	var args struct {
-		Objective           string              `json:"objective"`
-		ParentTaskID        string              `json:"parent_task_id,omitempty"`
-		DelegatePrincipalID string              `json:"delegate_principal_id,omitempty"`
-		DataProducts        []string            `json:"data_products"`
-		Columns             map[string][]string `json:"columns"`
-		Scopes              map[string]any      `json:"scopes"`
-	}
+	var args taskRequestArgs
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
+	return s.createTask(ctx, principal, args, nil)
+}
+
+// createTask is the task request path shared by request_data_task and
+// request_download_task. reservedScope carries mandatory-scope entries that are
+// not Catalog scopes (the download task's approved document list,
+// docs/kb-design.md §12): they are added after scope normalization and the
+// eligibility gate, which a caller's scopes can never bypass, so they enter the
+// manifest, the approver's view and the grant like any scope and are narrowed
+// by the same subset rule.
+func (s *Service) createTask(ctx context.Context, principal mcp.Principal, args taskRequestArgs, reservedScope map[string]any) (map[string]any, error) {
 	args.Objective = strings.TrimSpace(args.Objective)
 	if args.Objective == "" || len(args.Objective) > 4000 {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "objective 必须为 1 到 4000 个字符"}
@@ -76,9 +186,28 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	rootTaskID := ""
 	var parentCore *domain.TaskGrantCoreV1
 	var inheritedViewBinding *pendingViewBinding
+	var issuedBy *issuerRecord
+	// memberSubject is set for a member-confirmed child (KB1-LOOP-148): a
+	// child task delegated to another person's principal under the Catalog's
+	// delegated_authorization block. The tree's human subject stays the
+	// parent's; the member is its approver and its eligibility subject.
+	memberSubject := ""
 	if args.ParentTaskID == "" {
 		if args.DelegatePrincipalID != "" {
 			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "delegate_principal_id 只能与 parent_task_id 一起使用"}
+		}
+		if issuance := args.issuance; issuance != nil {
+			// An issued authorization is the employee's task: their principal
+			// runs it, they are its human subject; the issuer approves first.
+			if err := s.issuerAuthority(principal, now); err != nil {
+				return nil, err
+			}
+			employee, err := s.issuedPrincipal(ctx, principal, issuance.ForPrincipalID)
+			if err != nil {
+				return nil, err
+			}
+			taskPrincipalID, humanSubject = employee.ID, employee.Subject
+			issuedBy = &issuerRecord{PrincipalID: principal.ID, Subject: principal.Subject}
 		}
 	} else {
 		parentTask, err := s.ownedTask(ctx, principal, args.ParentTaskID)
@@ -119,6 +248,9 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 		}
 		taskPrincipalID = delegate.ID
 		humanSubject = protocol.Core.HumanSubject
+		if s.delegated() != nil && strings.TrimSpace(args.DelegatePrincipalID) != "" && !strings.EqualFold(delegate.Subject, humanSubject) {
+			memberSubject = strings.ToLower(strings.TrimSpace(delegate.Subject))
+		}
 		rootTaskID = parentTask.RootTaskID
 		if rootTaskID == "" {
 			rootTaskID = parentTask.ID
@@ -129,14 +261,6 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	if err != nil {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
 	}
-	budgetSource := "catalog_profile"
-	if parentCore != nil {
-		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
-		if err != nil {
-			return nil, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "委托任务无法继承父任务的授权预算"}
-		}
-		budgetSource = "catalog_profile_intersect_parent_grant"
-	}
 	columns, err := resolveColumns(policy.Products, args.Columns)
 	if err != nil {
 		return nil, err
@@ -144,6 +268,161 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	scope, err := s.normalizeScopes(policy.Products, args.Scopes)
 	if err != nil {
 		return nil, err
+	}
+	// An ordered Catalog scope widens downward here, before anything reads the
+	// scope (scope_order.go): the route, the eligibility gate, delegation and
+	// the manifest all see the whole set.
+	scope, scopeClosure := s.closeOrderedScopes(scope)
+	// With GATEWAY_REUSE_COVERING_TASK on (the demo; reuse_task.go), a plain
+	// root request one of the requester's ACTIVE tasks already covers is
+	// answered with that task: no task row, no OA draft. Never a child, an
+	// issuance or a download task.
+	if s.reuseCoveringTask && args.ParentTaskID == "" && args.DelegatePrincipalID == "" && args.issuance == nil && len(reservedScope) == 0 {
+		reused, err := s.answerWithCoveringTask(ctx, principal, args, policy.Products, columns, scope, scopeClosure, now)
+		if err != nil {
+			return nil, err
+		}
+		if reused != nil {
+			return reused, nil
+		}
+	}
+	// The approval route may depend on the requested scope (a conditioned
+	// route sends, for example, leadership classification to a leadership
+	// approver), so it is resolved again once the scope is normalized; its
+	// budget replaces the scope-blind one.
+	if policy, err = s.catalog.ResolveTaskPolicyForScope(args.DataProducts, scopeValueSets(scope)); err != nil {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求的数据产品不符合目录策略"}
+	}
+	budgetSource := "catalog_profile"
+	profileChosen := false
+	if requested := strings.TrimSpace(args.BudgetProfile); requested != "" {
+		if s.delegated() == nil {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "budget_profile 只在目录启用 delegated_authorization 时可选；缺省按路由的预算档"}
+		}
+		if err := s.chooseBudgetProfile(&policy, requested); err != nil {
+			return nil, err
+		}
+		budgetSource, profileChosen = "requested_profile", true
+	}
+	if issuedBy != nil {
+		if err := s.applyIssuance(&policy, principal, scope, args.issuance, now); err != nil {
+			return nil, err
+		}
+		budgetSource, profileChosen = "issued_profile", true
+	}
+	if parentCore != nil {
+		policy.Budget, err = constrainDelegatedBudget(policy.Budget, *parentCore, now)
+		if err != nil {
+			return nil, &mcp.ToolError{Code: apierr.CodePolicyDenied, Message: "委托任务无法继承父任务的授权预算"}
+		}
+		budgetSource = "catalog_profile_intersect_parent_grant"
+	}
+	// Eligibility precedes approval: a request outside the envelope compiled
+	// from the human subject's attested attributes is rejected here and never
+	// becomes an OA draft. An approver can only narrow what passes this gate.
+	// A member-confirmed child is bounded by the member's attributes (and,
+	// through delegation, by its parent's grant).
+	eligibilitySubject := humanSubject
+	if memberSubject != "" {
+		eligibilitySubject = memberSubject
+	}
+	eligibility, err := s.compileEligibility(policy.Products, eligibilitySubject, scope, now)
+	if err != nil {
+		return nil, err
+	}
+	// The approver: the Catalog route's, or the requester's choice. A route's
+	// approver must be allowed before any draft exists (never the requester,
+	// and, when the route verifies, eligible for everything requested). A
+	// chosen approver is never the requester either, but is otherwise verified
+	// when the approval arrives: the approval flow runs and the grant is
+	// refused if they may not approve.
+	chosenApprover := strings.ToLower(strings.TrimSpace(args.Approver))
+	if chosenApprover != "" {
+		policy.ApprovalRoute.Approver = chosenApprover
+	}
+	var (
+		approverEligibility *eligibilityVerdict
+		approverAuthorized  *bool
+		chain               *pendingChain
+		chainSteps          []map[string]any
+	)
+	// Under the delegated-authorization model (KB1-LOOP-147/148, demo):
+	//   - a child delegated to another member is confirmed by that member;
+	//   - any other child is confirmed by the tree's own human subject when
+	//     child_self_confirm is on: the root was approved by someone else, the
+	//     child can only narrow it and shares its ledger;
+	//   - a root task asking only for the requester's own personal records,
+	//     or one whose whole chain the requester holds the authority for, is
+	//     self-service: the requester confirms it (approval_chain.go).
+	// An issued task never takes these paths: its issuer approves first.
+	delegated := s.delegated()
+	memberConfirm := parentCore != nil && memberSubject != ""
+	selfConfirm := parentCore != nil && !memberConfirm && s.childSelfConfirm()
+	selfService := parentCore == nil && issuedBy == nil && s.personalSelfService(policy.Products, humanSubject, scope, now)
+	switch {
+	case memberConfirm:
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, memberSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "成员确认的子任务由受托成员本人确认，不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = memberSubject
+		policy.ApprovalRoute.Chain = nil
+	case selfConfirm:
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, humanSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "本人确认的子任务不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = humanSubject
+		policy.ApprovalRoute.Chain = nil
+	case selfService:
+	case policy.ApprovalRoute.Chain != nil:
+		// An approval chain: TaskGate derives every step from the org chart
+		// and verifies each approver when they approve; a chosen approver
+		// replaces only the first step (approval_chain.go). An issued task's
+		// chain starts at the issuer's department, the data's owner.
+		origin := chainOrigin{DepartmentOf: humanSubject, Rules: delegated != nil && issuedBy == nil, Products: policy.Products}
+		if issuedBy != nil {
+			origin.DepartmentOf = issuedBy.Subject
+		}
+		planned, steps, self, chainErr := s.planApprovalChain(*policy.ApprovalRoute.Chain, humanSubject, origin, chosenApprover, scopeValueSets(scope), now)
+		if chainErr != nil {
+			return nil, chainErr
+		}
+		if self {
+			selfService = true
+			break
+		}
+		chain, chainSteps = &planned, steps
+		policy.ApprovalRoute.Approver, _ = steps[0]["approver"].(string)
+		if issuedBy != nil && !strings.EqualFold(policy.ApprovalRoute.Approver, principal.Subject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeApproverNotAuthorized,
+				Message: fmt.Sprintf("发单人 %s 不是数据所属部门的审批人（目录组织架构指定 %s）", principal.Subject, policy.ApprovalRoute.Approver)}
+		}
+		if chosenApprover != "" {
+			authorized, _ := steps[0]["approver_authorized"].(bool)
+			approverAuthorized = &authorized
+		}
+	default:
+		if approverEligibility, approverAuthorized, err = s.authorizeApprover(policy, humanSubject, scope, now, chosenApprover != ""); err != nil {
+			return nil, err
+		}
+	}
+	if selfService {
+		if chosenApprover != "" && !strings.EqualFold(chosenApprover, humanSubject) {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "该申请在申请人本人职权内（或只含本人记录），由申请人本人确认，不能指定其他审批人；不传 approver 即可"}
+		}
+		policy.ApprovalRoute.Approver = humanSubject
+		policy.ApprovalRoute.Chain = nil
+		selfConfirm = true
+	}
+	if len(reservedScope) > 0 {
+		if args.ParentTaskID != "" {
+			return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "下载任务不能是委托任务"}
+		}
+		for name, value := range reservedScope {
+			if _, collides := scope[name]; collides {
+				return nil, &mcp.ToolError{Code: apierr.CodeConflict, Message: "保留范围键与目录范围同名"}
+			}
+			scope[name] = value
+		}
 	}
 	evidence, err := s.datasourceEvidence(ctx, args.DataProducts)
 	if err != nil {
@@ -199,9 +478,25 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	if viewBinding != nil {
 		manifest.ViewBindingDigest = viewBinding.Digest
 	}
+	// Under agent_submits (KB1-LOOP-149) the agent submits the task for its
+	// human subject: the draft is created pending and the task awaits
+	// approval from its creation, so a person only approves.
+	agentSubmitted := s.agentSubmits()
+	initialState := control.TaskAwaitingSubmission
+	if agentSubmitted {
+		initialState = control.TaskAwaitingApproval
+	}
 	draftRequest := approval.DraftRequest{
 		Manifest:     manifest,
 		ApprovalMode: string(policy.ApprovalRoute.Mode), Approver: policy.ApprovalRoute.Approver,
+		MemberConfirm: memberConfirm, Submitted: agentSubmitted,
+	}
+	if issuedBy != nil {
+		draftRequest.IssuedBy = issuedBy.Subject
+	}
+	if parentCore != nil {
+		parentExpiry := parentCore.ExpiresAt
+		draftRequest.ParentExpiresAt = &parentExpiry
 	}
 	snapshotSHA256, err := approval.AuthorizationSnapshotSHA256(draftRequest)
 	if err != nil {
@@ -223,6 +518,14 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 		ApprovalMode: policy.ApprovalRoute.Mode,
 		Approver:     policy.ApprovalRoute.Approver, CallbackContext: correlation,
 		ViewBinding: clonePendingViewBinding(viewBinding),
+		Eligibility: eligibility, ApproverEligibility: approverEligibility,
+		VerifyApprover: selfConfirm || memberConfirm || (chain == nil && (policy.ApprovalRoute.VerifyApprover || chosenApprover != "")), ApproverChosen: chosenApprover != "",
+		Chain: chain, SelfConfirm: selfConfirm, MemberConfirm: memberConfirm, IssuedBy: issuedBy,
+		AgentSubmitted: agentSubmitted,
+	}
+	if delegated != nil {
+		// The project/day-task distinction list_my_tasks reports (KB1-LOOP-150).
+		pending.BudgetProfile, pending.BudgetProfileChosen = policy.BudgetProfile, profileChosen
 	}
 	pendingJSON, err := json.Marshal(persistedPendingContext{
 		pendingContext: pending, Manifest: manifest, ManifestDigest: snapshotSHA256,
@@ -234,18 +537,46 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	if err != nil {
 		return nil, err
 	}
+	if agentSubmitted && draft.State != "pending" {
+		// An OA that took the draft as unsubmitted would wait for a person to
+		// submit what TaskGate already treats as submitted.
+		return nil, apierr.Wrap(apierr.CodeApprovalUnavailable, "OA 未把 agent 代交的草稿建为待审批；任务未创建",
+			fmt.Errorf("draft %s state %q", draft.DraftID, draft.State))
+	}
 	if err := s.store.CreateTask(ctx, control.Task{
 		ID: taskID, PrincipalID: taskPrincipalID, Objective: args.Objective,
-		State: control.TaskAwaitingSubmission, CatalogVersion: s.catalog.CatalogVersion,
+		State: initialState, CatalogVersion: s.catalog.CatalogVersion,
 		Sensitivity:    string(policy.Sensitivity),
 		RequestContext: pendingJSON, ApprovalRef: draft.DraftID, CreatedAt: now, UpdatedAt: now,
 		RootTaskID: rootTaskID, ParentTaskID: args.ParentTaskID,
 	}); err != nil {
 		return nil, err
 	}
+	if issuedBy != nil {
+		payload, _ := json.Marshal(map[string]any{"human_subject": humanSubject, "for_principal_id": taskPrincipalID,
+			"issuer_subject": issuedBy.Subject, "budget_profile": policy.BudgetProfile})
+		if _, err := s.store.AppendAuditEvent(ctx, control.AuditEvent{TaskID: taskID, Actor: issuedBy.PrincipalID,
+			EventType: "TASK_ISSUED_FOR", OccurredAt: now, Payload: payload}); err != nil {
+			return nil, err
+		}
+	}
+	if agentSubmitted {
+		submission := map[string]any{"human_subject": humanSubject, "agent_id": taskPrincipalID, "draft_id": draft.DraftID,
+			"approver": policy.ApprovalRoute.Approver, "self_confirm": selfConfirm, "member_confirm": memberConfirm}
+		if issuedBy != nil {
+			submission["issuer_subject"] = issuedBy.Subject
+		}
+		payload, _ := json.Marshal(submission)
+		if _, err := s.store.AppendAuditEvent(ctx, control.AuditEvent{TaskID: taskID, Actor: principal.ID,
+			EventType: "TASK_SUBMITTED_BY_AGENT", OccurredAt: now, Payload: payload}); err != nil {
+			return nil, err
+		}
+	}
 	result := map[string]any{
-		"task_id": taskID, "state": control.TaskAwaitingSubmission, "oa_url": draft.URL,
+		"task_id": taskID, "state": initialState, "oa_url": draft.URL,
 		"approval_mode": string(policy.ApprovalRoute.Mode), "sensitivity": string(policy.Sensitivity),
+		"approver": policy.ApprovalRoute.Approver, "approval_route": publicApprovalRoute(policy.ApprovalRoute),
+		"approver_chosen_by_requester": chosenApprover != "", "approver_authorized": approverAuthorized,
 		"catalog_version": s.catalog.CatalogVersion, "datasource_id": evidence.DatasourceID,
 		"budget_source": budgetSource, "budget_profile": policy.BudgetProfile,
 		"schema_digest": evidence.SchemaDigest, "manifest_digest": snapshotSHA256,
@@ -262,6 +593,38 @@ func (s *Service) requestDataTask(ctx context.Context, principal mcp.Principal, 
 	if viewBinding != nil {
 		result["view_binding_digest"] = viewBinding.Digest
 	}
+	if chain != nil {
+		result["approval_chain"] = chainSteps
+	}
+	if selfConfirm {
+		result["self_confirm"] = true
+	}
+	if selfService {
+		result["self_service"] = true
+	}
+	if memberConfirm {
+		result["member_confirm"] = true
+	}
+	if issuedBy != nil {
+		result["issued_by"], result["human_subject"] = issuedBy.Subject, humanSubject
+	}
+	if len(reservedScope) == 0 {
+		if readiness := s.knowledgeReadiness(args.DataProducts, columns, policy.Budget.ExposureProfileVersion, "requested"); len(readiness) > 0 {
+			result["knowledge_readiness"] = readiness
+		}
+	}
+	if s.oaPublicBaseURL != "" && approval.DraftPageURL(s.oaPublicBaseURL, draft.DraftID) != draft.URL {
+		// get_task_status rebuilds the link from the configured base; a
+		// different OA link means the two configurations disagree.
+		s.logger.Warn("OA draft link differs from PUBLIC_OA_BASE_URL", "task_id", taskID, "oa_url", draft.URL)
+	}
+	if agentSubmitted {
+		result["agent_submitted"] = true
+	}
+	if len(scopeClosure) > 0 {
+		result["scope_closure"] = scopeClosure
+	}
+	mergeTaskFlow(result, s.taskFlow(control.Task{State: initialState, RequestContext: pendingJSON, ApprovalRef: draft.DraftID}))
 	return result, nil
 }
 
@@ -508,17 +871,42 @@ func (s *Service) listMyTasks(ctx context.Context, principal mcp.Principal, raw 
 	var args struct {
 		State  control.TaskState `json:"state,omitempty"`
 		Cursor string            `json:"cursor,omitempty"`
+		// RootTaskID and Kind exist only under the Catalog's
+		// delegated_authorization block (KB1-LOOP-150, list_tasks.go).
+		RootTaskID string `json:"root_task_id,omitempty"`
+		Kind       string `json:"kind,omitempty"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	tasks, err := s.store.ListTasks(ctx, control.TaskFilter{PrincipalID: principal.ID, State: args.State, AfterID: args.Cursor, Limit: 100})
+	delegated := s.delegated() != nil
+	if !delegated && (args.RootTaskID != "" || args.Kind != "") {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "root_task_id 与 kind 只在目录启用 delegated_authorization 时可用"}
+	}
+	if args.Kind != "" && !validTaskKind(args.Kind) {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "kind 只能是 project、task、child、authorization 或 root"}
+	}
+	tasks, err := s.store.ListTasks(ctx, control.TaskFilter{PrincipalID: principal.ID, State: args.State, AfterID: args.Cursor, Limit: 100,
+		RootTaskID: args.RootTaskID})
 	if err != nil {
 		return nil, err
 	}
 	items := make([]map[string]any, 0, len(tasks))
 	for _, task := range tasks {
-		items = append(items, publicTask(task))
+		if !delegated {
+			items = append(items, publicTask(task))
+			continue
+		}
+		// The kind filter applies within the page: next_cursor below still
+		// follows the unfiltered page, so a filtered page may be short or
+		// empty while more tasks remain.
+		item, kind, err := s.listedTask(ctx, task)
+		if err != nil {
+			return nil, err
+		}
+		if args.Kind == "" || kind == args.Kind {
+			items = append(items, item)
+		}
 	}
 	next := ""
 	if len(tasks) == 100 {
@@ -534,11 +922,12 @@ func (s *Service) getTaskStatus(ctx context.Context, principal mcp.Principal, ra
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	task, err := s.ownedTask(ctx, principal, args.TaskID)
+	task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 	if err != nil {
 		return nil, err
 	}
 	result := publicTask(task)
+	mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 	if status, statusErr := s.store.GetTaskViewBindingStatus(ctx, task.ID); statusErr == nil {
 		result["view_binding_status"] = publicViewBindingStatus(status)
 	} else if !errors.Is(statusErr, control.ErrNotFound) {
@@ -555,24 +944,25 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 	if err := decodeArgs(raw, &args); err != nil {
 		return nil, err
 	}
-	if args.TimeoutSeconds < 0 || args.TimeoutSeconds > 45 {
-		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "timeout_seconds 必须在 0 到 45 之间"}
+	if args.TimeoutSeconds < 0 || args.TimeoutSeconds > waitForApprovalMaxSeconds {
+		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: fmt.Sprintf("timeout_seconds 必须在 0 到 %d 之间", waitForApprovalMaxSeconds)}
 	}
 	if args.TimeoutSeconds == 0 {
-		args.TimeoutSeconds = 30
+		args.TimeoutSeconds = waitForApprovalDefaultSeconds
 	}
 	deadline := time.NewTimer(time.Duration(args.TimeoutSeconds) * time.Second)
 	defer deadline.Stop()
 	ticker := time.NewTicker(250 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		task, err := s.ownedTask(ctx, principal, args.TaskID)
+		task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 		if err != nil {
 			return nil, err
 		}
 		if task.State == control.TaskActive || task.State == control.TaskArchived {
 			result := publicTask(task)
 			result["timed_out"] = false
+			mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 			return result, nil
 		}
 		select {
@@ -581,6 +971,7 @@ func (s *Service) waitForApproval(ctx context.Context, principal mcp.Principal, 
 		case <-deadline.C:
 			result := publicTask(task)
 			result["timed_out"] = true
+			mergeTaskFlow(result, s.taskFlowFor(ctx, task))
 			return result, nil
 		case <-ticker.C:
 		}
@@ -626,6 +1017,11 @@ func (s *Service) getTaskContext(ctx context.Context, principal mcp.Principal, r
 		"schema_digest": grant.SchemaDigest, "view_binding_digest": grant.ViewBindingDigest,
 		"manifest_digest": finalGrant.Core.ManifestDigest, "task_grant": finalGrant,
 		"approval_receipt": finalGrant.ApprovalReceipt, "budget": publicBudget(budget),
+	}
+	if _, isDownload, listErr := downloadListOf(grant); listErr == nil && !isDownload {
+		if readiness := s.knowledgeReadiness(grant.ApprovedProducts, grant.ApprovedColumns, grant.Exposure.ProfileVersion, "approved"); len(readiness) > 0 {
+			result["knowledge_readiness"] = readiness
+		}
 	}
 	if grant.ViewBindingDigest != "" {
 		status, statusErr := s.store.GetTaskViewBindingStatus(ctx, task.ID)
@@ -764,7 +1160,7 @@ func (s *Service) revokeTask(ctx context.Context, principal mcp.Principal, raw j
 	if len(args.Reason) > 1000 {
 		return nil, &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "reason 过长"}
 	}
-	task, err := s.ownedTask(ctx, principal, args.TaskID)
+	task, err := s.issuedOrOwnedTask(ctx, principal, args.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -782,9 +1178,56 @@ func (s *Service) revokeTask(ctx context.Context, principal mcp.Principal, raw j
 	if err != nil {
 		return nil, err
 	}
+	s.notifyDraftWithdrawn(ctx, updated, control.TerminalRevoked, principal.Subject)
 	result := publicTask(updated)
 	result["in_flight_queries_cancelled"] = false
+	if task.ParentTaskID == "" {
+		cascaded, err := s.cascadeRevocation(ctx, task.ID, principal.Subject)
+		if err != nil {
+			return nil, err
+		}
+		result["cascaded_task_ids"] = cascaded
+	}
 	return result, nil
+}
+
+// cascadeRevocation archives every open descendant of a revoked root
+// (KB1-LOOP-147). It is bookkeeping, not the safety: a descendant of an
+// archived root is already refused at every use by ensureActiveTaskFamily,
+// so a descendant that changes state meanwhile is simply skipped.
+func (s *Service) cascadeRevocation(ctx context.Context, rootTaskID, actor string) ([]string, error) {
+	cascaded := []string{}
+	payload, _ := json.Marshal(map[string]any{"cascade_from": rootTaskID,
+		"in_flight_semantics": "not_cancelled; bounded by the approved timeout and grant expiry"})
+	afterID := ""
+	for {
+		page, err := s.store.ListTasks(ctx, control.TaskFilter{RootTaskID: rootTaskID, AfterID: afterID, Limit: 500})
+		if err != nil {
+			return nil, err
+		}
+		if len(page) == 0 {
+			return cascaded, nil
+		}
+		for _, descendant := range page {
+			afterID = descendant.ID
+			if descendant.ID == rootTaskID || descendant.State == control.TaskArchived {
+				continue
+			}
+			archived, err := s.store.TransitionTask(ctx, control.TaskTransition{
+				TaskID: descendant.ID, ExpectedFrom: descendant.State, To: control.TaskArchived,
+				Reason: control.TerminalRevoked, Actor: actor, Payload: payload,
+			})
+			switch {
+			case err == nil:
+				cascaded = append(cascaded, descendant.ID)
+				s.notifyDraftWithdrawn(ctx, archived, control.TerminalRevoked, actor)
+			case errors.Is(err, control.ErrInvalidStateChange), errors.Is(err, control.ErrConflict), errors.Is(err, control.ErrNotFound):
+				continue
+			default:
+				return nil, err
+			}
+		}
+	}
 }
 
 type persistedPendingContext struct {

@@ -129,11 +129,11 @@ export TASKBOUND_GATEWAY_TOKEN='<Alice Token>'
 codex
 ```
 
-MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 16 个普通任务/查询工具，Carol 只可见两个审计工具：
+MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 22 个工具（17 个任务/查询工具、3 个知识检索工具、2 个文档下载工具），Carol 只可见两个审计工具：
 
 | 身份 | 工具 |
 |---|---|
-| Alice | `list_data_products`、`describe_data_product`、`get_sql_capabilities`、`request_data_task`、`list_my_tasks`、`get_task_status`、`wait_for_approval`、`get_task_context`、`query_sql`、`get_query_result`、`preview_result`、`deliver_result`、`get_budget`、`list_receipts`、`complete_task`、`revoke_task` |
+| Alice | `list_data_products`、`describe_data_product`、`get_sql_capabilities`、`request_data_task`、`list_my_tasks`、`get_task_status`、`wait_for_approval`、`get_task_context`、`rebind_data_task`、`query_sql`、`get_query_result`、`preview_result`、`deliver_result`、`get_budget`、`list_receipts`、`complete_task`、`revoke_task`；知识检索 `search`、`fetch`、`aggregate`；下载 `request_download_task`、`download_document` |
 | Carol | `list_audit_events`、`get_audit_receipt` |
 
 `execute_plan` 保留给 SDK、内部测试、基准、调试和确定性工作流，不在普通 Alice `tools/list` 中默认列出。
@@ -156,6 +156,18 @@ MCP `serverInfo.version` 为 `2.1.0`。Alice 可见 16 个普通任务/查询工
 ```
 
 每个申请产品必须有非空字段列表；未知产品、字段、Scope 或越界值会被拒绝。
+
+对声明了 `eligibility` 的产品，Gateway 还会在建草稿之前用申请人的属性快照（`config/principal-attributes.yaml`，
+由 `PRINCIPAL_ATTRIBUTES_PATH` 挂载）编译"可申请范围"：资格条件不满足或 Scope 超出可申请范围时直接返回 `NOT_ELIGIBLE`，
+不建任务、不进审批队列。例如默认 Catalog 把 `expense_detail` 的 `department` 限定为申请人自己的部门；Alice 属于
+销售部，申请 `{"department": ["研发部"]}` 会被当场拒绝，而不是交给 Bob 决定（详见 catalog-guide 的 Eligibility 节）。
+
+除 Alice 与 Carol 外，部署可以用 `PRINCIPALS_PATH` 指向一份主体文件，增加更多 query 主体（例如资格实验需要的不同部门、
+不同 clearance 的申请人）。文件格式 `taskgate-principals-v1`：每项 `id`（`principal_` 开头）、`subject`、`role`（只能是
+`query`）、`token_sha256`（bearer token 的 SHA-256，小写十六进制）；文件里只有摘要，没有 token。Gateway 启动时像引导 Alice
+一样逐个引导，未知键、重复或与 Alice / Carol 冲突的 id、subject、token 摘要都使启动失败；已持久化的同 id 主体与文件不一致
+时同样拒启动。认证时网关对出示的 token 求 SHA-256，与文件里的摘要做常数时间比较。这些主体的属性仍写在
+`PRINCIPAL_ATTRIBUTES_PATH` 的快照里。
 Gateway 按产品的最高敏感级别选择 Catalog Profile，并把完整资源与三维
 exposure 上限写入审批 Manifest。Agent 不申请更小预算，也不因剩余额度获得收益；
 批准额度必须在被全部消耗时仍然满足企业安全政策。
@@ -227,6 +239,7 @@ route 都是人工审批。正常批准把完整 Catalog Profile 交给 Agent，
 
 ## 6. 预算、结果与审计
 
+- `list_my_tasks`：列出自己名下的任务（自己发起的任务，以及管理员为自己开的授权单），可按 `state` 过滤；每页最多 100 条，用 `next_cursor` 续读。
 - `get_task_context`：获批产品、字段、Scope、凭证与期限。
 - `get_budget`：查询数、累计行数和累计 DB 毫秒的上限、已用、预留和剩余值，并在 exposure 启用时返回根任务三维账本。
 - `get_query_result`：Alice 按 `task_id + query_id` 读取自己的 `result_id` 与结果摘要，不返回完整行。
@@ -266,3 +279,17 @@ docker compose down --volumes --remove-orphans
 | ACTIVE 任务目录版本冲突 | Catalog 版本已变化；重新申请新版本任务 |
 | OA 页面没有旧草稿 | OA Demo 为内存实现，重启不持久化草稿 |
 | Navicat 无法连接业务库 | 默认部署不发布该端口；仅调试时显式叠加 `compose.debug.yaml`，再使用 `127.0.0.1:25434` |
+
+## 知识产品（KB-1）
+
+1. 业务库使用 `pgvector/pgvector:pg16` 镜像；`db/init/30-kb-schema.sh` 在 pgvector 可用时安装 `kb.*` 表（扩展装在 `pg_catalog`）。
+2. 用 `kb-publish -spec <spec.json> -artifact-dir <snapshot artifact root>` 冻结一个 collection：写入 `kb.*`、建物化视图、编译三个
+   bundle，并在 `<root>/kb/<epoch>/` 留下清单与 `catalog-fragment.yaml`；嵌入模型为 `bge-m3` 时需 `KB_EMBEDDING_ENDPOINT` 指向
+   受信嵌入服务（`/model`、`/embed`），`KB_EMBEDDING_CACHE_DIR` 可选用于断点续算。
+3. `kb-publish -merge` 把片段并入 Catalog，按 docs/catalog-guide.md 的发布清单重编 snapshot-index、安装 sidecar、重算 `schema_digest`。
+4. Gateway 启动时激活知识发布物：三个 bundle 与其他 publication 一样放在 `GATEWAY_SNAPSHOT_ARTIFACT_DIR`，kb-publish 输出的
+   `<root>/kb` 目录单独挂给 `GATEWAY_KB_ARTIFACT_DIR`（snapshot 目录里多一项未声明条目即拒启动）；并按 Catalog 选择查询嵌入器
+   （`KB_EMBEDDING_ENDPOINT`，compose 默认为空：文本查询拒绝、向量查询可用）。业务库的 `KB_REQUIRE_PGVECTOR` 默认 0，
+   知识产品部署应设为 1，镜像缺 pgvector 时初始化即失败。
+5. 任务同时申请 chunks 与 documents 两个 Product（aggregate 申请 values），批准后用 `search` / `fetch` / `aggregate`；结算与回执
+   与 `execute_plan` 相同。端到端示例见 `internal/gateway/retrieval_postgres_test.go`（环境变量 `KB_E2E_*`）。

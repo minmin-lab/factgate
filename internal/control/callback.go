@@ -237,6 +237,16 @@ type ApprovalCallback struct {
 	Reason        TerminalReason
 	Grant         *TaskGrant
 	Response      []byte
+	// Step records one approval of an approval chain without changing the
+	// task's state (KB1-LOOP-141): ExpectedState and NewState are both
+	// AWAITING_APPROVAL, no grant or reason is carried, and the event is
+	// claimed, recorded and audited like any other callback.
+	Step bool
+	// ApprovedSteps, when set, is the number of approved or narrowed
+	// approval events the caller derived the chain position from. A different
+	// count under the task lock means another approval landed first, and the
+	// callback is refused rather than applied out of order.
+	ApprovedSteps *int
 }
 
 func (s *Store) ApplyApprovalCallback(ctx context.Context, callback ApprovalCallback) (claimResult CallbackClaim, resultErr error) {
@@ -259,6 +269,10 @@ func (s *Store) ApplyApprovalCallback(ctx context.Context, callback ApprovalCall
 	}
 	if callback.NewState == TaskActive && callback.Grant == nil {
 		return CallbackClaim{}, opErr(op, ErrInvalid, fmt.Errorf("active task requires a grant"))
+	}
+	if callback.Step && (callback.ExpectedState != TaskAwaitingApproval || callback.NewState != TaskAwaitingApproval ||
+		callback.Grant != nil || callback.Reason != "") {
+		return CallbackClaim{}, opErr(op, ErrInvalid, fmt.Errorf("an approval step keeps the task awaiting approval and carries no grant"))
 	}
 	if callback.Grant != nil && callback.Grant.TaskID != callback.Event.TaskID {
 		return CallbackClaim{}, opErr(op, ErrInvalid, fmt.Errorf("grant belongs to another task"))
@@ -304,8 +318,18 @@ func (s *Store) ApplyApprovalCallback(ctx context.Context, callback ApprovalCall
 	if callback.ExpectedState != "" && current != callback.ExpectedState {
 		return CallbackClaim{}, opErr(op, ErrInvalidStateChange, fmt.Errorf("expected %s, found %s", callback.ExpectedState, current))
 	}
-	if !allowedTransition(current, callback.NewState, callback.Reason) {
+	if !callback.Step && !allowedTransition(current, callback.NewState, callback.Reason) {
 		return CallbackClaim{}, opErr(op, ErrInvalidStateChange, fmt.Errorf("%s -> %s", current, callback.NewState))
+	}
+	if callback.ApprovedSteps != nil {
+		var approved int
+		if err := tx.QueryRowContext(ctx, `
+SELECT count(*) FROM approval_events WHERE task_id=$1 AND decision IN ('approved', 'narrowed')`, callback.Event.TaskID).Scan(&approved); err != nil {
+			return CallbackClaim{}, opErr(op, ErrConflict, err)
+		}
+		if approved != *callback.ApprovedSteps {
+			return CallbackClaim{}, opErr(op, ErrConflict, fmt.Errorf("approval chain moved: %d approvals recorded, %d expected", approved, *callback.ApprovedSteps))
+		}
 	}
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO approval_events(event_id, task_id, actor, decision, payload_json, created_at)
@@ -350,14 +374,22 @@ VALUES ($1, $2, $3, $4, $5, $6)`, callback.Event.EventID, callback.Event.TaskID,
 		}
 		expires = dbTime(grant.ExpiresAt)
 	}
-	_, err = tx.ExecContext(ctx, `
+	if callback.Step {
+		_, err = tx.ExecContext(ctx, `UPDATE tasks SET updated_at=$1 WHERE id=$2`, dbTime(now), callback.Event.TaskID)
+	} else {
+		_, err = tx.ExecContext(ctx, `
 UPDATE tasks SET state=$1, terminal_reason=$2, updated_at=$3, expires_at=COALESCE($4, expires_at) WHERE id=$5`,
-		callback.NewState, callback.Reason, dbTime(now), expires, callback.Event.TaskID)
+			callback.NewState, callback.Reason, dbTime(now), expires, callback.Event.TaskID)
+	}
 	if err != nil {
 		return CallbackClaim{}, opErr(op, ErrConflict, err)
 	}
+	eventType := "APPROVAL_CALLBACK_APPLIED"
+	if callback.Step {
+		eventType = "APPROVAL_STEP_APPLIED"
+	}
 	_, err = appendAuditTx(ctx, tx, AuditEvent{
-		TaskID: callback.Event.TaskID, Actor: callback.Event.Actor, EventType: "APPROVAL_CALLBACK_APPLIED", OccurredAt: now,
+		TaskID: callback.Event.TaskID, Actor: callback.Event.Actor, EventType: eventType, OccurredAt: now,
 		Payload: approvalCallbackAuditPayload(callback, current),
 	})
 	if err != nil {

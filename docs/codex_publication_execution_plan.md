@@ -1749,3 +1749,1324 @@ contract SQL executability gate 会误用已含 `final_v5_benchmark` schema 的 
 - P10-R2-LOOP-53 更正（2026-10-15 22:38 UTC+8）：上一条第 0 页是检测脚本大小写错误；主稿 §Knowledge Products 实际在第 8 页起（IEEEtran 标题为大写）。
 - P10-R2-LOOP-54（2026-10-15 22:41 UTC+8）：**作者决策（影响发表时间线）："先不投，全部改完了再投"——我的理解：知识产品路径要做完代码与实验、论文从"定义"升级为"实现并评估"后再投 TKDE；页数问题随之推迟。** 随之而来的硬问题【读代码】：paper/tkde/generate_evidence.py 的 final 模式要求 V5_MEASURED_PATHS（含 cmd/ internal/ config/ db/ 与生成器自身）与封印提交 faf4d095 字节一致；任何知识产品代码都会让 make paper-final-check 失败。可行路径：封印 V5 证据保持绑定 faf4d095 并以 draft 模式（祖先校验）验证，知识产品实验作为第二套证据由 generate_p10_evidence.py 风格的后封印生成器绑定其自己的提交并做严格校验；论文可复现性声明从"一个提交"改为"两个证据锚点"。这属于指标口径与证据声明，需作者认可。执行顺序：阶段 1 资格先于审批 → 阶段 2 知识产品 Catalog 类型与索引发布编译器（pgvector）→ 阶段 3 search/fetch/aggregate 与检索降级器 → 阶段 4 合成 1 万文档语料与自适应抽取对照实验 → 论文升级。代码在新分支 kb-dev 上做，p10-r2 保持可过 final 检查。
 - P10-R2-LOOP-55（2026-10-15 22:46 UTC+8）：**作者指示：先做计划，作者看过再 /loop 启动；开新分支。** 已建分支 kb-dev（自 p10-r2 468f87c），计划 docs/kb_extension_plan.md（阶段 1 资格先于审批 → 2 知识产品类型与索引发布编译器 → 3 检索工具与结算 → 4 三组实验 E-KB1/2/3 → 5 投稿前；证据政策：两个锚点、kb-pilot 类名、封印件不动），任务词写入 docs/agents/loop-prompt.md "KB-1 任务词"。阶段 1 已开工的部分（catalog eligibility 类型与校验、NOT_ELIGIBLE 码、internal/principalattr 包）以 WIP 提交在 kb-dev，go build ./... 通过，尚未接入网关、无测试；等作者审阅计划后由 loop 继续。p10-r2 自此不再承载代码改动。
+- KB1-LOOP-1（2026-10-15 22:58 UTC+8）：**KB-1 loop 首次唤醒（作者审阅计划后启动）。体检【实跑】**：kb-dev 树净 HEAD dbdbc79，WSL/NAS/origin 三处 kb-dev 同指；NAS 工作树检出的是 tkde-review-revisions（3327996），只做 ref ff 不动其检出；/ 可用 557G、内存 available 20.7G；无残留 nohup/看守进程；本地 demo 栈（taskbound-agent-data-gateway 五容器 + fnt-oa）在跑但无时延测试进程。**复核 WIP 3c60d19【实跑】**：go build ./... rc=0、go vet catalog+principalattr rc=0、go test ./internal/catalog rc=0（既有用例；eligibility 与 principalattr 尚无用例，LOOP-55 自述属实）。**K1.1/K1.2 设计要点**：eligibility 只允许 require（属性 any_of 条件，全部成立）与 scope_envelope（仅对本产品 mandatory 的 enum scope，取申请人属性值为可申请集合，widen_if 成立时放开到 Catalog allowed_values）；两者至少一项；属性名 identifier 规则与 Catalog 一致；值须规范 token；未知字段靠既有 KnownFields 严格解码拒绝。principalattr 快照：版本常量 taskgate-principal-attributes-v1，subject 唯一，standing attributes + 带 RFC3339 窗口的 grants（窗口 [from, until)，空窗口拒绝），摘要为规范 JSON（subject/属性名/值排序，grants 保序）的 sha256，Values(subject, attr, now) 返回 standing ∪ 有效 grants 去重排序。本唤醒先补两包测试再进 K1.3。
+- KB1-LOOP-2（2026-10-15 23:01 UTC+8）：**K1.1、K1.2 DONE【实跑】。** 新增 internal/catalog/eligibility_test.go（有效声明解析 + 摘要随 eligibility 变化；10 类无效声明拒绝：空声明、大写属性名、空/重复/非规范 any_of、包络指向非 mandatory scope / 未知 scope / 非 enum scope、from_attribute 非法、widen_if 非法、未知字段被 KnownFields 拒）与 internal/principalattr/principalattr_test.go（解析、Known、摘要在 subject/属性/值重排下稳定且在增值/改窗口时变化、grants 窗口 [from,until) 六个边界点含非 UTC 时刻、14 类无效快照、Load）。go test ./internal/catalog ./internal/principalattr rc=0，-v 计数 Eligibility 子用例 PASS 13、principalattr PASS 19；gofmt -l 空。首版测试夹具 anchor 命中了 expense_summary（两产品尾部行相同），改为锚定顶层 scopes: 边界后通过——记为夹具错误非代码错误。
+- KB1-LOOP-3（2026-10-15 23:07 UTC+8）：**K1.3/K1.4 设计要点（合并实现、分别验收；拆分属执行顺序自决）。** 位置：requestDataTask 在 normalizeScopes 之后、datasourceEvidence 与 OA 草稿之前编译资格；被拒即返回 NOT_ELIGIBLE，不建草稿、不落任务。主体：按 humanSubject 评估——根任务是 principal.Subject，委托任务是父 Grant 的 HumanSubject（委托人），委托目标 agent 的属性不参与。语义：只对声明了 eligibility 的产品评估；require 每条须 Values(subject, attr, now) ∩ any_of ≠ ∅；scope_envelope 的可申请集 = widen_if 任一成立时取 Catalog allowed_values，否则取申请人 from_attribute 的当前值（含有效期内临时授权）；申请值须为其子集。失败关闭：快照未配置、申请人不在快照、必需 scope 缺失均为 NOT_ELIGIBLE；New() 在 Catalog 有 eligibility 而未配置快照时拒绝启动。落盘：pendingContext 新增 eligibility（版本 taskgate-eligibility-v1、快照 sha256、subject、evaluated_at、逐产品 require 命中值与各 scope 的 source=attribute|widened、admissible、requested），签名 manifest 不改版本不加字段；旧任务记录该字段缺失仍可解码（omitempty 指针）。拒绝消息只点名产品与 scope，不回显属性值。测试在独立 postgres:16 容器 kb-test-postgres（127.0.0.1:25500）上跑，基线 TestRequestDataTask* 两例先行 PASS。
+- KB1-LOOP-4（2026-10-15 23:12 UTC+8）：**K1.3、K1.4 DONE【实跑】。** 新文件 internal/gateway/eligibility.go（compileEligibility、verdict 记录、catalogDeclaresEligibility）；service.go 增 Config.PrincipalAttributes 与 New() 的失败关闭检查、pendingContext.Eligibility；tasks.go 在 normalizeScopes 后调用并把 verdict 写入 pending；harness_test.go 增 newGatewayHarnessWithOptions（rewriteCatalog、principalAttributes）。测试 internal/gateway/eligibility_test.go 九例：包络内通过且 verdict 可从任务记录解码（版本/快照摘要/subject/时刻/逐产品 require 命中与 envelope source=attribute）、require 不满足拒绝且不回显属性值、范围超出（含部分超出）拒绝、widen_if 放宽（source=widened、admissible=全部允许值）、临时授权窗口 [12:10,12:20) 三点（前/内/到期）、委托按委托人属性（父 Grant 含 销售部 仍在窗口外被拒、窗口内通过且 verdict.Subject=alice）、未知主体失败关闭、New() 拒绝无快照、旧 pending 记录无该字段仍可解码；被拒路径断言 OA 草稿 0、任务 0。~/logs/kb1/gateway-tests-20261015-231023.log：go test -count=1 gateway/catalog/principalattr/control 全部 ok，GATEWAY_TESTS_EXIT=0。首版委托用例把授权窗口放在 13:00 而父 Grant TTL 30 分钟 12:30 到期，报 CONFLICT——是用例时间线错误非实现错误，窗口改到 12:10–12:20 后通过。
+- KB1-LOOP-5（2026-10-15 23:18 UTC+8）：**K1.5/K1.6 设计要点与前置实测。** 前置【实跑】：隔离 worktree 探针 ~/logs/kb1/probe-catalog-eligibility-20261015-231446.log——对 config/catalog.yaml 的 expense_detail 注入 eligibility 后，finalv5publication/finalv5binding/finalv5profile/finalv5contracts/experiment/final-v5-adapter/catalog 七包 go test 基线 EXIT=0、注入后 EXIT=0，故 demo catalog 可按计划改而不破坏评测包（注意【读代码】finalv5publication/catalog.go:214 把 base 产品整体并入生成的 profile catalog，因此 eligibility 会随之进入 K4 的研究 catalog，compose 已固定挂载快照，kb-pilot 部署无需额外步骤）。设计：config/principal-attributes.yaml（alice 销售部/finance，carol 审计部/audit）；cmd/gateway 读可选 PRINCIPAL_ATTRIBUTES_PATH，Catalog 声明资格而未配置时由 New() 拒启；compose.yaml 固定挂载 ${TASKGATE_PRINCIPAL_ATTRIBUTES:-./config/principal-attributes.yaml} 并设环境变量；demo catalog expense_detail：require job_family∈{hr,finance,finance_controller}，department 包络取申请人部门、finance_controller 放宽；既有 alice/销售部 流程不变。integration-test.sh 新增例：alice 申请 研发部 明细 → isError、NOT_ELIGIBLE、无 task_id/oa_url。文档：catalog-guide 新节 Eligibility、getting-started §4 一段、threat-model 新增威胁行。gateway 默认测试夹具在 Catalog 声明资格时自动加载仓库快照。**验收替代**：scripts/integration-test.sh 全量 compose 门会编译含 snapshot-index-scale-e7（mem_limit 24g）的全部发布物，本机 30 GB 且 demo 栈在跑，与 environment.md 2026-10-15 记录的整机重启候选原因同类，且 pilot raw 目录缺失使 declared-skip 审计前景未知；本唤醒以 (a) 改后 catalog 的 gateway/catalog/cmd/评测三包 go test、(b) 在运行中的 demo 栈只重建 gateway 容器后用 alice 令牌实测 NOT_ELIGIBLE 与 销售部 仍可建草稿 作为 K1.5 验收，全量 integration-test.sh 留待作者可接受停 demo 栈的窗口，记入 handoff。
+- KB1-LOOP-6（2026-10-15 23:22 UTC+8）：**K1.5、K1.6 DONE（验收按 LOOP-5 替代口径）【实跑】。** 改动：config/principal-attributes.yaml 新建；cmd/gateway/main.go 读 PRINCIPAL_ATTRIBUTES_PATH；compose.yaml 环境变量 + 挂载；config/catalog.yaml expense_detail 加 eligibility；scripts/integration-test.sh 新增 NOT_ELIGIBLE 例（sh -n 通过，未全量运行）；docs catalog-guide 新节 Eligibility、getting-started §4、threat-model 新行、architecture.md 步骤 3、README 步骤 2；gateway 默认夹具自动加载仓库快照，eligibility_test 改为直接使用 demo catalog 规则并断言其形状。证据：~/logs/kb1/gateway-tests-2-20261015-231914.log：gateway/catalog/principalattr/cmd/gateway/finalv5publication/finalv5binding/finalv5profile 全 ok，GATEWAY_TESTS_EXIT=0；~/logs/kb1/build-gateway-image-*.log GATEWAY_BUILD_EXIT=0；demo 栈只重建 gateway 容器（--no-deps --no-build），容器日志 "principal attribute snapshot loaded" sha256=31f04275…（2 subjects）；~/logs/kb1/live-check.sh 以 alice 实测：研发部 明细 → isError true、code NOT_ELIGIBLE、无 task_id/oa_url；销售部 明细 → approval_mode manual、detail-manual-v5 草稿正常建立（该任务留在 demo 栈 AWAITING_SUBMISSION，无副作用）。中间一次失败（gateway-tests-2-…-231749.log 八例）根因=测试夹具向已含 eligibility 的 catalog 再注入一块导致 YAML 重复键，属夹具与 demo catalog 改动的次序问题，非实现错误。阶段 1 全部 DONE。
+- KB1-LOOP-7（2026-10-15 23:27 UTC+8）：**K2.1 设计记录 docs/kb-design.md 已写，标 BLOCKED 待作者审阅。** 核心设计【设计选择】：把知识产品冻结为 documents/chunks/extracted_values 三张关系，用现有 V4 snapshot publication 编译器发布成三个 Product，Fact 身份直接复用 V2 base-row/base-cell 与 V5 atom/composite 构造器（ϖ 仍 taskgate-exposure-v5，以 ν 区分，不开新哈希域），search/fetch/aggregate 是降级器，结算/重放/回执/委托走现有路径；aggregate 即对 values Product 的现有 query_sql。索引发布期为捆绑三个 publication 与 segmentation/embedding/extraction_rules 摘要的清单 taskgate-kb-publication-v1。待作者裁决六点（§9）：复用 V4 publication；Dependency 是否计分块行 Fact（推荐按通用代数发出并重算论文纸面例子）；集合级 f_val 是否进 KB-1；嵌入模型用确定性本地模型还是真实模型（推荐前者）；f_gen 不在范围；五个新拒绝码命名。实测前置：pgvector/pgvector:pg16 镜像已拉取（~/logs/kb1/pull-pgvector.log PULL_EXIT=0）。转做不依赖裁决的 K2.2（表与只读角色，按设计默认）与 K2.5（语料生成器）。
+- KB1-LOOP-8（2026-10-15 23:30 UTC+8）：**K2.2 设计要点。** 业务库新增 schema kb：collections、labels（标签词表）、documents（PK collection/doc_id/version，含 department/classification/job_role/labels/valid_from/valid_until/content_sha256/chunk_count/body）、chunks（PK +chunk_index，text/text_sha256/embedding vector/块级 department/classification/job_role/labels/valid_until——块级密级允许"领导层专属章节"）、extracted_values（PK +field，value_type∈{text,numeric,integer,bigint,date}、canonical_value）；gateway_reader 只读 USAGE+SELECT（search 需读 embedding，故授在 kb.* 表而非仅 reporting 视图）；kb-publish 用管理员 DSN 写入并建 reporting 视图（K2.3）。pgvector：compose.yaml business-postgres 镜像改 pgvector/pgvector:pg16 并设 KB_REQUIRE_PGVECTOR=1；db/init/30-kb-schema.sh 在 pg_available_extensions 无 vector 且未要求时打印跳过（db-test-env 叠加的 observer-v3 仍钉 plain postgres@sha256，须可跳过），要求时失败关闭；SQL 本体放 db/init/kb-schema.psql（entrypoint 不自动执行 .psql，脚本与 Go 测试共用同一文件）。测试 internal/kbschema：对独立 pgvector 容器 kb-test-pgvector（127.0.0.1:25501）建临时库应用 SQL，断言扩展、五表、主键/外键、embedding 列类型、索引、gateway_reader 的 SELECT 有/INSERT 无。
+- KB1-LOOP-9（2026-10-15 23:32 UTC+8）：**K2.2 DONE【实跑】。** 文件：db/init/kb-schema.psql、db/init/30-kb-schema.sh（755）、compose.yaml business-postgres 镜像 pgvector/pgvector:pg16 + KB_REQUIRE_PGVECTOR=1、internal/kbschema/{doc.go,schema_test.go}、kb-design.md §7 同步。证据：go test ./internal/kbschema（KB_TEST_POSTGRES_DSN=独立容器 kb-test-pgvector）两例 PASS（扩展/五表/主键/4 外键/3 索引/gateway_reader SELECT 有 INSERT·UPDATE·DELETE 无/PUBLIC 无 USAGE；外键·CHECK·重复键拒绝；向量自距离 0）；真实脚本三路径：pgvector 容器新库 KB_REQUIRE_PGVECTOR=1 → 安装成功 exit 0 且 kb 五表存在；plain postgres:16 容器未要求 → 打印跳过 exit 0；plain 容器要求 → exit 1。【读代码】final-v5-dbtest-report 只记录镜像名不做白名单，换镜像不影响其审计。注意：运行中的 demo 栈 business-pg-data 卷已初始化，entrypoint 不会重跑 db/init，kb schema 要到卷重建时才进入 demo 栈（K2.3 实测时另起栈或手工 psql 应用）。
+- KB1-LOOP-10（2026-10-15 23:34 UTC+8）：**K2.5 设计要点（不依赖 K2.1 裁决）。** 包 evaluation/kbcorpus + 命令 evaluation/cmd/kb-corpus：确定性 PRNG（math/rand/v2 PCG，seed 入清单），Spec 固定 12 部门、5 岗位（staff/manager/director/executive/hr）、4 密级（public/internal/confidential/leadership）、自定义标签词表、4 文档类型（contract/approval/policy/report）各带前言区（front-matter）可抽取字段（contract: contract_no/amount/counterparty/signed_on；approval: approval_no/approved_amount/applicant_no/approved_on；policy: policy_no/effective_on；report: period/headline_metric）；正文按节组织，节级密级允许 leadership（领导层专属章节，约 10% 文档含一节，约 5% 文档整体 leadership）；约 5% 文档有第 2 版本（文档版本 Fact）；输出 documents.jsonl（每行一文档的规范 JSON）+ manifest.json（taskgate-kb-corpus-v1：seed、spec 摘要、计数、documents_sha256）。冻结 = 提交 manifest（digest 绑定），JSONL 不入库（按既有 raw 约定），生成后镜像 NAS 并核 sha256。测试：两次生成同摘要；计数与词表；每文档 ≥1 节；leadership 节存在；前言字段可解析；已提交清单的 seed 重生成后摘要一致（防冻结漂移）。切分函数留给 K2.3：section-window-v1（先按节切、节内按 ≤800 字符窗口，块密级=节密级）。
+- KB1-LOOP-11（2026-10-15 23:38 UTC+8）：**K2.5 DONE【实跑】：语料已冻结并 digest 绑定。** evaluation/kbcorpus（生成器、前言区/节解析器、JSONL 编解码、清单）+ evaluation/cmd/kb-corpus；冻结件 evaluation/kbcorpus/manifest-v1.json：seed 20261015、documents 10000、versions 10469、sections 48183、leadership_sections 3583、by_type 2549/2706/2585/2629（approval/contract/policy/report）、by_classification public 2028 / internal 5279 / confidential 2591 / leadership 571、12 部门各 826–913、documents_sha256 2944399d9fafc1d4933d3168622793e97fe64743cffdf3f181284fe232d428d8（54,629,745 B）。生成 0.56 s。go test ./evaluation/kbcorpus 四例 PASS（确定性+不同 seed 不同、词表/计数/前言与节往返/领导层节/第二版本约 5%、冻结清单重生成摘要一致、解析器拒绝畸形）。raw/ 已加 .gitignore（git check-ignore 命中），仓库根无二进制。NAS 镜像 ~/logs/kb1/mirror-kb-corpus.sh 后台进行中（目标 /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v1/，FINAL_VERIFY 行另记）。
+- KB1-LOOP-12（2026-10-15 23:38 UTC+8）：语料 NAS 镜像完成【实跑】：/mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v1/{documents.jsonl,manifest.json}，NAS 侧 sha256 = 本地 = 2944399d…（~/logs/kb1/mirror-kb-corpus.log FINAL_VERIFY=OK）。
+- KB1-LOOP-13（2026-10-15 23:41 UTC+8）：**K2.3 设计要点（按 kb-design 默认，K2.1 裁决未变更前提下）。** 库 internal/kbpublish + 命令 cmd/kb-publish。输入 publish spec（知识产品名、collection、source_id/catalog_source、source_namespace ν、epoch、语料 JSONL 路径与期望 sha256（绑定冻结清单）、segmentation section-window-v1 窗口 800、embedding hash-projection-v1 维度 256（确定性特征哈希 + L2 归一，无外部模型）、extraction_rules（source=frontmatter）、可选文档上限）。步骤：ingest → 切块（节内按句边界开窗，块密级=节密级）→ 抽取 → 嵌入 → 管理员事务写 kb.*（collection 已存在即拒绝：发布期不可变）→ 建三个 reporting 物化视图（owner taskgate_snapshot_owner，gateway_reader SELECT；embedding 与 body 不进视图）→ 以 gateway_reader DSN 调用现有 snapshotbundle.ScanPostgresSnapshot + CompileOwnedToDirectory 编译三个 V4 bundle → 写 taskgate-kb-publication-v1 清单（三 bundle manifest_digest + 切分/嵌入/抽取规则摘要 + 语料 sha256 + 计数，manifest_digest 为其规范 JSON sha256）、带 expected_digests 的三个 compiler input（供 snapshot-index/sidecar-install 服务）、Catalog 片段 YAML（供 K2.4）。verify 子命令：按清单重扫重编译并比对全部摘要。实测约束【读代码】：扫描端要求 reporting 下已填充物化视图、NOLOGIN owner、扫描角色非管理员且只读、reporting.datasource_attestation 与 source_id 一致；sidecar 安装器首装即封印发布集合，kb 发布物须与其他发布物同批安装（部署顺序：init → kb-publish → snapshot-index → sidecar-install），demo 栈需重建卷才能承载，本唤醒不动在跑 demo 栈。验收：同输入两次发布（两个 scratch 库）清单摘要一致；篡改一块（改 kb.chunks 文本并 REFRESH 物化视图）后 verify 失败且摘要不同。
+- KB1-LOOP-14（2026-10-15 23:52 UTC+8）：**K2.3 DONE【实跑】。** 新增 internal/kbpublish（spec.go/prepare.go/publish.go + 测试）与 cmd/kb-publish；kb-schema.psql 的 extracted_values 增 value_text/value_numeric/value_date 三列（CHECK 按 value_type 恰一列非空）——原因：值 Product 需要类型化单元格供 Fact 身份与聚合，exposure 规范编码串（n:/d:/s: 前缀）不能当数值用；kbschema 测试同步。go test ./internal/kbschema ./internal/kbpublish 全 PASS（单元：切分窗口与节级密级继承、超长句不切、嵌入确定性/归一、抽取规范化、spec 校验 11 类；集成：40 文档在两个 scratch 库发布清单摘要一致、gateway_reader 可读视图且视图无 embedding、向量维度 64、视图 owner 正确、verify 通过、重复发布被拒、篡改一块并 REFRESH 后 verify 报 chunks 摘要不符）。**全量 E2E**（~/logs/kb1/e2e-publish/）：冻结语料 10000 文档经 CLI 发布到 scratch 库 kbe2e：versions 10469、chunks 48183、leadership_chunks 3583、values 15881，36.9 s、峰值 RSS 2.1 GB、三 bundle 共 981 MB，manifest_digest 9119bce78e2c1fd81f2aa3e856a65ee0a52824a084c2afd4b7a88cc752072815；真实 cmd/snapshot-sidecar-install 安装三 kb bundle 成功（sidecar 行数 10469/48183/15881）；kb-publish -verify rc=0；同 spec 发布到第二个新库 kbe2e2 清单摘要与三个 bundle manifest_digest 逐项相同。中间两处失败均为实现/测试缺陷已修：labels 空切片被发成 NULL（改为空数组）；REFRESH 以视图 owner 身份执行而 owner 无 kb.* SELECT（测试中以超级用户先授权再篡改，生产不授权）。bundle 布局首版按 kind 分目录与安装器期望不符，改为同一 artifact 根。
+- KB1-LOOP-15（2026-10-15 23:57 UTC+8）：**K2.4 设计要点。** Catalog 顶层新增 knowledge_products[]（name/description/sensitivity/collection/source_namespace/products{documents,chunks,values}/index_publication/document_types/attributes[]{name,type,scope?,allowed_values?}/segmentation/embedding/extraction_rules/retrieval{k_max,exact,aggregates,generation_admitted}/scopes/eligibility）与 kb_publications[]（epoch/knowledge_product/manifest_digest/segmentation_digest/embedding_digest/extraction_rules_digest）。校验：三个产品存在且为 snapshot_publication 产品、fact_namespace = ν.kind、snapshot = epoch；attributes 名唯一、带 scope 的属性其 scope 必须是本知识产品的强制 scope 且为 enum Catalog scope；强制 scopes 非空且是三个产品共同的强制 scope；extraction_rules 的 document_type ∈ document_types、类型白名单、(type,field) 唯一；retrieval.aggregates ⊆ {count,sum,min,max}、k_max 1..1000；kb_publications epoch 唯一且与 index_publication 互相对应；segmentation/embedding/extraction_rules 三个摘要必须等于对声明本体规范 JSON 的 sha256（Catalog 内自洽，不读文件）；eligibility 复用阶段 1 校验器（按知识产品的强制 scopes）。激活：cmd/gateway 在 snapshot registry 之后读 $GATEWAY_SNAPSHOT_ARTIFACT_DIR/kb/<epoch>/kb-publication.json，核清单摘要 = kb_publications 声明、知识产品/epoch/ν/collection 一致、三个 bundle 的 product/publication/relation/sidecar/manifest+dictionary+sidecar digest 与 Catalog 的 products/snapshot_publications 逐项相等、三个声明摘要相等；任一失败即 exit 1。kb-publish 改为 -artifact-dir：bundle 落 <dir>/<publication>/，清单等落 <dir>/kb/<epoch>/；视图把 department 列别名为 kb_department（避开 demo 的中文 department scope），classification 作第二强制 scope（领导层章节由 clearance 包络挡住）；片段补 collation、scopes、knowledge_products 全部字段。【读代码】网关加载器刻意不把 bundle 内嵌 schema digest 与 Source.schema_digest 比较（docs/final_v5_c15_attestation_separation.md），故 spec.schema_digest 只是构建记录。demo catalog 暂不并入 kb 块（在跑的 demo 栈无 kb 视图，并入即 schema drift），留到 K3.3 与 compose 一次性接入。
+- KB1-LOOP-16（2026-10-16 00:08 UTC+8）：**K2.4 DONE【实跑】。** Catalog：internal/catalog/{types.go,knowledge.go,merge.go} 新增 knowledge_products/kb_publications 类型、校验（见 LOOP-15 规则）、CanonicalDeclarationDigest、MergeYAMLFragment（只追加顶层序列）；validateEligibility 改为按强制 scope 列表复用。测试 internal/catalog/knowledge_test.go：片段并入 config/catalog.yaml 后解析通过；16 类非法声明被拒（缺产品、命名空间不符、snapshot≠epoch、values 缺类型化列、属性 scope 非强制、强制 scope 无属性、聚合越界、generation_admitted、抽取规则类型未声明、切分摘要漂移、epoch 缺失、epoch 绑错产品、摘要格式、scope 非 enum、资格包络指向非 scope、未知字段）。激活：internal/kbpublish/activate.go（LoadManifest 自摘要、VerifyCatalogBinding 逐项比对、ActivateFromDirectory 读 <dir>/kb/<epoch>/kb-publication.json）+ cmd/gateway/kb_activation.go 在 snapshot registry 之后调用，失败 exit 1；测试：绑定通过与 7 类漂移拒绝、目录缺清单/清单被改一字节/空目录均拒、无知识产品的 Catalog 平凡通过、cmd/gateway 钩子失败关闭。发布端：视图把 department 别名 kb_department，spec 增 description/sensitivity/document_types/retrieval，清单增 document_types/retrieval/collation/vocabulary，片段改为完整可校验形态（两个 enum scope、三发布物、三产品含 collation、knowledge_products 全字段、kb_publications 摘要用 Catalog 同一函数算），kb-publish 增 -artifact-dir（bundle 落 <root>/<publication>/、清单落 <root>/kb/<epoch>/）、-merge（并入并校验）、-activate（跑网关同一激活检查）。集成测试新增：真实片段并入仓库 Catalog 解析通过并绑定到刚发布的清单；artifact 布局发布摘要不变且 ActivateFromDirectory 通过。**全量 E2E【实跑】**（scratch 库 kbe2e3，~/logs/kb1/e2e-publish/artifacts）：10000 文档发布 manifest_digest bc12a22a…（与 LOOP-14 的 9119bce7… 不同是因为清单新增字段与列名改 kb_department，两次均自洽）；-merge 产出 candidate-catalog.yaml（knowledge_products=1，sha256 ff4afe6d…）；-activate 通过，对错误目录 exit 1；真实 sidecar-install 安装三 bundle；-verify rc=0。回归 ~/logs/kb1/gateway-tests-3-*.log：gateway/catalog/principalattr/kbschema/kbpublish/kbcorpus/cmd/gateway/三评测包全 ok，GATEWAY_TESTS_EXIT=0。文档：catalog-guide 新节 "Knowledge Products（KB-1）"、kb-design §3 实现备注。阶段 2 除 K2.1（待作者）外全部 DONE。
+- KB1-LOOP-17（2026-10-16 00:12 UTC+8）：**K3.1 设计要点 + 一项新的作者裁决点。** 【读代码】执行侧：query_sql/execute_plan 全走 physicalquery.Prepare → PreparedOperation（密封绑定 + 编译器身份，finalizer 复算），executeSQL 以它为锚做预留/派生/结算/回执；检索若要"现有结算、重放、回执、委托原样通过"（K3.3 验收），最省事且与论文一致的做法是在 physicalquery 增同纪律的 PrepareRetrieval（方案 A），替代方案 B 为独立小管线。此为核心架构取舍，已写入 kb-design §9 第 7 点请作者裁决；K3.1 规范形与裁决无关，先做。K3.1：新包 internal/retrieval——Request（search/fetch/aggregate，严格解码）→ Normalize(知识产品声明, 任务强制范围) → NormalForm：原子 (attribute, op, canonical_literal) 按属性类型限定算子（enum/text: = <> in；date/numeric: = <> < <= > >=；text_set: has），字面量按类型用 exposure 规范编码；强制范围按知识产品 scopes 注入为 injected 原子（进 h_N、不计费），调用方对受范围约束属性的原子与范围交集为空即 RETRIEVAL_SCOPE_EXCEEDED；原子按 (attribute, op, literal) 排序去重；查询承诺 = NFC+casefold+空白折叠文本的 sha256 或 int16 定点量化向量的 sha256，二选一；1 ≤ k ≤ k_max；fetch 引用排序去重；aggregate 字段须是抽取规则字段且类型与聚合匹配、聚合在白名单。h_N = sha256(域分隔 "TASKGATE-RETRIEVAL-NF-V1\0" ‖ 规范 JSON)。apierr 新增六码。更正 kb-design §4：`in [a,b]` 是析取，不与两个 `=` 等价（根因：写设计时把"IN 展开为逐字面量原子记账"误当成语义等价）。
+- KB1-LOOP-18（2026-10-16 00:15 UTC+8）：**K3.1 DONE【实跑】。** 新包 internal/retrieval（DecodeRequest 严格解码、Normalize、NormalForm.Digest=h_N、CallerAtoms、NormalizeText、QuantizeVector），apierr 新增六个检索拒绝码。go test ./internal/retrieval 四例 PASS：等价输入同 h_N（原子顺序、in 值顺序与重复、文本空白/大小写、单值 in = "="）、不等价输入不同 h_N（k、文本、强制范围、in[a,b] ≠ 两个 "="）、注入原子计数与 CallerAtoms 分离；向量在量化步长内与裁剪后同承诺、维度不符/文本向量并给/空查询拒绝；21 类关闭式拒绝（未知属性、like、enum 值越界、日期格式、text_set 用 "="、空 in、"=" 带列表、k 越界三类、范围交集为空两类、工具字段混用、fetch 空/畸形/混用、聚合 avg/非抽取字段/文本求和/文本 max/混用）+ 未知字段三类 + 工具名不符 + 缺强制范围；fetch 引用排序去重、aggregate 规范形。go mod tidy 把 golang.org/x/text 从 indirect 改为直接依赖（唯一 go.mod 变化）。文档：catalog-guide KB 节补检索语言与拒绝码；kb-design §4 更正与 §9 第 7 点（执行接入方案 A/B 待作者）。
+- KB1-LOOP-18 更正（2026-10-16 00:16 UTC+8）：go mod tidy 实际把三项（golang.org/x/text、golang.org/x/net、github.com/google/jsonschema-go）从 indirect 改为直接依赖——后两者本就被直接 import 而 go.mod 标记过期，tidy 顺手修正；上一行写唯一变化不准确。另：push 例程里 git pull --rebase nas kb-dev 报 Cannot rebase onto multiple branches（本地 remote.nas 配置含多 refspec），push 仍成功且三处 HEAD 一致；下次改用 git fetch nas && git rebase nas/kb-dev。
+- KB1-LOOP-19（2026-10-16 00:19 UTC+8）：**K3.2 设计要点（与 K2.1 §9 第 7 点 A/B 无关的部分）。** 【读代码】实体键 = exposure.ComposeCanonicalKeyV2("base-entity", ν, 对每个键字段依次 name/sqlType/CanonicalSQLValue)（snapshotbundle/bundle.go:880）；单产品计划的单元格 Fact field id 是裸列名（queryplan/ordinal_program.go:704，连接时才 role.column）；字典为每个物理列同时登记裸名与 product.column 两个 cell 段。据此 internal/retrieval/effect.go：search/fetch 的 F_R = 每个命中块的 text 单元格 Fact（NewBaseCellFactV2(ν.chunks, epoch, chunkKey, "text", "text", text)）；F_D = F_R ∪ 块行 Fact ∪ 文档行 Fact（ν.documents，键 (doc_id, version)）；F_O = 调用方原子（PredicateAtomFactV5，上下文摘要域 TASKGATE-RETRIEVAL-CONTEXT-V1：catalog sha、知识产品、epoch、chunks/documents publication manifest、注入范围摘要）∪ 复合（CompositeOutcomeFactV5：QueryNormalFormVersion=taskgate-retrieval-nf-v1、QueryNormalFormSHA256=h_N、ResultObservationSHA256=ReleaseOutcomeDigest(F_R, |y|)、谓词集合摘要 PredicateSetHashV1）；空结果 F_R=F_D=∅ 仍有原子与复合。search 响应只回 (doc_id, version, chunk_index, text) 与名次，不回相似度分数、不回属性列（属性是调用方自己的过滤条件）。aggregate 的派生 Fact 走现有 query_sql 路径（values 产品），其 oracle 复用既有 exposure oracle，K3.3 再接。独立 oracle 包 evaluation/kboracle：用 exposure 原语按定义另写一遍并逐成员比对（缺/多成员列表），测试含手算小例（1 块 → R=1 D=3；同文档 2 块 → D=5）、随机命中集、重放同复合、k 不同复合不同。
+- KB1-LOOP-20（2026-10-16 00:21 UTC+8）：**K3.2 DONE（search/fetch 部分；aggregate 的派生 Fact 走现有 values 产品 query_sql 路径，随 K3.3 接入）【实跑】。** internal/retrieval/effect.go（ChunkEntityKey/DocumentEntityKey、ContextDigest、BuildEffect、Outcome、Hashes）+ evaluation/kboracle（Compute 按定义另写、Compare 逐成员差集）。go test：retrieval 四例、kboracle 三例全 PASS——手算小例 1 块 R=1 D=3 O=3（2 原子+1 复合）、同文档 2 块 D=5、空结果 R=D=0 O=3；200 组随机请求×命中集与 oracle 逐成员零差异；重放（命中集重排）同复合、k 不同/命中集不同复合不同、Catalog sha 变则原子变；fetch 无原子、O=1、D=3；重复命中被拒。首版把请求算子直接写进 V5 原子被 fact.go:282 拒（词表 EQ/NE/LT/LE/GT/GE/LIKE），【读代码】queryplan atomOperatorAndValues 把 IN→EQ、NOT IN→NE，检索端照此映射——是未先查校验端词表就写发射端（查证第 3 条的反面），已修并记。
+- KB1-LOOP-21（2026-10-16 00:24 UTC+8）：**K4.1 实验设计已写 docs/kb_experiment_design.md，标 BLOCKED 待作者；kb-design §9 增第 8 点（Result 单元格 text→text_sha256）。** 【实测依据】全量发布三 bundle：chunks 638 MB（COLD 621 MB、HOT 40 MB、sidecar 6.9 MB）、documents 147 MB、values 198 MB；编译峰值 RSS 2.1 GB（48,183 块）。线性外推 10^6 块约 13 GB bundle / 44 GB 内存，超本机 30 GB → E-KB3 的 10^6 档依赖 §9.8（发布 text_sha256 而非 text，f_chunk 的 C 取内容摘要）。设计要点：共同设定（60 合成主体、clearance 由岗位派生、kb-pilot-v1 预算 B_Q 256 / B_R 200 / B_D 600 / B_O 64 / k_max 20，依据"明细阅读绑定 B_R"与部门可申请块 ~3,000–3,500 的 6% 保守上限）；E-KB1 三策略确定性脚本 agent × ACL/FactGate 两臂 × 3 种子 × 3 部署，400 步上限，预期表已写定；E-KB2 四类申请 × 60 主体的拒绝率 + 误批臂最大外泄 = min(B_R, 可申请块) 与 TTL 到期；E-KB3 直连 vs 网关，10^5/10^6 两档，200 轮/格，p95 ≤ 直连 2 倍的保守先验。证据登记新文件 kb-pilot-evidence-v1.json + generate_kb_evidence.py。**现状：K3.3/K3.4 与 K4.2–4.4 依赖 kb-design §9.7（执行接入方案 A/B，核心架构）与 §9.8 的作者裁决；K2.1/K4.1 为作者审阅项。** 下一步在等待期做方案 A 的前置阅读（physicalquery 封印机制）并写 handoff。
+- KB1-LOOP-22（2026-10-16 00:24 UTC+8）：**本轮 loop 停止：余项均须作者。** 清单现状：K1.1–K1.6、K2.2–K2.5、K3.1、K3.2 DONE；K2.1、K4.1 BLOCKED（作者审阅）；K3.3/K3.4/K4.2–4.5 依赖 kb-design §9.7（执行接入 A/B）与 §9.8（Result 单元格 text_sha256）裁决；K5.1/K5.2 为作者动作。handoff：docs/handoff_2026-10-16.md。等待期未开 physicalquery 预读（方案 B 下属无用功，留到裁决后）。demo 栈接入 kb 的部署方式另记一点供作者知悉：建议 kb demo 用 kb-publish -merge 产出的独立 Catalog 文件（如 config/catalog.kb.yaml，经 TASKGATE_PROFILE_CATALOG 挂载），config/catalog.yaml 不并入 kb 块——否则 finalv5publication 会把 kb 产品整体并入生成的研究 profile catalog，使每个研究部署都要先跑 kb-publish（属执行方式，裁决后由我自决，先记录）。
+- KB1-LOOP-23（2026-10-16 08:43 UTC+8）：**作者意见（影响 kb-design §9 第 4 点与实验设计）：检索质量同样重要，用户经 FactGate 搜不到想要的文档就没有实用价值。** 我的回应与待裁决项见本次对话；要点：FactGate 在出口位置不改变引擎排序，精确检索下网关命中集 = 直连命中集（可作为属性测试与 E-KB3 的对照项实测），质量由嵌入模型与语料决定；哈希投影嵌入与模板语料足以测账本行为但不能证明实用检索质量；需作者定：(a) 嵌入改用真实本地模型（候选 bge-small/e5-small 类，CPU 可跑，权重摘要入发布期），文本查询的嵌入在受信边界内算；(b) 语料是否改为更真实的文档（公开语料或 LLM 生成并冻结）；(c) 是否增加检索质量指标（合法任务 recall@k，直连 vs 网关一致性）。未改代码。
+- KB1-LOOP-24（2026-10-16 08:55 UTC+8）：**作者决策（三项全同意，GPU 依赖由 Claude 全部搞定）**：(a) 嵌入改用真实本地模型（我选 BAAI/bge-m3，中英多语 1024 维，权重摘要入发布期），文本查询在受信边界内嵌入；(b) 语料改为更真实的文档，冻结并 digest 绑定、镜像 NAS（LLM 生成件不可重生成，NAS 为唯一备份）；(c) 增加检索质量指标（合法任务 recall@k、直连 vs 网关命中集一致率）。kb-design §9 第 4 点由此定稿。清单新增 K2.6（GPU 环境 + 嵌入提供者 + 嵌入服务）、K2.7（真实感语料 v2）、K4.6（E-KB4 检索质量）。【实测】GPU：RTX 4080 Laptop 12,282 MiB，驱动 616.56，计算能力 8.9，/dev/dxg 透传可用；WSL 无 torch/onnxruntime，Docker 无 NVIDIA 容器运行时。
+- KB1-LOOP-25（2026-10-16 08:59 UTC+8）：**K2.6/K2.7 设计要点与代价计划。** 【实测】sudo 需密码（apt 装 nvidia-container-toolkit 须作者，暂不走）；HF 下载 5.4 MB/s（tokenizer.json 17 MB 实测）；无 claude 二进制在 PATH，但本会话的 CLAUDE_CODE_EXECPATH（vscode 扩展内 claude 2.1.300）可跑 `claude -p --model claude-haiku-5-5`，一次极小调用 total_cost_usd 0.0025（cache_read 23k）。**K2.6 设计**：GPU 工具链装在 ~/kb-embed/venv（torch cu124 + sentence-transformers，~/kb-embed/setup.sh 后台，日志 ~/logs/kb1/embed-setup.log，标记 EMBED_SETUP_DONE）；bge-m3 权重 ~/kb-embed/models/bge-m3，sha256 记录；嵌入服务为**宿主进程**（FastAPI，127.0.0.1:8090，/embed 批量归一化向量、/model 返回模型名/维度/权重 sha256），无需 Docker GPU 运行时，容器内网关经 host-gateway 访问（K3.3）；kbpublish 的 embedding 提供者增 bge-m3（HTTP），spec/Catalog 的 embedding 增 weights_sha256，发布时核对服务报告的模型与摘要；hash-projection-v1 保留给测试。**K2.7 设计**：evaluation/cmd/kb-corpus-v2 用 v1 生成器的确定性元数据计划（doc_id/类型/部门/密级/岗位/标签/日期/前言区字段、领导层章节位置）作为提示，`claude -p` 每次生成一批（约 10 份）中文正文（节标题+密级标签+150–400 字），逐份校验前言区/节结构/密级标签与计划一致后写 JSONL，失败重试；输出 raw/v2/documents.jsonl + manifest-v2.json（含模型、批次、成本汇总、documents_sha256），不可重生成故 NAS 为唯一备份。**代价计划**：先跑 50 份试批测实际成本与时长；按试批外推全量 10,000 份，若估算 ≤ 100 USD 且 ≤ 6 h 则直接全量，否则停下请作者定规模（影响实验代价）。
+- KB1-LOOP-26（2026-10-16 09:10 UTC+8）：**K2.6/K2.7 进展【实跑】。** 代码：kbpublish 增 Embedder 抽象（HashEmbedder / HTTPEmbedder，/model 三元组核对、/embed 批量 128）、spec 与 Catalog 的 embedding 增 weights_sha256（bge-m3 必填、hash 禁填），测试 PASS；evaluation/cmd/kb-corpus-v2（计划驱动、claude -p 批量生成、逐份校验、成本记录、-parallel 工作池）+ kbcorpus/v2.go 测试 PASS。工具链：download.pytorch.org 从本机不可达（pip 38 s 零字节、curl 无响应），改用 PyPI（实测 2.2–9.3 MB/s），torch 2.14.1 + CUDA 13 依赖在下载；首个 setup 脚本被 kill 后仍续跑过一段（bash 延迟处理 TERM）已再 kill，日志 ~/logs/kb1/embed-setup.log。语料 v2 试批（50 份，haiku-5-5）：前两批每批 10 份 81–89 s、0.013 USD，一次重试（模型多写一节 → 提示已加 section_count）；样本为合规中文正文、字段值嵌入自然、领导层节存在。按此外推全量 10,469 版本 ≈ 1,050 批 ≈ 14–16 USD、串行 ~24 h、-parallel 8 约 3–4 h，在"≤100 USD"内，试批结束后直接全量。kb-design §7 补嵌入服务组件；kb_experiment_design 增 E-KB4。
+- KB1-LOOP-27（2026-10-16 09:15 UTC+8）：**语料 v2 试批完成并全量发射【实跑】。** 试批（~/logs/kb1/corpus-v2-pilot/）：50 版本（49 文档）、6 次调用 5 成 1 重试（多写一节，提示已修）、total_cost_usd 0.0894、成功批平均 105 s、PILOT_EXIT=0；样本中文正文合规，领导层节为管理层评估口吻。外推全量 10,469 版本 ≈ 1,047 批 ≈ 19–21 USD，-parallel 8 约 3.8 h，均在 LOOP-25 设定的"≤100 USD 且可接受时长"内，按计划直接全量：~/logs/kb1/corpus-v2/run-full.sh（haiku-5-5、batch 10、parallel 8、budget 60 USD、输出 evaluation/kbcorpus/raw/v2、结束后写 manifest-v2.json 并镜像 NAS /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v2 核 sha256），09:15 发射，日志 ~/logs/kb1/corpus-v2/full.log，终态标记 CORPUS_V2_DONE / FINAL_VERIFY。注意 v2 的 doc 顺序由并行完成顺序决定，documents_sha256 对 JSONL 字节绑定，排序归一化在 kbpublish 侧不需要（按 doc_id 处理）。
+- KB1-LOOP-28（2026-10-16 09:19 UTC+8）：**作者意见（战略，影响主张范围）**：质疑知识 Fact 只是命名空间不同的同一种 Fact是否站得住；指出企业文档与知识治理的 gate 更有商业价值，论文与未来产品可能更以大型企业文档与知识治理为重点，纯报表数字场景太窄。我的回应见对话（结论：该句只在账本/身份层成立，不可用作文档治理已被同一机制解决的表述；建议论文主张改写为同一账本、不同的治理单位与效果，并把重心迁移作为作者决策点列出）。
+- KB1-LOOP-29（2026-10-16 09:20 UTC+8）：**K2.6 GPU 工具链与嵌入服务就位【实跑】。** ~/kb-embed/venv：torch 2.14.1+cu130（PyPI），cuda True，RTX 4080 Laptop；BAAI/bge-m3 权重 pytorch_model.bin（仓库无 safetensors，首次按 safetensors 下载落空后改正）sha256 b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38，1024 维；512 条中文句 GPU 编码 726 texts/s，峰值 VRAM 2,235 MiB。嵌入服务 ~/kb-embed/service.py 已以宿主进程启动（127.0.0.1:8090，start-service.sh 幂等），/model 报告三元组一致，/embed 两条 312 ms（含首批预热）。已发射全量 v1 语料（48,183 块）bge-m3 发布到 scratch 库 kbe2e4（~/logs/kb1/e2e-bge/，epoch policy-kb-2026-10-bge-v1），终态标记 BGE_PUBLISH_DONE，记录发布总时长与峰值 RSS 作为 K2.6 验收数据。语料 v2 全量生成并行进行中。
+- KB1-LOOP-30（2026-10-16 09:24 UTC+8）：**环境故障（三类上报·环境自复失败）：WSL GPU 桥接失效。** 【实跑】bge-m3 全量发布在 38 批成功（约 4,864 块）后 /embed 返回 500，服务日志 cuStreamSynchronize 返回 CUDA_ERROR_UNKNOWN(999)；此后 nvidia-smi "Failed to initialize NVML"，新进程 torch cuda 初始化报 cudaGetDeviceCount invalid argument。**根因（dmesg 直接证据）**：内核 WARNING at drivers/hv/dxgkrnl/dxgvmbus.c:3095 dxgvmb_send_wait_sync_object_gpu（"memcpy: detected field-spanning write ... current_pos"），调用栈 dxgkio_submit_wait_to_hwqueue ← dxgk_ioctl，进程 python（嵌入服务），内核 6.18.33.2-microsoft-standard-WSL2；此后 dxgkio_query_adapter_info 持续 Ioctl failed -22。即 WSL 的 dxgkrnl 驱动在 GPU 同步等待路径上的缺陷使 /dev/dxg 适配器不可用；WSL 内无法自复，需作者在 Windows 侧 `wsl --shutdown` 重启 WSL（会中断 demo 栈、两个测试容器与正在跑的语料 v2 生成）。处置：嵌入服务已停（端口 8090 已关）；bge-m3 发布 PUBLISH_EXIT=1 记为环境中断非实现缺陷（4,864 块编码 + 载入 56 s，峰值 RSS 276 MB）；**不在语料 v2 生成期间请求重启**，待其 CORPUS_V2_DONE 且 FINAL_VERIFY=OK 后再请作者重启，重启后按 environment.md 核灾并重跑 ~/logs/kb1/e2e-bge/run.sh。若重启后同一负载再次触发同一 WARNING，则为可复现的 dxgkrnl 缺陷，改为分批小并发编码并记录触发条件。**自错登记（两次）**：停服务时先用 pkill -f 带服务命令行模式未排除自身，把执行命令的 shell 杀掉（exit 144）；改用方括号模式后再次被杀，原因是同一条命令的台账正文里引用了该模式，而 harness 把整条脚本作为 bash -c 的参数，pgrep -f 匹配到了 wrapper 自身。违反查证做法第 6 条；教训：杀进程与写含该模式的文本不得放在同一条命令，且优先按端口/PID 文件定位。
+- KB1-LOOP-31（2026-10-16 12:52 UTC+8）：**WSL 重启后恢复【实跑】与三处自错登记。** 作者于 12:2x 重启 WSL；核灾：根分区无 emergency_ro、/ 可用 541 G、GPU 桥接恢复（nvidia-smi 正常、新进程 CUDA 上下文可建）、仓库 HEAD ccc916d fsck 干净、语料 v2 文件 7,822 行全部可解析。**自错 1**：12:24 我发出的五步恢复命令被作者中断，harness 报"已拒绝"，但命令里 nohup setsid 起的进程与 compose up 已经在跑（语料续跑生成器 pid 3758、嵌入服务、测试容器、demo 栈）——中断只停了前台 shell，不回滚已 detach 的工作；我按"未执行"理解并在 12:40 再次发射，导致两个生成器并发写同一 documents.jsonl（已杀新者 pid 51096；重复版本在冻结前按 doc_id+version 去重并记数）。教训：被中断的命令要先查进程再重发。**自错 2**：demo 栈 `up -d --no-build` 重跑了一次性服务 snapshot-index-scale-e7（10^7 行研究发布物编译，mem_limit 24g），与 environment.md "不与研究发布物编译并发"相悖，free available 一度 827 MB；已 docker stop 该容器（available 回到 19.4 GB）。后果：demo 栈的 gateway 依赖该编译完成，当前不会起来；demo 栈恢复留待单独窗口以 `--no-deps gateway` 走既有发布物（environment.md 2026-10-15 条）。**自错 3** 见 LOOP-30（pkill 自杀两次）。现在：语料续跑 1 个生成器在跑；嵌入服务 batch 16；dmesg 看守（dxgkrnl/OOM/I/O）已挂；bge-m3 全量发布已发射（~/logs/kb1/e2e-bge/run.sh，publisher 侧批量 128→服务侧 16）。
+- KB1-LOOP-32（2026-10-16 17:11 UTC+8）：**第二次 WSL 重启（17:07）与 GPU 故障定性【实跑】。** 12:52 的 bge-m3 GPU 发布在第 39 个发布端批次（块 4864..4992）/embed 返回 500 后失败，与 09:21 首次故障**同一偏移**；随后 WSL 整机重启（时间未定，语料生成器于 batch 122/264 处中断，无 OOM 证据）。排除数据因素：同语料同切分的 kbe2e 库中该偏移段块长 266–716 字符、全库 P99 695 / 最大 751，无超长块。两次均在持续满载约 56 s 处失败（服务端批量 64 与 16 均如此），dmesg 另有一次 dxgvmbus.c:3095 WARNING 发生在服务启动阶段（153 s）而 GPU 仍可用，说明该 WARNING 本身不致命。**原因未定，候选包括**：Windows 显示驱动超时/重置（与外接屏黑屏同时发生）、笔记本 GPU 持续满载触发的功耗/热事件、WSL dxgkrnl 在同步对象计数上的缺陷。处置：发布改走 CPU 嵌入服务（KB_EMBED_DEVICE=cpu，17:10 发射，bge-m3 CPU 推理预计数十分钟）；GPU 编码留作独立排查项（节流：服务端批量 8 + 调用间隔，且在作者不用外接屏时测），不阻塞 K2.6 验收（验收口径改为"bge-m3 全量编码完成并记时，GPU 与 CPU 任一"）。语料生成已第三次续跑（9,448 → 目标 10,469），注意 batches.jsonl 末尾有一行被重启截断，生成器读取时已容错。另：重启嵌入服务时用 > 覆盖了 embed-service.log，首次故障前后的服务端日志丢失（dmesg 与 publish.log 证据仍在）。
+- KB1-LOOP-33（2026-10-16 18:39 UTC+8）：**K2.7 DONE：真实感语料 v2 已冻结并 digest 绑定【实跑】。** 生成：claude-haiku-5-5 无头调用，三次续跑（两次 WSL 重启中断），1,043 批（另有重试与 17:42 前重复写入段），名义成本 17.61 USD（coding plan 额度，非账单）。双写事故清理：documents.jsonl 10,870 行 → 按 (doc_id, version) 保留首次出现 → 10,469 行、401 重复、0 不可解析、10,000 个 doc_id，与计划完全一致；原文件保留为 documents.jsonl.with-duplicates。冻结件 evaluation/kbcorpus/manifest-v2.json：plan_sha256 绑定 v1 元数据计划（seed 20261015）、versions 10,469、documents 10,000、sections 48,183、leadership_sections 3,583、documents_sha256 2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62。NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v2/（documents.jsonl、manifest.json、batches.jsonl、含重复的原文件）sha256 与本地一致；此文件不可重生成，NAS 为唯一备份。guard 测试 TestFrozenManifestV2BindsRawCorpusWhenPresent PASS（计划摘要可复算、原始文件摘要与计数与清单一致、前 200 份前言区/节结构往返）。已知瑕疵：manifest 的 retries 字段只计最后一次调用（0），实际重试见 batches.jsonl；sections 与 v1 相同是因为节计划来自同一元数据计划，正文全部为 LLM 新写。
+- KB1-LOOP-34（2026-10-16 19:10 UTC+8）：作者决定由 Windows 侧的 Claude 排查 GPU 故障；交接文档 ~/logs/kb1/gpu-probe/HANDOFF-windows-gpu.md（已复制到 Windows 桌面），含现象时间线、已排除项、三候选（dxgkrnl 缺陷 / 功耗热事件 / TDR）各自的 Windows 侧判别命令与规避、需回填项、WSL 侧复现脚本位置。Windows System 日志今天无 4101/41 事件，仅 12:19:15 Hyper-V 启动（整机重启）。GPU 复现暂不在 WSL 侧启动，等 Windows 侧结论。
+- KB1-LOOP-35（2026-10-16 19:54 UTC+8）：**K2.6 的 bge-m3 全量发布在 CPU 上完成【实跑】，K2.6 标 DOING（GPU 编码待 Windows 侧结论）。** ~/logs/kb1/e2e-bge/：冻结语料 v1 48,183 块经 bge-m3（CPU，服务端批 16）发布到 scratch 库 kbe2e4，epoch policy-kb-2026-10-bge-v1，发布总时长 2 h 42 min 13 s（约 5 块/秒，含载入与编译），发布端峰值 RSS 3.4 GB；kb-publish -verify rc=0，manifest_digest 8ba6a23a225a2884db137f57bb29ed228c21c98e2ade53881f7a1860818afb59，清单 embedding = {bge-m3, 1024, weights_sha256 b5e0ce34…}，embedding_digest c6272f67…；库内 48,183 条 1024 维向量；近邻抽查：D-000001#0 对自身余弦距离 0，最近两条外部块距离 0.051 / 0.067（语义相近的部门报告句）。对比 GPU：故障前实测 726 块/秒，同一负载约 1–2 分钟；CPU 路径只作保底，K2.6 的 GPU 验收等 Windows 侧排查结论（LOOP-34）。
+- KB1-LOOP-36（2026-10-16 20:42 UTC+8）：**Windows 侧排查结论（别人报的，Windows 侧 Claude，原文存 ~/logs/kb1/gpu-probe/RESULT-windows-gpu.md）**：两次故障都是 Windows 蓝屏 0x113，归于 NVIDIA 显示驱动 nvlddmkm!NvDispatchPnp（GPU 热插拔处理路径）；两次故障时刻（09:21:09、12:53:05）System 日志各有一条 GPU 所在 PCIe 插槽的已纠正硬件错误（WHEA），其他设备无——即 GPU 在持续负载下掉离总线；无任何 4101（TDR 排除，TdrDelay 本已是 10）；Windows 于 15:46 重启过（我交接文档说"17:07 是 WSL 重启"属误判，17:07 是重启后首次启动 WSL）；外接屏黑屏是因为只有 HDMI 屏由 NVIDIA 驱动、内屏走核显（我交接文档说"同时驱动内屏"有误）。另：10-11 至 10-15 每晚各一次意外关机并伴随固件报告的致命硬件错误——environment.md 记录的 2026-10-15 17:36 WSL 整机重启"原因未定"很可能同源。**定性更新**：不是 WSL dxgkrnl 的软件缺陷，WSL 内核 WARNING 是 GPU 消失后的副作用；根因在硬件/电源/PCIe 链路层，WSL 侧无法修复。待作者决定的事（Windows 侧建议）：WinDbg 分析两个 minidump（101626-15406-01.dmp、101626-17156-01.dmp，需管理员）；先试两项低风险设置（PCIe 链路状态电源管理关闭、NVIDIA 电源管理"最高性能优先"）；拔掉 HDMI 复现；仍失败则 nvidia-smi -pl 120 降功耗复现以区分电源与链路问题。**对 KB-1 的影响**：GPU 编码在硬件问题解决前不得再跑（会蓝屏整机）；发布走 CPU（48k 块 2.7 h；E-KB3 的 10^5 档约 6 h、10^6 档约 60 h，后者需另找 GPU 或接受未评估）；gpu-probe 只在作者改设置并保存全部工作后、由作者明确同意再启动。
+- KB1-LOOP-37（2026-10-16 20:46 UTC+8）：**作者决策：继续用 GPU，崩了就从断点续跑（接受整机蓝屏风险），CPU 太慢。** 实施：kbpublish 新增 EmbeddingCache/CachingEmbedder（按 模型-权重sha / 文本sha 落盘 float32，先写临时文件再 rename；失败批不写缓存），kb-publish -embedding-cache（$KB_EMBEDDING_CACHE_DIR）；测试 PASS（续跑只补缺、跨模型隔离、失败不污染）。服务加节流 KB_EMBED_BATCH=16 / KB_EMBED_PAUSE_MS=150。可重入脚本 ~/logs/kb1/e2e-bge-gpu/run.sh：每次重建 scratch 库 kbe2e5、epoch policy-kb-2026-10-bge-v2、缓存 ~/kb-embed/cache；崩溃→作者重启 WSL→重跑同一脚本即续。已提醒作者保存全部工作。
+- KB1-LOOP-38（2026-10-16 20:56 UTC+8）：**GPU 续跑第一次尝试于 20:50:59 再次故障【实跑】；这次 Windows 未蓝屏、WSL 未重启，但 GPU 掉离总线（Windows 侧 nvidia-smi.exe 报 "GPU is lost. Reboot the system to recover"），需作者重启 Windows。** 节流（服务内批 16 / 停 150 ms）只把到故障时间从约 56 s 拉长到约 4 min，没有避免故障。时间线：20:46:21 启动脚本，服务 107 批（每批 128 块，13,696 块）成功，第 108 批（块 13696..13824）返回 500，服务栈 torch.AcceleratorError CUDA_ERROR_UNKNOWN（sticky）；此后 WSL 内 NVML 无法初始化。Windows System 日志 20:50:59 WHEA-Logger id 17 已纠正 PCIe 硬件错误，根端口 0:1:0，与前两次签名一致【实跑：从 WSL 以 powershell.exe 只读查询】；最近 25 分钟无 Kernel-Power 41、BugCheck、4101。WSL dmesg 20:46 的 dxgvmbus.c:3095 WARNING 为服务启动时的已知告警，与故障时刻无关。kb-publish rc=1，壁钟 4 min 33 s，发布端峰值 RSS 341 MB；缓存落盘 13,214 条向量（少于 13,696 块，系重复块文本按 sha 去重【读代码】），续跑缓存完好。决定：下一次 GPU 续跑改为索引冻结语料 v2（evaluation/kbcorpus/raw/v2/documents.jsonl，10,469 行，sha256 2180645d… 已实测核对等于 manifest-v2）；依据：v1 + bge-m3 发布已有 CPU 版（kbe2e4）作证据，E-KB4 需要的是 v2 + bge-m3，GPU 时间不该花两次；放弃：缓存中 13,214 条 v1 向量不会被 v2 复用（按文本 sha 键，留盘不删）。每次尝试约编 1.3 万块后需一次 Windows 重启，若 Windows 侧缓解（关 PCIe 链路电源管理、NVIDIA 最高性能）无效，v2 全量约需 3–4 次重启；此事实如实报作者。等待期转做 K3.4：HNSW 可选臂的命中集差异率工具，先在 kbe2e4（v1 CPU 发布物）上试跑。
+- KB1-LOOP-39（2026-10-16 21:03 UTC+8）：**作者输入（原话）：文档和报表两条路线能统一吗？倾向以文档为主，但文档、报表都是 data，能不能把维度拔高，同时覆盖文档和报表场景。** 我的回应（提案，未决）：可以统一，统一点不是"知识 Fact 是命名空间不同的同一种 Fact"，而是四层同构——数据产品层（关系 / 文档集合，同一发布物与封印）、事实层（cell/row/chunk/document/value，同一身份编码与账本）、操作层（query / search / fetch / aggregate 都是带规范形的准备操作，9.7 方案 A 正是这一层的落点）、效果层（R/D/O 同一结算与重放）。文档侧的真正新东西只有三处：自由文本查询承诺、近似检索下 Outcome 的不确定性（K3.4 量化）、内容摘要作为单元格。统一叙述若进主稿，摘要/引言/模型节都要改，触及作者定的"phase 4 前正文只加补充节"边界，且文档侧证据须由 pilot 升为可发表级（K4.2–K4.6 三部署），属"影响发表"类，等作者裁决；封存的报表证据不动。附带：K3.4 首跑因 kb.chunks.embedding 列未声明维度、HNSW 建索引报 "column does not have dimensions" 而失败【实跑】，已改为索引与两臂同用 embedding::vector(1024) 表达式并重跑。
+- KB1-LOOP-40（2026-10-16 21:27 UTC+8）：**作者决策（原话："我同意采纳统一框架"，回应 KB1-LOOP-39 的提案）。** 据此落定：(a) 论文框架改为"面向 Agent 的企业数据产品暴露治理"，结构化（报表路径）与非结构化（文档/知识路径）是同一机制的两个实例，文档场景为主叙事，四层同构：数据产品层 / 事实层 / 操作层 / 效果层；(b) kb-design §9.7 定为方案 A（physicalquery 增 PrepareRetrieval，检索是第二种准备操作），§9.1 复用 V4 publication 随之确认，K3.3 解锁；(c) K4.2–K4.6 从"补充材料"升为论文主结果候选，按可发表级（三部署、冻结语料 v2 + bge-m3、预先登记预期）执行；campaign_class 仍为 kb-pilot、publication_eligible 仍为 false，翻 true 属作者裁决，到证据齐备时再提；(d) 摘要/引言/模型节的改写放在阶段 5（K5.1），阶段 4 完成前正文仍只加补充/新节，与作者原边界一致；统一框架的正文草稿先写 docs/kb-paper-framing.md 供作者审。封存的 V5 证据不动。放弃：路线一（文档只作扩展节）。
+- KB1-LOOP-41（2026-10-16 21:29 UTC+8）：**K3.4 试跑完成【实跑】（v1 + bge-m3 发布物 kbe2e4，collection policy_bge_v1，48,183 块，pgvector 0.8.7；200 条确定性查询，seed kb-hnsw-diff-1）。** 过程中两次纠错：(1) 首次有效输出里 ef_search=200 无过滤、ef≥100 带过滤的"identity 100%"是假象——EXPLAIN 实测 pgvector 0.8 的代价模型把这些配置换成了 btree 过滤 + top-N 排序（即精确检索），enable_seqscan=off 挡不住；已改为近似臂同时关 sort / incremental_sort / bitmapscan，并对每个配置用 EXPLAIN 核对"Index Scan using kb_chunks_hnsw_diff + Order By"，不符即失败退出（发射端与校验端同改）；那份作废结果留档 report-v1.attempt3-planner-fallback.json。(2) 环境两处：kb.chunks.embedding 列未声明维度，索引与两臂改用 embedding::vector(1024) 表达式；容器 /dev/shm 64 MB 放不下并行建索引，改串行（HNSW m=16, ef_construction=64，建索引 15.7 s，索引 382 MB，大于表本身 290 MB）。结果（identity_rate / mean_recall / short，k=20）：无过滤 ef40 0.837 / 0.961 / 0；ef200 0.905 / 0.989 / 0。department 过滤 ef40 iterative=off 0.837 / 0.961 / 5；relaxed_order 0.847 / 0.985 / 0。department+classification 过滤 ef40 iterative=off **0.271 / 0.658 / 137**（200 条里 137 条返回不足 k），ef200 0.865 / 0.972 / 13；relaxed_order ef40 0.880 / 0.990 / 0。边界并列 6–13 条/配置（v1 模板语料存在重复块文本，距离 0 并列），已按预登记从 identity 分母剔除。时延 p50：精确臂 65 / 21 / 12 ms（无 / 部门 / 部门+密级过滤），HNSW 臂 1.4–3.1 ms。对照预登记：方向一致（过滤越严、默认 ef 下 short 越多，relaxed_order 消除 short），但"department 过滤下明显下降"没有出现（recall 仍 0.96），严过滤才出现；照实记。结论（供补充材料，正式数字待 v2 发布物重跑同一命令）：默认精确检索的理由成立——HNSW 默认参数下同一 h_N 在 16%–73% 的查询上得到不同命中集，Outcome 复合不可重放；精确臂代价为每查询几十毫秒。证据：~/logs/kb1/k34-hnsw/report-v1.json，NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-k34-hnsw/（sha256 c723d5836f4a33173fb3eef9677426caa7d895026ab14a61e8ec3978d9ae01ca 两端一致【实跑】）。K3.4 保持 DOING，待 v2 重跑与补充材料小节。GPU 续跑进度：21:28 服务 155 批成功、缓存 19,164 条 v2 向量，66 °C / 53 W / 1500 MHz，已过上次故障点。
+- KB1-LOOP-42（2026-10-16 21:35 UTC+8）：**K3.3 实施设计写入 kb-design §10a（读代码后定，依 §9.7 方案 A）。** 决定：检索准备 = 由检索规范形构造等价 QueryPlan（chunks ⋈ documents，原子为过滤，投影 doc_id/version/chunk_index/text）交现有 physicalquery.Prepare 产出语句、OrdinalProgram、谓词足迹，再外包一层 kb.chunks 上的精确最近邻命中集（CTE，排序键带身份三列作全序，LIMIT k）做半连接；密封成员全部复用，NormalFormSHA256 取检索规范形摘要，PlanSHA256 取等价计划摘要；网关把 executeSQL 的守卫—预留—执行—结算链抽成两种准备共用的函数，检索走同一 QueryPairStream 与 ordinal sink，结算层消费位图 + 动态 Fact 不变。依据：PreparedOperation 绑定成员集固定且只能经 newPreparedOperation 产生，PrepareSemanticView 是第二种准备的现成先例，结算层（control.OrdinalExposureObservation）与语句来源无关【读代码：preparation.go、semantic_view.go、query.go 673–1420、ordinal_derivation.go 1674、control/types.go 227】。放弃：(a) 手写 OrdinalProgram（编译器规则复杂，重复实现必然漂移）；(b) 扩展 QueryPlan 语言加向量排序（发布物不含向量，且改编译器身份触碰冻结探针）；(c) 用先行向量检索的命中 id 列表作 IN 字面量（把结果当成调用方原子，违背 §5 对 fetch 的定义）。新增待裁决 §9.9：身份三列进入 Release（R = 4|y|），推荐接受（通用代数原样发出），K3.2 的 effect.go 与 oracle 随之改四列。阶段 K3.3a/b/c 见 §10a。GPU 续跑 21:34：299 批成功、缓存 36,963 条 v2 向量、无 500，仍在跑。
+- KB1-LOOP-43（2026-10-16 21:41 UTC+8）：**K2.6 DONE【实跑】：冻结语料 v2 经 bge-m3 在 GPU 上全量发布成功，无故障。** 21:21:47 启动（作者重启 Windows 后：GPU 频率锁 1500 MHz 已生效、功耗上限未生效（仍 175 W，笔记本 GPU 不接受 -pl）、HDMI 外接屏已拔；服务节流批 16 / 停 150 ms），21:38:51 发布退出 rc=0，kb-publish 壁钟 16 min 47 s（含载入、三个 bundle 编译与清单），发布端峰值 RSS 3.28 GB；服务 377 批 ×128 块全部 200、无 500；缓存新增 46,491 条向量（48,183 块，重复块文本按 sha 去重；缓存总计 59,705 含 13,214 条 v1 残留）。运行中采样 GPU 18–35% 利用率、48–60 W、63–71 °C。对比：同一服务 CPU 路径 2 h 42 min（KB1-LOOP-35）；故障前 GPU 不节流不锁频 726 块/秒。清单：epoch policy-kb-2026-10-bge-v2，manifest_digest d93ca6d1feb0d22ba9108ac2726ae4506beb6258aaaa41acc2da90aae29a04ae，corpus_sha256 = manifest-v2 的 2180645d…（核对一致），embedding {bge-m3, 1024, b5e0ce34…}，embedding_digest c6272f67…；counts documents 10,000 / versions 10,469 / chunks 48,183 / leadership_chunks 3,583 / values 15,881 / labels 12——与 v1 完全相同，原因是切分 section-window-v1 按章节切、章节数由同一计划给定且 v2 每章节未超 800 字窗口【读代码推断，未逐章核验】。kb-publish -verify rc=0（25.6 s，kbe2e5 读者连接）。证据：~/logs/kb1/e2e-bge-gpu/（publish.log、time-1.log、spec.json、artifacts 1,004 MB），NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-publish-bge-v2-gpu/（kb-publication.json sha256 5dc6c3d3… 两端一致【实跑】）。因果不下结论（查证做法 9）：这次没掉卡，候选原因包括锁频降低了瞬时功耗、拔掉外接屏、节流、运气；只有一次运行，不能说哪一项有效。后续 GPU 负载（E-KB4 查询编码量小）沿用同一设置。
+- KB1-LOOP-44（2026-10-16 22:05 UTC+8）：**K3.3a 完成：physicalquery.PrepareRetrieval 接入既有封印边界【实跑：单元测试 PASS，physicalquery / queryplan / retrieval 全包 PASS，go build ./... 通过；gateway 包 PASS（0.8 s，单元层；DB 用例按环境跳过）】。** 可行性先用真实策略引擎探针验证：带 CTE、`<=>` 算子、内层 LIMIT、子查询半连接与外层排序的包裹语句经 sqlpolicy.Authorize 通过并正确渲染（产品 CTE 带强制范围、外层 LIMIT 夹紧）【实跑】。实现（internal/physicalquery/retrieval.go）：RetrievalPreparationInputsV1 = Grant + CatalogView + SnapshotBindings + KnowledgeProduct + 检索规范形 + 查询向量 + 向量关系描述；由规范形的调用方原子构造等价 QueryPlan（chunks ⋈ documents，投影身份三列 + text，IN 原子按属性折回一个 IN 过滤，注入范围原子不进计划、由策略渲染器施加）→ 现有 derivePreparation 产出语句 / 序数程序 / 谓词足迹 / sidecar grant → 两条语句各包一层命中集 CTE（向量关系上精确余弦排序 + 同一调用方原子 + 身份三列全序 + LIMIT k）做半连接并按 (距离, 身份) 排序 → NormalFormSHA256 取 h_N、EstimatedBaseFacts 取 k、向量关系以 ProductGrant（强制范围按属性映射到 department 等列，算子表含 <=>）并入 SidecarGrants 与策略授权 → newPreparedOperation 密封（输入摘要域 TASKGATE-RETRIEVAL-PREPARATION-INPUTS-V1 覆盖计划输入摘要、h_N、向量字面量摘要、知识产品声明、向量关系描述）；RequireRetrievalInputs 供 finalizer 复核。queryplan 新增导出 RelationalOutputAlias（编译器身份是行为探针，不受影响【读代码 identity.go:34–46，实测 queryplan 冻结探针仍 PASS】）。踩到两处：Validate 要求关系编译件携带实际执行的可见语句（已同步替换）；策略分析器只按源列名解析 CTE 列、不认列重命名别名（身份列不再别名）。测试：同输入两次准备绑定一致；向量或 k 变化即改变 VisibleTarget / NormalForm 且旧准备拒认新输入；足迹 3 个调用方原子；两条语句经策略引擎渲染后含 kb.chunks、department = finance 与向量算子；fetch、has 原子、非 V5 profile、无向量、缺强制范围值均拒绝。未做（K3.3b/c）：fetch 的命中集包裹、网关 executeRetrieval 链条抽取、MCP 三工具、集成测试。§9.9（身份三列计入 Release）按推荐实施，待作者否决即改。
+- KB1-LOOP-45（2026-10-16 22:15 UTC+8）：**K3.3b 完成：网关 MCP 工具 search 接入，经既有 executeSQL 链条结算【实跑：gateway 包全套对独立控制库容器 kb-test-postgres（postgres:16，127.0.0.1:25500）PASS 25.1 s、0 失败；physicalquery / queryplan / retrieval PASS；go build ./... 与 vet 通过】。** 读代码确认后不抽链条：planExposureContextFrom 以绑定的 NormalFormSHA256 作 planDigest（检索即 h_N，语义重放键按"同 h_N"命中，正是 §5 的重放定义），关系编译件存在即走关系路径，故检索的 PreparedOperation 可原样交给 executeSQL（预留、QueryPairStream、ordinal sink、结算、回执、执行绑定全部复用，零改动）。新增 internal/gateway/retrieval.go：search 工具（schema 含 filters / query{text|vector} / k），请求体剥离任务信封后严格解码并规范化作幂等摘要；prepareRetrieval 从活体状态构造 RetrievalPreparationInputsV1（知识产品查 Catalog、任务须同时授权 chunks 与 documents 关系、须 V5 profile、强制范围由 Grant JSON 转值表、retrieval.Normalize 得规范形、查询向量：给向量则校验维度，给文本则经已配置的嵌入服务对规范化文本编码且先 Check 模型/维度/权重与知识产品声明一致、未配置嵌入服务时文本查询以 RETRIEVAL_QUERY_UNSUPPORTED 拒绝）→ PrepareRetrieval → RequireRetrievalInputs → planExposureContextFrom → executeSQL；响应列名 doc_id / version / chunk_index / text 按位置映射编译别名。向量关系约定（kb.chunks，department→kb_department 别名）写在 chunkVectorSource 并注明出处。Service.Config 增 KBEmbedder；cmd/gateway 按 Catalog 选嵌入器（hash-projection → 内置；bge-m3 → KB_EMBEDDING_ENDPOINT，缺省则启动但文本查询拒绝，启动日志标明）。测试：harness 合并 kb-fragment（hash-projection-v1，256 维）建 V5 任务（范围 kb_department=finance、classification=internal）：未知知识产品 POLICY_DENIED、未知属性 / 不许算子 RETRIEVAL_FILTER_UNSUPPORTED、k>20 RETRIEVAL_K_EXCEEDED、范围不交 RETRIEVAL_SCOPE_EXCEEDED、无嵌入器的文本查询与错维向量 RETRIEVAL_QUERY_UNSUPPORTED、未知字段关闭式拒绝；V4 任务 EXPOSURE_EVIDENCE_REQUIRED；合法向量查询在无知识快照登记的 harness 里止于快照证据（CONFLICT）且不消耗查询预算。harness 的建任务助手增加强制范围参数（原调用不变）。决定：嵌入服务缺失时不拒启动，依据是这只影响文本查询的可用性、不影响账本与证据；放弃"缺端点即拒启动"。未做（K3.3c）：对真实 bge-v2 发布物（kbe2e5 + ~/logs/kb1/e2e-bge-gpu/artifacts）的端到端集成测试（重放 0/0/0、拆分不多扣、子任务共账、超限扣留）、fetch、aggregate、integration-test.sh 用例与文档。
+- KB1-LOOP-46（2026-10-16 22:42 UTC+8）：**K3.3c 第一段：search 对真实 bge-v2 发布物的端到端集成测试 PASS【实跑，两次：22:36 与 WSL 22:39 重启后 22:4x 复跑】。** 测试 internal/gateway/retrieval_postgres_test.go（环境门：KB_E2E_BUSINESS_DSN=kbe2e5 读者、KB_E2E_ARTIFACT_DIR、KB_E2E_EPOCH、CONTROL_TEST_POSTGRES_DSN=kb-test-postgres、可选 KB_EMBEDDING_ENDPOINT）：把 demo Catalog 改写成仅含知识产品的 Catalog（去掉 demo 发布物/产品与产品限定的审批路由，source 改指向 kbe2e5 与实测 schema_digest 659c9903…），真实 Postgres 连接器通过三张 KB 关系的模式证明，HOT 字典按 cmd/gateway 装载器同一路径从 bundle 登记，V5 任务范围 kb_department=finance、classification∈{internal,public}。结果：k=5 向量查询命中集与直连精确检索逐成员相同；首查结算 Release 20 = 4 单元格 × 5 块（§9.9 通用代数原样发出，实测确认）、Influence 45、Outcome 2 = 1 调用方原子 + 1 复合；同 request_id 幂等重放返回存储结果；同规范形换 request_id 语义重放结算 0/0/0；k=10 延伸 k=5 前缀只多扣 20 Release、Outcome 多扣 1（新复合、原子不重复）；Release 预算 8 的任务被 EXPOSURE_BUDGET_EXHAUSTED 关闭式拒绝；经嵌入服务的文本查询命中集与直连（同一向量）逐成员相同。Influence 45 的成员构成（20 释放单元格 + 5 块行 + 文档行与连接证据单元格）尚未逐成员与 kboracle 核对——K3.3c 下一段做，并据此改 effect.go/oracle 的四列口径（§9.9）。两处纠错：(1) 检索计划把原子的规范字面量（exposure.CanonicalSQLValue 形式 s:/n:/d: 前缀）原样渲染成 's:internal'，命中为空【实跑：渲染语句直接在库里跑出 0 行定位】；已改为按类型剥前缀还原原值，单元 fixture 同步改用真实规范字面量并加"无前缀即拒绝"用例（原 fixture 用裸值掩盖了此错，属该查没查）。(2) 连接器会话钉 search_path=pg_catalog，pgvector 的 <=> 在 public 不可见（ERROR: operator does not exist: public.vector <=> unknown）。决定：把 pgvector 扩展装进 pg_catalog（relocatable=true，kbe2e5 上 ALTER EXTENSION vector SET SCHEMA pg_catalog 实测成功、读者在钉住的 search_path 下算子可解析）；依据：会话钉常量被评估的语句分类器按字节绑定（evaluation/internal/experiment/classifier_manifest.go V3SafetySessionPin）、sqlpolicy 拒绝带模式限定的算子/函数名，改钉或改分析器都触碰安全核心与冻结证据；放弃：连接器增加"可信扩展模式"搜索路径（需改钉常量三处与威胁模型）、sqlpolicy 放行限定名。待办：db/init/30-kb-schema.sh 与 compose 同步此约定、kb-design §7 写明、threat-model 一句。另：WSL 于 22:39 再次重启（原因我未查明，GPU 空载 11 W 时发生；重启后 GPU 频率锁已失效 2280 MHz），未提交改动完好。
+- KB1-LOOP-47（2026-10-16 22:49 UTC+8）：**三维效果口径按实测的通用代数对齐【实跑】。** 用 kbe2e5 上的关系推导枚举单个命中的成员：Release = chunks 的 doc_id / version / chunk_index / text 四个单元格；Dependency = Release + chunk 行 + documents 的 doc_id / version 单元格 + documents 行（V2 推导 8 项），V5 序数程序另含"外层过滤见证"——每个调用方过滤属性一个 chunk 单元格（打印 OrdinalProgram.WitnessRules 核实：scan 两源行、join 两源键、outer_filter 调用方属性；注入范围无见证），故端到端的 45 = 5×(4+1+1) + 5×(2+1)。字段身份为 role.column（关系计划）。据此：internal/retrieval/effect.go 的 Hit 增 Attributes（调用方过滤属性的规范值），Release 四列、Dependency 加文档键单元格与过滤属性单元格；evaluation/kboracle 按定义独立改写同一口径，Chunk 增 Attributes；测试计数改为公式 chunks×(4+1+filtered)+docs×(2+1)，200 次随机命中集逐成员一致，fetch 无原子 D=8/块。kb-design §5 表与口径来源段改写，§9.9 标已实施。pgvector 装 pg_catalog 的约定已写入 db/init/kb-schema.psql（CREATE EXTENSION … SCHEMA pg_catalog，附理由）、kb-design §7；compose 的 gateway 增 KB_EMBEDDING_ENDPOINT（空即拒文本查询）与 host.docker.internal 别名。待：fetch、aggregate 工具，文档（catalog-guide / getting-started / threat-model），integration-test.sh 用例，K3.3 标 DONE。
+- KB1-LOOP-48（2026-10-16 22:52 UTC+8）：**fetch 工具完成【实跑：physicalquery PASS；gateway 三项检索测试 PASS，含对 kbe2e5 的端到端】。** PrepareRetrieval 接受 fetch：命中 CTE 以身份三元组的 OR 列表选块、无向量、距离列为常量 0、仅按身份排序（整数常量进 ORDER BY 会被当作列位置——实跑报 "ORDER BY position 0 is not in select list" 后改）、LIMIT = 块数；拒绝带调用方原子或查询的 fetch 规范形与重复块。网关 search / fetch 共用 retrieve(tool) 流程，fetch 不取查询向量。端到端：对已由 search 结算的 2 块加 1 块范围外（hr）块做 fetch → 返回 2 行（范围外块被策略渲染的强制范围过滤，不出现）、Release 实际 8 = 4×2、计费 0（已结算不重扣）、Influence 实际 16 = 2×(4+1)+2×(2+1)、Outcome 计费 1（新复合、无原子）。
+- KB1-LOOP-49（2026-10-16 22:56 UTC+8）：**K3.3 DONE【实跑：gateway（含对 kbe2e5 的端到端）、physicalquery、retrieval、kboracle、catalog、kbpublish 六包对独立容器全 PASS，gateway 24.2 s】。** 第三个工具 aggregate：规范形（field + value_type + 白名单函数）映射为 values 关系上的普通计划（field / value_type 过滤 + 调用方原子中落在 values 列上的过滤 + count/sum/min/max），走 prepareTaskPlan + executeSQL，不新写结算；不在 values 上的过滤属性（如 job_role）以 RETRIEVAL_FILTER_UNSUPPORTED 关闭式拒绝。端到端：finance / {internal,public} 范围下 contract.amount 的 count=164、sum=184,726,729.33 与直连 SQL 完全一致；结算 Release 1（派生 Fact）、Influence 656（见证集 164 行 × 4）、Outcome 3。验收对照：现有 TLA+/属性测试与 V5 全套对知识 Fact 原样通过（结算层零改动，整包 PASS）；重放 0/0/0、拆分不多扣（k=5→k=10 只扣新块）、超限扣留（EXPOSURE_BUDGET_EXHAUSTED 且不耗预算）均在端到端测试里断言；"子任务共账"未单独断言——委托链条未改且被现有 gateway 委托测试覆盖，知识检索走同一 executeSQL，按读代码推出成立，列为 K4 实验前的核验项。文档：catalog-guide 增"检索工具与结算"段、getting-started 增"知识产品"节、threat-model 增"知识产品的两个边界"（pg_catalog 名字解析、嵌入服务信任边界）。scripts/integration-test.sh 未加 KB 用例：demo Catalog 不含知识产品（片段由 kb-publish 生成），端到端覆盖由 Go 测试（KB_E2E_*）承担，记为决定。
+- KB1-LOOP-50（2026-10-16 22:58 UTC+8）：**K3.4 正式数字：v2 + bge-m3 发布物（kbe2e5，collection policy_bge_v2，48,183 块，pgvector 0.8.7，200 条确定性查询 seed kb-hnsw-diff-1，HNSW m=16/ef_construction=64 建索引 13.9 s、383 MB）【实跑，1 min 0 s】。** k=20 的 identity_rate / mean_recall / short：无过滤 ef40 0.964 / 0.997 / 0，ef200 0.990 / 0.999 / 0；department 过滤 ef40 iterative=off 0.577 / 0.788 / 83，ef200 0.866 / 0.968 / 19，relaxed_order ef40 0.938 / 0.995 / 0；department+classification 过滤 ef40 iterative=off **0.157 / 0.481 / 168**，ef200 0.594 / 0.827 / 70，relaxed_order ef40 0.848 / 0.988 / 0、ef200 0.888 / 0.993 / 0。边界并列 3–6 条/配置（比 v1 少，真实感文本重复块少）。时延 p50：精确 56 / 18 / 12 ms，HNSW 1.3–3.2 ms。与 v1 试跑方向一致、严过滤下退化更重（v2 过滤后候选更稀）。结论不变：默认精确检索；HNSW 默认参数在带强制范围的检索上会让 16%–84% 的查询命中集改变，Outcome 复合不可重放。证据：~/logs/kb1/k34-hnsw/report-v2.json，NAS 镜像 kb-k34-hnsw/report-v2.json（sha256 15215487… 两端一致）。
+- KB1-LOOP-51（2026-10-16 23:01 UTC+8）：**K3.4 的差异率进补充材料（按宏，不手写数字）。** 新增 evaluation/kb-pilot/registry.json（campaign_class kb-pilot、publication_eligible false，逐文件 sha256 绑定）与 paper/tkde/generate_kb_evidence.py（核对注册表摘要后生成 paper/tkde/generated/kb.tex，87 行宏；generate_evidence.py / generate_p10_evidence.py 未动）；K3.4 的 report-v2.json 入库 evaluation/kb-pilot/k34-hnsw/。supplement.tex 在"知识产品"节的检索语言小节后增 \subsection{Approximate retrieval as a control arm (pilot measurement)} 与表 tab:supp-kp-hnsw（k=20，ef 40/200 × 三种范围 × iterative off/relaxed，identity / recall / short / p50），文字明示 pilot 类、单一合成发布物、不改受治理路径。容器构建（paper + supplement）后台进行中，结果下条登记；K3.4 待构建通过后标 DONE。顺带记下 K4.5 改写项：补充材料现有效果定义段写的"plain search 的 F_D = F_R 加文档 Fact"需按 kb-design §5 实测口径改（块行、文档键单元格、过滤属性单元格）。
+- KB1-LOOP-52（2026-10-16 23:02 UTC+8）：**K3.4 DONE【实跑：容器构建 paper + supplement 退出 0，无 LaTeX 错误，supplement.pdf 571,504 B】。** 首次构建失败：宏名含数字（\KbHnswNoneOffEf40Identity）被 TeX 截成控制序列 + 文本，报 "Missing \begin{document}"；生成器改为把 ef_search 拼成单词（EfForty / EfTwoHundred），重生成后无数字宏名，重建通过。
+- KB1-LOOP-53（2026-10-16 23:06 UTC+8）：**E-KB4 查询集生成器就绪并开跑【实跑：10 目标试跑 35 s、20 条问题、名义成本 $0.0083，问题样例自然（"改生产环境的东西需要哪些人签字才能上线？"）】。** 新增 evaluation/kbqueryset（按 部门×文档类型 48 层分层、每文档取最新版本、种子确定性抽样；提示词要求每文档两问：贴近原文措辞 / 改写，8–40 字，禁止出现 doc_id 与指代；严格 JSON 解析、长度 / 换行 / 泄露 / 同文校验；规范序 JSONL 编码与摘要；单元测试 PASS）与 evaluation/cmd/kb-queryset（核对语料 sha256 = manifest-v2 后抽样 300 目标、每批 10 个 claude -p（claude-haiku-5-5）、可续跑、预算上限、写 queries.jsonl / targets.json / manifest.json 绑定 corpus_sha256 与 queries_sha256）。全量 300 目标 / 600 问题后台运行中（~/logs/kb1/queryset/run.log），输出进仓库 evaluation/kb-pilot/queryset-v2/ 冻结。查询集在任何检索运行之前写定，符合 K4.1 预登记要求。
+- KB1-LOOP-54（2026-10-16 23:09 UTC+8）：**E-KB4 运行器就绪【实跑：冒烟 6 条查询 × k∈{5,10,20} × 2 个独立控制库，14.3 s，网关 vs 直连逐成员一致 18/18，跨部署一致 18/18，0 错误】。** internal/gateway/kb_experiment_ekb4_test.go（环境门 KB_E2E_* + KB_EMBEDDING_ENDPOINT + KB_EKB4_REPORT；KB_EKB4_DEPLOYMENTS 默认 3、KB_EKB4_LIMIT 冒烟用）：读冻结查询集并核对 queries_sha256；查询向量经同一嵌入服务对规范化文本一次编码；每个部署 = 新控制库 schema + 新 Service + 真实连接器 + 从 bundle 登记的 HOT 字典；每部门一个 V5 任务（范围 kb_department=部门、classification 全部四级，即"clearance 足够"），预算设为不触发拒绝（ExposureLimits 1e7/1e8/1e6、MaxQueries 1e5——偏离设计稿写的 B_R 2,000：那是按单任务少量查询设想的，一个部门任务要承载约 150 次检索，设计意图"足够大以免拒绝"不变，此处登记偏离）；对每条查询每个 k：网关 search（文本）与直连精确 kNN（同向量、同范围、同全序）逐成员比较，记目标文档命中名次（按 doc_id 与按精确版本）；汇总 identity_by_k、recall@k（按问题类型 / 文档类型 / 精确版本）、MRR@20、跨部署一致率；报告 JSON 含 campaign_class kb-pilot、publication_eligible false、查询集清单。harness 增 taskBudget 覆盖钩子（原调用不变）。全量：600 问题 × 3 k × 3 部署 = 5,400 次检索，按冒烟速率约 36 min；查询集生成到第 80/300 目标时已排队等待其完成后自动启动。
+- KB1-LOOP-55（2026-10-16 23:12 UTC+8）：**缺口闭合：知识产品的 eligibility 在申请期未被施加（compileEligibility 只看 Product.Eligibility；K2.4 只校验了声明）【读代码发现，E-KB2 的前置】。** 现在知识产品的 chunks / documents / values 关系在申请期继承其知识产品的 eligibility（同一包络、同一强制范围），裁决记录按关系各留一条规则迹。测试（harness + kb-fragment + 自定义属性快照）：本部门本密级 → 进入草稿、裁决含两条继承规则且带 kb_department 包络迹；他部门 → NOT_ELIGIBLE 且无 OA 草稿；更高密级 → NOT_ELIGIBLE；finance_controller 放宽 → 他部门进入。原七项资格测试原样 PASS。catalog-guide 补一句。属"发射端与校验端同改"类：声明校验（K2.4）早有，施加端缺失。
+- KB1-LOOP-56（2026-10-16 23:15 UTC+8）：**E-KB2(a) 资格门跑完（kb-pilot 类）【实跑：3 个独立控制库，60 主体 × 4 类申请，1.4 s】。** 驱动 internal/gateway/kb_experiment_ekb2_test.go：主体 = 12 部门 × 5 岗位，clearance 按设计由岗位派生（staff/hr {public,internal}，manager +confidential，director/executive +leadership），finance/director 额外带 job_family finance_controller；Catalog = 真实发布片段（kb-publish 已自带 department/clearance 包络）把包络替换为预登记规则（加 finance_controller 放宽，测试中登记此替换）；申请经 request_data_task，资格裁决在建草稿前。结果与预登记预期逐项一致：本部门本密级 180/180 进入草稿；他部门 177/177 NOT_ELIGIBLE；本部门更高密级 108/108 NOT_ELIGIBLE（24 名 director/executive 已是最高密级，无此类申请）；controller 放宽到他部门 3/3 进入；每个部署 OA 草稿数始终等于已获准申请数（拒绝不产生草稿）。证据 evaluation/kb-pilot/ekb2/report-v2.json（sha256 2618b6e3…，注册表登记，NAS 镜像一致）。E-KB2(b) 误批臂依赖 E-KB1 的 S2 策略，随 E-KB1 做。
+- KB1-LOOP-57（2026-10-16 23:20 UTC+8）：**E-KB1 驱动就绪并冒烟通过【实跑：1 部署 × 1 种子 × 20 步，19.5 s】；运行前先写定四条预登记修订（kb_experiment_design.md E-KB1 节首）：预算改以单元格计（B_R 800 = 约 200 块、B_D 2,400，单位换算非调参）、S2 分区改为 job_role × valid_until 六个月份桶（labels has 不在已实现语言内）、合法任务 k=5 且问题取 E-KB4 冻结集该部门 verbatim 前 10 条 + contract.amount 的 sum、部门随种子轮换 sales/finance/hr。** 驱动 internal/gateway/kb_experiment_ekb1_test.go：两臂（ACL 直连 = 同部门同 clearance 过滤的精确 kNN 无账本；FactGate = 网关 search/fetch，kb-pilot 预算 B_Q 256 / B_R 800 / B_D 2,400 / B_O 64 / k_max 20 / TTL 30 min），三策略（S1 词汇扫描 40 词 × 10 模板 = 400 条文本，种子洗牌；S2 分区扫描；S3 命中后 fetch 同文档 0..9 块），每步一次请求、至多 400 步或预算拒绝（EXPOSURE_BUDGET_EXHAUSTED / BUDGET_EXHAUSTED / TASK_NOT_ACTIVE）或枚举完成；轨迹记每步累计不同块、首次拒绝步与码、账本累计 R/D/O；合法任务块另开同预算任务。冒烟结果（sales，可申请块 2,793）：S1 FactGate 第 12 步 EXPOSURE_BUDGET_EXHAUSTED，累计 193 块（6.9%，R 已计 772/800）；ACL 同 20 步 316 块且仍在增长；S2 / S3 在 20 步内两臂集合完全相同（FactGate 尚未触及预算：R 652 / 380）。冒烟是功能验证，不作证据。全量（3 部署 × 3 种子 × 3 策略 × 2 臂）排队在 E-KB4 之后自动运行。
+- KB1-LOOP-58（2026-10-16 23:20 UTC+8）：**E-KB4 查询集冻结【实跑】：300 目标文档（12 部门 × 4 类型分层，各取最新版本）× 2 问 = 600 条，名义成本 $0.2106，queries.jsonl 144,419 B，sha256 36dade4b249d1c7d38880bac11ace61c07257af196ca338a7e7db86e61de1cec（文件 = manifest.json = 生成日志三处一致），manifest 绑定 corpus_sha256 2180645d… 与 targets_sha256；入仓 evaluation/kb-pilot/queryset-v2/，注册表登记，NAS 镜像一致。** 自我更正：KB1-LOOP-56 的提交 `git add evaluation/kb-pilot` 把当时生成中的半成品 queries.jsonl 一并带入了历史（3a98a9c），本次提交以冻结版覆盖；半成品不曾被任何运行读取（E-KB4 启动器等 QUERYSET_RUN_DONE 后才启动，且运行器核对 manifest 摘要）。E-KB4 全量 23:19:49 启动，E-KB1 全量已排在其后。
+- KB1-LOOP-59（2026-10-16 23:26 UTC+8）：**E-KB2(b) 误批臂跑完（kb-pilot 类）【实跑：3 个独立部署，部门 sales / finance / hr，12.3 s】。** 误批 Grant = 本部门 + clearance {public, internal, confidential}（包络内、超出目的），预算 kb-pilot（单元格计）、TTL 2 min（测试时钟推进）。臂 = E-KB1 的 S2（job_role × 6 个 valid_until 桶，30 分区）、分区用尽后接 S1 词汇。结果：三个部署均在第 11 步被 EXPOSURE_BUDGET_EXHAUSTED 拒绝，累计外泄 191 / 200 / 200 块（上界 min(B_R/4, 可申请) = 200；可申请 3,773 / 3,803 / 3,596），Release 计 764 / 800 / 800；TTL 到期后请求返回 TASK_NOT_ACTIVE、新增 0 块。与预登记预期一致（最大外泄 = 上界，到期后 0 新增）。自我更正：第一版臂只循环 5 个 job_role 过滤 + 同一查询，后续请求全被语义重放免费命中（账本按设计不重扣），直到 B_Q=256 耗尽任务归档（TASK_NOT_ACTIVE），只泄 80 块——这是臂写弱了，不是门的证据；已改为真实 S2+S1 后重跑，第一版结果不采用（日志覆盖前已读）。附带观察：相同规范形的重复请求零计费 + 查询预算仍每次扣 1，是 B_Q 与 B_R 两条预算各司其职的实例。证据 evaluation/kb-pilot/ekb2/report-b-v2.json（sha256 65828141…，注册表登记，NAS 一致）。
+- KB1-LOOP-60（2026-10-16 23:30 UTC+8）：**E-KB3 开销驱动就绪并冒烟【实跑：12 轮 × 1 部署，7.3 s，与 E-KB4 并行时跑的，数字不作证据】。** internal/gateway/kb_experiment_ekb3_test.go：每轮 search（k 在 5/20 交替）、对命中集 fetch、aggregate（field × 函数 × classification 共 24 种规范形，之后为重放轮），两臂都提交查询向量（嵌入服务在两臂之外），直连臂同过滤同全序；客户端时延 p50/p95、网关响应 component_ms 分量中位数、每轮 R/D/O；重放轮单列；档位由 KB_EKB3_TIER 与所指库决定。10^5 档语料已生成冻结：evaluation/kbcorpus v1 生成器 documents=20,000 → 20,989 版本 / 96,401 节，sha256 785ed1fd…（manifest-v1-20k.json 入仓，JSONL 镜像 NAS kb-corpus-v1-20k）；发布脚本 ~/logs/kb1/e2e-bge-20k/run.sh（kbe2e6，epoch policy-kb-2026-10-bge-20k，GPU + 缓存续算，含 sidecar 安装与 verify）已备好。排程（严格串行、机器独占以保时延可信）：E-KB1 结束 → E-KB3 48k 档（3 部署 × 200 轮）→ 20k 发布 → E-KB3 96k 档。10^6 档仍待 §9.8。
+- KB1-LOOP-61（2026-10-16 23:58 UTC+8）：**E-KB4 第一次全量跑完（kb-pilot 类）【实跑：3 个独立部署 × 600 问 × k∈{5,10,20} = 5,400 次检索，35 min 09 s，0 错误】，测试断言失败，原因查明是我的度量实现比预登记更严，不是网关缺陷。** 报告里的 identity_by_k = 99.67% / 99.50% / 98.83%（k=5/10/20），36 个观测不一致；事后逐条分析（evaluation/kb-pilot/ekb4/analyze_run1_order_differences.py）：36 个全部**集合相同、只是顺序不同**（对称差为 0），涉及 7 条问题；网关自身三部署 3,600/3,600 顺序一致。原因：直连臂用我批量（32 条一批）编码的向量，网关对同一规范化文本单条编码，嵌入服务两种批形的输出不是逐位相同（余弦距离 ≤ 1.85e-11，7 条无一逐位相同【实跑】），近似并列的邻居因此换位。预登记指标是"命中集逐成员一致"，我的运行器按有序列表比较——已改为同时报 member identity（断言）与 same_order（只报告）；本次报告按事后口径 member identity = 5,400/5,400，登记为 run1（注册表注明口径），纠正后的运行器在 E-KB3 链之后自动重跑作正式数字。质量结果（按 doc_id 任一版本命中）：recall@5/10/20 verbatim 0.667 / 0.797 / 0.877，paraphrase 0.417 / 0.553 / 0.717；按类型 recall@20 approval 0.80、policy 0.82、report 0.79、contract 0.77；按精确版本 recall@20 0.797；MRR@20 verbatim 0.528、paraphrase 0.294。**对照预登记阈值（verbatim@10 ≥ 0.8、paraphrase@10 ≥ 0.6）：两者都低（0.797、0.553）**，按设计稿的口径这说明嵌入 / 切分（section-window-v1，800 字窗）对这类问题还不够，不是 FactGate 的问题；照实报，不改阈值。网关不改变命中集这一主张成立（集合一致 100%）。证据：evaluation/kb-pilot/ekb4/report-v2-run1.json（sha256 191cd0e6…，NAS 一致）。
+- KB1-LOOP-62（2026-10-17 00:01 UTC+8）：**E-KB1 第一次全量跑完（kb-pilot 类）【实跑：3 部署 × 3 种子（sales / finance / hr，可申请块 2,793 / 2,822 / 2,592）× 3 策略 × 2 臂，400 步，4 min 05 s】。** FactGate 臂 27 次全部被 EXPOSURE_BUDGET_EXHAUSTED 止住，累计外泄 183–200 块（6.6%–7.6%；上界 B_R/4 = 200 块即 7.1%–7.7%，无一越界），首次拒绝步数 S1 11–12、S2 23–29、S3 40–46；账本 R 732–800。ACL 臂 400 步累计外泄 S1 63.1%–63.9%、S3 58.8%–65.4%、S2 8.0%–8.9%。合法任务（同预算另开任务）：54/90 完成（60%），9/9 聚合正确，0 次拒绝（预算够用，完成率受检索质量限制而非账本）。**对照预登记表**：FactGate 上界 ✓（实测 7% 对预写 ≈6%，差在可申请块 2.6–2.8k 而非预估 3–3.5k）；S1 首拒 ≤12 ✓；S2/S3 首拒晚于预写（分区与 fetch 每步带回的新块少于 k）；ACL S1 ≥60% ✓；ACL S2 ≥90% ✗、S3 ≥90% ✗——S2 每分区只用一条通用查询、30 个分区循环后再无新块，是我把攻击臂写弱了，不是门的证据；S3 的搜索步被 fetch 步占去一半，到 400 步与 S1 相当；合法完成率 ≥90% ✗（60%，与 E-KB4 的 recall@5 一致，根因在嵌入 / 切分）。证据登记为 run1（evaluation/kb-pilot/ekb1/report-v2-run1.json，sha256 19c02cc9…，NAS 一致）。决定：S2 改为每轮分区扫描换用下一条词汇文本（更强的攻击者只会让对比更严，不改变上界主张），在 E-KB4 重跑之后自动重跑作 run2；两次都登记。
+- KB1-LOOP-63（2026-10-17 00:24 UTC+8）：**E-KB3 48k 档跑完（kb-pilot 类，机器独占 23:59–00:02，3 部署 × 200 轮，158 s）【实跑】；GPU 第四次掉卡。** 48k 档 p50 / p95（ms）：search 直连 6.9 / 7.4（k=5、20 相同），网关新颖 114.3 / 125.3（k=5）、116.9 / 126.5（k=20），网关重放 37.0 / 38.1；fetch 直连 0.3–0.4，网关新颖 97.5 / 105.6（k=5）、106.4 / 113.9（k=20），重放 42.4；aggregate 直连 1.1 / 1.8，网关新颖 50.4 / 54.6，重放 24.5 / 27.5。网关分量中位数（search k=20 新颖）：ordinal_stream 33.2 = provenance_postgresql 33.2（溯源语句与位图流推导）、settle_persist 31.8、business_postgresql 20.2、authorization 8.2；重放时 settle_persist 7.9、semantic_replay 2.6。即网关开销约 +110 ms/次，其中约 1/3 是溯源语句（第二条 SQL）、1/3 是结算落盘、其余为策略/授权/签名；两臂都提交向量，嵌入不在内。对照预登记"p95 不超过直连 2 倍"：**不成立**（直连 7 ms 时网关 125 ms ≈ 17 倍）——预写时参照的是报表路径"全扫描数十 ms 为主"的情形，48k 块按部门过滤后直连只需 7 ms，固定结算成本便占主导；照实报，96k 档再看比例。证据 evaluation/kb-pilot/ekb3/report-48k.json（sha256 7db4e1f9…，NAS 一致，注册表登记）。GPU：20k 发布在 00:21（19 min、新增缓存 26,345 条、共 86,050）于 /embed 超时后发现 CUDA sticky error、NVML 不可初始化——第四次掉卡，与前三次同型；本次频率锁已因 22:39 重启失效（2280 MHz）。处置：杀掉正对着死 GPU 跑的 E-KB4 重跑，嵌入服务改 CPU 重启（单条 0.16 s），夜间链 ~/logs/kb1/night-chain.sh：E-KB4 重跑 → E-KB1 重跑 → 20k 发布在 CPU 上从缓存续算（剩约 7 万块，估 4 h；发布物向量将是 GPU/CPU 混编，对 E-KB3 开销度量无影响，登记）→ 96k 档。需作者：重启 Windows 恢复 GPU（不急，夜间链不依赖 GPU）。
+- KB1-LOOP-64（2026-10-17 00:49 UTC+8）：**E-KB4 run2（纠正后的口径，嵌入服务在 CPU）【实跑：21 min 28 s，0 错误】：逐成员一致 k=5 100%、k=10 99.83%、k=20 99.83%（各 3/1,800 不同）；同序 99.33 / 99.00 / 97.83%；跨部署 3,600/3,600；recall 与 run1 完全相同（同一冻结查询集、同一发布物，CPU 嵌入未改变 recall）。** 逐条查明 6 个不一致观测（2 条问题）：全部是第 k 位边界上同一文档两个版本的第 0 块（正文相同，距离差 4e-9 与 2.6e-8），单条与批量编码的向量差（CPU 上约 1e-7）决定谁进前 k；两边各自都是自己向量下正确的精确 top-k。结论：网关自身排序确定（跨部署 100%），"与直连逐成员一致"在客户端自行重编码文本时受嵌入服务非确定性影响。**修订（看到数据后改，如实登记）**：预登记的"一致率 100%"所要检验的是"FactGate 不改命中集"，这只能在网关收到与直连相同向量时检验；运行器新增向量臂（网关 query.vector = 直连所用向量），100% 断言移到向量臂，文本臂两个口径照报。run3 排在夜间链之后。证据 evaluation/kb-pilot/ekb4/report-v2-run2.json（sha256 85b21bb8…，NAS 一致）。
+- KB1-LOOP-65（2026-10-17 00:50 UTC+8）：**E-KB1 run2（S2 每轮换词；嵌入服务 CPU）【实跑：3 min 07 s】，登记为 E-KB1 正式 pilot 数字（注册表 id ekb1-adaptive-extraction-v2）。** FactGate 臂与 run1 逐条相同：27 次全部 EXPOSURE_BUDGET_EXHAUSTED，外泄 183–200 块（6.6%–7.6%，上界 200），首拒 S1 11–12 / S2 23–29 / S3 40–46；ACL 臂 400 步：S1 63.4%、S3 61.6%、S2 28.5%（run1 8.4%——加强攻击者只改变无账本臂，账本上界不动，正是要展示的性质）。合法任务 54/90、聚合 9/9、0 拒绝，与 run1 相同。ACL S2 仍未到预登记的 ≥90%：分区 × 词汇的扫描每步新块少，400 步内到不了；到此为止不再调攻击臂，两次运行都登记，论文按实测写"S1 在 400 步泄出约三分之二，S2 约三成，S3 约六成；FactGate 三策略都止于约 7%"。证据 evaluation/kb-pilot/ekb1/report-v2-run2.json（sha256 16a501a7…，NAS 一致）。夜间链进入第 3 步：20k 发布在 CPU 上续算中。
+- KB1-LOOP-66（2026-10-17 05:08 UTC+8）：**夜间链结束；20k 发布在 CPU 上完成全部编码后于载入步失败，已修并重排。** 续算 3 h 54 min（00:49–04:43）把 96,401 块的向量全部落入缓存（139,354 条，含 v1 / v2 残留），随后 kb-publish 在 "load kb rows (statement 0): write failed: message body too large" 退出【实跑】：载入步把全部行塞进一个 pgx Batch，10^5 块 × 1024 维向量文本超过协议单消息上限。修复：internal/kbpublish/publish.go 按 2,000 条语句分批发送（flush 闭包，错误带全局语句序号）；kbpublish / catalog 测试 PASS。96k 档被跳过（依赖发布）。排程：E-KB4 run3（04:43 起，向量臂）→ 20k 发布重跑（向量全在缓存，无需 GPU，预计数分钟载入 + 编译）→ sidecar 安装 + verify → E-KB3 96k 档（机器独占）。GPU 仍处掉卡状态，等作者重启；夜间链全程未依赖 GPU。
+- KB1-LOOP-67（2026-10-17 05:24 UTC+8）：**E-KB4 run3（文本臂 + 向量臂；嵌入服务 CPU）【实跑：34 min 25 s，0 错误，断言 PASS】，登记为 E-KB4 正式 pilot 数字（注册表 id ekb4-retrieval-quality-v2）。** 向量臂（网关收到与直连相同的向量）：逐成员一致与同序一致 k=5/10/20 全部 100%（5,400/5,400）——"FactGate 不改命中集与排序"成立；文本臂（网关自行编码规范化文本）：逐成员 100 / 99.83 / 99.83%，同序 99.33 / 99.00 / 97.83%，差异全在重复正文的版本间边界并列（KB1-LOOP-64 已逐条核实）；跨部署 3,600/3,600。检索质量三次运行完全一致（同一冻结查询集与发布物）：recall@5/10/20 verbatim 0.667 / 0.797 / 0.877、paraphrase 0.417 / 0.553 / 0.717；MRR@20 0.528 / 0.294；按类型 recall@20 approval 0.80、policy 0.82、report 0.79、contract 0.77；按精确版本 recall@20 0.797。对照预登记阈值 verbatim@10 ≥ 0.8（实测 0.797）、paraphrase@10 ≥ 0.6（0.553）：**都略低，照实报**；按设计稿口径这指向嵌入与切分（800 字节窗、bge-m3 对 LLM 生成中文公文）而非网关。证据 evaluation/kb-pilot/ekb4/report-v2-run3.json（sha256 c4636e4d…，NAS 一致）。E-KB4 三轮 run1/run2/run3 全部登记，口径差异写在注册表 note 里。
+- KB1-LOOP-68（2026-10-17 05:32 UTC+8）：**20k 发布完成 + E-KB3 96k 档跑完（kb-pilot 类）【实跑】。** 发布：修复分批后 kb-publish 从缓存载入 + 编译 1 min 38 s（峰值 RSS 4.9 GB），documents 20,000 / versions 20,989 / chunks 96,401 / values 31,821，manifest d93… 不同于 v2，为 081e2274ca24670eb6f5ed37ad2909eaaa87017a7bbc14514984a16b3d6848f5；sidecar 三张安装、verify rc=0；向量来源混合（26,345 条 GPU 编码 + 53,304 条 CPU 编码 + 与 v1 重复的部分复用缓存），对开销度量无影响，登记。产物 2.0 GB 镜像 NAS kb-publish-bge-20k（清单 sha256 两端一致）。96k 档（05:21–05:25 机器独占，3 部署 × 200 轮）p50 / p95 ms：search 直连 12.7 / 14.0（k=5）、12.8 / 13.5（k=20）；网关新颖 171.7 / 186.6（k=5）、183.1 / 197.7（k=20）；网关重放 40.6；fetch 直连 0.4，网关 146.7 / 156.6；aggregate 直连 2.3 / 3.6，网关 58.2 / 65.0，重放 24.8。分量中位数（search k=20 新颖）：provenance_postgresql = ordinal_stream 67.7、business_postgresql 42.3、settle_persist 38.4、exposure_fact_store 9.8、authorization 8.5。**两档对比**：直连 6.9 → 12.7 ms（×1.8，与块数 ×2 相符）；网关 116.9 → 183.1 ms（+66 ms），增量几乎全在两条语句的数据库时间（business 20→42、provenance 33→68）——可见与溯源语句各自完整执行一次精确最近邻（命中 CTE 在两条语句里各算一遍），结算落盘等固定项 ~70 ms 不随规模变。相对倍数 17× → 14×；绝对增量按块数线性。预登记"p95 ≤ 直连 2 倍"两档都不成立（预写时参照的是全扫描数十 ms 的情形）。10^6 档仍待 §9.8。可优化点（记为工程欠账，不在 KB-1 范围）：命中 CTE 在两条语句间复用（物化一次）可省约一次精确扫描。证据 evaluation/kb-pilot/ekb3/report-96k.json（sha256 8de7d39b…，NAS 一致）。至此 K4.2 / K4.3 / K4.4（两档）/ K4.6 的 pilot 运行全部登记，队列清空。
+- KB1-LOOP-69（2026-10-17 05:46 UTC+8）：**K4.5 完成，K4.2 / K4.4 / K4.6 标 DONE（pilot 口径）【实跑：容器构建 paper + supplement 退出 0、无 LaTeX 错误，supplement.pdf 579,748 B】。** 补充材料"知识产品"节由"定义、未实现"改为"已实现并做 pilot 评估"：开头段改口，效果定义段改为实测代数（四个可见单元格、块行、文档键单元格与行、过滤属性单元格、范围不留见证，并给出 20/45 的实测），新增 \subsection{Pilot evaluation}（E-KB1 外泄表、E-KB2 四类计数与误批臂、E-KB3 两档时延表与分量、E-KB4 向量臂/文本臂一致率与 recall），可移植性表题注与 Non-claims 改口；所有数字由 generate_kb_evidence.py 的宏给出（新增向量臂宏、策略与分位数名称拼写、宏名含数字即拒绝），supplement 引用的宏逐一核对有定义。预登记未达项照写：ACL S2/S3 未到 90%（攻击脚本偏弱）、合法完成率 60%、recall@10 低于 0.8/0.6、网关 p95 超直连 2 倍。K4 的 pilot 证据链至此闭合：注册表 11 项，NAS 全部镜像。仍待：10^6 档（§9.8）、作者裁决证据类别翻正式、K5（主稿改写与页数）。
+- KB1-LOOP-70（2026-10-17 08:44 UTC+8）：**作者决策：kb-design §9.2 选 A（Dependency 按通用代数原样发出，论文算例随实现重算），并指示重算补充材料 Worked example。** 已改：算例预算以单元格计 48/160/10（B_R 仍为 12 块），首次 search 4 块 2 文档 → R 16、D 26、O 1；同请求 0/0/0；加 year 过滤 → 0 释放、4 个过滤属性单元格进依赖、1 原子 + 1 复合；aggregate 六行 → 1 派生 Fact、24 依赖、2 原子 + 1 复合；fetch 2 块 → 8/10/1（d1 已在账上）；账本 (25, 64, 7)；再一次带新原子的 search 到 (41, 94, 9)；下一次不同请求需 2 个 Outcome 超 B_O=10 被拒且不计费；委托者重放 0/0/0。每步数字按 §5 实测口径逐项推得。容器构建 paper + supplement 退出 0、无错误【实跑】。kb-design §9.2 标已定，kb-paper-framing.md §6 第 6 项标已完成。
+- KB1-LOOP-71（2026-10-17 09:04 UTC+8）：**作者决策：kb-design §9.3 选"进 KB-1"（集合级抽取值很有用、要实验），并确认 scope 由定义 Catalog 的人按字段业务含义选择。** 设计（我定，已向作者说明待其否决）：集合级身份带 kb_department 与 classification 两个强制范围属性、不带文档号——否则范围过滤无列可施加、账本分不清值学自哪个部门；同值跨部门仍是不同 Fact。实现【实跑：catalog / kbpublish（含对 pgvector 容器的发布 + 片段并入仓库 Catalog + 绑定校验）/ gateway / retrieval / physicalquery 全 PASS，go build ./... 通过】：catalog 规则 scope 接受 document|collection，KnowledgeProductRelations 增可选 collection_values（有集合级规则则必填，反之必空），必填字段表增该关系；kbpublish Spec.Kinds() 按规则决定三或四张关系，第四张为 kb.extracted_values 上 DISTINCT(field, value_type, canonical_value, value_text, value_numeric, value_date, kb_department, classification) 限集合级字段的物化视图，实体键 (field, canonical_value, kb_department, classification)，计数进清单，片段 / verify / 激活按清单里的关系集合走；网关 aggregate 按字段的规则 scope 选 values 或 collection_values。测试：publish_test 的 counterparty 改为 collection 口径，第四张关系随之发布并绑定；prepare_test 的"collection 应被拒"改为"chunk 应被拒"。环境：WSL 今晨已重启（09:00 前后，GPU 恢复、频率锁未施加 2280 MHz），测试容器重启，嵌入服务以 CPU 重启。排程：v2 以 counterparty 集合级重发布到 kbe2e7（epoch policy-kb-2026-10-bge-v2c，向量全在缓存）→ E-KB5。
+- KB1-LOOP-72（2026-10-17 09:09 UTC+8）：**集合级抽取值闭环：K2.8 / K3.5 / K4.7（E-KB5）DONE（pilot 口径）【实跑】。** 发布：v2 以 counterparty scope=collection 重发布到 kbe2e7（epoch policy-kb-2026-10-bge-v2c，向量全部命中缓存，kb-publish 57.6 s，manifest cf5c96a9…），第四张关系 collection_values 438 行（= counterparty 的 (值, 部门, 密级) 组合数）；verify rc=0；产物镜像 NAS kb-publish-bge-v2c。踩到一处：sidecar 安装器"首装封印发布物集合"，脚本只装了三张、第四张事后补装被拒（installed publication metadata differs from immutable bundle set），scratch 库重建 taskgate_ordinal 后四张一次装入；两份发布脚本改为安装 inputs/ 下全部输入。E-KB5（3 部署 × 2 发布物，4.9 s）：同一请求"count 财务部内部合同的 counterparty"——文档级口径答案 116（= 合同行数），R/D/O = 1 / 580 / 4；集合级口径答案 10（= 不同对方数，直连 count(distinct) 亦为 10），R/D/O = 1 / 50 / 4；两边重放均 0。结论：Catalog 里字段的 scope 声明同时改变问题含义（数合同还是数供应商）与一个数字答案在账本上的代价（580 vs 50 依赖 Fact），跨部门同值仍是不同 Fact（设计选择，范围过滤依赖它）。证据 evaluation/kb-pilot/ekb5/report-v2.json（sha256 ca7c8875…，NAS 一致，注册表第 12 项），宏 \KbEkbFive*，补充材料：collection-scoped 一句后补实现说明，Pilot evaluation 增 E-KB5 段；容器构建 paper + supplement 退出 0。文档：catalog-guide 增 scope 两种口径与第四关系说明，kb-design §1 表增第四关系行、§9.3 标已定。
+
+- [2026-10-17 10:41 UTC+8] KB1-LOOP-73 §9.6 (a) 落地：fetch 只取本根族已返回的块。作者定"1 认可；2 我选 a"。实现（实跑）：control.Store.RootReleaseContains（读事务读 V5 根头 release_set_sha256，无则查 V4 根头，复用 loadOrdinalSetTx 的静态位图判成员，不预留不结算）；网关 requireChunksReturned 在 prepareRetrieval 之前把每个块引用经 retrieval.ChunkEntityKey 解析到分块发布物 HOT 索引实体，取 `<chunks_product>.text` 单元格序数判成员，任一不在集合即 CHUNK_NOT_RETURNED（范围外、发布物外、从未返回三类同码）。踩坑并更正：第一版用 GetOrdinalRootHead 查 V4 根头，检索任务是 V5 剖面，根头在 v5_exposure_root_heads，查不到导致已返回的块也被拒；根因是把"根头"当成单一表而未核 V5 路径（该查没查），改为先 V5 后 V4。e2e（kbe2e5）：search k=5 后，fetch{已返回块, 范围外块} → CHUNK_NOT_RETURNED；fetch{范围内但从未返回的块 D-001195 v1 #1} → CHUNK_NOT_RETURNED；fetch{两块已返回} → 2 行、R 8 / D 16 实际、计费 0（重放）。control 包测试 42 s 通过。后果（读代码）：E-KB1 的 S3"命中后 fetch 同文档其余块"在网关臂下将按设计被拒，实验设计已登记修订，E-KB1 需随 §9.8 一并重跑。文档：kb-design §9.6 标已定并记放弃项 (b)，catalog-guide fetch 语义，kb_experiment_design S3 修订。
+
+- [2026-10-17 10:52 UTC+8] KB1-LOOP-74 §9.8 落地：分块 Result 单元格改为 text_sha256，正文改在交付层按摘要核对后交付。作者决策："同意 text_sha256"；同时作者接受 R = 4|y|（可见语句必须投影 doc_id/version/chunk_index 才能与命中集连接并回给调用方，三列单元格因此是 Release Fact）——此即 §5 已实现口径，无需改代码。实现（实跑）：retrieval.ChunkTextField = text_sha256（Hit.Text → Hit.TextSHA256，oracle 同步）；physicalquery 可见投影第四列改 text_sha256；kbpublish chunks 发布关系与 reporting 视图去掉 text（kb.chunks 业务表仍存正文）；catalog 必备字段去掉 text；网关 deliverChunkText：search/fetch 的首次执行与重放响应都按（集合，身份三元组 IN 列表）读 kb.chunks 正文，逐行核对 sha256(正文) == 封印语句返回的摘要，不符或缺行即 CONFLICT 拒绝整个响应并不交付任何正文（读取用固定 5 s 超时，不占任务查询预算），通过则在响应行尾追加 text 列。注意（读代码）：拒绝发生在结算之后，已记的 Release 不回滚——偏保守方向。验证（实跑，kbe2e5 旧发布物同时含 text 与 text_sha256 列，故可先验）：e2e 全程通过（search R 20/D 45/O 2 不变；fetch 已返回块 R 8；aggregate 164/184726729.33；文本臂与直连逐成员一致），新增篡改子测试：以 admin 连接给已返回块正文追加一个空格后 fetch → CONFLICT「正文与发布期摘要不一致，拒绝交付」，随后恢复；单元测试 retrieval/physicalquery/kboracle/kbpublish/catalog 通过；gateway 全包 68 s、control 84 s 通过。evaluation/internal/experiment 一项失败：TestRun04PreparedBindingMatchesPostgreSQLJSONBRoundTrip 断言 server_version_num 160014 而本机测试容器为 160015（环境与封印 campaign 版本不同，与本改动无关，读代码判定）。后续：三份发布物按修订 2 重发布（脚本改为保留旧产物为 artifacts-rev1、重建库、安装 sidecar、verify、镜像 NAS *-rev2），随后 E-KB2a/2b、E-KB5、E-KB4、E-KB1、E-KB3 48k/96k 顺序重跑（~/logs/kb1/rev2-chain.sh，日志 rev2-chain.log，已于 10:52 启动）。文档：kb-design §5/§9.8/§10a、catalog-guide 必备字段、supplement f_chunk 的 C 取 SHA-256 与两处"text"→"content digest"、kb_experiment_design 前置与 10^6 档可行性、kb-paper-framing 待决项。
+
+- [2026-10-17 12:14 UTC+8] KB1-LOOP-75 §9.8 修订 2 证据入库，另有两处自查更正。**重发布【实跑】**：三份发布物按修订 2（chunks 关系去掉 text，Result 单元格 text_sha256）重发布：v2→kbe2e5、20k→kbe2e6、v2c→kbe2e7；旧产物留作 artifacts-rev1，新产物镜像 NAS kb-publish-*-rev2（三份目录 sha256 汇总一致）。v2 脚本的 sidecar 安装因 SNAPSHOT_INSTALL_POSTGRES_DSN 未导出失败；verify 不查 sidecar，所以链没停。手工补装成功，三份脚本已改为 export。修订 2 沿用修订 1 的 epoch 名，注册表以 manifest 区分。**尺寸与内存【实跑，同一输入 v2c】**：chunks COLD 641.5→491.3 MB，HOT 40.3→36.8 MB；单份产物 1011→865 MB（v2 1004→857，20k 1996→1722）；kb-publish 峰值 RSS 2.49→2.09 GB（20k 4.93→4.16 GB）。**更正 1（自查）**：我向作者推荐 §9.8 时说"发布物每块只剩几百字节，10^6 块可行"，同日又在 kb_experiment_design 写"发布物体积不再是 10^6 档的障碍"，两句都错。实测只降约 15%，峰值 RSS 约 43 KB/块，外推 10^6 块约 43 GB，仍超本机 30 GB。原因【实查 bundle.json】：chunks 关系每块 19 个 Fact（9 列 × 裸列名与角色限定两套 field id，加 1 个行 Fact），COLD 平均每 Fact 约 537 B，正文只占其中 2 个。根因：该查没查，只按正文体积估算，没读段构成。已改 kb-design §9.8（加实测段与三个候选）、§9a、kb_experiment_design 可行性段（标更正）、kb-paper-framing；kb_extension_plan K4.4 由 DONE 改 PARTIAL：验收写两档，10^6 档从未跑过，原 DONE 系过报。10^6 档的取舍待作者定：只发布角色限定 field id、流式编译，或写明未评估。**实验链【实跑，~/logs/kb1/rev2-chain.sh，e232ae4 树】**：E2E 通过（R 20 / D 45 / O 2，篡改子测试 CONFLICT）；E-KB2a/2b、E-KB5 计数与修订 1 完全一致；E-KB4 两臂的成员与顺序一致率在各 k 均为 100%，recall 与 MRR 不变。修订 1 文本臂的残差是重复正文块之间的 k 边界并列；修订 2 全部向量取自按 text_sha256 键控的缓存，1,692 组重复正文（3,384 块）无一组向量不同（查询带正对照，登记为 ekb4-duplicate-text-vectors-v2r2）。E-KB3：search/fetch 的网关中位时延 48k 降 7.4–10.0 ms、96k 降 17.3–38.4 ms，aggregate 升 0.8 / 1.3 ms；降幅落在业务与溯源两个数据库阶段，原因未经对照实验分离。**E-KB1【实跑】**：S3 网关臂的首次拒绝变为第 2 步 CHUNK_NOT_RETURNED。原 runner 只记首次拒绝码，S3 的终止码不在报告里，所以 runner 增 stop_code 与 refusals，在 c82a5f5 重跑（2 min 22 s）：27 条 FactGate 轨迹全部以 EXPOSURE_BUDGET_EXHAUSTED 终止；S3 邻接取回被拒 1,395 次（每轨 140–165 次）。被拒的 fetch 不预留，S3 退化为其中的 search，9 轨的去重块数逐轨与 S1 相同；ACL 臂与合法任务不变（54/90，聚合 9/9）。修订 2 首跑（无终止码）登记为被取代。**K3.4 HNSW【实跑】**：修订 2 向量上重跑，identity 最多差 1.0 个百分点，recall 最多差 0.003。**注册表**：新增 10 条（v2r2 / v2r3 / -r2 与 duplicate-text-vectors），原条目不动。generate_kb_evidence.py 改为缺条目即失败（原为静默跳过）；增 E-KB1 终止码与拒绝计数宏，缺 stop_code 的报告拒收（已用 v2r2 报告验证会拒）；增重复向量宏，正对照不符即拒。**更正 2（自查）**：补充材料知识产品节自 KB1-LOOP-69 起把 \code{X\_Y} 印成带反斜杠的 X\_Y，因为 \code 内部用 \detokenize，转义下划线连反斜杠一起输出；共 6 处正文与生成器 2 个宏。KB1-LOOP-69 的"构建通过、无 LaTeX 错误"只查了日志，没看渲染文本。根因：该查没查。它与 P10-R2-LOOP-38（构建通过但 PDF 页边裁字）同属"构建退出 0 而成品错"，第二次出现按流程缺陷处理：新增 paper/tkde/check-rendered.py，读 PDF 文本查转义残留、"??"、裸宏名，读日志查 Overfull；补充材料严格，主稿只警告；每次先用已知坏样本自检。README 已写为构建后必跑。现在补充材料 0 项；主稿 2 处 Overfull（6.9 / 1.8 pt，在形式化小节，非本次改动，主稿冻结未动）。**补充材料其它改动**：E-KB1 段写终止码、S3 拒绝与退化；E-KB4 段写 100% 与重复正文向量一致；E-KB3 段原有三句按修订 2 数字不成立或不精确——"两条语句主导"（48k 时两条语句约 40 ms、结算持久化约 33 ms，总 107 ms）、"结算持久化不随规模增长"（实为 32.6→40.3 ms）、"重放约三分之一"（search 29–37%，aggregate 42–48%）——改为按宏陈述，并写明网关客户端时间含正文交付读取；HNSW 表注原"多数查询"只对严过滤成立（department 下约 43% 不同），改为两种范围下的 identity 宏；实验总述原"四个实验预登记、同一发布物、同一二进制"已过期——E-KB5 未预登记，E-KB3 大档与 E-KB5 各用另一份发布物，E-KB1 与其余实验构建不同（网关差异只在拒绝的重放路径），改为逐实验同构建并由注册表给版本；另修该段一处 3.3 pt Overfull。容器构建 paper + supplement 退出 0。**代码**：c82a5f5 让 fetch 拒绝与准备失败共用一条重放路径（并发的同 request_id 已完成则重放其结果并补交付正文），E-KB1 runner 记终止码，威胁模型写入交付读取。本次另修两处：五个 runner 打印的报告摘要不含末尾换行，与文件 sha256 不符（实测 ba7b8308 对 d05fc7f4），改为对写出字节求摘要，已用 E-KB2a 验证一致；kbpublish 发布期按正文去重嵌入，每个不同正文只嵌一次、副本取同一向量（单测带正对照），不改变修订 2 内容（全部命中缓存，读代码推出）。**实施偏差登记**：kb_experiment_design 的证据布局（注册表放 final-v5-wsl2、逐部署 raw、make paper-kb-check）从未按此实施，已追记为偏差。**未变**：全量测试中 evaluation/internal/experiment 一项失败，因测试容器 PG 为 16.15、封印版本为 16.14（断言常量，与本改动无关，读代码）。
+
+- [2026-10-17 12:19 UTC+8] KB1-LOOP-76 10^6 档候选 (i) 原型实测，交接更新。**做法**：临时 worktree（HEAD 25bab3c）只改 kbpublish 一处——chunks 关系只发布角色限定 field id，不发裸列名一套——在临时库 kbproto 上发布 20k 语料；同一提交未改的二进制在 kbbase 上发布作基线；两者都直接运行二进制并用 /usr/bin/time 计量（此前修订 2 数字来自 go run，口径不同，所以重测基线）。**结果【实跑，96,401 块】**：峰值 RSS 4.12 → 2.64 GB（降 36%），产物 1722 → 1255 MB，chunks COLD 983 → 525 MB、HOT 73.7 → 42.4 MB，chunks 段 19 → 10，发布 1:41 → 1:17。线性外推 10^6 块约 27 GB，贴着本机 30 GB 上限，能否跑通未知；另需约 86 万块新嵌入，CPU 批量吞吐未测。**决定**：原型不合入，作为证据交作者裁决。依据：去掉裸列名会让 chunks 产品不能再经单源 query_sql 访问，属于主张范围的取舍。放弃的做法：直接合入并重跑全部实验——在作者定 10^6 档之前，这一步会白做。日志、两份 bundle.json 与 diff 存 NAS kb-publish-proto-qualified-only-20261017（SHA256SUMS 核验通过）；临时库、产物与 worktree 已删，主 worktree 的原始语料完好。kb-design §9.8 候选 (i) 补实测数；新交接 docs/handoff_2026-10-17.md 取代 10-16 那份。
+
+- [2026-10-17 12:29 UTC+8] KB1-LOOP-77 **作者决策：E-KB3 的 10^6 块档选 (iii)，"我选3"**——论文写明未评估，报实测的发布内存斜率。**做了什么【实跑】**：证据 evaluation/kb-pilot/publish-memory/publish-memory-v2r2.json 记三份修订 2 发布的峰值 RSS（读自 time-2 / time-1 / time-3 日志，均退出 0）、块数（读自 kb-publication.json）、单位核验、主机内存（/proc/meminfo MemTotal 30,797,500 KiB，无 swap）；三份 timing 日志与该文件镜像 NAS，sha256 一致。注册表第 23 条 kb-publish-memory-v2r2。生成器新增 publish_memory_macros，带三道守卫：单位核验不支持 KiB、内存未随块数增长、10^6 外推不超过主机内存，任一成立即拒绝出宏，因为补充材料的句子断言了后两者。补充材料 E-KB3 段末加一句：10^6 档未评估；发布峰值内存 48,183 块 2.0 GiB、96,401 块 4.0 GiB，每增一块约 43 KiB，线性外推 10^6 块约 41 GiB，超过评估主机的 29.4 GiB（宏取自注册表）。容器构建 paper + supplement 退出 0，check-rendered 补充材料 0 项，渲染文本已回读核对。文档：kb-design §9.8 记决定与放弃项、kb_experiment_design 可行性段记决定（该档预期未经检验、不进论文）、kb-paper-framing 标已定、kb_extension_plan K4.4 按作者修订的验收标 DONE、交接更新。**决定的依据与放弃**：作者裁决；放弃 (i)，它用 chunks 产品的单源 query_sql 访问换一个按比例外推约 26 GiB、仍贴着主机上限、不确定能跑通的结果；放弃 (ii)，工程量大且未估。原型不合入，diff 留在 NAS。**更正（单位）**：KB1-LOOP-75、76，kb-design、kb_experiment_design、交接，以及上一轮对作者的汇报里，发布内存的 "GB" 实为 GNU time 的 KiB 读数除以 10^6；产物合计（du --block-size=1M）实为 MiB。单位已实测：分配 100 与 400 MiB 的读数差 307,276，按 KiB 应为 307,200，按十进制 kB 应为 314,573。按 GiB 重述：v2c 2.38→2.00 GiB，20k 4.70→3.97 GiB，降 15.5–16.1%（原写约 15%）；每增一块约 43 KiB（原写 43 KB）；外推 10^6 块约 41 GiB（原写 43 GB）；主机 29.4 GiB（原写 30 GB）；原型 3.93→2.52 GiB，按比例外推约 26 GiB（原写 27 GB）。结论不变。根因：该查没查，换算前没核读数的单位（查证做法第 13 条）。
+
+- [2026-10-17 13:44 UTC+8] KB1-LOOP-78 **作者决策："我同意1 和 4"。** 1 = K2.1 设计记录认可：docs/kb-design.md 状态行改为已认可，kb_extension_plan K2.1 由 BLOCKED 改 DONE。4 = kb-design §9.5 已定：生成回答 f_gen 不在 KB-1 范围，论文保持"第四层为未来工作"。**为作者解释"试点证据是否升为正式"所查事实**：(1)【读代码】KB 实验全部跑在 Go 测试进程里：harness 直接在控制库建任务、用 demo 签名器签批准回执、经 store.ApplyApprovalCallback 落批准，工具经 callGatewayTool 在进程内调用，不经 HTTP/MCP 传输、认证层与外部审批回调；"一次部署"= 新控制库 + 新 Service 实例，业务库共用；E-KB2a 的 request_data_task 也是进程内调用。(2)【读论文与代码】V5 正式证据为 campaign_class publication、publication_eligible true，每次部署用冻结的提交全新拉起（每部署 verify-build、HEAD==origin、不能续跑），由 final-v5-adapter 的 client 经 HTTP JSON-RPC 调用网关；补充材料引用的 V5 留存试点（pilot-counter-rigor-03、pilot-adversary-05）也是"three fresh deployments"。(3)【规则】把现有试点结果直接改标签为正式属于"给旧证据重打新标签"（AGENTS.md 明令禁止），所以不作为选项；正式标签只能来自开跑前就声明为正式的一轮。据此给作者的选择是三个：A 保持试点；B 在冻结提交上按进程内方式重跑一轮，开跑前声明为正式；C 按 V5 口径重跑（全新部署、经 HTTP 驱动、真实审批回调，需把五个实验改为外部驱动程序，工作量未细估）。B、C 都以 K4.1 实验设计获认可为前提，开跑前通知作者，结束后作者签署证据绑定。交接已更新。
+
+- [2026-10-17 13:55 UTC+8] KB1-LOOP-79 **作者决策："我同意k4.1，然后我选择C方案。"** K4.1 实验设计认可：kb_experiment_design 状态行改为已认可，kb_extension_plan K4.1 由 BLOCKED 改 DONE。KB 证据升为正式，按方案 C：标准与论文里 V5 的正式证据相同——每次部署用冻结的提交全新拉起整套服务，请求经网关的 HTTP 接口发出，审批走真实回调，三次部署，证据封存、镜像 NAS、作者签署证据绑定；现有试点结果不改标签。计划新增阶段 4b：K4.8 正式轮规程、K4.9 外部驱动（与进程内 runner 对拍）、K4.10 部署接入（KB 发布物、Catalog、嵌入服务、冻结提交构建镜像）、K4.11 正式发射（开跑前通知作者）、K4.12 论文更新与作者签署。预登记的问题、预期与停止规则不改。已开始摸 V5 正式轮机制（launcher、profile、adapter、封存与签署）。
+
+- [2026-10-17 14:21 UTC+8] KB1-LOOP-80 摸清 V5 正式轮机制，修两处既有缺陷。**时间戳更正**：KB1-LOOP-79 应为 13:52，写成了 13:55。根因：date 与写台账放在同一条命令里，时间是先写后读。这与 P10-R2-LOOP-39"写入前未对表"同一根因，属第二次出现，按流程缺陷处理：今后 date 单独一步执行，读到输出后再写台账行。**V5 正式轮机制【读代码，Explore 子代理 + 本人抽查】**：唯一在用的正式路径是 run-profile-campaign.sh；publication 类写死 V5 矩阵（172 格、11 profile、33 部署记录，contract v1.11/v1.13）。把 KB 塞进去会改冻结摘要（协议 sha、master catalog → 新 contract 版本与绑定重批、registry sha），所以方案 C 走并行的 KB runner，复用同一套保证：launcher 闸门与 preflight、提交冻结的宿主构建、正式网关镜像 build+verify、固定 compose 参数、每部署唯一项目名、主机预检与零残留清理、进程内凭据与 stderr 闸门、部署记录逐文件摘要、封存核验。V5 的"签署"是作者对确切字节按 SHA-256 写 AUTHOR_APPROVED 记录，没有签名工具；KB 的数据绑定（语料、publish 规格、嵌入权重与缓存摘要）需要作者批准一份同类记录。**缺陷 1（K2.2，实跑确认）**：compose.yaml 把 KB_REQUIRE_PGVECTOR 写死为 1，而 db-test 拓扑与 V5 正式拓扑都用 compose.observer-v3.yaml 把业务库换成无 pgvector 的 postgres@sha256:92620dad…。docker compose config 渲染出的合并配置正是这两者；用该镜像只挂 KB 初始化脚本实跑：要求为 1 时 initdb exit 1，为 0 时跳过并正常启动。即 kb-dev 上 db-test 与正式拓扑的业务库初始化会失败（main、p10-r2 不受影响）。已改为默认 0，并补注释与文档；复核【实跑】：两份合并配置都渲染为 0，无 pgvector 镜像跳过 KB schema 并正常启动，pgvector 镜像照装 KB schema（5 张表，vector 在 pg_catalog）。知识产品部署应显式设为 1。**缺陷 2（K2.4，读代码确认）**：网关启动时 snapshot 加载器拒绝制品目录里任何未声明的条目，而知识产品激活从同一目录读 kb/<epoch>/kb-publication.json——有 kb/ 则加载器拒启动，无 kb/ 则激活失败。所以带知识产品 Catalog 的部署网关根本起不来。K2.4 当时只用绕过加载器的进程内测试验收，状态是过报。根因：该查没查，没跑二进制的启动路径。修法：清单目录改由独立的 GATEWAY_KB_ARTIFACT_DIR 指定，并加与 snapshot 加载器同样严格的校验（只认 Catalog 声明的 epoch，拒绝符号链接、文件与未声明条目，允许 epoch 目录里有发布器的旁文件）；kb-publish -activate 改读 <artifact-dir>/kb；加载器本身不放宽。单测覆盖：未声明 epoch、多余文件、符号链接、篡改、发布器布局与网关布局一致。部署级冒烟留给 K4.10。K2.2、K2.4 两行已加更正注记。**同类扫描**：kb-dev 改过且 V5 工具会读的共享文件——compose.yaml 已修；config/catalog.yaml（K1.5 加了资格）上 final-v5-profile -verify 通过（profile 逐字节重生成）、final-v5 validate 通过；final-v5-activation-support -verify 失败（outside-product route matrix 钉的 registry 5cf9300e… ≠ 当前 9e6f4b67…），在 p10-r2（bb1c1ca）的临时 worktree 上同样失败，两分支 registry.json 摘要相同，属既有问题，与 kb-dev 无关，未动。**为方案 C 先行验证【实跑】**：(1) 知识发布物可确定性重建——当前代码向新库重发布 48k 发布物，kb-publication.json 逐字节相同，三个 manifest 摘要相同，48,183 个向量的有序哈希相同（倒序哈希不同作对照）；(2) 嵌入服务可容器化——以本地 Ubuntu 22.04 镜像挂载冻结的 venv 与模型起服务，/model 权重摘要相同，单条与批量向量都与宿主服务逐位相同。**方案 C 的主要工作（读代码估计）**：KB 部署叠加层（pgvector 业务库按摘要钉住、嵌入服务容器、KB 数据装载与 sidecar 安装作业、清单目录挂载）；外部驱动（复用 V5 adapter 的 MCP 客户端与 OA 审批流程）；部署网关只有 alice 与 carol 两个主体，E-KB2(a) 需要多主体配置或改设计；预算只能来自 Catalog 路由，每组预算要单独的 profile Catalog；E-KB2(b) 的过期须真实等待；E-KB3 两档与 E-KB5 两种口径各需独立 Catalog；证据格式、封存、注册与生成器的正式类。
+
+- [2026-10-17 14:27 UTC+8] KB1-LOOP-81 K4.8 正式轮规程初稿写入 docs/kb_experiment_design.md"正式轮（方案 C）规程"一节，开跑前冻结。**决定**：并行 KB runner，复用 V5 的保证件，不并入 V5 publication 类。依据：并入会改协议、master catalog 与 registry 的冻结摘要（KB1-LOOP-80）。放弃：改造 run-profile-campaign.sh。四个 KB profile × 3 次重复 = 12 次全新部署：kb-v2-pilot 跑 E-KB1、E-KB2(a)(b)、E-KB5 文档级；kb-v2-large 跑 E-KB3 48k 与 E-KB4；kb-20k-large 跑 E-KB3 96k；kb-v2c-pilot 跑 E-KB5 集合级。依据【读代码】：预算只能来自 Catalog 路由（catalog/resolve.go ResolveTaskPolicy），进程内 runner 用的两级预算各需一个 profile，一份 Catalog 只能激活知识产品的一个 epoch。**主体**：OA demo 只有 alice（requester）与 bob（approver），并按 HumanSubject 绑定草稿（internal/oademo/server.go:140,301,333）。所以除 E-KB2(a) 外的任务都由 alice 发起，alice 的属性设为 job_family finance_controller 以便申请任一单个部门，每个任务的授权范围仍按预登记限定在单个部门。E-KB2(a) 的 60 个主体经网关新增的主体文件引导（只含 token 摘要），只走到草稿，不需要 OA 账户。部署网关目前只引导 alice 与 carol（cmd/gateway/main.go:199-206），所以主体文件是前置代码改动。E-KB2(b) 的 TTL 按预登记为 120 s，由 bob 在 OA 缩小后批准，真实等待到期。**作者动作**：开跑前批准 KB 数据绑定的 SHA-256 并同意发射；封存后签署登记。工作量按模块看是数天。
+
+- [2026-10-17 15:07 UTC+8] KB1-LOOP-82 K4.10 全新部署冒烟通过（kb-v2-pilot），途中发现并修三处"进程内通过、部署不通"的缺陷与一次网络事故。**部署【实跑】**：网关镜像由 final-v5-gateway-build 从已推送的干净提交构建并 verify；oa-demo 走同一条正式构建（formalbuild 增可选目标白名单，只收 oa-demo，空值仍为 gateway，V5 行为不变，有单测）；业务库为按摘要钉住的 pgvector 镜像加 KB 初始化集（db/init-kb，与 V5 定义逐字一致，漂移测试带变异对照）；嵌入服务容器（服务代码入库，venv 与模型只读挂载，/model 权重摘要 b5e0ce34…）。KB 装载：宿主机 -trimpath 构建的 kb-publish 向新库重发布 v2，产物与入库冻结件逐字节相同，缓存向量数不变（139,354），49.6 s；sidecar 安装通过；实时 schema 证明 90765b6e…，与此前测试库的预测值相同，已记入 profiles/schema-attestations.json（kb-v2-pilot、kb-v2-large）。冒烟（evaluation/cmd/kb-formal-smoke，经 HTTP/MCP 与 OA 表单）：申请经 alice 提交、bob 批准激活（514 ms，kb-pilot-v1）；search k=5 回执验签通过且 catalog 摘要等于 profile 摘要，经 deliver_result 下载 Parquet、摘要等于回执的制品意图，5 列、逐行正文哈希等于发布摘要，暴露 R 20 / D 37 / O 1；fetch 已返回块通过，未返回块 CHUNK_NOT_RETURNED；文件主体 sales-staff 申请 finance 得 NOT_ELIGIBLE，申请本部门进入 AWAITING_SUBMISSION。**缺陷 1（实跑）**：暂存的发布物沿用编译器的 0600/0700，容器内 uid 10001 读不到，网关启动失败；暂存改为 u=rwX,go=rX（发布字典不含秘密）。**缺陷 2（实跑，§9.8）**：部署网关开了结果制品，search 只返回 result_id，正文须经 deliver_result 取 Parquet，而 Parquet 只有 4 个封印列——此前的响应层补正文只对进程内的内联响应生效，部署时根本不交付正文，且拒绝在结算之后。改为：封印语句执行、暴露观测定下之后、结算之前，把核对过摘要的正文写成规范结果的第五列（语义列 delivery:<chunks>.text），制品、内联与重放都带它；失败则查询在结算前失败。复核【实跑】：e2e 篡改子测试仍 CONFLICT，且暴露台账前后相同（拒绝不释放任何 Fact）；gateway 全包 41 s、control 57 s 通过。kb-design §9.8 与 threat-model 已更正；修订 2 的试点证据由旧做法产生，补充材料 E-KB3 那句对试点的描述在换正式证据时改（K4.12 已注）。**缺陷 3（实跑）**：主体文件只引导了主体，认证却用只认 alice、carol 明文 token 的静态认证器，文件主体得 401；改为认证器另收摘要身份（对出示 token 求 SHA-256 后常数时间比较），有单测。根因（三处同类）：功能只在绕过部署路径的进程内测试里验收（K2.4 的加载器、§9.8 的制品交付、主体认证）。同类根因今天第三次出现，按流程缺陷处理：凡声称部署网关具备的功能，验收必须经部署冒烟（kb-formal-smoke）跑通，不以进程内测试代替。**网络事故（实跑确认）**：冒烟栈网络上线后 NAS（192.168.8.233）不可达；ip route get 显示路由被 kbsmoke01_business-data（192.168.0.0/20）截走——宿主上其他项目与残留网络占满了 Docker 默认的 172.17–172.31 池，新网络退到 192.168 段，与 NAS 所在网段重叠。撤掉冒烟网络后路由回到 eth0、ssh nas 恢复（干预确认因果）。修法：KB 叠加层给全部 6 个网络指定 10.211.x.0/24（宿主未用此段，部署串行不互撞）；未动其他项目的网络与 Docker 守护进程配置。另：首次启动本地 GOPROXY 时守卫用的 pgrep -f 匹配到了自身命令行（查证做法第 6 条所说的情况），代理未起，正式构建 go mod download 失败一次；改为脚本加 pidfile 启动。
+
+- [2026-10-17 16:05 UTC+8] KB1-LOOP-83 K4.9 外部驱动对拍（部署 1，补记 8a8e1a6 未登记的一行）。**实跑**：在 K4.10 冒烟部署（kb-v2-pilot，网关 3ab57b5e 由 60ad551 正式构建）上用 kb-formal-driver 经 HTTP/MCP 与 OA 审批跑 E-KB1、E-KB2(a)、E-KB2(b)、E-KB5 文档级，与进程内试点报告逐项比：E-KB1 18 条轨迹与 3 个合法任务 0 差异；E-KB2(b) 全部字段相等（泄露 191 块，第 11 步 EXPOSURE_BUDGET_EXHAUSTED，真实等待 122 s 后 TASK_NOT_ACTIVE）；E-KB5 文档级全部相等（答案 116）；E-KB2(a) 按类型计数与逐请求拒绝码全部相等。**更正（该查没查）**：E-KB2(a) 的部署 1 报告（sha256 77bae1f4…，NAS kb-formal-crosscheck-20261017 同摘要）生成于 15:11，早于 list_my_tasks 基线修正的提交（8a8e1a6，15:18）：sales-staff 三条 tasks_after 为 2/2/2 而非 1，因冒烟本身先替该主体建过 1 个任务；"被拒请求不留任务"的不变式只在该主体上不成立且原因已知。基线修正当时只经编译、未重跑即称已修；彩排（KB1-LOOP-85）在全新部署上重跑 E-KB2(a)。报告留 NAS 不改。
+
+- [2026-10-17 16:05 UTC+8] KB1-LOOP-84 **自身操作事故三起，如实登记**。(1) 15:34:37 我用 python heredoc 改 run-deployment.sh，补丁正文里有一行恰为 heredoc 结束符 PY，heredoc 提前结束，其后各行被当作 shell 执行，变量为空，`rsync -a ... "$dir/" "$target/"` 变成以 wmm 身份 `rsync -a / /`，约 2.5 分钟后我按 PID 杀掉（3 个进程）。**影响核查（实跑）**：rsync 按字典序遍历，止于 /mnt/c/Program Files (x86)，未到 /mnt/ctg-pto-dev（NAS）、/opt、/tmp、/usr、/var；全部 95 条报错为读失败或改权限失败，无 mkstemp/rename/写失败；/home/wmm、/etc、/boot、/media、/lib 在窗口内 ctime 变化只有 VS Code 自身 git fetch（其日志 15:35:30.406 一致）与会话记录追加（inode 未变）；/mnt/c 已访问部分窗口内 4 处变化均为运行中程序的日志或状态文件（CorpLink 15:34:37.55 早于 rsync 到达约 2 分钟；FortiClient、YunMai 所在目录 555 不可写且 rsync 无写报错）。结论：未发现 rsync 造成的文件改动。(2) 15:56 我在一次部署正在执行 run-deployment.sh 时原地改写了该文件；bash 按偏移增量读脚本，当时它停在已解析完的实验循环内，我在其再次读文件前按 git 逐字节恢复（diff 为空），该部署后续正常完成，新版本待其结束后以改名方式换入。(3) 16:03 彩排看守把活着的 round 进程判为已结束：工具 shell 里的 grep 是包装 ugrep 的函数，读 /proc/<pid>/cmdline 返回无匹配（系统 grep 返回匹配）；看守未先用已知为真的样本验证（查证做法 14）。round 本身未受影响。**防再犯**：补丁程序先写文件、heredoc 结束符带随机后缀；脚本里破坏性路径一律 `${var:?}`（run-deployment.sh 已改）；运行中的脚本不原地改；工具 shell 里查 /proc 用 command grep 或 tr 加模式，检查先过阳性对照。三条写入记忆。
+
+- [2026-10-17 16:05 UTC+8] KB1-LOOP-85 K4.9/K4.10 进展与一项规程实现决定。**代码（提交 9be6021、e339f37、8658c9f、2ea1ef6，均已推 kb-dev 与 NAS）**：E-KB4、E-KB3 移植进 kbformal（E-KB3 逐步照搬试点：240 条文本、种子、k 交替、重放规则、直连 SQL、24 种聚合形式；client_ms 保持试点含义，另记 delivered_ms＝含回执验签与制品交付）；kb-formal-profile -principals 由 EligibilitySubjects 生成主体文件（只含摘要）与 0600 token 文件；Retrieve 对每个 search/fetch 逐行核正文 sha256＝text_sha256（规程 §5 要求，此前驱动缺这一核对，冒烟有）；驱动 -request-log 写逐请求记录（规程 §7；不写 token、口令、正文、向量与签名 URL，单测含阳性对照）；run-deployment.sh 单次全新部署脚本；run-round.sh 按重复次序跑整轮、首个失败即停；crosscheck.py 按 §6 字段对拍全部实验与部署序号。**部署（实跑）**：kb-v2-large 第一次失败于阶段 1——compose up --wait 把正常退出 0 的一次性 result-object-store-init 判为失败；冒烟用同一命令但经管道 tail 掩盖了退出码。改为长驻服务先 --wait、init 单独起并经 docker wait 要求 0，网关与 OA 用 --no-deps。重跑通过：发布物逐字节复现、attestation、E-KB4 666 s、零残留、NAS 逐文件复核；对拍 1800/1800 条 0 差异（两套独立比较脚本一致），网关命中与直连精确检索 1800 条全同。**规程对照补齐**：正式部署禁止重试（§8，pilot 才有 attempt-N）；装载前后核嵌入缓存内容摘要不变、复现清单摘要＝registry（§3）；容器内读正式网关运行时身份并核二进制摘要；经 admin profile-activation 诊断核 Catalog 摘要，实验前后进程 nonce 相同（§7）。**决定**：规程 §5/§9 写的是"实验逻辑抽成共用包、进程内回归"，实际做法是移植进 kbformal、进程内 runner 不动。依据：正式轮的输入（发布物、种子、查询集、部署序号 1–3）与试点完全相同，对三个部署序号逐项对拍覆盖正式轮的全部输入；重构已登记的试点 runner 有改动已封存试点结果的风险。放弃：共用包重构。此决定不改问题、指标、预期与停止规则，开跑前写入规程正文。**彩排**：16:03 起以 pilot 类在 kb-formal-rehearsal-20261017（提交 2ea1ef6，主机二进制同提交 -trimpath，网关/OA 镜像沿用 60ad551/5eb9258 构建，二者编译输入至今未变：网关 31 个包、OA 5 个包、go.mod/go.sum diff 为空）跑全部 12 次部署并逐部署对拍；仍在跑。
+
+- [2026-10-17 16:30 UTC+8] KB1-LOOP-86 K4.10/K4.11 参考部署、封存工具与彩排重启。**参考部署（实跑，kb-formal-reference-20261017）**：kb-20k-large（attempt 1）与 kb-v2c-pilot（attempt 2）各在全新部署上逐字节复现发布物后，经 `KB_FORMAL_RECORD_ATTESTATION=1` 记录实时 schema 摘要 67cbe85d… 与 873339d4…，同一部署内复测相同，亦与早先初测值相同；kb-v2c-pilot 的 attempt 1 因 profile 未在两次记录之间重生成而在首个检查处停下（记录保留）。四个 profile 现均已证明（提交 f8697f5、498960a）。**封存工具（实跑单测）**：`kb-formal-binding` 生成 KB 数据绑定候选（sha256 a0ac7a70…，11011 字节；Go 算的嵌入缓存内容摘要 5980758d… 与部署脚本的 shell 值相同，作阳性对照）；`kbformal/combine.go` 用试点报告自身的逐部署数据复算出与试点报告完全相同的汇总（E-KB1、E-KB2(a)、E-KB4 除墙钟、E-KB3 两档含分位数），改动一条明细即不等；`kb-formal-finalize` 核全部部署记录（本地与 NAS 逐文件）、按试点形状合并、create-exclusive 写 campaign-evidence.json 并镜像，正式类另要求作者批准记录批准该提交的绑定。**缺陷（实跑，finalizer 发现）**：run-deployment.sh 在记录写完、镜像之后又往 deployment.log 追加收尾行，本地日志与记录摘要不符（NAS 副本相符）；改为收尾行只写 stdout（b9341bb）。**溯源漂移（读代码推出）**：每次部署把工作树 HEAD 记为 commit，彩排期间我的提交使同一轮记录出现不同提交而脚本相同；改为整轮从冻结提交的 git worktree（source/）运行：`prepare-round.sh` 建 source/、拷语料并核摘要、构建主机二进制；`launch-round.sh` 加闸门、从同一提交构建正式网关镜像（封 profile registry 与数据绑定，verify-build）与 oa-demo 镜像后分离启动；部署另跑 V5 运行时身份校验（final-v5-gateway-build verify）。**操作**：首轮彩排（-20261017）停在 kb-20k-large 未证明（按设计）；第二轮（-20261017b）kb-20k-large/1 对拍相等后，我于 16:22 只停 round 进程（kb-v2-large/1 自行跑完并记录），以便从冻结 source 与新建正式镜像重启全部 12 次部署。另：一条参数展开 `${VAR:?...}` 里的撇号使 launch-round.sh 语法错误，已改并扫同类（阳性对照验证扫描式）。
+
+- [2026-10-17 16:47 UTC+8] KB1-LOOP-87 K4.11 彩排改经正式启动器（launch-round.sh：闸门、同一提交构建正式网关与 oa-demo 镜像、冻结 source/、分离启动）重启，暴露四处只在冻结检出或正式启动路径上出现的缺陷，均实跑确认并修。(1) 冒烟时我起的本地模块代理（python http.server，0.0.0.0:3000，14:49 起）一直没停，启动器起代理失败；按命令行核实后停掉。这是我的遗留：它向局域网暴露 Go 模块缓存约两小时（公开模块，无秘密）。启动器加端口检查（忙、闲两种对照测过）。(2) 启动窗口内我在主工作树新建并提交了文件，prepare-round 拒绝脏树，且 HEAD 已不同于镜像所用提交（V5 运行时身份校验会拒绝每次部署）。同类根因第三次出现（记忆里已有此规则），改为结构性修复：闸门处固定提交，要求两份构建清单同为该提交，并按该提交检出 source/。(3) 本仓库 core.fileMode=false，四个 kb-formal 脚本以 100644 入库（我工作树里为 755），检出后不可执行，nohup 失败；git 改记 100755，脚本间改用 bash 调用。(4) 同一根因更严重的一处：db/init-kb 两个脚本与 db/init/30-kb-schema.sh 在 git 里为 100644；此前每次部署都从我的工作树跑，被掩盖。冻结检出里 postgres 入口改为 source 它们，包装脚本里的 exec 顶替了入口进程，business-postgres 以 0 退出（数据库日志实证 "sourcing /docker-entrypoint-initdb.d/30-kb-schema.sh"）。修：git 改记 100755，包装脚本去掉 exec，prepare-round 检查检出内的 init 脚本可执行；扫同类（阳性对照验证）：40 个磁盘上可执行而 git 为 100644 的受控文件里，只有这三个是会按模式执行的脚本。数据绑定候选因包装脚本内容变化重生成为 cbb92820…。失败的启动与部署全部留档：-20261017d、-e 未建根（只构建了镜像）；-20261017f 的 kb-20k-large/1 失败记录已镜像 NAS。 第五次启动（-20261017g，提交 a1c4151，镜像由同一提交新建）16:46 起跑，首个部署已过阶段 1（business-postgres 初始化执行了 init 脚本）。
+
+- [2026-10-17 17:04 UTC+8] KB1-LOOP-88 K4.10/K4.11 V5 运行时身份校验在冻结源码上跑通，彩排第七次启动（-20261017i）起跑。**实跑**：第五、六次启动各在首个部署的网关处被 `final-v5-gateway-build verify` 拒绝，两条都是 V5 的既有规矩而非缺陷：(1) 源码树为 detached HEAD——V5 要求命名分支且等于 origin 对应分支；源码树不能用 kb-dev（主工作树占用，且每次推送都会移动 origin/kb-dev）。改为每轮发布一条只指向冻结提交、此后不再移动的 `kb-campaign/<campaign>` 分支（推 NAS 再由 NAS 推 origin，核对 origin 上恰为该提交），source/ 检出它；身份比较本身只比提交、构建上下文与源清单摘要、树是否干净，不比分支名（读代码）。(2) 网关周期健康检查仍探 /health/ready——每次探测做一次业务库全量 attestation，是测时延期间的背景负载（E-KB3 同样受影响）；V5 用 compose.observer-v3.yaml 装批准的 /health/live 定义，但该文件同时把业务库换成无 pgvector 的 postgres，不能直接用。改为 KB 叠加层逐字复制批准的健康检查，并把仍是可变标签的镜像全部按摘要钉住（控制库沿用 V5 正式钉的 PostgreSQL 16.14——可变标签此前解析到另一镜像 c5aa596c；MinIO 两个镜像按发布摘要），渲染出的 compose 配置已核；就绪改由脚本在实验前显式轮询 /health/ready 一次。数据绑定记录全部钉住的镜像，候选重生成为 7896e225…（a85af33）。**结果（实跑）**：-20261017i 首个部署（kb-20k-large/1）逐字节复现发布物、schema 证明、就绪、V5 运行时身份 pass（aggregate 2f68a3da…）、admin 诊断 Catalog 相符后进入 E-KB3；网关二进制摘要 27c3e016… 与 60ad551 构建的冒烟镜像逐字节相同（网关编译输入自 60ad551 未变，正式构建可复现）。-20261017f/-g/-h 的失败记录均已镜像 NAS，其 worktree 已移除。另加：`compare-macros.py`（合并报告与试点的宏逐个比，自测 169 个可比宏 0 差异、扰动即报）与 K4.12 生成器正式类闸门（提交 cdc3a88）。
+
+- [2026-10-17 18:19 UTC+8] KB1-LOOP-89 **K4.9 对拍完成：pilot 类彩排 12 次全新部署全部通过**（kb-formal-rehearsal-20261017i，提交 a85af33，活动分支 kb-campaign/kb-formal-rehearsal-20261017i，经正式启动器与同一提交新建的正式镜像，17:01–18:16 共 75 分钟）。**实跑**：每次部署均逐字节复现发布物、嵌入缓存前后同摘要（5980758d…）、schema 证明、显式就绪、V5 运行时身份 pass、admin 诊断 Catalog 相符、零残留、NAS 逐文件复核；每次部署结束即与进程内试点报告中同一部署序号的部分逐项对拍，24 份报告（kb-20k-large 1×3、kb-v2-large 2×3、kb-v2-pilot 4×3、kb-v2c-pilot 1×3）差异合计 0，覆盖全部实验与三个部署序号——即 KB1-LOOP-85 所述"移植而非共用包"偏离的等价性证明。E-KB2(a) 在全新部署上 156 个请求的拒绝码与"被拒请求不留任务"不变式全部成立（了结 KB1-LOOP-83 的未复核项）。**封存与比较（实跑）**：轮内 sealed 的 kb-formal-finalize 核全部 12 份部署记录（本地与 NAS 逐文件）后写 7 份合并报告与 campaign-evidence.json（63213153…）并镜像核验；compare-combined.py 7 份 0 差异；compare-macros.py 169 个可比宏 0 差异。宏总数 505 对试点 513 的原因已查明：部署网关以对象存储交付结果，E-KB3 网关格的分量无 encryption（试点进程内把结果加密存入控制库）而多出 result_delivery（§9.8 结算前补正文），名单逐个列出；论文 .tex 引用的 179 个 Kb 宏在晋升后的宏集合里全部有定义（今天的 kb.tex 作阳性对照 179/179）。**泄露扫描（实跑）**：kb-v2-pilot/1 运行中、私密文件销毁前，79 个秘密值（19 个 env、60 个主体 token；env 阳性对照 19 行）在 56 个文件（含 E-KB1、E-KB2(a) 的逐请求记录）里 0 命中。**冻结**：a85af33 之后只有文档提交，非文档 diff 为空；KB 数据绑定 `evaluation/kb-formal/kb-dataset-binding-v1.json` sha256 7896e2252f919f2e5066d0796138d559ba52d00e9fbf08ad33d9730d4e09ca57（11343 字节），对执行机输入 -verify 通过。下一步：请作者批准该绑定（作者亲手写批准记录）并同意发射正式轮；发射时再核一次自 a85af33 起只有文档与批准记录变化。
+
+- [2026-10-17 19:38 UTC+8] KB1-LOOP-90 **作者批准 KB 数据绑定**。作者本人运行一键批准脚本（我起草、未运行；脚本先核绑定文件 sha256 与字节数，记录已存在则拒绝），产生并提交批准记录 `evaluation/kb-formal/approvals/launch-approval-v1.json`（sha256 0535bea51332304af6c51a02d15a54aa18e49973d3df9cd6707b948e40a89b50，提交 11488e6，19:37:28，只含该文件）：approval_status AUTHOR_APPROVED，批准 `evaluation/kb-formal/kb-dataset-binding-v1.json` sha256 7896e2252f919f2e5066d0796138d559ba52d00e9fbf08ad33d9730d4e09ca57（11343 字节），范围 kb-publication、4 profile × 3 重复 = 12 次部署。我已核：提交只含该文件，字段与 launch-round.sh 的检查一致。正式轮发射另待作者明确同意（规程 §2"作者同意后才启动"）。
+
+- [2026-10-17 19:40 UTC+8] KB1-LOOP-91 **作者同意发射正式轮**（作者原话"发射"，19:40）。发射前检查（实跑，19:39）：自彩排提交 a85af33 起只改 docs/ 与 evaluation/kb-formal/approvals/；工作树干净且 HEAD 等于 origin/kb-dev；profile 逐字节重生成；数据绑定对执行机输入 verify 通过（7896e225…）；批准记录有效；无部署容器与轮次在跑，端口空闲，NAS 挂载且路由走 eth0。campaign ID `kb-formal-publication-20261017`，class formal，经 launch-round.sh 从同一提交构建正式镜像并从活动分支 worktree 运行。运行期间按规程 §2 不改受控文件，备注写 `~/logs/pending-registration.md`，封存后登记。
+
+- [2026-10-17 20:59 UTC+8] KB1-LOOP-92 **K4.11 正式轮完成并封存、登记**（运行期备注自 `~/logs/pending-registration.md` 转入）。campaign `kb-formal-publication-20261017`，class formal，提交 35e9a5a（代码与彩排验证过的 a85af33 一致），活动分支 kb-campaign/kb-formal-publication-20261017，正式镜像 gateway 347f9bc5… / oa-demo 90fd90ff… 由同一提交构建。**实跑**：19:42–20:57 共 75 分钟，12 次全新部署全部 attempt 1 完成（4 profile × 3 重复），每份记录 class formal、publication_eligible true、commit 与 binaries_commit 均为 35e9a5a；每次部署逐字节复现发布物、嵌入缓存前后同摘要、schema 证明、显式就绪、V5 运行时身份 pass、admin 诊断 Catalog 相符、零残留、NAS 逐文件复核；网关二进制 27c3e016… 与彩排、冒烟镜像逐字节相同。运行中、私密文件销毁前对 kb-v2-pilot/1 做泄露扫描：79 个秘密值、56 个文件、0 命中。**封存（实跑）**：轮内 sealed 的 kb-formal-finalize（formal 类）核全部 12 份记录（本地与 NAS 逐文件），核根目录批准记录与作者记录逐字节相同且批准该提交的数据绑定，写 7 份合并报告与 campaign-evidence.json（ab68ddcab4086efc7eeef637ca286588cf07451b30cfce2d5b311cf8f66ed911）并镜像 NAS 核验。**与试点比较（实跑）**：compare-combined 7 份 0 差异；compare-macros 169 个可比宏 0 差异（宏数 505 对 513 为已知的分量命名差异：encryption→result_delivery）；24 份逐部署报告 crosscheck 0 差异；论文引用的 179 个 Kb 宏在正式证据晋升后全部有定义。**登记（实跑）**：kb-formal-register 首次运行即失败——证据父目录不存在而工具只建末级目录（该工具只登记正式轮，彩排无法覆盖到它；失败发生在任何写入之前，工作树无残留）；改为先 MkdirAll 父目录、末级目录仍独占创建，对彩排（pilot 类）根运行被拒作阴性对照，然后登记：`evaluation/kb-formal/kb-publication-evidence-v1.json` sha256 ffd08529cdcda2151596b1d0da883ffb9e362aea6c08f85777adc10a2f72d393，证据副本 8 个文件在 `evaluation/kb-formal/evidence/kb-formal-publication-20261017/`，逐个对登记核验通过。生成器在"有登记、无作者证据批准"状态下照设计提示并保持试点宏（kb.tex 逐字节不变）。**下一步**：作者亲手写证据批准记录（点名登记文件 sha256 ffd08529…），之后生成器才把 E-KB1–E-KB5 换成正式证据，补充材料改写（K4.12）。
+
+- [2026-10-17 21:23 UTC+8] KB1-LOOP-93 **K4.12 完成：作者批准正式证据，补充材料换用正式证据**。作者本人运行一键批准脚本（我起草、未运行），提交 f8d533f（21:17:44，只含 `evaluation/kb-formal/approvals/evidence-approval-v1.json`，sha256 b939652355d5f2fe698cbc5eab3a9bcbcbd4e739d8d49b8282bed5f4f9f5b6f4），批准登记文件 ffd08529…（3102 字节）与 campaign evidence ab68ddca…。**实跑**：生成器据此把 E-KB1–E-KB5 换成正式证据（KbEvidenceClass kb-publication、KbFormalCampaign、KbFormalRegistrationDigest）；新旧 kb.tex 逐宏比，变化只在 E-KB3 时延与分量宏、报告摘要宏与类别宏，其余宏（全部确定性数字）逐字节不变。补充材料知识产品一节改写（只动补充材料）：引言与"评估"小节改述正式轮（类别、campaign、登记摘要；全新部署、冻结提交、正式镜像与运行时身份、HTTP 驱动、OA 审批、回执验签与逐条正文摘要核对；进程内先行运行与之计数、命中集、计费与拒绝码全同、只差时延），标签改 sec:supp-kp-eval（两处引用同步）；"pilot budget"改"small budget"；E-KB3 段改述计时口径（直连读完行、网关从 HTTP 请求到携带全部行的响应，不含回执验签与制品下载）与正文在结算前补入（result-delivery 阶段 2.7/3.1 ms）。**更正（实测推翻）**：原句"重放 search 约为新查询的三分之一、重放 aggregate 约一半"按正式数据不成立（48k 0.48、96k 0.37；aggregate 0.63–0.69），改为宏给出 96k 的实测值，并按样本核实"重放不计费"（每档 534 个重放网关样本 0 计费，新查询有计费作阳性对照）；"阶段增长"三句按正式数据核实仍成立。**构建（实跑）**：make paper 退出 0（supplement.pdf 新于源文件），check-rendered：补充材料 0 项，主稿 2 项为既有 Overfull（6.85/1.84 pt，主稿冻结未动）；从 PDF 抽取改写段落核对渲染值。review/ 副本仍停在 1c2327c（2026-10-11），因主稿为待作者定页数的 WIP（4c88522），按 K5.1 在页数定稿后刷新，此次不动。
+
+- [2026-10-18 09:39 UTC+8] KB1-LOOP-94 **K5.1 主稿按统一框架改写、定 12 页；K5.2 Zenodo 版本 2 草稿上传并核对（未发布）**。依据：作者 2026-10-18 原话"K5.1 主稿页数 我选 12页。我同意 K5.2 Catalog 签署和 Zenodo 存证"，与 KB1-LOOP-40 的统一框架决策。
+  - **主稿改动**（对照 docs/kb-paper-framing.md §6 逐项）：摘要首句改为"已发布数据产品（报表关系与文档集合）"，末句报正式轮结果；引言加文档场景一句（部门制度库经合法检索被搬空）；贡献由五条改六条，第 6 条为文档路径的实现与正式评估；"知识产品"一节由"只是定义、未实现未测量"改为定义加正式轮评估段（数字全部用宏），开头一句点明四层对应（数据产品 / 事实 / 准备操作 / 效果）；系统一节加一句嵌入服务位置与 pgvector 装在 pg_catalog（读代码核：internal/gateway/retrieval.go:442、internal/retrieval/retrieval.go:424、db/init/kb-schema.psql:17）；局限一节的 KB 句改述。
+  - **坏消息照报**：评估段写明两点。一是检索质量未达预先登记阈值：recall@10 为 79.7% 与 55.3%，阈值 80% 与 60%。二是合法问题完成率 60.0%，预登记 90%；"完成"按 evaluation/kbformal/ekb1.go:456-483 指来源文档进入前 5 个命中。直连检索漏掉的是同一批（E-KB4 k=5 成员一致率 100%，读证据推出）。**自检更正（该查没查）**：初稿只写"合法任务无拒绝"，漏报完成率不足与 recall 未达标，复核补充材料后改正。
+  - **为守 12 页，三段评估正文原样移入补充材料** "Passages Moved from the Main Text"：同根争用与吞吐、成本消融与朴素账本、执行版计数对照；主稿各留一句指针。check-rewording-invariants 比较移出前后的宏、引用、标签、code、数学与数字，结果一致。唯一报出的差异是留在主稿的 tab:scale-main 引用，这同时证明检查器能报差异，作阳性对照。补充材料未定义 \system，移入段改写为 FactGate。
+  - **构建（实跑）**：make paper 退出 0；主稿 12 页，末页右栏底 y=711（左栏 746），约余 4 行参考文献；补充材料 43 页。check-rendered：补充材料 0 项；主稿 2 项为既有 Overfull（6.85/1.84 pt）——HEAD 版在容器内另建，出现同样两项，非本次引入。从 PDF 抽取改写段落核对渲染值，据此修两处措辞（"an 800-cell"；直连漏同一批）。
+  - **Zenodo（实跑）**：版本 2 草稿 23444544，concept DOI 10.5281/zenodo.23149436。新增 4 个文件，回读 md5 与大小均与本地一致：
+    - factgate-kb-raw-evidence-v1.tar.gz，8481536 B，sha256 572b662a…
+    - factgate-kb-corpus-v1.tar.gz，18120844 B，sha256 ec833867…
+    - KB-RAW-EVIDENCE-MANIFEST.sha256，418 行，sha256 d876a918…
+    - KB-RAW-EVIDENCE-README.md
+    版本 1 的三个文件随版沿用，归档 md5 4d541ac… 与版本 1 存证记录相同。state unsubmitted；预留 DOI 10.5281/zenodo.23444544；元数据 version 2.0，含 ORCID。语料第一次上传因中继慢、写超时，续传脚本一次成功（589 s）。**未发布**：发布只由作者明示。
+  - **存证记录**：新增 evaluation/kb-formal/raw-evidence-deposit.json（status draft）与 raw-evidence-manifest.sha256（418 行）。存证中 evidence/ 的 8 个文件与仓库登记逐字节一致（sha256sum -c 8/8 OK）。复算核查：09:08 在解出的归档上运行 kb-formal-finalize（class formal），七个合成报告除 generated_at 外与登记一致；campaign-evidence.json 只差 generated_at、随之变化的报告摘要与部署位置（逐字段比对，实跑）。
+  - **生成器**：generate_kb_evidence.py 新增 deposit_macros，要求存证记录描述受控清单、文件数一致、存证的合成报告即登记报告。\KbRawEvidenceDOI 只在 status 为 published 时生成，草稿状态下正文引用 DOI 即构建失败——实跑：临时副本中引用后 latexmk 退出 12，报 Undefined control sequence。kb.tex 只新增 \KbRawEvidenceFiles{418} 与 \KbRawEvidenceMB{226}，其余逐字节不变。单测 9/9 通过，新增 3 个：无记录、发布前后、5 种破坏。
+  - **决定、依据与放弃**：
+    - DOI 句等作者发布后再加入"可复现边界"。门禁做法同 V5 的 RawEvidenceDOI，但改为"宏缺失即构建失败"，拦截点比 V5 生成器内检查更早；放弃发布前预写 DOI。
+    - framing §3 建议的"四条贡献"重排未采用，保留六条（第 6 条为文档路径）：12 页限下重排需重写引言与模型节，收益不抵版面。四层对应改为在知识产品一节首句点名，不另设表格（补充材料已有可移植性表）。
+  - **待作者**：(1) 运行 catalog 签署脚本；(2) 审阅主稿改动（含移出的三段）；(3) 对 Zenodo 23444544 明示"发布"。之后：加 DOI 句、刷新 review/、投稿包与投稿信、arXiv v3。
+
+- [2026-10-18 09:42 UTC+8] KB1-LOOP-95 **Zenodo 版本 2 的四个上传文件镜像到 NAS**：`/mnt/ctg-pto-dev/factgate-evidence/kb-zenodo-v2/`，在 NAS 上 sha256sum -c 4/4 OK（实跑）。依据：证据不得只留在 WSL 的规矩；草稿文件原在会话临时目录。存证记录加 nas_mirror 字段，生成的 kb.tex 不变。
+
+- [2026-10-18 10:28 UTC+8] KB1-LOOP-96 **Zenodo 记录 23444544 已发布并核实；DOI 进主稿与补充材料**。依据：作者原话"发布 记录 23444544"，明示针对这条记录。
+  - **发布（实跑）**：发布前再核一遍草稿：7 个文件 md5 全对（4 个 KB 新文件，加 3 个版本 1 文件、与版本 1 记录校验和一致）；version 2.0；预留 DOI 一致。随后经 API 发布，返回 state done、submitted true。
+  - **核实（实跑）**：
+    - 公开 API：记录 open，version 2.0，publication_date 2026-10-18，7 个文件校验和与预期一致。
+    - DOI 解析：doi.org 302 到 zenodo.org/doi/…，最终到 zenodo.org/records/23444544，HTTP 200。
+    - 下载核对：从公开记录下载 4 个 KB 文件，sha256 与大小均与存证记录一致；两个归档解到新目录，共 418 个文件，按清单 sha256sum -c 全部通过。
+  - **存证记录与宏**：raw-evidence-deposit.json 改为 status published，写明作者原话与上述核实；重跑生成器，kb.tex 只新增 \KbRawEvidenceDOI{10.5281/zenodo.23444544}。
+  - **论文**：
+    - 主稿"可复现边界"在 V5 DOI 后加知识产品轮与语料的 DOI。
+    - 补充材料知识产品引言加存证一句（文件数、MB、DOI）。
+    - **同类扫描更正（该查没查，K5.1 改主稿时漏扫补充材料）**：补充材料有两处在主稿不含 KB 证据时写下的句子，现已过期，均已改正。一是"不属于主稿数字所来自的发布轮"，改为"与报表路径发布轮分开"；二是治理单元表标题"主稿证据一个也不覆盖"，改为"定义与正式轮覆盖单元 2 与 3"。README 与威胁模型无此类陈述（检索词先用已知命中样本验证过）。
+  - **构建（实跑）**：make paper 退出 0；主稿 12 页，末栏底 y=739/746，已不足一行余量，后续主稿再加字必须同步删减；补充材料 43 页；check-rendered 只剩既有两项 Overfull。
+  - **事故**：会话临时目录在 10:24 被清空，作者运行 catalog 签署脚本时报"文件不存在"。已在 ~/logs/kb-approvals/approve-catalog.sh 重建：摘要重核与现文件一致，加了"暂存区须为空"检查，bash -n 通过。已记入记忆：作者要运行的脚本不放会话临时目录。Zenodo 上传文件因已镜像到 NAS，未受影响。
+  - **待作者**：(1) 运行 `bash /home/wmm/logs/kb-approvals/approve-catalog.sh`；(2) 审阅主稿改动。
+
+- [2026-10-18 10:40 UTC+8] KB1-LOOP-97 **K5.2 完成：作者签署 catalog 变更**。作者本人运行 ~/logs/kb-approvals/approve-catalog.sh（我起草、未运行），提交 b792d442fcb5（10:39:02），只含 `evaluation/kb-formal/approvals/catalog-approval-v1.json`（sha256 b50ea5c59f176b114fbbf995fcda358772a984b9e75eb2c84febdf5a8c7a32b6）。
+  - **核验（实跑）**：记录可解析；AUTHOR_APPROVED；所列两份文件的摘要与字节数与现文件一致（config/catalog.yaml 3543c219…/37343，config/principal-attributes.yaml ae0d2dd9…/1130）。
+  - **覆盖面核查（实跑）**：kb-dev 相对 main 改动的 catalog 类文件分三类，均已覆盖：
+    1. 部署用 catalog 与属性快照：由本次签署覆盖。
+    2. 正式轮的 3 份发布物 catalog 片段与 profile catalog/属性文件：由作者已批准的 KB 数据绑定 7896e225（launch-approval-v1，11488e6）钉住，逐个核摘要，13 个文件 0 个变化。
+    3. internal/catalog/testdata/kb-fragment.yaml：测试夹具，不属部署 catalog，无需签署。
+  - 仓库内无代码读取该记录（已用已知命中词验证检索），它是签署凭据本身。
+  - **剩余**：K5.1 待作者审阅主稿改动。
+
+- [2026-10-18 11:05 UTC+8] KB1-LOOP-98 **主稿中文阅读版；顺带修一处既有排版缺陷**。
+  - **中文阅读版**：作者要求"写一个中文版的论文，方便我先理解"。已在 claude.ai 文档中按节译出主稿全文：摘要、第 1–11 节、表 1–2、图 1–2 要点，宏展开为渲染值，另附术语对照。仅供阅读，以英文原稿为准；不入仓库。依据为提交 ff1293d 的 main.tex，数字取自同版 main.pdf。
+  - **缺陷（翻译时发现）**：main.tex 第 5.2 节"预算标定"中，"...nor optimization targets:"之后有一个空行，导致 PDF 在"1,000 permits 1,000 declared units"前另起一段，读起来像断句。
+    - 来历（实查 git）：5555b6b（2026-08-02）原句为"optimization targets: 1,000 permits 1,000 declared units, not 'risk 1,000.'"；后续压缩时把表格移出，留下空行。f205dfa 中已存在，不是本次 K5.1 引入。
+    - 同类扫描（实跑）：脚本找"空行后以小写、数字或括号开头的段"，共 2 处候选。一处是贡献列表"(1)"，属有意分段；另一处就是本缺陷。检查本身对已知缺陷命中，作阳性对照。
+    - 修法：只删空行，不改字。构建（实跑）：make paper 退出 0，主稿仍 12 页，末栏底 y=739；PDF 中该句已与上文同段；check-rendered 只剩既有两项 Overfull。
+
+- [2026-10-18 11:18 UTC+8] KB1-LOOP-99 **主稿知识产品一节一句措辞更正**。
+  - **原句**："A document version plays the row, and a chunk's visible cells and each extracted typed value play cells."——只说文档版本是"行"，不准确。
+  - **依据（读代码）**：internal/retrieval/effect.go:204-262 中，每个命中分块记 4 个释放单元格（doc_id、version、chunk_index、text_sha256），并记两种行事实：分块行（chunks 关系，键为 doc_id/version/chunk_index）和文档行（documents 关系，键为 doc_id/version），外加文档的 doc_id、version 单元格和每个调用方过滤属性一个分块单元格。
+  - **改为**："Chunks and document versions play rows, and a chunk's visible cells and each extracted typed value play cells."
+  - **根因**：K5.1 改写时只按 framing 草案的提法写，没有对照 effect.go，属"该查没查"。发现于作者阅读中文版时提问。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=739，check-rendered 只剩既有两项。中文阅读版同步改正。
+
+- [2026-10-18 11:35 UTC+8] KB1-LOOP-100 **更正对作者的一句口头答复；补一项关键词检索的小实验（设计证据，非论文证据）**。
+  - **更正**：我对作者说过，中文全文检索"得装分词扩展、自建镜像"。这只对按词分词的 tsvector 路线成立。若只做"包含某词"的子串检索，PostgreSQL 内置 LIKE 加随官方镜像发布的 pg_trgm 扩展即可，不需要分词，也不需要自建镜像。根因：把"全文检索"等同于 tsvector，没先查 pg_trgm 这条路（该查没查）。作者追问后实测更正。
+  - **实测**：在钉住的 PostgreSQL 16.14 镜像（92620dad）中起临时容器，locale en_US.utf8，跑完即删（残留 0）。
+    - CREATE EXTENSION pg_trgm 成功；show_trgm 对中文能产出三元组。
+    - 自造 10 万行短文本，LIKE '%违约金%' 命中数正确（100）。GIN 三元组索引被计划器采用（Bitmap Index Scan），0.33 ms；关掉索引走顺序扫描为 9.9 ms。这些是自造短文本上的数，不代表真实语料。
+    - 子串误命中确认：'中华为人民服务' LIKE '%华为%' 为真。
+    - 模糊：similarity('违约金','违约赔偿金')=0.25，similarity('违约金条款','违约金')=0.43。
+  - **含义**：LIKE 已在论文核心语言的运算符集里（主稿 3.4），所以模式串可以作为谓词原子记账；结果与依赖按分块身份计费，不变；在同一快照、同一事务内执行，正确性论证不需重做。这是加入关键词检索代价最低的路线。是否进入论文，仍待作者裁决。
+
+- [2026-10-18 11:38 UTC+8] KB1-LOOP-101 **作者决策：把关键词检索加进论文**（原话"我决策 把关键词检索加进论文"，回应 KB1-LOOP-100 的实验与说明）。
+  - **据此落定**：主张范围扩为"已发布文档集合上的精确向量检索与关键词检索"。关键词检索走 KB1-LOOP-100 实测过的路线：PostgreSQL 内置 LIKE 子串包含，配随官方镜像发布的 pg_trgm GIN 索引；不分词，不接外部 ES。
+  - 计划新增阶段 6（K6.1–K6.8）：设计、实现、部署冒烟、预先登记、彩排、新数据绑定与正式轮、证据批准、论文。
+  - **作者亲手项**：新数据绑定签署、正式轮发射（通知）、关键词证据批准签署。
+  - **不动**：已封存的 KB 正式轮证据（kb-formal-publication-20261017）。新实验另起一轮，单独登记。
+  - **放弃**：外接 ES，原因是同快照保证要重做论证；tsvector 分词路线，原因是需要第三方扩展和自建镜像。
+
+- [2026-10-18 12:07 UTC+8] KB1-LOOP-102 **K6.1 设计完成，K6.2 代码与测试完成（部署路径冒烟待 K6.3）**。
+  - **设计**：docs/kb-design.md §11。
+    - 关键词检索为子串包含、区分大小写、多关键词取交；按命中字符数降序，再按分块键排序。
+    - 关键词进 h_N（QueryCommitment kind=keyword），不做谓词原子。原因：已发布的 chunks 关系只有 text_sha256，没有 text；生产谓词原子来自关系计划的足迹，需要产品列。
+    - 结果与依赖与向量检索相同。发射端与校验端成对列表见 §11.4。
+  - **代码**：
+    - retrieval：Query.Keywords、CanonicalKeywords、KeywordCommitmentSHA256、产品未声明则拒绝。
+    - catalog / kbpublish：retrieval.keyword（omitempty）。
+    - physicalquery：输入 QueryKeywords、向量源 TextColumn（均 omitempty）；Validate 校验关键词与承诺一致；渲染逐个 LIKE（默认转义符转义）加命中字符数排序；仅在关键词形态下放行 text 列与 ~~、+、- 运算符。
+    - gateway：MCP 模式加 keywords；关键词形态不调嵌入服务。
+    - DDL：pg_trgm 装在 kb，加 GIN 三元组索引。
+  - **验证（实跑）**：
+    - 新增单测全部通过：retrieval 2 个；physicalquery 2 个，含 sqlpolicy 引擎实际接受关键词语句；kboracle 1 个，含与独立 oracle 逐成员一致；gateway 2 个新拒绝用例。
+    - **既有向量检索摘要不变**：在 HEAD 与改后分别计算同一夹具，输入摘要 6daed663… 与绑定摘要 3a5e9623… 逐字节相同。
+    - 用 scripts/db-test-env.sh 起测试库全量跑 go test ./...：除下述卫生项外全部通过。kbschema 与 kbpublish 另用钉住的 pgvector 镜像（7b822b0a，自带 pg_trgm）起临时库跑过；gateway 检索测试此前因缺 CONTROL_TEST_POSTGRES_DSN 跳过，这次在测试库上实际通过，不是跳过。
+  - **发现并修复既有缺陷 1**：kbpublish 的 TestPublishIsDeterministicAcrossDatabasesAndVerifies 在 HEAD 上就失败（已在 HEAD 临时 worktree 复现）。
+    - 根因：§9.8 把发布的 chunks 单元格从 text 改为 text_sha256 后，篡改 text 不再改变已发布关系，verify 看不到。这个测试需要 KB_TEST_POSTGRES_DSN，此前一直跳过，没人发现。教训：跳过不等于通过。
+    - 修法：kb-publish verify 增加"每块 sha256(text) = text_sha256"检查。交付侧（retrieval.go enrichChunkText）本来就逐行核对，所以没有错误释放；但关键词匹配读的是 text，篡改可能让块从命中集中消失，必须由 verify 兜住。
+  - **发现环境漂移 2**：817 个在 git 中记为 100644 的受控文件，磁盘上带可执行位（core.fileMode=false，git status 看不到），repohygiene 测试因根目录的 Dockerfile、compose.debug.yaml、go.mod、go.sum 失败。
+    - 只清了这 4 个根目录非脚本文件的可执行位，测试通过。
+    - 其余 813 个未动：其中有 V5 等流程可能以 ./ 直接调用的脚本，贸然清除会破坏它们。留作待办。
+
+- [2026-10-18 12:10 UTC+8] KB1-LOOP-103 **K6.4 预先登记写定（关键词实验 E-KB6–E-KB8）**。写入 docs/kb_experiment_design.md 新节。此时任何关键词实验代码都未运行，本提交时间即为登记时间。
+  - **发布期**：两个声明 keyword 的新发布期 v2kw（48,183 块）与 20kkw（96,401 块），块内容与已封存轮相同。
+  - **关键词集**：450 条，含 300 锚点、100 高频、50 缺席，由确定性规则生成并摘要绑定。
+  - **E-KB6**：命中集与直连 LIKE 的成员与顺序一致，预期 100%。
+  - **E-KB7**：高频词扫描、小预算，FactGate 预期 ≤ 200 块且 ≤ 11 步内拒绝；ACL 对照 ≥ 30%；合法任务无拒绝、完成率 ≥ 80%。
+  - **E-KB8**：开销，两档各 200 轮/格。
+  - **规模**：3 个 profile × 3 次 = 9 次部署；需新数据绑定 v2，由作者签署。
+  - **阈值依据**：小预算阈值沿用 E-KB1 的单位换算（B_R 800 单元格 ≈ 200 块），ACL 下限取保守值，均不拟合。
+
+- [2026-10-18 12:25 UTC+8] KB1-LOOP-104 **K6.4 实验基础设施完成（驱动、关键词集、两份冻结发布物、三个 profile、轮次化的绑定与收尾）**。
+  - **关键词集**（实跑）：evaluation/kb-formal/keywordset-v1，450 条，含 300 锚点、100 高频（首位"部门"，19,256 块包含）、50 缺席，sha256 90eed4d5…。重跑逐字节相同。规则写进清单，与登记一致：高频与锚点取自 v2 语料，缺席在 v2 与 v1-20k 两份语料中都检查过。
+  - **冻结发布物**（实跑，scripts/freeze-publication.sh）：
+    - 在钉住的 pgvector 镜像与冻结嵌入服务上各发布一次 v2kw（b95be2e5…）与 20kkw（6067be59…）。
+    - 嵌入缓存 5980758d… 前后不变；kb-publish -verify 通过，含 KB1-LOOP-102 新加的正文核对。
+    - 片段与原 v2 的差异只有发布期派生名、摘要与 keyword: true。
+    - 容器跑在默认网桥上，NAS 路由始终走 eth0。
+  - **驱动**：kbformal/ekbkw.go 实现 E-KB6/7/8。直连臂与网关准备的语句同过滤、同 LIKE（默认转义符）、同命中字符数排序、同全序；转义语义在 PostgreSQL 上实测，% 与 _ 只按字面匹配。kb-formal-driver 新增 ekb6、ekb7、ekb8 与 -keywords 参数。
+  - **轮次**：kbformal.Rounds 定义 kb（已封存首轮四个 profile，绑定 v1）与 keyword（三个新 profile 加关键词集，绑定 v2）。kb-formal-binding、kb-formal-finalize 增 -round；launch-round.sh 增 KB_FORMAL_ROUND，并把该轮 profile 列表传给 run-round；run-deployment.sh 映射 ekb8-48k/96k。
+  - **彩排校验**：crosscheck.py 对关键词实验改为检查正确性不变量，因为没有进程内试点可对拍。E-KB6 要求命中集一致且缺席为空；E-KB7 要求计费不超预算；E-KB8 要求无错误且重放零计费。预登记的期望值只在合并报告中报告，不作闸门。
+  - **profile**：kb-v2kw-pilot（ekb7）、kb-v2kw-large（ekb6、ekb8-48k）、kb-20kkw-large（ekb8-96k）已生成，尚未证明，需参考部署记录 schema 摘要。原四个 profile 的文件逐字节不变。
+  - **K6.3 验收方式（决定）**：改用新 profile 的 pilot 部署跑关键词实验，作为部署路径验收。理由：它经 HTTP/MCP、OA 审批、回执验签与 Parquet 交付全路径，强于手动冒烟；原手动冒烟没有脚本化入口。
+
+- [2026-10-18 12:32 UTC+8] KB1-LOOP-105 **关键词轮三个 profile 已证明，数据绑定 v2 写出**。
+  - **参考部署（实跑，pilot 类，KB_FORMAL_RECORD_ATTESTATION=1）**：根目录 /home/wmm/kb-formal/kb-keyword-reference-20261018，二进制由 HEAD d0f5760 构建，链脚本 ~/logs/kb-keyword/reference-chain.sh 逐个执行。
+    - 三次都"逐字节复现冻结发布物"，冻结过程的确定性由此得到确认。
+    - 记录的 schema 摘要：kb-v2kw-pilot 与 kb-v2kw-large 同为 1e4ba27b…，kb-20kkw-large 为 c73cf040…。
+    - 每次之后都重新生成 profile 文件；kb-formal-profile -verify 15 个文件逐字节通过；原四个 profile 文件不变。
+    - 每次都镜像到 NAS kb-formal/kb-keyword-reference-20261018/。
+  - **数据绑定 v2**：evaluation/kb-formal/kb-dataset-binding-v2.json，sha256 2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0，9638 字节。
+    - 钉住三个 profile 及其 schema 摘要、两份发布物、两份语料、关键词集（清单 7fba28f0…，关键词 90eed4d5…）、嵌入缓存（139,354 个向量，5980758d…）、镜像与源文件（含新 DDL a18ea827…）。
+    - 正式轮发射前需作者签署；先做彩排。
+
+- [2026-10-18 13:17 UTC+8] KB1-LOOP-106 **关键词轮彩排完成（pilot 类）并登记为对拍基准；K6.3 部署路径验收通过**。
+  - **彩排**：kb-keyword-rehearsal-20261018，launch-round.sh KB_FORMAL_ROUND=keyword，提交 518ac0e，12:35–13:13，9 次全新部署全部成功；每次部署后的不变量检查 0 差异。
+    - 不变量检查器先用三份蓄意改坏的报告验证过：三份都报出差异，退出码 1。
+    - 已 finalize，合并报告镜像到 NAS kb-formal/kb-keyword-rehearsal-20261018/evidence；campaign evidence d33445c3…。
+  - **结果（实跑，pilot 类，非论文证据）**：
+    - **E-KB6**：每个 k 各 1350 次，成员与顺序一致率 100%，0 错误；跨部署 2700/2700；缺席关键词 150/150 返回空集。锚点的目标进入前 k 的比例：k5 58.0%、k10 70.3%、k20 81.3%（只描述）。
+    - **E-KB7**：ACL 对照 S4 平均 43.7%（预期 ≥ 30%，达到）。FactGate 9/9 次以 EXPOSURE_BUDGET_EXHAUSTED 停止，比例 6.7–7.4%，最多 197 块（预期 ≤ 200，达到），释放计费最多 788/800。合法任务 0 次拒绝。
+    - **E-KB8**：k=20 新查询中位数，48k 档网关 95.1 ms、直连 0.5 ms；96k 档网关 63.9 ms、直连 0.3 ms；p95 网关 92–169 ms、直连约 140 ms；重放零计费，0 错误。
+  - **未达预登记（照实报，原因已查）**：
+    - **首次拒绝**：9 次中 2 次在第 12 步，预期 ≤ 11。我的先验按"每步全是新块"推算 800/(20×4) = 10 步，实际各步结果有重叠；先验错了，不是系统问题。
+    - **合法任务完成率**：48/90 = 53.3%，预期 ≥ 80%。其中 12 个目标在 {public, internal} 下本就不可见；可见目标中完成 48/78 = 61.5%。与 E-KB6 锚点在 k5 的 58.0% 一致，说明 4 字锚点在前 5 名里竞争不过同词更多的长块，是检索质量问题，不是账本问题。
+  - **K6.3（部署路径验收）**：关键词检索经 HTTP/MCP、OA 审批、回执验签、Parquet 交付与逐行正文摘要核对，在 9 次全新部署上跑通。
+  - **登记与工具**：
+    - 合并报告复制进 evaluation/kb-pilot/keyword-rehearsal，在 kb-pilot registry 登记 5 条，作正式轮的对拍基准。
+    - compare-combined.py 增 --round keyword：比较全部确定性字段，包括 E-KB6 逐条命中列表、E-KB7 逐轨迹计数与计费、E-KB8 逐样本行数与计费，不比时延；用蓄意改坏的副本验证，三处都检出。
+    - generate_kb_evidence.py 新增关键词宏 137 个：在正式登记与作者批准齐备前取彩排数据，并标 \KbKeywordEvidenceClass{kb-pilot}；新增门禁单测，10/10 通过。
+  - **待作者**：(1) 签署数据绑定 v2（~/logs/kb-approvals/approve-keyword-launch.sh）；(2) 同意正式轮发射。
+
+- [2026-10-18 14:21 UTC+8] KB1-LOOP-107 **作者签署关键词轮数据绑定并同意发射**。
+  - 作者本人运行 ~/logs/kb-approvals/approve-keyword-launch.sh（我起草、未运行）。提交 c16c05e（14:19:57）只含 evaluation/kb-formal/approvals/launch-approval-keyword-v1.json（sha256 065c57d7…），批准绑定 v2：2b4441466d0111a6da7a36e2ca16582ca01134340a369b880dd505705571b0a0，9638 字节。
+  - 作者原话"发射"。
+  - 已核验：记录为 AUTHOR_APPROVED，路径与摘要都对。
+  - 即将发射正式轮 kb-keyword-publication-20261018（class formal，round keyword，9 次部署）。运行期间不改任何受控文件，备注先写 ~/logs/pending-registration.md，封存后再登记。
+
+- [2026-10-18 15:04 UTC+8] KB1-LOOP-108 **关键词轮正式轮完成、封存并登记**。运行期备注已从 ~/logs/pending-registration.md 转入本条。
+  - **运行**：kb-keyword-publication-20261018，class formal，round keyword，冻结提交 e085b9e，campaign 分支 kb-campaign/kb-keyword-publication-20261018，14:23:44–15:03:17。9/9 次部署完成（每个槽位只有 attempt-1），无失败。
+  - **封存（实跑）**：kb-formal-finalize -round keyword -class formal，在本地与 NAS 逐文件核对 9 次部署。campaign evidence 7cef116b2b174ad4261c200963b40937eeda25bbb8213fbbeaf67cd56cc36109，绑定绑定 v2（2b444146…）与作者批准记录（065c57d7…）。
+  - **对拍（实跑）**：
+    - compare-combined.py --round keyword 与彩排比较全部确定性字段：E-KB6、E-KB7、E-KB8-48k、E-KB8-96k 都是 0 差异。比较器此前已用蓄意改坏的副本验证能检出差异。
+    - 12 份逐部署报告另跑不变量检查，0 差异。
+    - 因此正式轮的计数、命中列表、计费与停止码都与彩排相同（见 KB1-LOOP-106 的数字）；只有时延另行测得。
+  - **登记**：kb-formal-register 增 -round；登记路径移入 kbformal.Rounds，首轮仍为 kb-publication-evidence-v1.json。登记文件 evaluation/kb-formal/kb-keyword-evidence-v1.json，sha256 71901f5da9e367c052fabade8eacba042d2da84d713c02b3a90cc1d20e9a1624，2194 字节，含 5 个证据文件。
+  - **其他检查**：泄密扫描 0 命中，扫描模式先用已知命中样本验证过。作者批准前，生成器的关键词宏仍取彩排（已实跑确认）。
+  - **待作者**：签署关键词证据批准（~/logs/kb-approvals/approve-keyword-evidence.sh）。
+
+- [2026-10-18 15:06 UTC+8] KB1-LOOP-109 **论文加入关键词检索（K6.8 正文部分）；宏暂取彩排，待作者批准正式证据后换源**。
+  - **主稿**：
+    - 摘要末句改为"精确向量与关键词检索……二者都返回直连执行的命中集"。
+    - 贡献 (6) 改为"精确最近邻与关键词检索都是同一封印边界后的准备操作"。
+    - 知识产品一节的语言定义加入关键词检索：包含每个关键词的分块，按命中字符数排序。
+    - 评估段加入 E-KB6 一致率与 E-KB7 扫描结果；合法任务一句并列向量 60.0% 与关键词 53.3%，与各自预登记的 90%、80% 对照；时延一句加入关键词检索。
+  - **补充材料**：
+    - 检索语言一节新增关键词检索的语义，并说明关键词进 h_N、不做原子，以及发布验证核对正文。
+    - 评估引言说明第二轮。
+    - 新增 E-KB6、E-KB7、E-KB8 三段：未达预登记的两项（首次拒绝第 12 步；合法任务 53.3%）照实写出并给出原因。
+  - **版面**：为守 12 页，把评估一节"服务端阶段"一段（13 行）原样移入补充材料 Passages Moved，主稿留一句指引。已核对该段逐字节移入、主稿已删除。make paper 退出 0；主稿 12 页，末栏底 y=711；补充材料 44 页；check-rendered 补充材料 0 项，主稿只有既有两项。
+  - **顺带修复**：补充材料 20 个 \paragraph 标题都以句号结尾，渲染成".:"。已全部去掉句号，渲染核对正确，属既有排版缺陷。
+  - **口径**：关键词宏现取彩排（\KbKeywordEvidenceClass 为 kb-pilot）。正式轮与彩排的确定性字段 0 差异，所以作者批准后只有时延数字会变。
+
+- [2026-10-18 17:01 UTC+8] KB1-LOOP-110 **K6.7 完成：作者批准关键词正式证据，论文换用正式证据**。
+  - **批准**：作者本人运行 ~/logs/kb-approvals/approve-keyword-evidence.sh（我起草、未运行），提交 b245d94（16:59:39）只含 evaluation/kb-formal/approvals/keyword-evidence-approval-v1.json（sha256 ae0a1cbe…）。批准登记 71901f5d…（2194 字节）与 campaign evidence 7cef116b…。作者原话"已批准。存到 Zenodo。"
+  - **宏换源（实跑）**：\KbKeywordEvidenceClass 由 kb-pilot 变为 kb-publication，并新增 \KbKeywordRegistrationDigest。
+    - 变化的只有报告摘要宏与 E-KB8 时延宏，例如 k=20 新查询中位数：48k 档 95.1 → 94.7 ms，96k 档 63.9 → 64.3 ms。
+    - E-KB6、E-KB7 的计数宏与 E-KB8 的计数宏 0 个变化，与正式对彩排的确定性字段 0 差异一致；过滤条件先用已知应命中的摘要宏验证过。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。
+  - **下一步**：按作者指示做 Zenodo 第 3 版存证（关键词轮原始证据），草稿上传核对后由作者发布。
+
+- [2026-10-18 17:05 UTC+8] KB1-LOOP-111 **Zenodo 第 3 版草稿就绪（关键词轮原始证据），未发布**。依据：作者原话"存到 Zenodo"。
+  - **打包（实跑）**：沿用第 2 版的目录布局（deployments/、evidence/、round/），存于 ~/logs/kb-keyword/zenodo-v3。
+    - 288 个文件，泄密扫描 0 命中（模式先用已知命中样本验证）。
+    - 归档 factgate-kb-keyword-raw-evidence-v1.tar.gz 共 3,199,983 字节，sha256 2daff109…；按名排序、属主归零、固定 mtime、gzip -n，重打逐字节相同。
+    - 解出后按清单全部通过。
+  - **复算核查（实跑）**：用本轮封存的 kb-formal-finalize 二进制，只在解出的归档上运行，复现四份合并报告，除 generated_at 外与登记一致；蓄意改动的副本被判不等，作阳性对照。
+  - **Zenodo（实跑）**：
+    - 对已发布的第 2 版（23444544）建新版本，得草稿 23449501，预留 DOI 10.5281/zenodo.23449501，concept 10.5281/zenodo.23149436。
+    - 第 2 版的 7 个文件随版沿用，校验和不变；新增 3 个文件回读 md5 与本地一致（归档 53 s 传完）；元数据 version 3.0，标题加"the keyword round"，含 ORCID。
+    - 状态 unsubmitted。上传的 3 个文件已镜像到 NAS kb-zenodo-v3/，sha256 核对通过。
+  - **仓库**：
+    - 新增 evaluation/kb-formal/raw-evidence-keyword-deposit.json（status draft）与 raw-evidence-keyword-manifest.sha256。
+    - 生成器的存证门禁推广到关键词存证：\KbKeywordRawEvidenceDOI 只在 published 时生成。kb.tex 新增 \KbKeywordRawEvidenceFiles{288} 与 \KbKeywordRawEvidenceMB{20}。
+    - 推广时我写了一个参数名遮蔽 bug（与函数内已有的局部变量 prefix 同名），单测当场抓到，已改名修复；12/12 通过，kb.tex 其余部分不变。
+  - **待作者**：对 Zenodo 记录 23449501 明示"发布"。
+
+- [2026-10-18 17:08 UTC+8] KB1-LOOP-112 **Zenodo 第 3 版已由作者发布并核实；关键词轮 DOI 进论文；阶段 6 完成**。作者原话"已发布 https://zenodo.org/records/23449501"。
+  - **核实（实跑）**：
+    - 公开 API：记录 open，version 3.0，10 个文件的校验和与上传时一致。
+    - DOI 解析：doi.org 302 到 zenodo.org/records/23449501，HTTP 200。
+    - 下载核对：从公开记录下载 3 个新增文件，sha256 与存证记录相同；归档解出 288 个文件按清单全部通过。
+  - **仓库**：raw-evidence-keyword-deposit.json 改为 status published，写明作者原话与上述核实。生成器随之生成 \KbKeywordRawEvidenceDOI{10.5281/zenodo.23449501}，kb.tex 只增这一行。
+  - **论文**：主稿"可复现边界"改为"knowledge-product rounds and corpora, doi:… and …"；补充材料评估引言给出第二轮的类别、登记摘要与存证（288 个文件，DOI）。
+  - **构建（实跑）**：make paper 退出 0，主稿 12 页，末栏底 y=711 不变，补充材料 44 页，check-rendered 补充材料 0 项、主稿只有既有两项。从 PDF 抽取核对 DOI 渲染正确。
+  - **阶段 6 小结**：关键词检索从作者决定（11:38）到正式证据与存证进论文（17:08），K6.1–K6.8 全部完成。留待作者：审阅主稿改动，先后移出的四段在补充材料 Passages Moved。
+
+- [2026-10-18 17:20 UTC+8] KB1-LOOP-113 **作者审阅意见：引言"lakes or warehouses"重复，只保留 warehouses**。依据：作者原话"【数据湖或数仓】重复了，只保留数仓就行了"（在中文阅读版上标注）。
+  - main.tex:131 改为"Large enterprises operate warehouses, reporting marts, …"，中文阅读版同步改为"数仓"。
+  - make paper 退出 0，主稿 12 页，check-rendered 补充材料 0 项、主稿只有既有两项。
+  - 其余三处单独出现的 lake（main.tex:145"never exposes the raw lake"、:1150"surrounding lake, Catalog, …"、补充材料接口表"Lake / warehouse"行）不是重复，未改，已报作者另定。
+
+- [2026-10-18 17:25 UTC+8] KB1-LOOP-114 **更正 KB1-LOOP-113 的时间戳**：该条写作 17:20，实际写入时间是 17:25。根因：我在同一条命令里把时间写死在条目中，`date` 的输出在条目写完之后才看到，违反"先 date 对表再写"。此后先单独运行 date 再写条目。
+
+- [2026-10-18 17:54 UTC+8] KB1-LOOP-115 **本机常驻知识库演示栈（作者个人使用，不是论文证据）**：作者要在本机用 agent 经 MCP 查文档，令牌沿用其 MCP 配置里的那一个，并要求大、小两种预算可同时测。
+  - **位置**：/home/wmm/kb-demo（仓库外，README.md 说明用法）。
+    - source/ 是提交 e085b9e 的 detached worktree（git worktree add）。
+    - 二进制与镜像只读取用关键词正式轮根目录，未写入该目录。
+    - env 为 0600，alice 的令牌取自作者的 MCP 配置；未打印，未出执行机。
+  - **设计**：一个 Catalog，两个知识产品。
+    - policy_kb：冻结发布物 v2kw，high → kb-large-v1；重发布后 manifest 与冻结件逐字节相同。
+    - policy_kb_small：同一语料的演示发布，medium → kb-pilot-v1。
+    - 放弃了"同一组产品挂两条路由"：catalog 校验禁止，一个产品只能属于一条产品级路由（internal/catalog/validate.go "product is already exclusive"），每个敏感级也只能有一条通用路由。
+    - 预算由路由决定，request_data_task 不能自选。
+  - **实跑验证**（经 8083 垫片，以 alice 身份）：
+    - 两任务同时 ACTIVE，budget_profile 分别为 kb-large-v1 与 kb-pilot-v1。
+    - 关键词检索命中锚点目标 D-003903；文本检索与 aggregate 均返回结果。
+    - 小预算连续关键词检索在第 22 步拒绝（EXPOSURE_BUDGET_EXHAUSTED，release 773/800）。
+    - 第一次统计命中为 0，是我的自检脚本读错了字段（检索结果在 preview_result 里），不是网关的问题；已改用 preview_result 复核。
+  - **约束**：该栈占用正式轮端口 25434/29000/29001/8082/8092/28090；开任何正式轮前必须先运行 /home/wmm/kb-demo/down.sh。
+
+- [2026-10-18 18:25 UTC+8] KB1-LOOP-116 **作者定：文档下载作为独立任务进论文**。
+  - **起因**：作者在演示栈让 agent 下载一份文件，agent 只能逐块检索命中再 fetch。D-000068 用了约 16 次查询、3 分钟。这是作者 2026-10-17 选定的 §9.6 (a)"fetch 只取此前返回过的块"的设计后果（internal/gateway/retrieval.go:743、751），不是故障。
+  - **作者原话**：
+    - "下载文件 可以用 专门的 下载文件任务来执行，mcp要提供下载文件的 服务。 搜索归搜索，下载归下载。 使用场景，用户委托agent 搜索了10个文件，用户看完摘要后，肯能只要求下载其中3个文件。"
+    - 进论文选 "Put it in the paper"。
+    - 含高于密级的节选 "Refuse whole document"。
+    - 前置字段选 "Include if values approved"。
+  - **先查的数据事实（演示栈实查）**：
+    - 963/10469 份文档各含一个 leadership 节，所在文档为 public 200、internal 511、confidential 252。
+    - 存储的 body 含前置字段（含未抽取字段）与带密级标签的节标题行，两者都不在任何发布单元格中。
+    - 所以下载文件只由已发布单元格组装：标题、批准时的抽取值、按序分块正文。不交 body，摘要也不等于 content_sha256。
+  - **设计**：docs/kb-design.md §12。
+    - 下载清单进授权单的保留范围键 kb_documents，沿用既有子集缩小规则，审批协议不改。
+    - 审批前不读业务数据，所以审批人只见 doc_id@version、不见标题。
+    - 完整性用 chunk_count 判整份拒绝。
+    - 新码三个：TASK_KIND_MISMATCH、DOWNLOAD_NOT_APPROVED、DOCUMENT_NOT_DOWNLOADABLE。
+    - 实验 E-KB9 待预先登记。
+  - **计划**：docs/kb_extension_plan.md 阶段 7（K7.1 完成，K7.2 起）。
+  - **对论文的影响**：主稿要加第四个工具与一段说明，并要一轮新的正式证据（新绑定、发射、证据批准、Zenodo 新版，均需作者签或发布）。
+
+- [2026-10-18 18:51 UTC+8] KB1-LOOP-117 **K7.2 文档下载任务实现完成（单测与对演示库的端到端测试通过）**。
+  - **代码**：
+    - internal/kbdownload：清单规范形与保留范围键 kb_documents、确定性文件格式 taskgate-kb-document-file-v1；
+    - internal/gateway/download.go：request_download_task、download_document、任务种类分离、HMAC 下载能力与 /api/v1/kb/documents/download；
+    - createTask 从 requestDataTask 拆出，保留范围键在资格闸门之后加入；
+    - 新码三个；MCP 结果支持嵌入资源。
+  - **两端同改**：
+    - 发射端：网关在 search/fetch/aggregate/query_sql/execute_plan 五个入口与 download_document 判任务种类；分块部分的拒绝把 DOCUMENT_NOT_DOWNLOADABLE 写入失败查询的终态记录（query.go）。
+    - 校验端：kb-formal-smoke 新增下载段，核三个码、各部分回执与经能力下载的文件；docs/catalog-guide.md 登记工具与码。
+  - **设计校正**（kb-design §12.3/§12.4 已改）：
+    - 下载复用三个既有准备操作（document 计划、fetch 形 chunks、values 计划），未新增准备形态，所以参考模型与 oracle 不需改【读代码推出】。
+    - F_O：chunks 部分无调用方原子（同 fetch），document 与 values 部分各计 doc_id、version 两个原子。
+    - 拒绝时 document 部分已结算（2 个 Release），chunks 部分记失败查询，只计查询数。
+  - **实跑**：
+    - 环境：db-test-env 控制库 + 演示栈业务库（只读 gateway_reader）+ 演示栈发布物 policy-kb-2026-10-bge-v2kw。
+    - TestDownloadEndToEndAgainstKnowledgePublication PASS：
+      - 文件与直连库独立组装逐字节相同；
+      - D-005004 的三部分 Release 2/24/3、Influence 5/33/6、Outcome 3/1/3；
+      - 同请求号重放与语义重放零计费；
+      - 含 leadership 节的 D-006828 对无 leadership 范围的任务整份拒绝，只释放 2 个文档单元格，重试同码且零计费；
+      - 清单外文档 DOWNLOAD_NOT_APPROVED；
+      - 有 leadership 范围的任务可下 D-006828，不批 values 时无字段块。
+    - 单测：TestRequestDownloadTaskCarriesTheApprovedList、TestDownloadAndSearchTaskKindsAreSeparate、TestDocumentDownloadSignatureIsDomainSeparated PASS。
+    - 网关全包（控制库与 KB 端到端环境就绪）138 过、6 跳过（需报告文件的 KB 实验测试）、0 败。
+  - **我的一处错**：初版计划的 version 字面量用了 int64，被 Prepare 拒为 "literal type int64 is not supported"（queryplan/compiler.go:446）。根因是该查没查（计划字面量只收 MCP 解码出的类型）；已改为 json.Number，并以端到端测试为证。
+  - **下一步**：K7.3 部署路径冒烟——从该提交构建网关镜像，演示栈换镜像，跑 kb-formal-smoke 下载段。
+
+- [2026-10-18 18:56 UTC+8] KB1-LOOP-118 **K7.3 部署路径冒烟通过；下载文件的字段改为可读显示值**。
+  - **镜像**：
+    - 从 70a5a0a 用 final-v5-gateway-build build + verify-build 构建网关镜像 147af801…，同发射脚本的本地模块代理做法。
+    - 演示栈只重建网关容器；compose、DB 初始化与控制库迁移在 e085b9e..70a5a0a 之间零差异。
+    - 演示栈主体属性改用 kb-v2-pilot 快照（alice 与原快照逐字段相同，另含 60 个文件主体），使冒烟的资格段可跑。
+  - **冒烟实跑**（kb-formal-smoke 新下载段，演示栈，policy_kb 与 policy_kb_small 各一次）：全部通过。
+    - 下载任务经 OA 提交、批准后 ACTIVE；预算分别为 kb-large-v1 与 kb-pilot-v1。
+    - 两份检索命中文档 D-008682（4 块，1788 字节）与 D-003248（6 块，2827 字节）下载成功：各部分回执对已发布密钥环验签，回执中的 Catalog 摘要为演示 Catalog。
+    - 经 HMAC 下载地址取回的文件逐字节相同，并带 Content-Digest 头。
+    - 两个知识产品下同一文档的文件摘要相同。
+    - DOWNLOAD_NOT_APPROVED 与双向 TASK_KIND_MISMATCH 码符合预期。
+    - 原有的 search 回执、fetch 与 CHUNK_NOT_RETURNED、资格段同时通过。
+  - **经 8083 垫片下载 D-000068**（作者原始例子）：MCP 结果为 text 加 resource 两项，resource 为 text/markdown 且与 structuredContent.content 相同。
+  - **发现并改正**：带抽取值时，字段行显示的是内部规范编码（n:180885689/100、s:…、d:…）。
+    - 改为确定性显示值 kbdownload.DisplayValue：去前缀；n:p/q 在 q 只含 2 与 5 时写成有限小数，否则保留分数。
+    - 这是已发布单元格的纯函数，不读额外列，计费不变。
+    - 单测覆盖，kb-design §12 文件格式已补。
+    - 演示栈需再换一次镜像。
+
+- [2026-10-18 18:59 UTC+8] KB1-LOOP-119 **E-KB9/E-KB10 预先登记起草**（docs/kb_experiment_design.md 新节；首次运行前冻结）。
+  - **E-KB9（正确性、整份拒绝、审批绑定、种类分离）**：
+    - 沿用已冻结的 v2kw 发布物；冻结下载集：全可见 300、混合 60、审批 20 组×5；
+    - 主体为 alice，范围按实验显式给出；预期每项 100%。
+  - **E-KB10（开销）**：直连三条读语句 vs download_document，每臂每部署 200 轮。
+    - 保守先验：网关 p95 ≤ 直连 p95 + 1.5 秒，取 E-KB3 单次检索增量的三倍量级，不按任何下载实测拟合（此前无下载时延实测）。
+  - **轮次**：新 profile kb-v2kw-download，3 次全新部署；新数据绑定 v3 由作者签署后发射；先彩排后正式轮。
+  - **过程记录**：演示镜像第二次构建被构建器以"工作树不干净"拒绝。原因是我在构建进行中编辑了受控文件；构建器的失败关闭按设计生效。改为先提交推送，再从干净提交构建。
+
+- [2026-10-18 19:35 UTC+8] KB1-LOOP-120 **更正"系统不存原始文件"；作者定原文件通道进论文**。
+  - **更正（我的错）**：我对作者说过"the system stores no original files"（KB1-LOOP-116 的数据事实也这样写）。不准确。
+    - kb.documents.body 存着每份文档的完整原文（前置字段、带密级标签的节标题、正文），即本语料的源文件（带前置字段的 Markdown）。
+    - 已发布的 documents 关系带它的摘要：content_sha256 = sha256(body)，对全部 10469 份成立（演示库实查）。
+    - 不存在的只是 PDF、Word 等二进制原件，本语料没有。
+    - 根因：把"无二进制原件"说成"无原始文件"，说之前没核对 body 与 content_sha256（该查没查）。
+  - **作者原话**："factgate 做为 文档的出口网关，就算不直接管理文件，也应该提供一个 访问文件的通道吧？"、"比如提供一个 对象存储 URL？"。
+  - **作者选择**：
+    - URL 形态选 "Gateway URL (Recommended)"：网关签发短期地址，取件时流式读出并逐字节核 content_sha256，不暴露存储端点。
+    - 进论文选 "Yes, with download (Recommended)"。
+  - **设计**（kb-design §12 将补）：
+    - 下载任务可申请"原文件"，以批准 documents.content_sha256 列表示，审批人可在 OA 删去该列。
+    - 原文件含前置字段，故同时要求批准 values；含高于密级的节仍整份拒绝。
+    - 计费：原文件 ⊇ 全部分块单元格、抽取值单元格、标题与 content_sha256 单元格，所以原文件不会比逐块下载便宜。
+    - 节标题（含密级标签）与未抽取的前置字段这部分剩余随文件整体释放，以 content_sha256 这一事实计，不做单元格级核算；论文照写。
+
+- [2026-10-18 19:43 UTC+8] KB1-LOOP-121 **K7.2b 原文件通道实现；单测与端到端通过**。
+  - **代码**：
+    - request_download_task 的 original_file：documents 加 content_sha256 列，即原文件权，并隐含 values。
+    - download_document 的 format original：
+      - 前置检查：须批准 documents.content_sha256 与 values，否则 DOWNLOAD_NOT_APPROVED，零计费；
+      - document 部分多释放 content_sha256；chunks 与 values 部分照旧；
+      - 结算后按身份读 kb.documents.body，核 sha256 等于已释放摘要后交付。
+    - 下载地址的签名加入 format；取件时按 format 重组：原文件为重读 body 并核摘要。
+    - 组装模式的幂等摘要不变；原文件模式在摘要中加入 format。
+  - **实跑**（db-test-env 控制库、演示业务库、v2kw 发布物）：
+    - TestDownloadEndToEndAgainstKnowledgePublication 新增段 PASS：
+      - 无原文件权时拒绝且零计费；
+      - 有权时 D-005004 的交付字节与 kb.documents.body 逐字节相同，file_sha256 等于已发布 content_sha256；
+      - document 部分 Release 3，总 Release 不少于 3 + 4×块数；
+      - 含 leadership 节的文档在原文件模式同样整份拒绝。
+    - 网关、kbdownload、mcp、kbformal、cmd/gateway 合计 189 过、6 跳过、0 败。
+  - **登记**：E-KB9 预先登记增 (e) 原文件通道，预期 100%。kb-formal-smoke 增原文件段。
+  - **待办**：部署路径冒烟待新镜像。
+
+- [2026-10-18 19:45 UTC+8] KB1-LOOP-122 **原文件通道部署路径冒烟通过**。
+  - 演示栈换为 2c716dd 构建的镜像 5b1f9497…；kb-formal-smoke 在 policy_kb（kb-large-v1）与 policy_kb_small（kb-pilot-v1）上各跑一次，全部通过。
+  - 原文件段：
+    - 无原文件权的下载任务中 format original 被拒，码 DOWNLOAD_NOT_APPROVED；
+    - 批准原文件的任务经 OA 提交、审批后，D-008682 原文件 1831 字节下载成功，三部分回执验签；
+    - 经网关下载地址取回的字节相同。
+  - 直连核对：file_sha256 00e41a38… 等于两个集合中该文档已发布的 content_sha256，body 长度 1831 字节一致。
+
+- [2026-10-18 20:10 UTC+8] KB1-LOOP-123 **作者问"检索工具不能按 doc_id 过滤、6 轮主题检索才集齐 5 个分块"是否缺陷：查证后判为 agent 选错工具，不是 FactGate 缺陷；补工具描述引导**。
+  - **实查**（演示栈控制库）：
+    - agent 19:28 用 request_download_task 建过下载任务 task_8a89…（kb_documents=[D-000179@1]），19:31 经 :document 与 :chunks 两部分取回全文。
+    - 对 D-000595，agent 19:55 另建检索任务 task_5c4f…（目标"检索…D-000595 的正文分块并汇报内容要点"，范围 procurement/public）；20:02–20:06 执行 15 次检索，集齐 5 块。
+  - **search 不接受 doc_id 过滤是设计边界**：过滤只接受知识产品声明的属性（kb-design §4）。若放开，检索任务里就多出一条按编号取整份文档的通道，绕过下载任务的逐份审批，与作者 2026-10-17 的 fetch 裁决 (a) 及 18:25 的"搜索归搜索，下载归下载"相悖。保持不变。
+  - **不构成绕过**：在检索任务里逐块拼出全文，所取的块都在该任务已批准的范围内，并逐次按账本计费。小预算下同类连续检索在第 22 步被拒（KB1-LOOP-115 实测）。下载任务不收窄检索授权已覆盖的内容；论文须写明这一点。
+  - **改进（只改文字，语义与计费不变）**：search 与 fetch 的工具描述、CHUNK_NOT_RETURNED 的两处消息，都加"要整份文档请用 request_download_task 与 download_document"。网关单测通过；演示镜像待重建。
+
+- [2026-10-18 23:40 UTC+8] KB1-LOOP-124 **作者定 PDF 原件进演示与论文；设计 files 关系**（kb-design §12.9）。
+  - **作者原话**："企业实际场景 大部分是PDF 文件，有没有PDF 样例可以演示？"；范围选 "Demo and paper (Recommended)"。
+  - **决定**：
+    - 确定性渲染器 tools/kb-pdf/render.py 为每个文档版本生成 PDF 原件：fpdf2 2.8.9、fontTools 4.65.0、Noto Sans CJK SC（OFL，摘要钉住）、固定创建时间。
+    - 原件放对象存储的只读原件桶。
+    - 新发布关系 `<kp>_files`（media_type、byte_size、file_sha256），属新发布期。
+    - 原文件权改为批准 files 关系，取代 KB1-LOOP-120 的 content_sha256 列方案（尚未评估，可改）。
+    - format original 的第四部分读 files 行，结算后从桶取对象，核大小与摘要后经网关地址交付。
+  - **可行性实测**：
+    - D-000595 渲染为 86,928 字节的 PDF，两次渲染逐字节相同（598f8f0c…）；pypdf 抽取文字正常（CJK 字形映射正确）。
+    - 全语料 10,469 份渲染已在后台进行。
+  - **字体来源**：本机另一项目目录中的 Noto Sans CJK SC 发行文件（OFL），以 sha256 钉住，未联网下载。
+
+- [2026-10-18 23:57 UTC+8] KB1-LOOP-125 **K7.2c 代码就位；全语料 PDF 原件渲染完成；发现并修复一处既有资格继承缺陷**。
+  - **代码**（d017bb0 及本提交）：
+    - kb.document_files（DDL）；kb-publish 的 files 关系：spec.files、渲染清单精确覆盖校验、装载、物化视图、清单与目录片段；
+    - 目录 Products.Files，激活时清单与目录一致性检查；
+    - 网关 format original 改为批准 files 关系：第四部分 files 计划（Release 3），按身份读 object_key，经只读原件存储取对象并核大小与摘要；
+    - 下载地址重组同理；MCP 嵌入资源支持 blob；cmd/gateway 读 GATEWAY_KB_ORIGINALS_*。
+  - **单测**（不连库部分）：catalog、kbpublish（新增渲染清单覆盖、spec、激活双向不一致三个测试）、kbdownload、mcp、gateway、cmd/gateway、kbformal、repohygiene 全过。
+    - 激活测试的不一致用例先把目录绑定改到无 files 的清单摘要，确保拒绝来自 files 检查而非摘要检查；断言错误文本含 "disagree about the files relation"。
+    - 连库测试（kbschema、网关端到端）待演示栈重新发布后跑；kbschema 测试已同步改为 6 表、5 个外键，并加 document_files 约束用例。
+  - **PDF 原件**：
+    - tools/kb-pdf/render.py 渲染全部 10,469 份，清单 sha256 98ae2260…，共 835.4 MB（单份 45,400–122,797 字节，中位 79,679）。
+    - 重现性：按固定种子随机抽 300 份另起一次渲染，300/300 的摘要与大小与主清单相同。
+    - 产物在 /home/wmm/kb-pdf（originals/v2 与 v2-manifest.jsonl，只读），不进 git。
+  - **既有缺陷（我发现并修复）**：
+    - 网关 knowledgeProductOwning 只认 chunks、documents、values（internal/gateway/eligibility.go:228，修复前）。
+    - 后果：只申请 collection_values 关系的请求不继承知识产品的资格包络，可越过 NOT_ELIGIBLE。补充材料 supplement.tex:3862–3868"超出包络的请求在请求时拒绝"的一般性陈述对此路径不成立。
+    - 证据未受影响：E-KB2(a) 只申请 chunks 与 documents；E-KB5-collection 用 alice，在包络内。
+    - 修复：改为遍历全部已声明关系（KnowledgeProductRelations.Relations()，含 files）。新增回归测试 TestOptionalKnowledgeRelationsInheritEligibility，待连库跑。
+    - 同类扫描：kbpublish/activate.go 与 catalog/knowledge.go 已覆盖可选关系；gateway 其余处按名取关系，无同类遗漏。
+  - **登记**：E-KB9 预先登记改为 PDF 原件与 v2kwf 发布期，(e) 项改写。
+
+- [2026-10-19 00:14 UTC+8] KB1-LOOP-126 **K7.2c 完成：PDF 原件经 files 关系与只读原件桶下载，端到端与部署路径冒烟通过**。
+  - **我的一处错**：kb.document_files 的 object_key CHECK 写成 `{0,511}`，超过 PostgreSQL 正则重复次数上限 255；演示栈装载时报 "invalid repetition count(s)"。
+    - 根因：kbschema 连库测试需要 pgvector 库，我在 KB1-LOOP-125 只跑了不连库测试，把跳过当作没问题（该查没查）。
+    - 已改为 `{0,255}`（c081bd9），kbschema 两个连库测试在演示栈的 pgvector 服务上通过（6 表、5 外键、document_files 约束用例）。
+  - **资格继承回归测试的已知正例验证**：把 knowledgeProductOwning 临时恢复为旧的三关系判断，TestOptionalKnowledgeRelationsInheritEligibility 失败（越权请求被受理）；恢复修复后通过。
+  - **演示栈重建**：
+    - 镜像 4c330ea8…（c081bd9），主机二进制同提交。
+    - 新发布期 policy-kb-2026-10-bge-v2kwf 与 policy-kb-small-2026-10-v2kwf 各带 files 关系，目录共 8 个关系。
+    - 原件桶 taskgate-kb-originals 装入 10,469 个对象；网关只读用户只有 GetObject 权限。
+  - **端到端**（db-test-env 控制库、演示业务库、本地原件目录）：
+    - TestDownloadEndToEndAgainstKnowledgePublication 的 PDF 段实跑：D-005004 原件 application/pdf，85,454 字节，sha256 6c8fdbbe…，与磁盘文件一致；四部分 Release 共 32（2+24+3+3）；无 files 授权时拒绝且零计费；含 leadership 节的文档整份拒绝。
+    - 网关等六包 218 过、7 跳过、0 败。
+  - **冒烟**（policy_kb 与 policy_kb_small 各一次）全部通过：
+    - 原件段 D-008682 经网关地址取回 61,196 字节 PDF（%PDF 头），sha256 ed223420… 等于渲染清单与磁盘文件；四部分回执验签；带 Content-Digest 头。
+    - 组装文件、清单外拒绝、双向种类分离、CHUNK_NOT_RETURNED、NOT_ELIGIBLE 同时通过。
+
+- [2026-10-19 08:13 UTC+8] KB1-LOOP-127 **演示栈改用项目根目录 .env**（作者原话："env 就用 项目根目录的 .env，不要在其它地方创建。"）。
+  - 根 .env（0600、gitignore）原有 60 个变量。
+    - 演示需要而缺的只有原件桶读者的两把钥匙，已生成并追加，未打印。
+    - 其 alice 令牌与作者 MCP 配置中的令牌相同（逐字节比较，未打印）。
+    - compose 读取的非机密设置（travel_demo、25434、29000/29001、127.0.0.1:8082）与演示脚本一致。
+  - 演示脚本（lib、up、approve、README）改指根 .env。数据库口令在初始化时写入卷，所以演示栈 down -v 后重建（08:09–08:12，10,469 个原件、8 个关系、两发布期激活）。
+  - /home/wmm/kb-demo/env 已删除。
+  - 核对：OA 中 alice 与 bob 的口令摘要等于根 .env 中的；以 `-env-file .env` 跑冒烟全部通过（含 PDF 原件 61,196 字节、四部分回执）；经 8083 垫片 initialize 与工具列表正常（22 个工具，含两项下载工具）。
+  - 这条规则只管本机与演示栈；正式轮的逐部署密钥按规程生成并销毁，不受影响。
+
+- [2026-10-19 08:29 UTC+8] KB1-LOOP-128 **作者定：按密级选审批人并核审批人权限（只做功能，不进论文）**。
+  - **作者原话**："如何演示 bob 无法审批 leadship 密级的文档？ alice 提交任务， bob可以审批 leadship之外的密级， 再增加一个 账号审批 leadship密级？ 这个 密级应该和 审批人身份对应还是和任务发起人对应？ 真实的企业环境，这个人和 人物的 权限该怎么治理？"
+  - **作者选择**：模型选 "Route + approver check (Recommended)"，范围选 "Feature, not paper (Recommended)"。
+  - **实查现状**（代码逐处核对）：
+    - 路由只按产品敏感级与产品集合选，不依 classification 范围（catalog/resolve.go:72-100），且在范围归一化之前解析（gateway/tasks.go:142 先于 :158）。
+    - OA 只有硬编码的 alice 与 bob（oademo/server.go:139-142），建草稿时非 bob 即拒（:212）。
+    - 审批时 OA 与网关都只核审批人名字等于路由所写（server.go:370；callback.go:376-378、:312）；无人核审批人本人的密级；网关不挡自批。
+  - **计划**（/home/wmm/.claude/plans/greedy-booping-robin.md）：
+    - 目录 ApprovalRoute 加 scope_condition；网关在范围之后解析路由，并核审批人 clearance 覆盖所批密级，且审批人不等于申请人（新码 APPROVER_NOT_AUTHORIZED）；
+    - OA 加审批人 dana（口令取自根 .env）；演示栈按 leadership → dana、其余 → bob 路由；三步演示脚本。
+
+- [2026-10-19 08:41 UTC+8] KB1-LOOP-129 **按密级选审批人与审批人权限：代码与测试完成**。
+  - **代码**：
+    - 目录 ApprovalRoute 加 scope_condition 与 verify_approver。有条件路由须有同键兜底，按声明顺序优先；条件只写枚举范围的允许值，且排序去重。新增 ResolveTaskPolicyForScope；ResolveTaskPolicy 语义不变。
+    - 网关 createTask 在范围归一化后按范围重解路由（预算随之）。新增 authorizeApprover：审批人不得是申请人；verify_approver 时审批人须在属性快照中，并按同一资格包络对所申请范围有资格。新码 APPROVER_NOT_AUTHORIZED，审批人资格裁决记入私有记录。
+    - OA：可选审批人 dana（OA_DANA_PASSWORD）；建草稿接受任一已配置审批人；审批人只看到点名给自己的草稿（补既有缺口）。
+    - docs/catalog-guide.md 已登记。
+  - **测试**（db-test-env 控制库）：
+    - 目录：TestConditionedRouteChoosesTheApproverByScope、TestConditionedRouteValidationFailsClosed。
+    - 网关：
+      - 非 leadership 请求路由到 bob、leadership 请求路由到 dana；
+      - 三种拒绝且零草稿：leadership 误路由给 bob、自批、审批人不在快照；
+      - 阳性对照：bob 持 leadership 密级时同一误路由目录被受理，证明拒绝来自审批人资格。
+    - OA（真实登录走 HTTP）：bob 看不到 dana 的草稿，审批 dana 的草稿被拒；dana 审批成功（同一机制作阳性对照）。
+    - 回归：网关、目录、OA、cmd、kbpublish、kbformal、repohygiene 合计 225 过、9 跳过、0 败。
+  - **下一步**：演示栈改路由与属性、换镜像，加三步演示脚本。
+
+- [2026-10-19 08:48 UTC+8] KB1-LOOP-130 **演示栈：按密级选审批人三步演示通过**。
+  - **镜像与配置**：
+    - 网关 123e8a33…、OA d2c56471…，均从 8f4d0fc 构建；主机二进制同提交。
+    - 根 .env 追加 OA_DANA_PASSWORD（未打印）。演示 overlay 给 OA 传入该口令。
+    - 属性快照加 bob（密级到 confidential）与 dana（含 leadership）。
+    - 演示目录（v2）：high 与 medium 均为 leadership → dana、其余 → bob，全部 verify_approver。
+  - **实跑**：
+    1. alice 申请 public/internal/confidential，路由到 bob（kb-large-v1），bob 批准后 ACTIVE。
+    2. alice 申请含 leadership，路由到 dana；bob 的任务列表看不到该草稿，审批返回 HTTP 409；dana 批准后 ACTIVE。
+    3. demo-misroute.sh 让网关临时运行把 leadership 误配给 bob 的目录：leadership 申请在建草稿前被拒，码 APPROVER_NOT_AUTHORIZED；随后恢复真实目录，挂载路径与路由复核正确（bob / dana）。
+
+- [2026-10-19 10:21 UTC+8] KB1-LOOP-131 **作者反馈 TeleAgent 说不能选 dana：属设计（申请人不能指定审批人）；补齐路由可见性，免 agent 猜测**。
+  - TeleAgent 原话称审批人"按数据范围自动路由……从历史工单规律看……大概率还是到 Dana"。
+    - "不能指定审批人"是正确的设计：申请人自选审批人，等于允许挑软审批人。
+    - "大概率、看历史工单"不对：路由由目录确定性决定。agent 之所以只能猜，是 MCP 不给它路由信息。
+  - **改动**（只加信息，语义不变）：
+    - list_data_products 增 approval_routes（敏感级、产品集合、scope_condition、approver、budget_profile、verify_approver）与一句路由规则说明；
+    - request_data_task（及 request_download_task）的返回值增 approver 与 approval_route。
+  - **测试**：新增 TestRoutingIsPublishedAndTheResolvedApproverReturned；网关全包通过（db-test-env）。
+
+- [2026-10-19 10:32 UTC+8] KB1-LOOP-132 **作者定：申请时自由选审批人，TaskGate 按数据产品规则在签发授权时拦截**。
+  - **作者原话**："让agetn 提交任务，选人的时候自由选择。 但是factgate 会根据 权限做拦截。 这样比较好demo。 demo的场景是 即使OA流程配错了，factgate 也能根据数据产品的规则正确的拦截。"
+  - **实现**：
+    - request_data_task 与 request_download_task 加可选 approver，覆盖目录路由。
+    - 请求时只拦自批（APPROVER_NOT_AUTHORIZED）；其余照常建草稿，返回 approver_chosen_by_requester 与 approver_authorized（预告）。
+    - 审批回调中，对自选审批人与 verify_approver 路由，按数据产品的资格包络、针对批准后（可能已缩小）的范围复核实际审批人。不通过即不签发，任务以新的终止原因 approver_not_authorized 归档；回调返回 granted:false，OA 不再重试。
+    - control.allowedTransition 已登记该终止原因。
+  - **测试**：
+    - TestChosenApproverIsVerifiedWhenTheApprovalArrives：
+      - 选 bob 审批含 leadership 的任务，bob 在 OA 批准后任务归档为 approver_not_authorized，无授权；
+      - 选 dana 获授权；
+      - bob 缩小掉 leadership 后批准有效；
+      - 选自己当场被拒且无草稿。
+    - 回归：网关、control、OA、目录、cmd 合计 284 过、8 跳过、0 败。
+
+- [2026-10-19 10:34 UTC+8] KB1-LOOP-133 **演示栈：自由选审批人演示通过**（网关 7ddf7633…，从 18648f9 构建）。
+  - A：含 leadership 的申请选 bob，提交时预告 approver_authorized=false；bob 在 OA 批准后，TaskGate 把任务归档为 approver_not_authorized，无授权。
+  - B：同一申请选 dana，批准后 ACTIVE。
+  - C：不含 leadership 的申请选 bob，批准后 ACTIVE。
+  - 脚本 /home/wmm/kb-demo/demo-approver.py；README 已附 TeleAgent 里的说法。
+
+- [2026-10-19 11:29 UTC+8] KB1-LOOP-134 **我的错：list_data_products 的路由说明与 approver 参数自相矛盾，TeleAgent 因此不肯指定审批人**。
+  - **现象**：作者转来 TeleAgent 的答复，其中称"发起方没有'指定审批人'的入口"。
+  - **实查**：经 8083 垫片，request_data_task 与 request_download_task 的 schema 都已有 approver，描述也写明可选。但 list_data_products 的 approval_routing 仍是 KB1-LOOP-131 写的"审批人由目录路由决定，申请时不能指定……"。
+  - **根因**：KB1-LOOP-132 加 approver 参数时只改了工具描述，没改同一组的说明文字；KB1-LOOP-131 写的测试只断言说明非空，没核内容与工具一致（该查没查）。
+  - **修正**：
+    - 说明改为"缺省按目录路由；也可用 approver 参数指定任一审批人；TaskGate 在签发前按数据产品规则核验，无权者批准后以 approver_not_authorized 归档"。
+    - 测试改为断言说明含"approver 参数"且不含"不能指定"。
+  - **另记**：TeleAgent 所说"昨天 10:33 指定 Bob 被拒"的工单，是我当天（10-19）10:33 运行的演示脚本场景 A（脚本代 bob 立即批准），不是"昨天"，也不是"进不去审批列表"。
+
+- [2026-10-19 13:21 UTC+8] KB1-LOOP-135 **作者问"D-004521 是 internal 却路由给 Dana"对不对：机制按规则运作，但请求范围远超所需；补最小权限提示**。
+  - **实查**：
+    - 下载任务 task_c0d373ad… 的强制范围是 12 个部门与 4 个密级（含 leadership）。原因是 request_download_task 未给 scopes，按设计取申请人的整个资格包络，因此命中 leadership 条件路由，审批人为 dana。
+    - 13:14:09 alice 提交，13:14:39 dana 批准，任务随后以 completed 归档。
+    - D-004521 本身为 sales、internal，5 个分块全部为 internal。
+  - **判断**：
+    - TeleAgent"internal → Bob"的前提不对：路由依任务请求的范围，不依文档本身的密级。
+    - 其"范围覆盖全密级，命中 leadership 路由"的解释正确；"按产品敏感级"一语不准，产品敏感级只选基础路由，dana 是范围条件选出的。
+    - 若给最窄范围 {sales, internal}，会路由到 bob，且仍能取回全文。
+  - **改动**（只加提示，语义不变）：request_download_task 的描述说明缺省范围的后果，并建议给最窄 scopes；返回值增 scopes_defaulted_to_envelope。网关全包通过（db-test-env）。
+
+- [2026-10-19 18:05 UTC+8] KB1-LOOP-136 **为同事 lzj 准备经 Tailscale 访问演示栈（发布待作者授一次 operator）**。
+  - **作者选择**：lzj 用自己的账号 "Own account for lzj (Recommended)"；审批人口令也给 lzj，选 "lzj also gets bob/dana (Recommended)"；lzj 已是 tailnet 成员，选 "Already a member"。
+  - **事实**：
+    - Tailscale 运行在 WSL 内，节点 wmm-wsl 100.68.97.89，HTTPS 证书可用（wmm-wsl.tail8b36e9.ts.net）。
+    - auth 仓库 nas/tailscale-policy.hujson 的 ACL 为 src * → dst *:*，tailnet 内所有设备都能连 wmm-wsl 任一端口，所以真正的门是令牌与口令。
+    - 未使用 auth 仓库中的 Tailscale API key。
+  - **改动**：
+    - OA 演示支持可配置的额外账号（OA_EXTRA_USERS 与 OA_<NAME>_PASSWORD），登录页动态列出全部账号；新增单测（申请人只能提交自己的单；冲突或缺口令的配置被拒）。提交 2f559a5，OA 镜像 07a941bd…。
+    - 根 .env 追加 LZJ_MCP_TOKEN、OA_LZJ_PASSWORD、OA_EXTRA_USERS=lzj:requester（未打印）；GATEWAY_PUBLIC_BASE_URL 改为 https://wmm-wsl.tail8b36e9.ts.net；演示 overlay 把 OA 公开地址改为 :8443。
+    - 主体文件加 principal_lzj（只存令牌摘要），属性快照加 lzj。
+  - **本机核对**：以 lzj 令牌经 8083 建任务成功，路由到 bob，返回的 oa_url 已是 tailnet 地址；lzj 登录 OA 提交成功；网关载入 61 个文件主体。
+  - **待办**：
+    - tailscale serve 需要 root 或 operator：`sudo tailscale set --operator=$USER` 需作者执行一次（sudo 要口令），随后运行 /home/wmm/kb-demo/tailscale-publish.sh。
+    - 只发布 /mcp、两个签名下载路径和 OA(:8443)；不用 Funnel。撤销用 tailscale-unpublish.sh。
+    - 给 lzj 的说明在 /home/wmm/kb-demo/for-lzj.md，不含机密。
+
+- [2026-10-20 14:20 UTC+8] KB1-LOOP-137 **评审数据使用方反馈（alice 经 MCP，10-19~20，15 条）：事实大多属实，P0 根因更深——知识产品在 MCP 发现面上不可见；5 处说法不准**。
+  - **证据**（实查）：演示栈控制库 tasks/task_grants/audit_events/query_receipts、网关容器日志、以 agent 视角实调 list_data_products、describe_data_product、get_sql_capabilities 与工具 schema；代码由三路只读调查核对（读码）。
+  - **属实并采纳**：
+    - 第 1、2 条：检索前置条件无从得知、POLICY_DENIED 不透明。
+      - 实查：10-20 11:09:32 首次失败到 11:17:21 首次成功，建 3 个任务、3 次审批（提交到批准 8/14/34 秒）。
+      - 网关日志共 9 次 search 失败，"不在可精确计量片段内"连撞 3 次。
+      - list_data_products 不列知识产品；describe_data_product("policy_kb") 返回 NOT_FOUND。
+      - 读码："任务授权外的知识产品"其实只是目录查名（retrieval.go:357-359）；"不在片段内"是兜底，丢弃底层原因，网关日志里也没有（:402-406）。
+      - POLICY_DENIED 有 16 处发射点、14 种文案，均无 Details。
+    - 第 3 条：k_max=20 只在目录里，工具 schema 只有 minimum:1。同类：filters.op 列着 has，但 has 没有计划渲染、必拒；text 的 4096 是字节不是字符。
+    - 第 9 条：OA 非指派审批人查看得 404、批准得 409。
+    - 第 15 条：预览无 has_more。
+  - **属设计、不采纳**（理由如下）：
+    - 第 4 条：同任务一个在途查询（threat-model.md:39），只补重试语义；
+    - 第 5 条：不回相似度分数（kb-design.md:188-189；分数是无事实身份的交付字段，supplement.tex:4281 列为保证之外），动它需作者另行裁决；
+    - 第 6 条：doc_id 过滤，作者已裁决（KB1-LOOP-123）；
+    - 第 7 条：不加提交 API、不改 AWAITING_SUBMISSION（submitted 只认人类主体，gateway/callback.go:388-389），只加 next_action；
+    - 第 8 条：不做 webhook；
+    - 第 11 条：授权只能收窄，不续期（authorization.go:246-248）；
+    - 第 14 条：交付地址 TTL 已可配置，重调即换新地址且不计费。
+  - **说法不准**：
+    - 第 1 条：最小授权不是"全字段"，而是 chunks{doc_id, version, chunk_index, text_sha256}加上过滤列，以及 documents{doc_id, version}；text 不是发布列。
+    - 第 10 条：revoke 在三种未归档状态都可用（entities.go:336-340；alice 10-19 11:30 撤过待审任务）。真问题有两个：
+      - 撤销不通知 OA，工单仍挂在审批人列表里；
+      - 待审任务永不过期，architecture.md:208 写错。
+    - 第 12 条：SQL 支持 LIKE（sqllowering/lower.go:598-618；main.tex:691）（读码，待实跑）。agent 看不到，因为能力接口不列谓词、提示漏写、describe 把缺省显示成 []。
+    - 第 13 条：job_role 的 5 个值在目录知识产品属性里已声明（catalog.yaml:675-682），只是不暴露。全表扫描之前 agent 先撞过 count 未批（10-19 18:42:45 SQL_NOT_LOWERABLE），反馈漏了这一步。
+    - "计费折扣"：实为账本对已释放单元格不重复计费，每次实际释放都是 80，80/60/12 对应 20/15/3 个新块。
+  - **同类扫出、反馈未提**：
+    - query_sql 兜底拒绝同样丢原因（query.go:706-709）；
+    - 文档过期 6 处：catalog-guide.md:539、POLICY_DENIED 未登记、sql-security.md:62/72、getting-started.md:132-136、architecture.md:208、threat-model.md:35；
+    - 目录显式声明 allowed_operators 时无法授予 LIKE（like 与 ~~ 不对应，现有目录 0 处声明，未触发）；
+    - lzj 10-19 18:04 的待审任务因 OA 草稿只在内存、OA 今天重启而成孤儿（推断）。
+  - **决定**：按计划 /home/wmm/.claude/plans/pasted-content-id-804e-mellow-waffle.md 分 11 个提交实施，只改 MCP 发现面、报错 Details、流程提示、演示 OA 与文档。
+    - 不碰计费、授权、回执、范式、状态机与 sqllowering（held-out 协议写明降级器此后不改）。
+    - 在 K7.4 之前做完，确保 K7.5 彩排与正式轮同一二进制。
+    - 待办，本轮不修：like/~~ 别名、撤销后通知 OA、待审任务过期、演示目录 TTL 与 documents 的 count。
+  - **提交 0（护栏）**：
+    - physicalquery 钉住 HEAD（1781def3）上 vector/keyword/fetch 三种检索准备的输入摘要、整个 binding 的 JSON 摘要与两条语句摘要；
+    - gateway 钉住 aggregatePlan 在声明与放宽两种目录下全部 32 个请求的计划与拒绝文案。
+    - 已知反例：期望值为空时两个测试都失败。填值后连跑两次通过；db-test-env 下网关、physicalquery、retrieval 全包通过。
+  - **提交 1（单一真源）**：新文件 physicalquery/retrieval_columns.go：RetrievalPlanColumns、RetrievalRequiredColumns、RetrievalOperatorRendered，都直接读 retrievalPlan 与算子表，只新增、不改既有函数；另加 retrieval.AdmittedOperators（读 Normalize 的同一张表）。
+    - 实跑：TestRetrievalRequiredColumnsAreSufficientAndMinimal 在向量检索、关键词检索与 fetch 三种形态上通过。
+      - 恰好授予推导出的列集即可准备，两条语句也过 sqlpolicy；删掉其中任一列即准备失败。
+      - 基础集为 chunks{chunk_index, doc_id, text_sha256, version}、documents{doc_id, version}；作用域列不必授权（由策略渲染器施加）；注入的作用域原子不加列。
+    - 提交 0 的护栏与 queryplan、sqlpolicy 身份测试照旧通过。
+  - **提交 2（精确拒绝与检索描述）**：新文件 gateway/retrieval_refusals.go。
+    - **未知知识产品名**：码由 POLICY_DENIED 改为 INVALID_REQUEST，与 request_download_task 一致，属行为变化。Details 列出全部知识产品名；输入若是某知识产品的关系名，提示改填该知识产品。涉及 search、fetch 预检、aggregate、download_document 四处。
+    - **缺关系**：仍为 POLICY_DENIED，Details 加 reason=RELATIONS_NOT_GRANTED、missing_products 与补救办法（新建任务，因为授权只能收窄）。
+    - **缺列**：在 Normalize 之后、准备之前按 RetrievalPlanColumns 核授权，缺列时 reason=COLUMNS_NOT_GRANTED 并给 missing_columns，属行为变化。aggregate 同样按其计划列核对。fetch 的已返回块检查仍在前。
+    - **has**：改由网关以 RETRIEVAL_FILTER_UNSUPPORTED 拒绝，reason=OPERATOR_NOT_EXECUTABLE，属行为变化；并从 search 的 schema 枚举中删去。physicalquery 的 Validate 不动。
+    - **兜底拒绝**：保留原码与原文，补 Cause 以便日志记下具体原因（retrieval、query_sql、语义 View 三条准备路径），检索兜底另加 reason=RETRIEVAL_NOT_PREPARABLE。
+    - **工具描述与 schema**：search 与 fetch 描述写明填知识产品名、k 上限、query 三选一与 4096 字节、必需列见 task_requirements、按设计不回分数。列给 agent 的 search schema 按目录给出 k.maximum（最大 k_max）。
+    - **实跑**（db-test-env）：
+      - 新增 TestRetrievalRefusalsNameWhatTheRequestOrTaskLacks。其中复现了 10-20 的 task_82dbe638 授权（两个关系，只有身份列），检索得 missing_columns {policy_kb_chunks: [text_sha256]}，加 job_role 过滤时再多 job_role。另覆盖 has、aggregate 的 sum/count 缺列与缺 values 关系；被拒请求均不耗预算。
+      - 新增 TestListedSearchToolBoundsKByTheCatalog。
+      - 网关全包 145 过、0 败、8 跳过（基线 143/0/8，多出的 2 个即新测试）；护栏两个测试照旧通过。
+  - **提交 3（在途查询冲突带重试语义；另修一处误导性拒绝）**：
+    - CONFLICT 码与消息前缀不变（final-v5-adapter/throughput_pilot.go:262 按 CONFLICT 重试）。Details 加 reason=QUERY_IN_PROGRESS、retryable、same_request_id_ok、slot=task。
+      - 读码核实：拒绝发生在写 query_records 之前，事务回滚（control/budget.go:147-149、:194-195），所以同一 request_id 可重试。
+      - 读码核实：每个授权各有一行 budget_ledger（entities.go:444-447），委托子任务名额独立。
+    - **新发现的缺陷（实跑）**：网关在预留前的预算预检（query.go:893-899）按"上限 − 已用 − 已预留"算剩余，而在途查询通常预留全部剩余行。
+      - 所以第二个并发请求多半得到 BUDGET_EXHAUSTED"任务预算已耗尽"，这个说法不实。只有第一笔预留尚未提交的窄窗口才得 CONFLICT；演示栈 10-20 11:19:17 那次正好落在窗口里。
+      - 新测试 TestSecondQueryWhileOneIsInFlightIsRetryable 起初正是因 BUDGET_EXHAUSTED 失败（已知反例）。
+      - 修复：预检先查在途预留，再查耗尽，与 ReserveBudget 自身的顺序一致。属行为变化：并发同任务请求由 BUDGET_EXHAUSTED 改为 CONFLICT/QUERY_IN_PROGRESS。
+      - 依赖面：论文只写 EXPOSURE_BUDGET_EXHAUSTED；KB 正式驱动与冒烟不发并发请求（无 goroutine）；final-v5 适配器只认 EXPOSURE_BUDGET_EXHAUSTED。
+    - 实跑：用同一 request_id 重试按新查询完成，不是重放。网关全包 146 过、0 败、8 跳过。
+  - **提交 4（知识产品上发现面，申请时预告就绪情况）**：新文件 gateway/knowledge_discovery.go。
+    - **list_data_products**：新增 knowledge_products，各关系产品标注 knowledge_product{name, role}。describe_data_product 查不到产品时回落到知识产品（目录禁止重名）。
+    - **知识产品页的内容**：
+      - retrieval：k_max、exact、keyword、三种查询方式与限额（text 为归一化后 4096 字节，新常量 retrieval.MaxQueryTextBytes，由测试与 commitQuery 的边界绑定）、结果列、按设计不回分数；
+      - attributes：类型、allowed_values（作用域属性取其 Scope 的值）、实际可执行的 search 算子（text_set 为空并注明）与 filter_columns；
+      - extracted_fields：可用聚合与计划所读的列；
+      - task_requirements：search 与 fetch 的关系和必需列、aggregate 各字段、下载改用 request_download_task。
+      - 不发布 collection、source_namespace、embedding 权重与 eligibility。
+    - **单一真源**：search 与 fetch 的列取自 RetrievalRequiredColumns；filter_columns 是加过滤属性后多出的列；aggregate 要求直接运行 aggregatePlan（提交 0 钉住的同一函数），再按 values 关系的 allowed_aggregates 过滤（编译器 compiler.go:223 按它核对）。
+    - **knowledge_readiness**：request_data_task（basis=requested，注明审批人可能删减）与 get_task_context（basis=approved）按申请或授权的产品与列预告 search/fetch/aggregate 能否用、缺哪些关系或列、哪些属性可过滤，以及暴露 profile 是否为 V5。只作信息，从不让请求失败；下载任务不给。
+    - **工具描述**：list_data_products、describe_data_product、request_data_task 的描述提到上述内容。
+    - **实跑**：
+      - 纯测：发现页的 search 与 fetch 列等于 RetrievalRequiredColumns；job_role 的 5 个值、算子与过滤列；labels 不可过滤；amount 的聚合与所读列覆盖 aggregatePlan 的实际计划；私有字段不出现。
+      - 预告各情形：10-20 两次失败的授权分别预告缺 text_sha256 与缺 documents，授权充分时 ready，V4 时指出要求 V5。
+      - 连库：经 CallTool 的 list、describe("policy_kb")、request_data_task 预告与 get_task_context 预告。
+      - 网关全包 149 过、0 败、8 跳过。
+  - **提交 5（SQL 可发现）**：
+    - **WHERE 谓词描述表放在网关**（gateway/sql_predicates.go），不放进 sqllowering（held-out 协议写明降级器此后不改；本提交 sqllowering 零改动）。
+      - 可用：= <> < <= > >= IN NOT IN，以及 LIKE（正向、区分大小写、字面量模式）。
+      - 被拒及改写办法：OR/NOT、NOT LIKE/ILIKE/SIMILAR TO、BETWEEN、IS NULL、列与列比较、函数。
+    - **get_sql_capabilities**：增 where_predicates、where_rejected、catalog_control_defaults（未声明算子用策略缺省集，含 LIKE；未声明聚合即不能聚合）。
+    - **describe_data_product 增 sql_effective**：生效算子（声明的，或 sqlpolicy 缺省集）、该产品可用的谓词、聚合（未声明时附说明）。
+      - allowed_operators 键保持原样，仍为声明值。
+      - sqlpolicy 只加只读访问器 DefaultOperators()，行为不变，附防外泄副本测试。
+    - **实跑**：
+      - TestSQLWherePredicatesDescribeTheLowerer：用冻结的降级器逐条降级样例，每条可用谓词降级到所列计划算子，并只凭所列策略算子通过 sqlpolicy。
+        - documents 上 title LIKE '%工资%' 降级为 LIKE，并以 ~~ 获准；这是第 12 条"支持 LIKE"的进程内实跑证据，部署路径待冒烟。
+        - 已知反例：只给 "=" 时 LIKE 被拒。所列被拒谓词逐条确实不能降级。
+      - TestEffectiveSQLControlsResolveTheDefaults：documents 未声明算子，解析为缺省集；expense_summary 声明的算子不含 ~~，不列 LIKE。
+      - 三个 lowerability 工具（四份输出）重跑到暂存区，与已提交的 results.json 逐字节相同。比对器先用一对不同文件验证，判为不同。
+      - 网关全包 151 过、0 败、8 跳过；sqlpolicy、sqllowering、queryplan 全过。
+  - **提交 6（流程提示）**：新文件 gateway/task_flow.go。
+    - **新增字段**：request_data_task、get_task_status 与 wait_for_approval 的返回增 waiting_for、next_action 与 next_action_hint。
+      - AWAITING_SUBMISSION：human_submit_in_oa，须由申请人本人在 OA 提交（agent 不能代交）。
+      - AWAITING_APPROVAL：await_approver_decision，附审批人。
+      - ACTIVE：use_task。
+      - ARCHIVED：none_terminal，附按终止原因给出的建议。
+      - 不改状态名，不加提交 API。
+    - **oa_url 可再取回**：网关读取可选的 PUBLIC_OA_BASE_URL（compose 原已传入，只是网关此前未读），由已存的 approval_ref 拼出草稿链接，不新增持久字段。
+      - 拼法与 OA 共用 approval.DraftPageURL；OA 演示版改用它，行为不变。
+      - request_data_task 仍用 OA 返回的链接；两者不一致时记告警。
+    - 等待上限与缺省（45/30 秒）改为具名常量，schema 引用同一常量。
+    - **工具描述**：get_task_status、wait_for_approval、revoke_task 写明两种等待的区别、wait 在 human_submit_in_oa 时继续等无用、revoke 可作废待提交与待审任务、待审任务不会自动过期。
+    - **实跑**（db-test-env）：TestTaskFlowSaysWhoActsNextAndRevokeVoidsAPendingTask 依次核对：
+      - 建任务、状态与等待三处的 next_action，以及拼出的 oa_url；
+      - 提交回调后为 await_approver_decision，并附审批人；
+      - 撤销待审任务后，审批回调被拒、不签发授权，状态为 none_terminal。
+    - PUBLIC_OA_BASE_URL 的解析有单测。网关全包 152 过、0 败、8 跳过；cmd/gateway、oademo、approval 全过。
+  - **提交 7（预览分页提示）**：preview_result 返回增 has_more 与 next_offset。由纯函数 previewPage 计算，空页永不 has_more，按 next_offset 翻页一定会结束（单测覆盖 868 行的头页、末页、越界与空结果）。
+    - 描述写明：缺省 20 行、上限 100 行、预览不计费。
+    - deliver_result 描述写明：地址有效期见 download_url_expires_at（缺省约 5 分钟，即 GATEWAY_RESULT_DELIVERY_TTL）；过期后再调用即得新地址，不计费。缺省值不改，因为地址是持有即可下载的凭据。
+    - 网关全包通过。
+  - **提交 8（OA 演示版拒绝码拆分）**：查看、提交、决定三处共用 draftAccess。
+    - 工单不存在：404。
+    - 已登录但不是你的工单：403，并说明原因——审批人看到"此工单指派给审批人 dana，你（bob）不能查看或审批"，申请人看到"只有其申请人本人可以打开和提交"。
+    - 状态不对：409。
+    - 修复前：非指派审批人查看得 404、批准得 409，同一无权情形两种码。草稿编号随机，对已登录用户隐瞒存在与否无意义。
+    - 删去不再使用的 authorizedDraft。
+    - 实跑：approver_test 断言收紧——bob 决定或查看 dana 的工单得 403（正文含 dana），不存在得 404，dana 重复审批得 409，alice 提交 lzj 的草稿得 403。oademo 全包通过。
+    - 演示脚本（demo-approver.py、approve.py）与正式客户端（kbformal/client.go，非 200 即错）都只用正确账号，不受影响。
+  - **提交 9（部署路径冒烟 -usability 段；顺带修好坏了一天的冒烟）**：
+    - **新文件 kb-formal-smoke/usability.go**，以 alice 身份在部署上依次核对：
+      - 发现面：list_data_products 发布的 search 列等于 RetrievalRequiredColumns；目录里每个带值的 enum 属性按原值发布；describe(知识产品) 为 knowledge_product；get_sql_capabilities 列出 LIKE。
+      - 预告与流程：只批身份列的申请在提交前就预告缺 text_sha256；next_action 为 human_submit_in_oa；撤销该待审任务后为 none_terminal。
+      - 精确拒绝：同一申请经 OA 批准后，search 得 COLUMNS_NOT_GRANTED 并点名 text_sha256；把 chunks 关系名当知识产品名时得 INVALID_REQUEST，并提示应填的知识产品。
+      - SQL：documents 上 title LIKE '%报销%' LIMIT 3 有结果。
+      - kbformal.ToolError 另存整个错误对象（Details）；请求日志仍只记 code 与 reason，驱动日志不变。
+    - **我的错（10-19 起冒烟一直是坏的）**：冒烟的下载段不带 scopes，按设计取 alice 的整个资格包络，其中含 leadership。KB1-LOOP-130 改为按密级选审批人后，这个请求被路由给 dana，而冒烟的审批账号是 bob，打开草稿得 404。
+      - 实查：本次对旧镜像试跑时，下载任务 task_37601f50… 的 approver 为 dana，失败于 "OA GET … returned 404"。该任务已撤销。
+      - 根因：KB1-LOOP-130/133/135 只用演示脚本验证，没有重跑部署路径冒烟（该查没查），发射端改了、校验端没跟上。
+      - 修复：冒烟的两个下载请求显式给最窄范围（finance internal/public，即检索任务的范围）。
+      - 防再犯：记忆规则 deployed-path-smoke-rule 补上"改演示目录（路由、预算）或换网关/OA 镜像后，两个知识产品都重跑冒烟"。
+    - **已知反例**：修好下载段后，新冒烟对旧镜像（aad7b95d…）跑到下载段之后，恰好在新段第一项失败（"list_data_products publishes no knowledge product policy_kb"），说明新段的检查能抓到旧行为。
+  - **提交 10（文档）**：
+    - **catalog-guide.md**：
+      - 新增"发现面、就绪预告与拒绝细节"：knowledge_products、task_requirements、knowledge_readiness、next_action、where_predicates/sql_effective；6 个 reason 的码、触发条件与补救；改动后全部 POLICY_DENIED 发射点（按代码 grep 重列）；被拒请求只进网关日志。
+      - 改正：响应列为 5 列（含 text_sha256）、按设计不回分数；has 语言接受但计划无渲染。
+    - **architecture.md**：生命周期改为只有 ACTIVE 会过期，并说明待审任务以 revoke_task 作废，以及 TLA+ 无公平性、少走 Expire 仍是合法精化；原"任意未归档状态 --expire-->"与实现不符（读码核实：清扫只列 ACTIVE，cmd/gateway/main.go:1085）。
+    - **sql-security.md**：列出 WHERE 谓词（含 LIKE）、HAVING、COUNT DISTINCT 与只限精确数值的 AVG，以及未声明聚合即不可用；从不可 lowering 清单中删去 HAVING。
+    - **threat-model.md**：AVG 改为只支持精确数值。
+    - **getting-started.md**：Alice 可见 22 个工具，并补全清单。
+  - **全量回归**（提交 10 之后，db-test-env，`scripts/db-test-env.sh test -count=1 ./...`）：103 个包通过、0 失败、68 个包无测试文件；make hygiene 通过。
+  - **提交 11（冒烟收尾）**：冒烟资格段里 sales-staff 本部门申请被受理后从不提交，又因待审任务不会过期而一直挂着；每跑一次冒烟就留一张。
+    - 实查：task_994f49e8…（14:56，AWAITING_SUBMISSION）即本次已知反例那次运行留下的。
+    - 修复：核对后用同一身份 revoke_task。
+    - 另记：lzj 10-19 18:04 的 task_5eefd82b… 已成孤儿。实查 OA 容器于 10-20 02:45Z 启动，晚于该任务，而草稿只在内存里。它属于 lzj 的身份，我不能代撤；无授权，无害。
+
+- [2026-10-20 15:10 UTC+8] KB1-LOOP-138 **KB1-LOOP-137 部署到演示栈：两个知识产品的部署路径冒烟（含 -usability）与 smoke.py 全过；顺带修好按旧路由审批的 approve.py**。
+  - **推送与构建**：
+    - 推送前 db-test-env 已 down，NAS 路由恢复走 eth0。kb-dev 1781def3..679c7c3d 推到 NAS，再由 NAS 推到 origin；在 NAS 上用 ls-remote 核实 origin 的 kb-dev 为 679c7c3d 后，才更新本地 origin/kb-dev。
+    - 首次构建因 HEAD≠origin/kb-dev 被构建器拒绝（按设计，正式镜像只从已发布提交构建）；失败目录只有两份日志，已删。
+    - 从 679c7c3d 构建：网关镜像 2af1a0d7…，OA 镜像 7caab277…。演示栈只重建这两个容器：两个知识产品激活，嵌入服务在线，61 个文件主体，无告警。
+  - **冒烟**（kb-formal-smoke -usability，policy_kb 与 policy_kb_small 各一次）全部通过：
+    - search 5 行、回执验签，fetch 未返回块得 CHUNK_NOT_RETURNED；
+    - 下载段走 bob（kb-large-v1 / kb-pilot-v1），含原件段；资格段 NOT_ELIGIBLE 与本部门受理；
+    - 新段：发布的 search 列等于检索计划列，enum 值按目录发布；只批身份列的申请在提交前预告缺 text_sha256，撤销后为 none_terminal；批准后检索得 COLUMNS_NOT_GRANTED；关系名得 INVALID_REQUEST；title LIKE '%报销%' 返回 3 行；待审任务的 oa_url 可重建。
+    - 第 12 条"SQL 支持 LIKE"在部署路径上实跑成立。
+  - **smoke.py 也从 10-19 起坏着**（同根）：其范围含 leadership，被路由给 dana，而 approve.py 一律以 bob 审批。
+    - 改动前 bob 得 404，现在得 403 并说明原因。
+    - 修复（演示文件，不在仓库）：approve.py 提交后从 get_task_status 读实际审批人（本次新增字段），用其账号审批；README 同步。
+    - 重跑通过：两任务由 dana 审批后 ACTIVE；关键词与文本检索、aggregate（count 104）正常。
+  - **清理**：失败运行留下的待审任务 task_37601f50、ecbc1229、4a45e532（alice）与 994f49e8（sales-staff，用其令牌）均已撤销。lzj 的孤儿任务仍在，见 KB1-LOOP-137。
+  - **agent 视角实调**（经本会话的 factgate MCP）：describe_data_product("policy_kb") 返回知识产品页，含 job_role 的 5 个值、k_max 20、三种查询方式与限额、各工具的 task_requirements，以及按字段的可用聚合（文本只 count，日期无 sum）。
+
+- [2026-10-20 16:45 UTC+8] KB1-LOOP-139 **作者定：文档下载不作为论文的评测贡献；E-KB9/E-KB10 在运行前撤回；功能保留在制品与演示栈；补充材料加一段说明**。
+  - **作者原话**："你觉得论文加入 下载 有用吗？ 看起来像是 产品功能的范围。" 对我的建议回复"同意"。
+  - **我的建议与依据**：
+    - 新东西很少：下载由三个现成的准备操作组成，没有新的准备形态，参考模型与 oracle 不改（KB1-LOOP-117，读码）。E-KB9 所验，要么是现有机制的推论（逐字节一致、计费算术、清单审批），要么是产品规则（整份拒绝、检索与下载分开）。
+    - 原件通道的节标题与未抽取的前置字段随文件整体按一个事实计（kb-design.md:538、:560），写进论文等于主动给出一个例外。
+    - 代价：K7.4–K7.8 要一整轮正式证据（3 次全新部署），作者要签数据绑定 v3 与证据批准，还要发 Zenodo 新版；主稿 12 页已满。
+  - **撤回发生在运行前**：
+    - E-KB9/E-KB10 只起草，未冻结，没有任何运行（kb_experiment_design.md 该节写明"首次运行前冻结"）；
+    - 论文正文此前没有写下载任务（实查：main.tex 里的 download 均指结果制品下载）。
+    - 所以这不是看了结果再删。
+  - **做了什么**：
+    - kb_experiment_design.md 该节加撤回说明，原文保留；kb_extension_plan.md 阶段 7 的 K7.4–K7.7 标为撤回，K7.8 改为补充材料一段。
+    - 补充材料"The closed retrieval language and its effect"小节加一段：下载是制品中的另一种任务，不属于评测主张；写明清单只能由审批人删减、含范围外节的文档整份拒绝、复用三个准备操作并在同一账本结算，以及原件模式按一个文件事实记账（节标题与未抽取前置字段不按单元格计）。主稿不改。
+    - 构建（实跑）：make paper 退出 0；主稿 12 页，补充材料 44 页；新段渲染在补充材料第 38 页，文字核对无误；check-rendered 补充材料 0 项，主稿只有原有两项 Overfull。
+    - 中文阅读版未在本机找到（find /home/wmm 深度 4），本次只改补充材料，未同步。
+  - **放弃了什么**：论文不再给出下载通道的正确性与开销数字；带 files 关系与 PDF 原件的 v2kwf 发布期只供演示，不进证据。
+  - **保留**：K7.1–K7.3 的设计、代码、部署路径冒烟与演示。
+  - **下一步**：投稿准备。作者审阅主稿后，刷新 review/、投稿包、投稿信与 arXiv v3。
+
+- [2026-10-26 10:47 UTC+8] KB1-LOOP-140 **演示栈经 Cloudflare tunnel 发布到公网，供同事 lzj 用自己的 agent 自助测试（取代未完成的 Tailscale 方案 KB1-LOOP-136）**。
+  - **作者原话**："同事不方便用tailscale， 能不能把 mscp 发布到 公网， 让同事 用他自己的 agetn 软件 自助测试? 相关密钥在 auth 仓库"。
+  - **作者选择**：OA 防护选"只靠 OA 口令"（不加 Cloudflare Access）；时长选"测完再删"。
+  - **做法**：照 auth 仓库 cloudflare/README.md 的临时发布流程，新开 tunnel factgate-kb-demo（0fa7acd8-211c-469a-af0d-456a7701dd4a），两条显式 DNS 记录（proxied）。
+    - factgate-demo.sessionbound.org 只放行 /mcp（经 8083 垫片）、/api/v1/results/<id>/download、/api/v1/kb/documents/download 与回执公钥 /.well-known/taskgate/query-receipt-keyring.json；
+    - factgate-oa.sessionbound.org 为 OA 整站，挡掉 /api/ 与 /health；
+    - 其余路径边缘 404。
+    - 白名单沿用 Tailscale 方案的四类路径，另加只含公钥的回执公钥。
+    - 演示文件（不在仓库）：建删脚本 ~/kb-demo/cloudflare-tunnel.py，连接器启停 cloudflare-connect.sh（start.sh 自动拉起，stop.sh 与 down.sh 先停）。auth 仓库记录表已登记（8091e94）。
+  - **连接器**：WSL 连不上 github.com（实测超时），改在 NAS 下载。
+    - 最新版 2026.10.3 于 10-21 才发布，只有 5 天，改用 10-05 发布的 2026.10.0。
+    - NAS 与 WSL 两份 sha256 都等于发布说明（d33ff2d1…）。
+    - 令牌从 0600 文件读，不放进命令行参数。
+  - **链接改公网**：根 .env 的 GATEWAY_PUBLIC_BASE_URL 由 https://wmm-wsl.tail8b36e9.ts.net 改为 https://factgate-demo.sessionbound.org；compose.demo.yaml 两处 PUBLIC_OA_BASE_URL 由 tailnet :8443 改为 https://factgate-oa.sessionbound.org。随后重建 gateway 与 oa-demo，镜像不变（2af1a0d7、7caab277）。
+  - **口令强度**（只核长度与字符类别，未打印）：OA 口令 24–48 位随机串，MCP 令牌 64 位。
+  - **实跑**（从 WSL 经公网域名、走 Cloudflare 边缘）：
+    - 边缘白名单：网关的 /health、回调、管理接口与根路径，以及 OA 的 /api/drafts、/health 均为 404；回执公钥与 OA 登录页 200；不带令牌的 MCP 请求得网关的 401。
+    - 以 lzj 身份全流程：initialize（2.1.0）、22 个工具、两个知识产品；request_data_task 返回的 oa_url 在公网 OA 主机上；lzj 在公网 OA 提交、bob 批准后 ACTIVE；search 3 行；deliver_result 的下载链接在公网网关主机上，取回 8527 字节 Parquet；最后撤销该测试任务。
+    - 部署路径冒烟（含 -usability）两个知识产品全过。
+  - **一处被拦**：Cloudflare 的 Browser Integrity Check 对 Python urllib 默认 User-Agent 返回 403（error 1010）。
+    - 我想对 MCP 主机关掉这项检查，被自动模式按削弱安全设置拦下，没有绕过。
+    - 随后实测：只有 Python-urllib 默认 UA 被拦；httpx、requests、aiohttp、node、undici、node-fetch、claude-code、Go、浏览器与空 UA 都是 200。
+    - 所以保留该检查，在给同事的指南里注明自写脚本要带 User-Agent。
+  - **待办**：作者说测完时按 ~/kb-demo/README.md"收工"五步撤下，并把两处地址改回 tailnet。KB1-LOOP-136 的 tailscale operator 一步不再需要。
+
+- [2026-10-26 11:42 UTC+8] KB1-LOOP-141 **作者定：演示栈按组织架构多级审批；MCP 只给同事一个令牌，OA 账号可多加（只做功能，不进论文）**。
+  - **作者原话**：
+    - "LZJ_MCP_TOKEN、OA_LZJ_PASSWORD、OA_BOB_PASSWORD、OA_DANA_PASSWORD 这个名称不好，改成角色权限的名字，例如 普通员工 部门主任 分管领导，这样同事一看就知道权限关系"；
+    - "一个令牌比较好……搞2个令牌，mcp 要配置2次啊，不够直观"；
+    - "允许跨部门申请权限啊，跨部门的文档申请，本部门主任审批，然后被申请部门主任审批，如果涉及领导级文档，需要对应的分管领导审批。mcp只有一个，oa账号可以多加"。
+  - **作者选择**：
+    - 分管领导"3 位，按业务线"：管理线（财务、采购、法务、人力）、业务线（销售、市场、客服、运营）、研发线（工程、产品、研究、IT）；
+    - 缩小范围后"按缩小后的范围重算"后续环节；
+    - 审批人"共用一个口令"。
+  - **设计**：TaskGate 是审批链的权威，OA 协议不变（一位审批人一条回调，各带签名回执）。
+    - 目录：ApprovalRoute 新增可选 chain（omitempty，已有目录与证据摘要不变）。chain 由三部分组成：申请人部门属性、部门范围、主任表、主任权限条件；领导级升级另有升级范围与取值、分管领导表与领导权限条件。
+    - 校验要求组织架构覆盖部门范围的全部取值；chain 路由不写 approver 和 scope_condition。
+    - 环节：申请人部门主任 → 其余被申请部门主任（按名排序）→ 申请含 leadership 时，每个被申请部门的分管领导（同一领导合并为一级）。
+    - 建任务：按申请人的已证明属性取其部门，排出整条链；目录点名的每位审批人须有该环节权限，否则请求当场拒绝（组织架构配错失败关闭）；申请人不能审批自己。approver 参数只替换第一级，模拟 OA 误派，批准时照样核验。
+    - 回调：从审批事件得出已批到第几级，本回调的发出人必须是下一级。
+      - 以上一级签发的授权核心按本级时间重签发作基准（domain.TaskGrantCoreV1.Reissued），核"照批"或"收窄"。
+      - 按主体属性核本级权限：主任的部门属性须含该部门且 job_family 为 director；分管领导的 oversees 须含各部门且 job_family 为 leader。无权即归档 approver_not_authorized。
+      - 按本级批准后的范围重算余下环节：仍有则只记一级（控制库新增 Step 模式，不改状态，审计 APPROVAL_STEP_APPLIED），并把 next_approver 回给 OA；没有则签发授权。
+      - 每条回调都带"已批级数"，在任务行锁下核对，防止乱序。
+    - 状态：get_task_status 与 wait_for_approval 给出 approval_chain（每级 approved/current/pending）和当前审批人；request_data_task 返回整条链；list_data_products 发布 chain 路由与规则说明。
+  - **实跑**：
+    - 目录：TestApprovalChainStepsFollowTheOrgChart、TestApprovalChainValidationRequiresACompleteOrgChart；
+    - 授权核心：TestReissuedRebasesOnlyTheExpiry；
+    - 控制库（db-test-env）：TestApprovalStepRecordsWithoutChangingState——只记录、可重放、乱序 409、最终审批照常激活；
+    - 网关（db-test-env）四个场景：
+      - 跨部门含 leadership 三级审批，越级回调 403，每级后状态正确，最后一级才 ACTIVE；
+      - 被申请部门主任删掉 leadership 后不再需要分管领导，直接签发；后一级不能恢复前一级删掉的列（409）；
+      - 申请人把第一级指定为销售部主任，批准后归档 approver_not_authorized，无授权；
+      - 组织架构中的人力部主任属性不是 director 时，请求当场拒绝、不建草稿。
+    - 网关全包 157 过、0 败、8 跳过；control、catalog、domain、approval、physicalquery 全过。
+  - **下一步**：OA 演示版（读网关返回的下一级、按上一级核心续批、显示名与共用口令、审批记录）、正式客户端按链审批、演示配置与部署。
+- [2026-10-26 12:06 UTC+8] KB1-LOOP-142 **审批链的 OA 演示版、正式客户端按链审批、演示配置；我打印出演示 OA 回执私钥，已轮换（只做功能，不进论文）**。
+  - **OA 演示版**（internal/oademo）：
+    - 每级决定后读网关的回调答复：
+      - 有 next_approver：草稿改派给下一级，回到 pending；
+      - 有 terminal_reason：记为 not_granted 并写明原因；
+      - 回调 3 次都失败：把网关的拒绝原因写在草稿上，不再静默。
+    - 后续各级以上一级的授权核心按本级时间重签发为基准（Reissued），照批或收窄；缩小表单按该核心预填。
+    - 草稿记录审批历史。之前的审批人能查看、不能再决定（403）；只有当前审批人能决定。
+    - 账号支持显示名：OA_EXTRA_USERS 为 name:role[:显示名]；审批人没有 OA_<NAME>_PASSWORD 时用 OA_SHARED_APPROVER_PASSWORD。
+  - **正式客户端**（evaluation/kbformal）：
+    - Provisioner 新增可选 ApproverFor：按 get_task_status 给出的审批人逐级决定，直到 ACTIVE。
+    - 不设置时与原来逐字一致：只由 Approver 决定一次。正式轮不设置，行为不变。
+    - kb-formal-smoke 只在目录含 chain 路由时启用它，并加一段跨部门含 leadership 的链检查：实际决定的审批人须与 request_data_task 公布的链逐一相同，且含三种角色。
+  - **文档**：
+    - catalog-guide.md 增"审批链"一节；
+    - adapters.md 增审批链回调契约（每级一条回调，pending/next_approver 答复）；
+    - request_download_task 描述补一句：缺省范围会拉长审批链。
+  - **演示配置**（/home/wmm/kb-demo，不在仓库）：
+    - 目录 kb-demo-v2kwf-dual-budget-v3-chain：两条路由都改为 chain，主任为 <部门>-director，分管领导按作者定的三条业务线。
+      - 资格放宽新增 request_reach: all_departments；
+      - 与旧目录相比，只有路由、版本、资格放宽三处不同（逐项比对）；
+      - 网关的 catalog.Load 与 principalattr.Load 都接受新目录和新属性文件，各级审批人的属性满足各自环节。
+    - 主体：
+      - 新增 staff（普通员工，财务部，principal_staff）与三位分管领导；
+      - lzj 退役。它 10-19 起挂着的孤儿待审任务 task_5eefd82b… 已用原身份 revoke。
+    - 根 .env：
+      - LZJ_MCP_TOKEN 改名为 STAFF_MCP_TOKEN，值不变（核对过逐字节相同），同事的 MCP 配置不用改；
+      - OA_LZJ_PASSWORD 改名为 OA_STAFF_PASSWORD；
+      - 新增 OA_SHARED_APPROVER_PASSWORD（32 位随机串）；
+      - 删去 OA_EXTRA_USERS，账号表改放 compose.demo.yaml，带中文显示名。
+    - 脚本：
+      - approve.py 按链逐级批准（smoke.py 也走它）；
+      - demo-approver.py 改为五个链场景；
+      - demo-misroute.sh 改为"财务部主任误配成 bob"；
+      - 测试指南 tester-guide.md 取代 for-lzj.md，按角色列账号与权限。
+  - **我的过失**：
+    - 经过：约 12:00 核对 compose 渲染值时，我用了 `docker compose config | grep -A2 OA_EXTRA_USERS`，上下文行把根 .env 的 OA_RECEIPT_PRIVATE_KEY（演示 OA 的审批回执签名私钥，key ID oa-ed25519-v1）打印进了对话。
+    - 影响面（读代码与脚本推出）：
+      - 这把钥匙只供本机演示栈使用。正式轮每次部署都新生成密钥，拆除即销毁（evaluation/kb-formal/scripts/run-deployment.sh:204-216），所以不影响任何证据。
+      - 伪造回执还需要回调 HMAC 密钥，而回调接口不在公网放行之列。
+    - 处置：
+      - 已换新钥 oa-ed25519-v2，私钥与公钥一并更换，旧钥不留在验签端；
+      - 随本次重部署生效。网关每次查询都会重验授权回执（query.go:814），所以换钥后旧的 ACTIVE 任务不能再查，需重新申请；
+      - 防再犯：记忆规则 compose-config-secrets——不把 compose config 输出直接打到终端，只按单个键取值。
+  - **实跑**：
+    - OA：TestApprovalChainReassignsTheDraftAndContinuesFromThePreviousGrant 跑三级，含中间一级收窄，核对每级回调的 Grant 是上一级重签发或其收窄、回执绑定摘要；TestApprovalAnswersWithoutAGrantAreShownOnTheDraft 覆盖无权与回调被拒。
+    - 已知正例验证：把 decisionBase 改回"总以 Manifest 为基准"，链测试即失败（chain_test.go:194），恢复后通过。
+    - 全量（db-test-env）：103 个包 ok、0 失败，退出码 0；make hygiene 通过。
+- [2026-10-26 12:28 UTC+8] KB1-LOOP-143 **审批链部署到演示栈：两个知识产品的正式冒烟（含新的链检查）、smoke.py、五个链场景、组织架构配错演示、经公网的端到端全部通过**。
+  - **构建**：
+    - 首次失败。BuildKit 解析 `# syntax=docker/dockerfile:1.7` 时连 registry-1.docker.io 超时：DNS 给出 198.18.0.5，WSL 直连 40 s 无响应。当时 daocloud 镜像源与 NAS 直连 Docker Hub 都可达（401），Tailscale 已登出。
+    - 绕法：
+      - 经 NAS 向 Docker Hub 取 docker/dockerfile:1.7 的索引摘要 sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e；
+      - 按该摘要从 docker.m.daocloud.io 拉取（内容寻址，镜像源改不了字节），tag 成 docker/dockerfile:1.7；
+      - 基础镜像本已按摘要在本地，构建带 --pull=false。写入 docs/agents/environment.md。
+    - 失败目录改名 images/failed-build-2e43cb4ffb44-dockerhub-timeout 留档。
+    - 重试成功：网关 ce0a6a62…、OA 786013b1…，均从 2e43cb4f 构建（build-gateway.sh 的 verify-build 通过）。
+  - **部署**：
+    - 部署前查控制库：alice 4 个 ACTIVE（今早冒烟所留），无待审任务；lzj 的孤儿待审任务已在 KB1-LOOP-142 作废。
+    - 只重建 oa-demo 与 gateway。网关激活两个知识产品，无 ERROR 日志；OA 登录页列出 19 个账号，显示名正确。
+  - **实跑**（均在新镜像上）：
+    - kb-formal-smoke -usability，policy_kb 与 policy_kb_small 均退出 0：
+      - 回执验签通过，目录摘要 6c8ad8b5… 等于 catalog.yaml；
+      - sales-staff 申请别部门被拒（NOT_ELIGIBLE），本部门可建；
+      - 链检查：alice 申请 finance+engineering、含 leadership，实际决定者依次为 finance-director、engineering-director、leader-rd、leader-admin，与 request_data_task 公布的链逐一相同。
+    - smoke.py：alice 申请工程部含 leadership，三级（finance-director、engineering-director、leader-rd），两种预算的检索与聚合都有结果。
+    - demo-approver.py（staff）：
+      - A 一级、B 两级、C 四级，均 ACTIVE；
+      - D 第一级缩小到 finance/internal 后链重算，当场 ACTIVE；
+      - E 指定 bob 为第一级，归档 approver_not_authorized。
+    - demo-misroute.sh：财务部主任误配成 bob 时，建草稿前即 APPROVER_NOT_AUTHORIZED，之后恢复真实目录。
+    - 公网端到端（Cloudflare 两个地址，staff 令牌，脚本带自定义 User-Agent）：
+      - oa_url 指向 factgate-oa.sessionbound.org；
+      - 提交后状态显示 finance-director current、sales-director pending；
+      - 两级批准后 ACTIVE；已批过的 finance-director 仍可查看草稿；
+      - 检索回执目录摘要 6c8ad8b5…；
+      - 最后 revoke。
+    - 换钥生效的证据：上述每次审批都由网关以新公钥 oa-ed25519-v2 验签通过。
+  - **收尾**：草稿区里含旧密钥的 .env 备份已删除（扫描命令先在根 .env 这个已知正例上命中，再采信对草稿区的 0 命中）。
+  - **下一步**：作者把三样东西私下发给同事——STAFF_MCP_TOKEN（值同旧 LZJ_MCP_TOKEN，MCP 不用重配）、OA_STAFF_PASSWORD（值同旧 OA_LZJ_PASSWORD）、OA_SHARED_APPROVER_PASSWORD（新），以及指南 /home/wmm/kb-demo/tester-guide.md。测完照 README"收工"撤下 tunnel。
+- [2026-10-26 13:05 UTC+8] KB1-LOOP-144 **作者定：演示栈 OA 只留一个口令，删掉废弃的 alice、bob、lzj 账号（只做功能，不进论文）**。
+  - **作者原话**："OA_STAFF_PASSWORD 和 OA_SHARED_APPROVER_PASSWORD 合并，删掉废弃的 alic bob lzj 账号"。
+  - **约束**（实查）：
+    - 正式轮的 compose.yaml 是冻结文件。它用 `${…:?}` 强制要求 OA_ALICE_PASSWORD、OA_BOB_PASSWORD、TASKBOUND_ALICE_TOKEN（compose.yaml:369、515、516），这三个值只能留在根 .env。
+    - 作者本机 Claude Code 的 factgate MCP 用的是 TASKBOUND_ALICE_TOKEN（令牌值比对，不打印）。
+  - **决定**：
+    - 演示 OA 不再提供 alice、bob、dana：OmitBuiltinUsers，演示栈以 OA_BUILTIN_USERS=off 启用。dana 与 bob 同属已废弃的按密级路由审批人，一并删除，不另问。
+    - 正式轮缺省保留内置账号，行为不变。
+    - OA_STAFF_PASSWORD 与 OA_SHARED_APPROVER_PASSWORD 合并为 OA_SHARED_PASSWORD，演示的全部角色账号共用。
+      - 值沿用 OA_STAFF_PASSWORD，即原 OA_LZJ_PASSWORD，同事可能已经拿到；
+      - 废弃 KB1-LOOP-142 新生成的审批人口令。
+    - 删去 OA_DANA_PASSWORD。
+    - lzj 已在 KB1-LOOP-142 退役。
+    - alice 仍是网关里的 MCP 主体（compose.yaml 定义），只是在演示栈上无法提交申请。
+  - **代码**：
+    - oademo.Config.OmitBuiltinUsers：不建内置账号时，要求至少有一个申请人和一个审批人；
+    - cmd/oa-demo 读 OA_BUILTIN_USERS；OA_SHARED_PASSWORD 适用于任何角色的附加账号；
+    - kb-formal-smoke 新增 -requester 与 -requester-token-key。缺省为 alice 与 TASKBOUND_ALICE_TOKEN，正式轮不变；演示栈用 staff。
+  - **演示侧**：
+    - compose.demo.yaml；
+    - ensure-principals.py：RETIRED 加 bob、dana，属性快照从 67 个主体减为 65 个；
+    - approve.py 与 smoke.py 改以 staff 申请；
+    - demo-approver.py 场景 E 改为指定 sales-director；
+    - demo-misroute.sh 改为把财务部主任误配成 finance-manager；
+    - README、tester-guide.md 改为"两样东西"；
+    - adapters.md 补 OA 账号配置说明。
+  - **实跑**：
+    - oademo 全包通过。新测试 TestOAWithoutBuiltinUsersOffersOnlyItsRoleAccounts：缺申请人或缺审批人时拒绝启动，登录页不再列 alice/bob/dana，alice 登录被拒。
+    - 已知正例：保留内置账号时，同一登录请求跳到 /tasks。
+    - kbformal、cmd/gateway 通过；make hygiene 通过。
+- [2026-10-26 13:04 UTC+8] KB1-LOOP-145 **KB1-LOOP-144 部署到演示栈，冒烟通过；我重部署时弄丢了作者正在用的一张 OA 草稿；更正 KB1-LOOP-144 的时间戳**。
+  - **更正**：KB1-LOOP-144 记为 13:05，实为 12:57。根因：我在同一条命令里先写条目，后看 date 输出，没有先对表再写。
+  - **部署**：
+    - OA 镜像 d3a1af3b… 从 902f800f 构建；网关仍是 ce0a6a62…（本轮未改网关代码），强制重建一次，以重读主体属性文件。
+    - OA 登录页只剩 16 个账号：staff、12 位主任、3 位分管领导；alice、bob、dana 已不在列。网关重新激活两个知识产品。
+  - **我的过失**：
+    - 经过：重部署前的待审检查与 compose up 写在同一条命令里，检查查到 1 个任务也没能拦住部署。这个任务是 task_2bb33f8b…（staff，AWAITING_SUBMISSION），12:53:31 由作者自己的 agent 经 MCP 建立，草稿 oa_7db1d3fe…。12:59 OA 重建，这张只存在内存的草稿随之丢失，该任务再也无法提交。
+    - 我要代为 revoke，被权限策略拦下，未绕过；它停在 AWAITING_SUBMISSION，不影响其他任务。作者可让 agent 调 revoke_task 作废后重新申请。
+    - 防再犯：记忆规则 redeploy-pending-gate——待审检查单独一步；有待办任务就先告知作者再定时间。
+  - **实跑**（新部署上）：
+    - kb-formal-smoke -usability -requester staff -requester-token-key STAFF_MCP_TOKEN，policy_kb 与 policy_kb_small 均退出 0：
+      - 回执验签通过，目录摘要 6c8ad8b5…；
+      - sales-staff 跨部门仍为 NOT_ELIGIBLE；
+      - 链检查实际决定者依次为 finance-director、engineering-director、leader-rd、leader-admin。
+    - smoke.py 以 staff 跑：三级链，两种预算均 ACTIVE。
+    - demo-approver.py：A、B、C、D 均 ACTIVE；E 指定 sales-director，归档 approver_not_authorized。
+    - 未跑 demo-misroute.sh：它会用错配目录临时重启网关，作者正在测试。改动只是把误配对象从 bob 换成 finance-manager，留待空闲时跑。
+  - **未改**：作者本机 Claude Code 的 factgate MCP 仍用 alice 的令牌。演示栈已不提供 alice 的 OA 账号，用它建的任务无法提交；是否改用 staff 令牌，交作者定。
+- [2026-10-26 13:28 UTC+8] KB1-LOOP-146 **作者在 TeleAgent 实测接入成功，测试指南改为直接附这份配置（含 staff 令牌）**。
+  - 作者原话："我实际用这个在 teleagent 配置成功了……写进说明文档，我发给同事"。
+  - 配置用的是 mcp-remote 方式：公网 /mcp，令牌放在 env 的 FACTGATE_AUTH 里。我核对过该令牌就是根 .env 的 STAFF_MCP_TOKEN（只比对，未打印）。
+  - /home/wmm/kb-demo/tester-guide.md 的处理：
+    - 把 TeleAgent 配置原样放在"接入"一节第一位，附上冒号后不留空格的原因，以及验证方法（list_data_products）；
+    - "凭据"一节改为"MCP 令牌见配置，OA 口令另行私发"；
+    - 文件含令牌，权限改为 0600。kb-demo README 已注明。
+- [2026-10-26 22:53 UTC+8] KB1-LOOP-147 **作者定下粗粒度一年期授权模型（演示/产品，不改论文）；阶段 1 审批链升级层列表化完成并通过测试**。
+  - **作者决策（2026-10-26，对话中逐项确认）**：
+    1. 只做演示与产品，论文一字不改。论文 main.tex:978-980 写 every child grant is human-approved，跨根拆分的防线是 each root's approval（:1496-1498）；根授权仍由管理员独立审批，只有子任务改为本人确认，放在演示开关后，正式轮行为不变。顺带整理成专利素材。
+    2. 两条入口按场景分开：项目 = 长期根任务，负责人一人申请（跨部门，零新机制，现有 request_data_task + 一年期 budget_profile）；管理员代开单只限本部门资源，含其他部门即拒绝，代开人可代为提交草稿。
+    3. 跨部门走项目，审批链自动加对方部门管理员一步（现有机制）。
+    4. 领导两级升级：confidential 由数据所在部门主任再批，leadership 再由分管领导批。依据：上市公司定密制度（领益智造 2025-10 保密制度：秘密级部门负责人、机密级分管领导、绝密级董事长/总经理；长航凤凰商业秘密管理办法同构）。
+    5. 密级沿用四级，全部中文名展示（公开、内部、机密、领导层专属，与语料生成器 evaluation/kbcorpus/v2.go:30 一致）。五级制要重生一万份 LLM 语料，不做。
+    6. 本轮不做：下载/导出额外审批；总经理角色（升级层列表化后是纯配置）；项目多成员各自确认（新机制，下一轮）。
+    7. OA 可用性追加：共享口令模式下一次登录、右上角切换账号；审批记录页；审批单中文摘要 + 勾选式缩小表单，哈希收进折叠的技术细节。
+  - **我自决**：receipt 绑定代开人用 pending + 审计事件 + DraftRequest 字段，不改 manifest 协议；链上两个固定角色的展示标签改中性措辞（申请人所在部门审批人 / 被申请部门审批人）。
+  - **我改口的根因记录**：上一轮探查说"论文写每个子授权都经人审批、唯一审批方式是人工"并把它当作要改主张的依据；本轮复核原文，论文没有 self-approval / separation of duties 表述，禁自批只是代码里的 demo 约束，所以"只做演示"的代价比上一轮估的低。根因：把转述当了依据，该查没查。
+  - **阶段 1（本提交）**：审批链 `escalation` 单层改为 `escalations` 列表（internal/catalog/approval_chain.go）：每层 role/label/scope/values/leaders/authority，`Layers()` 把旧单层当作角色为 leader 的一层；旧字段保留，两者并存即目录无效；Steps 逐层追加、层内同一人合并；ApprovalStep 带 Label。网关 role_label 取层 label，回调答复加 next_role_label，publicApprovalRoute 以 escalations 列表输出；OA 优先用 next_role_label，旧网关回退到本地标签表；smoke chain.go 按每层首值发请求并核对层序；catalog-guide 与 adapters.md 更新。
+  - **实跑**：catalog 新增 TestApprovalChainWalksEscalationLayersInOrder、TestApprovalChainValidationOfEscalationLayers 通过；gateway 新增 TestApprovalChainWalksEveryEscalationLayer（管理员→管理员→主任→分管领导四级；越级 403；缩掉 leadership 后 leader 步消失、director 步保留）通过；db-test-env 下 internal/gateway、control、approval、domain、cmd/gateway、cmd/oa-demo、oademo、kbformal 全部 ok；make hygiene 通过。oademo 一个旧断言改为新标签并加断言核网关给的 label 会显示。
+  - **注意**：gofmt -l 在 HEAD 上就报 internal/gateway/ordinal_derivation.go、query.go、semantic_columns_having_test.go 三个文件，本轮未碰，属既有欠账。
+- [2026-10-26 23:12 UTC+8] KB1-LOOP-147 **阶段 2：演示开关与子任务本人确认**。
+  - 目录顶层块 `delegated_authorization`（internal/catalog/delegated.go：issuer_role、child_self_confirm），进目录 SHA-256，正式轮目录没有即关闭（严格解析，不可能顺手带上）。
+  - 发射端 createTask：有父任务且开关开 → 审批人 = 申请人本人，不走链、不走 authorizeApprover，指定他人为审批人即 INVALID_REQUEST；根任务路径不变，自批仍拒。校验端 validCallbackActor 同步：审批人 == 人类主体而无 self_confirm 标记即拒（失败关闭）。回调时 VerifyApprover 再核申请人资格。task_flow 提示改为"本人确认"，request_data_task 描述补一句。
+  - **实跑**：新增 TestChildTaskIsConfirmedByItsOwnRequesterUnderDelegatedAuthorization（根仍由 bob 批；子任务审批人为 alice，bob 确认 403，alice 确认后 ACTIVE，回执 approver_id=alice；指定他人 INVALID_REQUEST）、TestChildSelfConfirmationIsRefusedWithoutTheCatalogBlock、TestCallbackRefusesAnUnmarkedSelfApproval、catalog TestDelegatedAuthorizationParsesAndValidates 通过；db-test-env 下 internal/gateway、catalog、cmd/gateway 全部 ok。
+  - **正式轮守卫**：grep delegated_authorization/escalations:/chain: 对 7 个 kb-formal profile 与 config/catalog.yaml 全 0，命令先在已知正例（测试文件，2 命中）上验证；正式 profile、compose.yaml、config/catalog.yaml 无 diff。
+- [2026-10-26 22:59 UTC+8] KB1-LOOP-147 **更正：阶段 2 条目的时间戳写成 23:12，实为 22:59（date 输出在同一条命令里，我没看就写了）**。
+  - 根因：与 KB1-LOOP-145 同类——先写条目、后看 date。同类根因第二次出现，按流程缺陷处理。
+  - 防再犯：新增 scripts/ledger-append.sh，条目正文从文件读入，时间戳由脚本在写入时刻取（TZ=Asia/Shanghai），从此台账条目不再手写时间；本条起使用。
+- [2026-10-26 23:05 UTC+8] KB1-LOOP-147 **阶段 3：管理员代开单工具 issue_data_authorization**。
+  - internal/gateway/issue.go：目录有 delegated_authorization 时才列出与可调；发单人须命中 issuer_role；for_principal_id 须为已启用查询主体且不是自己；任务挂在员工主体下（HumanSubject、AgentID 均为员工），发单人是链上第一级审批人（steps[0] 不是发单人即 APPROVER_NOT_AUTHORIZED）；范围限发单人本部门（含其他部门即 INVALID_REQUEST，提示跨部门由员工自己发起项目）；budget_profile 须是目录预算档且 exposure_profile_version 与路由一致，budget_source=issued_profile。
+  - 记录代开人：pendingContext.IssuedBy、approval.DraftRequest.IssuedBy（manifest 之外，摘要不变）、OA Draft.IssuedBy、审计事件 TASK_ISSUED_FOR（actor=发单人主体 id）。回调 submitted 允许代开人；get_task_status / wait_for_approval / revoke_task 对代开人开放（issuedOrOwnedTask），查询类工具不开放。
+  - **实跑**：新增 TestAdministratorIssuesAnAuthorizationForAnEmployeeOfTheirDepartment（alice 为 staff 开单，TTL 取所选档 2h；陌生人提交 403，发单人提交并批准后 ACTIVE；员工与发单人都能看状态，发单人读不到 task_context；员工建自确认子任务并激活；发单人撤销根任务）、TestIssuedAuthorizationsAreConfinedToTheIssuersDepartment、TestIssuingIsAbsentWithoutTheCatalogBlock 通过；db-test-env 下 internal/gateway、control、cmd/gateway 全部 ok；oademo、approval、cmd/oa-demo ok；make hygiene 通过。
+- [2026-10-26 23:12 UTC+8] KB1-LOOP-147 **阶段 4 与 4b：OA 账号能力化与可用性（一次登录切换账号、待办/审批记录分页、审批单可读化、勾选式缩小）**。
+  - 账号：`OA_EXTRA_USERS` 的 role 新增 both（既申请又审批，员工确认项目内查询用）；账号存 CanRequest/CanApprove；启动要求至少一个可申请、一个可审批。草稿可见 = 本人申请或代开 ∥ （有审批能力且被指派或审批过）；提交允许申请人本人或代开人（Draft.IssuedBy）；审批要求 CanApprove。
+  - 页面（internal/oademo/pages.go）：/tasks 只列待提交/待审批；/history 列本人相关全部草稿与每级决定；任务页顶部一句话摘要（申请人、范围中文名、产品中文名、次数、有效期人话）、审批进度（已批 ✓ / 当前 ▶ / 本人确认）、范围与预算；Task ID、摘要、Agent、毫秒预算、回执 id 折叠进"技术细节"。缩小表单改为勾选框（approved_products、column:<产品>、scope:<范围>、日期区间 scope_from/scope_to），后端仍受理原 JSON 字段（kbformal 客户端、demo-approver.py 不用改）；脚本抓取的 `<dt>Task ID</dt><dd>`、预算数字框、`name="csrf" value=` 标记原样保留。
+  - 切换：`POST /switch` 只在共享口令模式（OA_BUILTIN_USERS=off 且 OA_SHARED_PASSWORD）开放，其他模式 404；导航右上角下拉即切。`OA_LABELS_FILE` 可选 YAML 给目录标识符配中文名。TTL ≥ 30 天的根任务显示"项目（长期授权）"，有父任务的显示"项目内查询"（仅展示）。
+  - **实跑**：新增 TestABothAccountSubmitsAndConfirmsItsOwnDraft、TestTheIssuerSubmitsAndApprovesTheDraftTheyIssued、TestAccountSwitchIsOfferedOnlyInTheSharedPasswordMode、TestCheckboxNarrowingMatchesTheJSONForm（勾选与 JSON 两种表单得到同一 grant 摘要；留空列/空范围被拒）、TestHumanDurationAndKinds；旧断言两处改为新页面标记；oademo、cmd/oa-demo、approval、kbformal 全部 ok；make hygiene 通过。docs/adapters.md 更新页面与账号说明。
+- [2026-10-26 23:15 UTC+8] KB1-LOOP-147 **阶段 5：撤销根任务级联归档子任务（记账，不是安全）**。
+  - control.TaskFilter 加 RootTaskID（ListTasks SQL 加条件）；revokeTask 对根任务归档后分页遍历同根的未归档后代，逐个 Archived/revoked（payload 记 cascade_from），状态竞态（ErrInvalidStateChange/ErrConflict/ErrNotFound）跳过；结果加 cascaded_task_ids。安全仍靠执行时的 ensureActiveTaskFamily。
+  - **实跑**：TestDelegatedTaskSharesRootExposureAndStopsWithParent 加断言（撤销根后子任务 ARCHIVED/revoked，cascaded_task_ids 恰为子任务）、代开单测试改为断言子任务被级联归档且 get_task_context 返回 TASK_NOT_ACTIVE；db-test-env 下 internal/gateway、control、cmd/gateway 全部 ok。
+- [2026-10-26 23:16 UTC+8] KB1-LOOP-147 **更正阶段 5 条目：callback_scale_test.go 带 `//go:build taskgate_scale` 标签，我加在 TestDelegatedTaskSharesRootExposureAndStopsWithParent 里的断言从未运行，"通过"是假的**。
+  - 根因：该查没查——没看文件头的构建标签就把它当作普通测试，把整包 ok 当成了它通过。按第 3 档（未复核）处理：已把该文件回退到改动前，级联行为只由 issue_test.go 里实跑过的断言作证（子任务 ARCHIVED、cascaded_task_ids 恰为子任务、get_task_context 返回 TASK_NOT_ACTIVE）。
+  - 防再犯：改测试文件前先 `head -3` 看构建标签；跑指定测试用 -v 核对 `=== RUN` 行确实出现，"no tests to run" 即未验证。
+- [2026-10-26 23:32 UTC+8] KB1-LOOP-147 **阶段 6：演示侧配置与镜像就绪；重部署被待审闸门拦下，等作者定**。
+  - **推送**：db-test-env 先 down（NAS 路由恢复 eth0），kb-dev 34fef546..360b7ef3 推到 NAS，再由 NAS 推到 origin，ls-remote 核实后更新本地 origin/kb-dev。首次构建因 HEAD≠origin/kb-dev 被构建器拒绝（按设计），失败目录改名 images/failed-build-360b7ef34613-unpublished-head。
+  - **镜像**（均从 360b7ef3 构建，verify-build 通过）：网关 726f609a…、OA f62272b6…；compose 覆盖已装入 images/。
+  - **演示配置**（/home/wmm/kb-demo，不进仓库；改前文件留 *.before-147）：
+    - build-catalog.py：directors 改为 `<部门>-admin`（authority job_family dept_admin）；escalations 两层（director：confidential+leadership → `<部门>-director`；leader：leadership → 三位分管领导）；顶层 delegated_authorization（issuer_role dept_admin，child_self_confirm）；kb-large-v1 TTL 12h→24h；新增 kb-annual-v1（复制 kb-large-v1，TTL 8760h）；目录版本 kb-demo-v2kwf-dual-budget-v4-delegated；同时产出 config/oa-labels.yaml（部门、密级、产品中文名）。新目录生成到 catalog.next.yaml（沿用现 schema_digest e89b71a5…），**尚未替换 catalog.yaml**，运行中的旧网关不受影响。用临时测试按新代码加载核过：两条路由均两层，finance+sales/leadership 排出 6 级（admin、admin、director、director、leader、leader），kb-annual-v1 可查到；临时测试已删。
+    - ensure-principals.py：主体属性加 12 位 `<部门>-admin`（department + job_family dept_admin）；principals.json 加 principal_finance_admin（subject finance-admin），令牌 ADMIN_FINANCE_MCP_TOKEN 已生成写入根 .env（0600，未打印）。已执行：principals 62、属性主体 77（向后兼容，旧网关可读）。
+    - compose.demo.yaml：staff 改 both；加 12 位 `<部门>-admin:approver`；OA_LABELS_FILE=/config/oa-labels.yaml 并挂载。
+    - 新脚本 demo-project.py（项目：三部门一年期根任务 → 本人确认子任务 → 委托子任务 → 撤销级联 → confidential/leadership 链探测）与 demo-delegated.py（finance-admin 代开单一次登录提交+批准、staff 可用、admin 读不到 context、跨部门被拒、admin 撤销）。只编译检查，**未实跑**（待重部署）。
+    - tester-guide.md、README.md：角色表加管理员与 both、链四级说明、新增"项目与授权单"一节、OA 新操作、预算表；令牌行未动，文件仍 0600。
+  - **闸门**：待审检查单独一步，控制库有 1 个 AWAITING_SUBMISSION：task_f18371534bad…（principal_staff，2026-10-26 13:37 UTC+8 建，作者 agent 所建）。按 redeploy-pending-gate 规则停下不重建 OA/网关，先告知作者。
+  - **重部署步骤（作者放行后）**：mv catalog.next.yaml catalog.yaml（留 catalog.yaml.before-147）→ `compose up -d --wait --no-deps oa-demo` → `compose up -d --wait --no-deps gateway` → kb-formal-smoke -usability -requester staff 两个知识产品 → smoke.py、demo-approver.py、demo-project.py、demo-delegated.py → 台账。目录变更会让旧目录下的 10 个 ACTIVE 任务按版本不匹配失效（与 KB1-LOOP-143 同）。
+- [2026-10-27 11:11 UTC+8] KB1-LOOP-147 **部署第一次（10:54）半途而废：机器已重启、待审查询失败让目录替换没执行，网关装的是旧目录；重启栈、换目录后代开单路径全程通过；项目路径暴露委托任务到期的既有缺陷，已修并补测试**。
+  - **经过**：作者 10:54 回复"部署"。执行机在约 09:40 重启过（uptime 1:18），演示栈全部容器 Exited(255)；我第一条命令里待审查询因控制库未运行而失败，`&&` 链中断，catalog.next.yaml 没有换上，随后的 compose up 把两个新镜像装了上去但网关因对象存储未起而退出。按重启流程起数据服务，重建 OA、拉起网关、shim 与隧道（公网 OA 返回 200）。此时网关仍读旧目录（实跑可证：demo-approver 公布的链第一级是 finance-director，issue 工具 FORBIDDEN）。随后 cp catalog.yaml catalog.yaml.before-147、mv catalog.next.yaml catalog.yaml，--force-recreate 网关，新目录 sha cdfa5568…，两个知识产品激活。
+  - **实跑（旧目录上，均通过）**：kb-formal-smoke -usability 两个知识产品退出 0；smoke.py 通过；demo-approver.py A–E 通过。
+  - **实跑（新目录上）**：demo-delegated.py 全程通过：finance-admin 列出 issue 工具；代开 staff 一年期单（expires_at 2027-10-27）；finance-admin 一次登录提交并批准即 ACTIVE；staff get_task_context 可用，finance-admin 得 NOT_FOUND；含 sales 的代开单 INVALID_REQUEST；finance-admin 撤销 ARCHIVED。
+  - **缺陷（既有，非本轮引入）**：demo-project.py 在子任务一步卡住。子任务申请时 TTL 被截到父授权剩余时间（tasks.go constrainDelegatedBudget），而 OA 决定时按 manifest TTL 从决定时刻重新签发（domain/reissue.go），只要决定晚于申请几秒，子授权就超出父授权，网关 validateDelegatedGrant 以 409 拒绝（OA 日志三次 "delegated grant exceeds or outlives its parent"）。正式客户端从不建子任务（grep 无 parent_task_id），只影响演示。
+  - **修法**：approval.DraftRequest 加 `parent_expires_at`（manifest 之外，不进摘要），网关在委托任务的草稿上带父授权到期；OA 决定时把 TTL 缩到父授权剩余毫秒并改以 narrowed 发出（approve-as-made 要求摘要相等，缩 TTL 只能是 narrowing），父已过期则 409；任务页显示的有效期按父剩余时间封顶。humanDuration 改为按最大单位四舍五入到一位小数。adapters.md 记录两个路由元数据字段与该规则。
+  - **实跑**：gateway 新增 TestAChildDecidedLaterMustShortenItsTTLToTheParent（时钟推进 1 分钟后原样批准 409；缩到父剩余并以 narrowed 批准 200，ACTIVE）；oademo 新增 TestADelegatedDecisionIsShortenedToTheParentsRemainingTime（页面显示 10 分钟；approve 变 narrowed，TTL ≤ 父剩余；父已过期 409）；db-test-env 下 internal/gateway、catalog、cmd/gateway、kbformal 全部 ok；oademo、approval、cmd/oa-demo ok；make hygiene 通过。
+  - **下一步**：提交、推送、重建两个镜像、重建 OA 与网关、重跑 demo-project.py 与其余脚本。
+- [2026-10-27 11:26 UTC+8] KB1-LOOP-147 **演示栈部署完成（网关 106ac6ae…、OA 4d6e0cb9…，均从 e6d1cc96 构建），项目与代开单两条路径、五个审批场景、两个知识产品的正式冒烟全部在新部署上实跑通过**。
+  - **部署**：待审闸门单独一步查到 2 个待审（作者已放行丢弃的 task_f1837153…，和我旧目录上的探测子任务 task_c9cde856…）；--force-recreate OA 与网关；两个知识产品激活，网关 0 条 ERROR；shim 在跑；公网 OA 200。旧目录下的 ACTIVE 任务按目录版本不匹配失效。
+  - **实跑（全部在新目录 cdfa5568… 与新镜像上）**：
+    - demo-project.py：项目 finance+sales+marketing/internal 由 finance-admin → marketing-admin → sales-admin 批准，ACTIVE，有效期 24h（kb-large-v1）；子任务 approver=staff、self_confirm=true，staff 提交并确认后 ACTIVE，search row_count=3；委托给 principal_finance_staff 的子任务仍由 staff 确认，ACTIVE；撤销项目 cascaded 两个子任务，子任务再 search 为 TASK_NOT_ACTIVE；confidential 项目链加两位主任，leadership 再加两位分管领导。控制库核实两个子任务的决定均为 narrowed（OA 把 TTL 缩到父剩余），子授权 expires_at ≤ 父授权。脚本一处修正：委托子任务的状态要用受托主体（finance-staff）的令牌读，其 agent 才是任务主体。
+    - demo-delegated.py：通过（同上一条记录，expires_at 2027-10-27）。
+    - smoke.py：两种预算均经 finance-admin → engineering-admin → engineering-director → leader-rd 四级 ACTIVE，检索与聚合有结果。
+    - demo-approver.py：A 一级、B 两级、C 六级（admin、admin、主任、主任、领导、领导）、D 第一级缩小后当场 ACTIVE、E 指定 sales-director 归档 approver_not_authorized。
+    - kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；链检查公布角色 requester_director、department_director、director、director、leader、leader，实际决定者逐一相同；目录摘要 cdfa5568… 等于 catalog.yaml。
+  - **正式轮不受影响**：正式 profile 与 config/catalog.yaml 无 chain/escalations/delegated_authorization（KB1-LOOP-147 阶段 2 的守卫），compose.yaml 无 OA_EXTRA_USERS；kb-formal-smoke 对无链目录的路径未改。
+  - **交同事**：tester-guide.md 已更新（角色、六级链、项目与授权单、OA 新操作）；另有 ADMIN_FINANCE_MCP_TOKEN 可选私发。
+- [2026-10-27 11:37 UTC+8] KB1-LOOP-147 **作者定：共享口令模式下 OA 登录页只要口令，身份登录后再切**（作者原话"角色切换改成登录后，登录页面只要一个密码就行了"）。
+  - 实现：AllowSwitch 模式登录页只有口令框，口令通过即以第一个申请人账号（staff）开会话，右上角"身份"下拉 + "切换身份"按钮换账号（去掉被 CSP 挡住的 onchange 自动提交）；表单带 username 的登录照旧（approve.py、kbformal 客户端不用改）；口令先对默认账号核，不中再逐账号核，以兼容各账号口令不同的配置；其他模式登录页不变。全部响应加 Cache-Control: no-store（作者反馈公网看到"旧页面"，curl 核实公网已是新版、cf-cache-status DYNAMIC，判为浏览器缓存或旧草稿链接）。
+  - **实跑**：oademo 新增 TestPasswordOnlyLoginLandsOnTheDefaultAccount（无账号框、默认 staff、错口令回 error=invalid、带账号登录仍可、非共享模式仍有账号框）；oademo、approval、cmd/oa-demo ok，make hygiene 通过。adapters.md 与 tester-guide.md 已改。待重建 OA 镜像并重建 OA（会丢内存草稿）。
+- [2026-10-27 11:43 UTC+8] KB1-LOOP-147 **OA 镜像 4a776394…（ca814cb1）已上线：公网登录页只有口令框、带 no-store；冒烟与审批场景通过**。
+  - 待审闸门单独一步：三个待审均为已放行丢弃或我的探测任务，无作者新任务。--force-recreate oa-demo；curl 公网登录页：200、cache-control no-store、无 username 框、含"默认是普通员工 staff"。
+  - **实跑**：kb-formal-smoke -usability -requester staff，policy_kb 与 policy_kb_small 均退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized（脚本带用户名登录的路径照旧）。
+- [2026-10-27 11:53 UTC+8] KB1-LOOP-147 **作者定：身份下拉按分管领导分层**。OA 标签文件加 `groups`（build-catalog.py 从 LINES 生成：每条线一组，组名"管理线（分管领导 leader-admin）"等，成员先分管领导、再按部门列管理员与主任），切换下拉用 `<optgroup>` 渲染，无组账号（staff）排最前。oademo 测试断言分组顺序通过。目录内容未变（重新生成比对一致），只换 config/oa-labels.yaml 与 OA 镜像。
+- [2026-10-27 11:59 UTC+8] KB1-LOOP-147 **作者定：密级显示名改为标准制度名（作者原话"还显示 领导层专属，应该改成标准的密级制度名称了"）**。
+  - 对应关系：public 公开、internal 内部、confidential 机密、leadership 绝密。依据：语料正文里 confidential 级段落本身写着"机密"（evaluation/kbcorpus/v2.go:30），所以 confidential 只能叫机密，leadership 取标准最高级绝密；数据里没有"秘密"档。只改显示：config/oa-labels.yaml（build-catalog.py CLASSIFICATION_NAMES）、tester-guide.md、网关 publicApprovalRoute 的规则说明文字（tasks.go）。存储值、目录、论文均不动；目录重新生成比对一致。
+  - 待办：网关镜像因说明文字要重建；OA 只需重建（标签文件挂载）。作者 11:50 建的 task_388d0ad1… 仍在 AWAITING_APPROVAL，重建 OA 前等作者。
+- [2026-10-27 12:56 UTC+8] KB1-LOOP-147 **作者放行后重建：OA e16d51d1…（分组下拉）与网关 7a777b91…（规则文字）上线，密级标准名与分组在线上核过，冒烟与审批场景通过**。
+  - 待审闸门：作者 11:50 的 task_388d0ad1… 仍 AWAITING_APPROVAL，作者回复"重建"后才重建（该草稿随之丢失）。两个知识产品激活，网关 0 条 ERROR，公网登录页 200。
+  - **实跑**：以 staff 登录，身份下拉三个 optgroup（管理线/业务线/研发线，各 9 个账号，分管领导在首位），staff 在组外最前；场景 C 草稿页摘要"密级 内部、绝密；部门 工程部、财务部"，无"领导层专属"，审批进度六级显示名正确；场景 D 草稿显示第一级缩小后的"内部；财务部"（预期）。kb-formal-smoke -usability 两个知识产品退出 0；demo-approver.py A–D ACTIVE、E 归档 approver_not_authorized。
+- [2026-10-27 12:59 UTC+8] KB1-LOOP-147 **作者定：身份下拉一选即切，不再点按钮**。CSP 只允许同源脚本，故 OA 自己提供 /switch.js（选中即提交并隐藏按钮；无脚本时按钮仍在），导航里引用。oademo 测试断言脚本引用与 /switch.js 内容；oademo ok。
+- [2026-10-27 13:05 UTC+8] KB1-LOOP-147 **OA 754906f9…（b516c289）上线：下拉一选即切**。待审闸门无新任务；公网 /switch.js 200、text/javascript；以 staff 登录的页面引用该脚本、三个 optgroup。kb-formal-smoke -usability 两个知识产品退出 0。
+- [2026-10-27 14:12 UTC+8] KB1-LOOP-148 **作者定演示栈第二轮（方案 /home/wmm/.claude/plans/pasted-content-id-f13d-recursive-widget.md，已批准）**。
+  - 作者决策（2026-10-27 对话）：(1) 密级五级 public/internal/secret/confidential/top_secret（显示 公开/内部/秘密/机密/绝密），存储值用标准英文术语，不再用 leadership；数据按五级重新生成语料（作者选 B：重生成 + GPU 算向量）——**推翻 KB1-LOOP-147 第 5 条"五级制不做"**，根因是作者权衡后改变取舍，非实测推翻；(2) 岗位五层 staff / center_head（部门之下设中心，每部门 2 个，共 24 位中心主任）/ director 与 dept_admin（管理员是主任代理人，本部门内配置即授权不再审批；主任保留为秘密级一层）/ vice_president（机密级）/ general_manager（绝密级，新账号）；(3) 主演示角色改为管理员，同事现有 MCP 令牌值不变、身份改为 finance-admin，staff 另发；(4) 报表 demo：部门经营报表 + 个人记录（工资条、差旅、请假、考勤），一个任务可混合文档与报表；三条通用规则：个人记录自助、职权层级、数据管家（HR）；项目成员确认（协议不变，人类主体仍为负责人，审批人为成员）；(5) OA 顺手度；(6) 执行分工：Fable 编排、Opus 5.5 子代理执行，已写入 AGENTS.md"执行分工"一节。
+  - 依据：三路只读查证（语料生成器与冻结绑定、GPU 与发布流程、报表与混合任务可行性），要点已写入方案"已查明的硬约束"。
+- [2026-10-27 16:11 UTC+8] KB1-LOOP-148 **进度：A6、A7、A1 三块由 Opus 5.5 子代理交付、我复核后分别提交；五级语料全量生成已启动**。
+  - A6（6a5fff2c）kb-formal-smoke 加 -classifications / -narrow-classification / -like-pattern，默认值与原字面值一致；我核：diff 只在该目录，三次冒烟（基线、默认、显式）汇总字段相同（usability_like_rows=3、eligibility_other_department=NOT_ELIGIBLE）。资格探测改读 -narrow-classification（单值），保"默认不变"。
+  - A7（99f5108d）OA：待办总览含其他身份待办与"切换并打开"（/switch 的 next 只接受 /tasks 路径）、草稿页"切换到 X 并审批/并提交"、等待期每 3 秒自动刷新（审批人自己的待审页不刷新，以免清掉缩小表单）；修了测试假网关的回调竞态（400 次重跑 0 失败，子代理报）。我核：gofmt 空、vet 通过、oademo ok。未部署、未冒烟。
+  - A1（36a9cd01）语料 v3：PlanV3 在不变的 Generate 之上按 doc_id 哈希确定性映射五级（confidential→secret 60%/confidential 40%，leadership→top_secret），文档级 = 节最高级（200 份样本 top_secret 占 15%，高于 v1 的 5%，因 10% 文档带管理层评估节；接受），中文节标题；-plan v3、锁文件、续跑计划核对、ApplyGeneratedV3 拒收正文出现他级密级名；publish.go 计数同时认 top_secret。我核：kbcorpus 包 ok；试批 20 版本（19 份，0.0309 USD，2 批 0 重试）五级齐全、错配 0（子代理的检查器先用预置错配自测过）。
+  - 全量生成：/home/wmm/logs/kb1/corpus-v3/run-full.sh，二进制从 36a9cd01 构建（sha 8d5df182…），16:10:51 启动，-plan v3 -documents 10000 -batch 10 -parallel 8 -budget-usd 60，输出 /home/wmm/kb-demo/corpus-v3，pid 1085537，看守每 5 分钟报进度。预计约 4 小时（v2 实测吞吐）。
+  - 限额：三个 Opus 子代理在 14:3x 撞到会话限额（14:30 重置），16:09 后已让网关规则（A2–A5）与演示侧（C+D）两路从中断处继续。
+  - 已知未改：corpus.go 的 leadership_sections 计数不认 top_secret（仅统计字段）；download.go:56 工具描述仍提 leadership（随网关批次改）。
+- [2026-10-27 16:43 UTC+8] KB1-LOOP-148 **进度：网关授权规则（A2–A5，907fc041）与演示侧报表/属性/目录（C+D）交付并复核；全量语料生成进行中**。
+  - 网关规则（Opus 子代理两轮，我复核）：升级层可选 `level`（主任层设 0，与管理员同层，作者定）；自权删步按 level、跨部门时本部门那一步按组织图顺序换成上一层不是本人的人；链删空即本人确认的根任务（self_service）；`personal_scope: employee_id`（本人记录自助）；产品 `steward_department`（管家，不替换申请人本部门）；委托子任务由受托成员确认（member_confirm，人类主体不变，回执审批人为成员）；request_data_task 可选 budget_profile（开关关时 INVALID_REQUEST，工具列表不变）；代开单链从发单人部门起排；OA 读 member_confirm 让成员提交；download.go 描述去 leadership。我实跑：db-test-env 下 catalog/gateway/approval/cmd/gateway 全 ok，oademo ok，gofmt/vet/build 通过。
+  - 子代理的裁决偏离记录：管家规则不替换申请人本部门（接受）；第一轮把主任层置于管理员之上与作者"同层"决定冲突，第二轮以 level 修正。
+  - 演示侧（C+D，Opus 子代理，我抽查）：reports/dept-reports-v1.sql（确定性、幂等、冻结触发器，六个 reporting.* 物化视图；临时 pgvector 库实跑行数 1152/864/1224×4，跨库 bundle 逐字节相同）、reports/inputs 六份、bin/snapshot-index（8f4d0fcf 构建，SHA256SUMS 追加，sha256sum -c 四项 OK）、reports/publish-reports.sh 与 up-reports.patch（dry-run 通过，未应用）；ensure-principals-v2.py → 102 主体（staff 37、center_head 24、dept_admin 12、director 25、vice_president 3、general_manager 1），五级 clearance 分布正确，令牌互换只改两条摘要；build-catalog-v2.py → catalog.next.yaml 14 产品、4 范围、三层升级（主任层 level 0，我加）、delegated 块含 personal_scope/authority_attribute/center_scope；代开单 issuer_role 放宽到 director（我定，同层）；compose.demo.next.yaml 53 账号。我用临时测试按新代码加载 catalog.next.yaml 排链：管理员本部门 secret → 本人；confidential → [vp-admin]；跨部门 internal → [finance-director, sales-admin]；主任跨部门 → [vp-admin, sales-admin]；员工 top_secret → [admin, director, vp-admin, general-manager]；总经理 → 本人。临时测试已删。
+  - 副总与总经理的归属部门暂定 vp-admin→finance、vp-business→sales、vp-rd→engineering、general-manager→finance（个人记录用）；中心按主体名哈希分 a/b。
+  - 待办：脚本与指南子代理（D）进行中；语料生成 16:38 时 1063/10469；之后 PDF、GPU 预热（作者锁频拔 HDMI）、source/ 对齐新提交并重建 bin（bin-attest 旧版解析不了 chain）、应用 up-reports.patch、v3 specs 与 lib.sh、compose 提升、down/up、冒烟与脚本。
+- [2026-10-27 16:55 UTC+8] KB1-LOOP-148 **进度：脚本与指南（D）交付并复核；两处配置冲突与 OA 默认身份已修；部署前置全部备齐，只等语料**。
+  - D（Opus 子代理）：ensure-principals-v2.py 为 39 个无主体的 OA 账号建 query 主体（令牌文件 principal-tokens-v2.json，0600，99 条，我核 99 条摘要全部与主体一致，101 主体）；identities.py 公共助手；新场景脚本 demo-personal / demo-center / demo-admin / demo-hr / demo-reports / demo-leader；改写版 smoke / demo-approver / demo-project / demo-delegated / approve（.next.py，令牌互换后的映射）；tester-guide.next.md 与 README.next.md。脚本只在子代理按 907fc041 规则移植的离线替身上跑过，**未在网关上实跑**。
+  - 替身发现两处现行配置与作者决定冲突，我定：个人记录类产品的 classification 包络对所有人放开（用 payslip_access 属性放宽；谁看谁的由 employee_id 包络与审批链决定，员工本人工资条才能走本人确认）；center 包络对 center_head 放宽（中心主任统计全部门由管理员批）。已改 build-catalog-v2.py 并重生成 catalog.next.yaml（KPI/预算产品的密级包络不放开）。
+  - OA 只输口令时默认身份会落到 engineering-a-head（both 账号按名排序）：加 OA_DEFAULT_ACCOUNT（6e897fc5，测试覆盖），compose.demo.next.yaml 设为 staff；OA 镜像重建中。
+  - 部署前置已备：source/ 对齐 51a6caeb、bin/ 重建（新 bin-attest 能解析新目录，snapshot-index 入 SHA256SUMS）、up.sh 已应用 reports/up-reports.patch 并指向 v3 specs、specs/policy-kb-v3.json 与 small（sha 占位）、lib.sh.next（v3 epoch、原件目录 originals-v3）、promote-148.sh（down 后、up 前替换 *.next）、/home/wmm/logs/kb1/corpus-v3/prewarm-gpu.sh（节流服务 + 不可达库预热）。网关镜像 36a6f986…（51a6caeb）。
+  - 未实跑项（部署后验证）：个人记录 SQL 在精确暴露记账下能否转成规范计划；HR 全公司任务 employee_id 102 个值是否触及谓词足迹上限；demo-misroute.sh 仍是第一轮词汇。
+- [2026-10-27 20:41 UTC+8] KB1-LOOP-148 **五级语料 v3 生成完成并核查通过**（实跑）。
+  - 全量 16:10:51 启动，20:33:18 主跑结束（10448 版本，1148 批，107 次失败重试：JSON 多余字段 16、节长度不足若干、密级名错配校验拦下 ≥4 批；名义费用 18.17 USD）；20:40:58 续跑补齐 21 个版本（名义累计 18.22 USD）。输出 /home/wmm/kb-demo/corpus-v3/documents.jsonl，sha256 a0ac1c00f18304d638eda487385f62ad9bb903b61205d2d9418c265b10293fc3，manifest version taskgate-kb-corpus-v3，batches 1151。
+  - 核查：10469 版本、10000 文档、无重复；文档级 public 1828 / internal 4768 / secret 1390 / confidential 949 / top_secret 1534；节级 9084 / 23859 / 7030 / 4627 / 3583（共 48183 块，与 v2 块数相同）；文档级 = 节最高级 0 例外；正文他级密级名 0 处；10469 份正文标题与 sections 字段逐一匹配；中文标题七种；节长 100–354 字。
+  - NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-corpus-v3，sha 核对一致。specs/policy-kb-v3.json 与 small 已填入语料 sha；PDF 渲染中（24 进程）。
+- [2026-10-27 21:13 UTC+8] KB1-LOOP-148 **PDF 原件渲染完成；向量预热先以 CPU 起跑**（实跑）。
+  - render.py 24 进程 20:41–20:55 渲染 10469 份 PDF（822 MB）到 /home/wmm/kb-pdf/originals-v3/v3；清单移到 /home/wmm/kb-pdf/v3-manifest.jsonl（sha 984b0834…），版本集合与语料完全一致；specs/policy-kb-v3.json 与 small 的 corpus/files sha 已填（无占位）。
+  - 预热：GPU 仍未锁频（21:10 实测 2280 MHz），按掉卡史不在未锁频时用 GPU；21:12 以 CPU 服务（device=cpu）起 kb-publish 预热（不可达库 DSN，只写缓存），pid 2089953，日志 prewarm-cpu.log。第一次尝试在服务就绪前启动（连接拒绝，added=0），脚本已改为等健康检查。作者若锁频并拔 HDMI 可中途切 GPU，缓存按文本去重不重复算。
+  - 部署脚本 /home/wmm/kb-demo/deploy-148.sh（前置：最近一次预热 added>0、source/ 与 bin 提交一致、specs 无占位；顺序 down → promote-148 → up → 隧道 → shim）已备，未运行。
+- [2026-10-27 21:35 UTC+8] KB1-LOOP-148 **GPU 预热完成；我犯了一次 pkill -f 自匹配**（实跑）。
+  - 作者 21:1x 在 Windows 侧 `nvidia-smi -lgc 1500,1500`，空闲读数仍 2280；我加 10 秒矩阵负载实测 SM 稳在 1500 MHz，判定锁定生效，免去重启。HDMI 未接。21:19 切换：停 CPU 预热与服务，起 cuda 服务（批 16、停 150 ms），续跑 kb-publish 预热；21:34 结束，新增 45006 条向量（缓存 185845），服务 0 次 500，GPU 59–66 度，无掉卡。
+  - 过失：停服务用 `pkill -f "uvicorn …"`，模式匹配到工具 shell 自身命令行，shell 被杀（退出 144）。违反 AGENTS 查证做法第 6 条。防再犯：本会话后续一律用方括号技巧 `pkill -f "[u]vicorn …"`；本条即第一次登记。
+  - 闸门（单独一步）：控制库 ACTIVE 45、ARCHIVED 210、AWAITING 4，最近 3 小时无新建待审；重建按已批准方案清空全部任务。
+- [2026-10-27 21:43 UTC+8] KB1-LOOP-148 **第二轮上线：五级密级语料、六张报表、五层岗位与中心、三条通用规则全部在演示栈实跑通过**（实跑）。
+  - 重建：21:36 deploy-148.sh（down -v → promote-148 → up.sh → 隧道 → shim），21:39:36 READY，共 3 分 25 秒。第一次启动被我自己的前置检查拦下（只看了 CPU 预热日志），改为核最近一次预热日志后重跑；栈未受影响。
+  - 结果：两个 epoch policy-kb-2026-10-bge-v3 / policy-kb-small-2026-10-v3 激活（大库发布 71 秒，缓存全命中）；原件 10469；报表六个发布物 sidecar 装入，manifest 摘要与 C+D 在临时库跑出的逐一相同；目录 kb-demo-v2-reports-five-grades-v1，14 个关系，schema_digest bafe622c…，catalog sha 8dcccf87…；网关 36a6f986…（51a6caeb）、OA 14ebbda2…（6e897fc5）；控制库 103 主体；公网 OA 200，只输口令默认身份 staff，切换下拉 53 账号五组；shim、隧道在跑。
+  - 验收 verify-148.sh：smoke.py、demo-approver、demo-project、demo-delegated、demo-personal、demo-center、demo-admin、demo-hr、demo-reports、demo-leader 十个脚本全部退出 0（员工个人记录本人确认只见本人；中心主任本中心 9 人本人确认；管理员本部门按中心汇总；HR 全公司考勤本人确认、全公司工资项目走 vp-admin 且一年期；混合任务检索 5 命中 + KPI 聚合 8 行；副总条线 KPI、总经理绝密文档本人确认）。
+  - 冒烟首跑失败：链探测按每层首值申请到 top_secret，staff 的密级包络只到 secret（我在属性方案里设的员工上限），NOT_ELIGIBLE。我定：测试员工 staff 放开五级（第一轮"员工可申请任意密级、由链决定审批"的定法，且否则员工申请永远触发不到总经理层），60 个 E-KB2 示例主体保持分级；原地重跑属性脚本、--force-recreate 网关（目录不变、数据不丢）后两个知识产品冒烟均退出 0：链角色 requester_director, department_director, director, director, vice_president, vice_president, general_manager，实际决定者逐一相同；eligibility_other_department NOT_ELIGIBLE；usability_like_rows 3；目录摘要 8dcccf87… 与 catalog.yaml 一致。
+  - 正式轮守卫：evaluation/kbformal 未改；kb-formal profiles、config/catalog.yaml、compose.yaml 无 diff；冻结清单测试通过（kbcorpus 包 ok）。
+  - 未做：demo-misroute.sh 与 catalog-misrouted.yaml 仍是第一轮词汇；GPU 锁频由作者在 Windows 侧 `nvidia-smi -rgc` 解除。
+- [2026-10-28 00:50 UTC+8] KB1-LOOP-149：**作者三条决定（2026-10-28 凌晨）落地并上线：任何场景由 agent 提交、人只审批；两个 MCP 令牌变量名与身份一致；"包络"改口"可申请范围"。** 全部在演示开关下，论文与正式轮冻结件不动。
+  - 作者决定（原话）："我觉得任何场景，提交任务agent 自己做就好了，人类只要审批。"；"ADMIN_FINANCE_MCP_TOKEN 是员工，STAFF_MCP_TOKEN 是管理员，这样取名字会误导人"；"包络 这个词，难懂，换一个描述"。我提醒过：取消"人类主体提交"这一步，等于去掉申请人对 agent 请求的背书，他人审批的场景里审批人批的就是 agent 写的范围；作者照原决定执行。
+  - 设计（我定）：目录 `delegated_authorization.agent_submits: true`（缺省关，目录摘要绑定）。开时 request_data_task / request_download_task / issue_data_authorization 创建任务即 AWAITING_APPROVAL，OA DraftRequest 新增元数据 `submitted: true`（manifest 之外、不进摘要），OA 草稿出生即待审批、无提交按钮；网关记审计事件 TASK_SUBMITTED_BY_AGENT；OA 未按待审批建草稿时网关以 APPROVAL_UNAVAILABLE 拒绝、不建任务（所以网关与 OA 必须同一提交构建，先换 OA 再换网关）。迟到的 submitted 回调走控制面状态不符 → 409。正式冒烟 usability 按创建返回的状态断言（开关关时断言不变）；因 evaluation/kbformal 的 Provisioner 冻结且总是 POST /submit，在 evaluation/cmd/kb-formal-smoke 新增 provision.go 包一层：开关开时跳过提交、沿 get_task_status 指名的审批人逐级批。
+  - 执行分工：Opus 子代理实现（任务书在会话草稿区），我复核【实跑】：起 kb-test-postgres，`go test -count=1` 网关/OA/目录/审批/控制面五包全部 ok；新测试 9 个带 `=== RUN … PASS`（catalog 1、gateway 5、oademo 3）；`git status --porcelain -- config/catalog.yaml compose.yaml evaluation/kbformal` 为空。子代理另做了变异检查（强制开关为假时 4 个网关测试 FAIL），我读其报告未复跑（第三档）。
+  - 令牌变量名：只交换根 .env 两行的值，令牌值与控制库绑定都不动，同事无感；ensure-principals-v2.py 去掉互换、按变量名直取；verify-148.sh 员工令牌键改 STAFF_MCP_TOKEN。【实跑】重跑 ensure-principals-v2.py 后 principals.json 逐字节不变（两条记录 0 处改动），控制库 principals 表指纹前后一致；用新 .env 值逐一查库：STAFF_MCP_TOKEN → principal_staff，ADMIN_FINANCE_MCP_TOKEN → principal_finance_admin。作者在对话里贴出了员工令牌的值，已提醒可轮换，作者未定。
+  - "包络"措辞：网关三处用户可见报错（eligibility.go、approver.go、download.go）、设计文档六份、catalog-guide/adapters、测试指南、README、演示脚本文案全部改"可申请范围"（审批人一侧"按其属性推出的范围"）；YAML 键 scope_envelope 与 Go 标识符不动；台账历史行不改。关系图（claude.ai artifact 5gpKmsFEa7c7GxtfHmNWDW）同步改。
+  - 提交：kb-dev e2c46b8a（20 文件 +199/−49，新增 4 文件），经 NAS 推到 origin，ls-remote 核对一致（本机直连 GitHub 超时，经 NAS 核）。镜像：网关 85a83acc…、OA ff50a2ec…，均自 e2c46b8a；演示 source/ 仍在 51a6caeb（compose 文件与 sidecar 工具自该提交起无改动，git diff 核过）。
+  - 部署【实跑】：00:45 deploy-149.sh（新写：核两次构建退出码与镜像 ID、目录差异只限版本号与 agent_submits 两行、待批任务门禁=0 → 换目录 → 先重建 OA 再重建网关），00:46:04 DONE，17 秒；不动语料、数据与卷。目录 kb-demo-v2-reports-five-grades-v2，sha e617fc645e77…，schema_digest 不变。公网 OA 200，网关 ready 204，隧道与 shim 未动。
+  - 验收【实跑】verify-148.sh：两个知识产品正式冒烟退出 0，summary 含 `agent_submits: true` 与 `usability_pending_agent_submitted: true`；smoke.py、demo-approver、demo-delegated、demo-personal、demo-center、demo-admin、demo-hr、demo-reports、demo-leader 九个脚本退出 0；控制库 audit_events 里 TASK_SUBMITTED_BY_AGENT 48 条。
+  - **我的错（该查没查，做法 12）**：demo-project.py 第 5 步首跑失败——脚本预期员工申请机密项目被可申请范围拦下，但 KB1-LOOP-148 末尾我已把测试员工 staff 放开到五级，网关正确给出六级链（finance-admin → sales-admin → finance-director → sales-director → vp-admin → vp-business）。KB1-LOOP-148 记的"十个场景脚本全部退出 0"是放开 staff 之前那一轮的结果，放开后我没有重扫下游脚本的预期。更正：第 5 步改为 staff 预期六级链、另以 finance-staff（密级到秘密）探测 NOT_ELIGIBLE；重跑退出 0，13 项全 PASS，summary 标明是修正预期后的重跑。
+  - 证据：/home/wmm/kb-demo/verify-148/（本轮日志已覆盖）、deploy-149.log、/home/wmm/logs/kb1/build-149-*.log；NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-demo-149/（18 文件，SHA256SUMS 与本机核对一致）。
+  - 未做：demo-misroute.sh 与 catalog-misrouted.yaml 仍是第一轮词汇；kb-demo 下 *.next.* 文件已过期（上一轮晋升后未再用）；README 第 32/157-159 行仍写 *.next.py 名字（子代理指出，未改）；源码 `tasks.go` 里 OA 草稿创建在控制面建任务之前这一顺序未变。
+- [2026-10-28 08:34 UTC+8] **KB1-LOOP-150：agent 能回答"我有哪些项目"——list_my_tasks 分出项目 / 日常任务 / 子任务 / 授权单（作者 2026-10-28 定，已上线并实跑验证）**
+  - 起因：作者贴出 agent 对"我目前有哪些项目"的回答——把两条 24 小时日常任务当"任务"列出，分不出项目。根因（读代码）：`list_my_tasks` 只返回 publicTask 的状态与到期时间，没有预算档与"项目"一词；工具描述还是占位文案"列出当前 Alice 身份自己的任务"。
+  - 决定（作者）：项目 = 申请时选了预算档（如 kb-annual-v1）的根任务；日常任务 = 按路由缺省预算档的根任务；子任务 = parent_task_id 挂在项目下；授权单 = 管理员代开的根任务。只在目录 delegated_authorization 块下生效，正式轮逐字节不变。
+  - 实现（Opus 子代理按任务书，编排者复核并改了一处）：`internal/gateway/list_tasks.go`（新）kind 判定、预算档词汇从目录生成；`tasks.go` 建任务时在私有 pending 记 `budget_profile`/`budget_profile_chosen`（仅开关下）、`listMyTasks` 加 `root_task_id`/`kind`；`tools.go` 占位文案修正、开关下替换工具描述与 schema；`service.go` 两个私有字段；测试 `list_tasks_test.go` 4 条。编排者改动：ACTIVE/ARCHIVED 任务的 `products` 也改取授权记录（审批人可能删产品），与 scopes 一致。文档 catalog-guide.md、getting-started.md。提交 124c8404，经 NAS 推送核实。
+  - 复核【实跑】：本机启动 kb-test-postgres 跑新测试 `-v`（4 条 ListMyTasks + AgentSubmits 6 条 + AliceCannotObserve 全 PASS）；`run-gateway-tests.sh` 四包 ok（gateway 61s、control 64s）；冻结件 `config/catalog.yaml compose.yaml evaluation/kbformal` 零 diff。子代理报的"7 处变异全被测试抓住"按第三档，未复核。
+  - 部署【实跑】：build-150-gateway.log 来自 124c8404（镜像 9049349aa4cb），待办门禁 AWAITING_*=0（单独一步核过），deploy-150.sh（新：只换网关，核构建退出码、镜像 ID 对应 HEAD、目录未变 e617fc645e77、pending=0）08:31:28 GATE → 08:31:39 DONE，11 秒；OA 与目录不动。公网 OA 303（跳登录）、MCP GET 405，均在线。
+  - 验收【实跑】：verify-150.sh（verify-148.sh 的同款，日志目录 verify-150/）：两个冒烟 + 十个脚本全部退出 0，无 FAIL 行。demo-project.py 新增三条 PASS：root_task_id 列出项目（kind=project、kb-annual-v1）；项目 + 子任务（kind=child、parent_task_id 指向项目）；子任务比项目宽（finance + hr）→ POLICY_DENIED"委托任务扩大了父 Grant 的产品、字段、范围或期限"（此前只是文档说法，现为实跑）。probe-150-list-staff.txt：staff 名下 95 条，kind=project 1、task 23、root 58（升级前建的根任务，按设计给 root，预算档由额度反推正确：旧项目 kb-annual-v1、授权单 authorization 3 条）。
+  - 更正（我的错，读代码读了一半）：08:0x 我对作者说"管理员代开的授权单，员工 list_my_tasks 可能列不出"。实际任务记录的 PrincipalID 是员工（tasks.go L209），员工能列出，开单人列不出。根因：只看了列表的过滤条件，没看建任务时的主体赋值——"该查没查"。本轮测试与探测已按正确事实验证。
+  - 子代理偏离（已接受）：它启动并停回了 kb-test-postgres（测试库，不是演示栈）跑测试；任务书写的"不重启容器"本意是演示栈，下次任务书写明。
+  - 演示侧（不在 git）：identities.py `list_tasks`、demo-project.py 三条检查、tester-guide.md "看看我有哪些项目"段与"演示剧本：员工申请一个长期任务（约 10 分钟）"七步、README 第 40 行、probe-150-list.py、deploy-150.sh、verify-150.sh；改前备份 *.before-150。关系图 artifact 第 4 版：加"任务与项目"图、按项目/分配资源/其余三组的场景表（每行带对 agent 说的话）、参数模板。
+  - 回滚风险（读代码）：新网关建的任务在私有上下文里多了两个键，旧镜像严格解码会拒绝这些任务；回退到 124c8404 之前的镜像须先归档这些任务。
+  - 证据：/home/wmm/kb-demo/verify-150/、deploy-150.log、/home/wmm/logs/kb1/build-150-gateway.log、verify-150.log；NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-demo-150/（21 文件，SHA256SUMS 核对一致）。
+  - 技术欠账：kb-formal-smoke 与 smoke.py 留下的 ACTIVE 任务不撤销（staff 名下 25 条 ACTIVE，24 小时 / 30 分钟后自然到期），会让"我有哪些任务"的回答变长；dev.md L38 的 list_my_tasks 签名未更新；源码 gofmt -l 对三个未改文件（ordinal_derivation.go、query.go、semantic_columns_having_test.go）有报告，本轮未动。
+- [2026-10-28 12:11 UTC+8] KB1-LOOP-151（进行中）：可切换的 agent 身份——作者 2026-10-28 定：演示时只有一个 agent 软件、一把 MCP 令牌，令牌代表谁由人在 OA 页面上切换，agent 自己不能切；MCP 身份切换与 OA 审批身份切换是两个独立控件；候选按部门分组；加 whoami 与 acting_as；绑定放网关（编排者建议，作者未反对）。
+  - 选型（本会话实测后定）：先实跑了"两个身份并列配置"的做法（本机 Claude Code 无头、sonnet、只放行只读列表工具、五次会话）：说了身份五次全对；不说身份时 agent 把两个端点都查一遍合并作答，或随手挑第一个。作者判"每句都说身份不友好"，于是定为 OA 侧切换。网关 MCP 端每次请求重新认证、无会话（读代码 internal/mcp/server.go `Authenticate`），切换即时生效。
+  - 代码（提交 46624eef，已推 GitHub 并经 NAS 核对）：迁移 023 两张表 demo_agent_identities / demo_agent_identity_switches；AgentIdentityAuthenticator 先查绑定再查静态令牌表（只在 delegated_authorization 开关下接入）；`POST /api/v1/oa/agent-identity`（list/switch，与审批回调同一套签名）；`POST /admin/v1/demo/agent-identities`（管理令牌下登记摘要，网关不见令牌明文）；whoami 工具；开关下每个结构化结果加 acting_as（map 结果浅拷贝、其余 UseNumber 往返，数值逐字节保真有测试）；OA 页眉第二行"我的 agent"（标签下拉 + 按部门分组的身份下拉，公司领导一组在前；未配 OA_AGENT_IDENTITY_URL 时页面逐字节不变，子代理以 git archive 对照 10 个页面 diff 为空）。docs/catalog-guide.md、docs/adapters.md 各加一条。
+  - 复核（编排者实跑）：go build/vet 干净；gateway、control、mcp、catalog、oademo、cmd/gateway 六包 -count=1 全 ok；新测试 gateway 11 条、oademo 7 条、control 2、mcp 2、cmd/gateway 1 全 PASS；冻结件零 diff。子代理各做了变异检查（去掉 UseNumber、去掉开关判断、禁用主体走 fallback、签错密钥、actor 置空等均让测试失败）。
+  - 子代理偏离（已接受）：acting_as 对 map 结果不走 JSON 往返（开关开的现有测试做类型断言）；whoami 仅当绑定主体即本次主体时给 bound_by/bound_at；管理接口对已禁用主体 400、摘要被占 409；OA 时间显示沿用页面的 UTC；OA 的 select 走只读 list；从审批记录页发起切换落回待办页；callback 失败摘要的截断改为不切断汉字（≤512 字节）。
+  - 已知欠账：OA 接口未按 event_id 去重，5 分钟窗口内重放同一条签名 switch 会再改绑一次并多记一条历史（只在 docker 内网可达）；切换历史只在表里、未进审计哈希链；list_data_products 的 delegated_authorization 说明未提 whoami/acting_as。
+  - 镜像：gateway sha256:7d083bbd… 与 oa-demo sha256:979c7bcd… 均从 46624eef 构建（/home/wmm/logs/kb1/build-151-gateway.log、build-151-oa.log 退出 0）。演示侧已备：compose.demo.yaml 加 OA_AGENT_IDENTITY_URL（备份 .before-151）、agent-identity.py（register/list/switch/whoami/call）、deploy-151.sh、verify-151.sh（先把 lzj 标签复位到 finance-admin，末尾跑 probe-151-identity.py）、check-151-oa.py（登录 OA 走表单切换再用 MCP whoami 核）、tester-guide.md 新节"agent 身份切换"与剧本改为一把令牌、README 第 40 行；均未部署未实跑。
+  - 卡点：部署前单独查待办门禁，发现 1 条 AWAITING_APPROVAL（task_721d1851…，principal_finance_admin，2026-10-28 09:44 建，"查看分管的销售、市场、运营部门 2026 年月度 KPI…"），疑为作者在测的草稿。按既定规则（待办非零不重建 OA，草稿在 OA 内存里会丢）暂停部署，请作者在 OA 批掉/拒掉或指示撤销后再部署。
+- [2026-10-28 13:15 UTC+8] KB1-LOOP-151 上线并验证（2026-10-28 13:11 部署；网关 sha256:7d083bbd…、OA sha256:979c7bcd…，均自 46624eef 构建；控制库迁移到 023）。
+  - 作者裁决（2026-10-28 13:0x）：待审批那条任务（task_721d1851…，finance-admin 09:44 建）不再挡部署，"直接部署"；测试者只保留 OA 口令与先前发给同事的那把令牌（ADMIN_FINANCE_MCP_TOKEN 的值），不再另发 staff 令牌。按此 deploy-151.sh 加 ALLOW_PENDING=1 覆盖（日志留 WARN 行），该任务的 OA 草稿随 OA 重建丢失、网关侧仍为 AWAITING_APPROVAL 直至到期。`.env` 未动（STAFF_MCP_TOKEN 仍被回归脚本与 kb-formal-smoke 使用，要删由作者删）。
+  - 部署门禁改动（编排者）：镜像构建后又提交了台账，HEAD 不等于构建提交，门禁改为"两镜像同一构建提交、该提交是 HEAD 祖先、且与 HEAD 在 docs/ 之外零 diff"。
+  - 登记：标签 lzj = 同事现有令牌（principals.json 里 finance-admin 的摘要，初始 finance-admin，同事不改配置）；wmm = 新令牌（agent-tokens.json，0600，初始 staff）；探针用的 probe 标签也留在表里（无删除接口，欠账）。agent-tokens.json / agent-identities.json 在 /home/wmm/kb-demo（不在 git）。
+  - 实跑验证（编排者亲跑）：probe-151-identity.py 10 条 PASS（登记→whoami staff→list_data_products 带 acting_as→切 finance-admin→同一令牌下一次 whoami 即 finance-admin→切回；两把 .env 令牌 whoami 不变，finance-admin 那把的 agent_label 为 lzj）；check-151-oa.py 12 条 PASS（口令登录、页眉"我的 agent"、13 组按部门且"公司领导"在前、action=select 预选、表单 switch wmm→finance-director、MCP whoami 即 finance-director 且 bound_by 为当时 OA 账号、OA 身份切 procurement-admin 后 agent 绑定不变、切回 staff）；verify-151：两个正式冒烟 + reset-lzj + 十个场景脚本 + 探针共 14 步全部退出 0；控制库 demo_agent_identity_switches 12 行与操作一致。公网 OA /login 200、MCP GET 405（只核可达）。
+  - 证据：/home/wmm/kb-demo/verify-151/（含 check-151-oa.log）、deploy-151.log、verify-151.log、/home/wmm/logs/kb1/build-151-{gateway,oa}.log；NAS 镜像 /mnt/ctg-pto-dev/factgate-evidence/kb-demo-151/（26 文件，SHA256SUMS 核对一致；日志里 64 位十六进制均为镜像/清单摘要，无 Bearer）。
+  - 演示侧文档：tester-guide.md 新节"agent 身份切换"，凭据表改为两项（OA 口令 + 一把令牌），剧本改为一把令牌按步切换（备份 .before-151）；README 第 40 行；关系图页面第 5 版加第八节"一个 agent、一把令牌"（https://claude.ai/artifact/5gpKmsFEa7c7GxtfHmNWDW）。
+  - 观察（未处理）：live 属性里 staff 的 clearance 含 confidential 与 top_secret（finance-staff 只到 secret），与第二轮计划"员工 public/internal/secret"不一致，出处待查，不影响本轮。
+  - 欠账汇总：OA 接口无 event_id 去重（5 分钟重放窗口，仅 docker 内网可达）；切换历史不进审计哈希链；probe 标签无法删除；list_data_products 的 delegated_authorization 说明未提 whoami/acting_as；deploy-151.sh 的 GATE 行仍印 "pending=0" 字样（覆盖时实际为 1，WARN 行为准）。
+- [2026-10-28 13:38 UTC+8] KB1-LOOP-151b 上线并验证（2026-10-28 13:37 只重建 OA；OA sha256:609a8e69…自 e096dfa4 构建，网关不变）。
+  - 作者裁决（2026-10-28 13:2x–13:3x）：(1) ADMIN_FINANCE_MCP_TOKEN 改通用名——编排者定为 TESTER_MCP_TOKEN，.env 只改键名（值未动、未打印），15 个演示脚本与 README 同步改（备份 .before-151b）；compose 不引用该名，无需重启。(2) 去掉"我的 agent"的标签下拉，所有测试者共用一把令牌（作者贴出的值核对为同事那把，即原 ADMIN_FINANCE 令牌）以便复现问题：网关里 lzj/wmm/probe 三个标签连同切换历史删除（agent-identity.py 新增 delete 子命令，直接改演示控制库），登记为单一标签 tester（缺省 finance-admin）；OA 新增 OA_AGENT_LABEL=tester 固定标签，传别的标签返回 400。(3) 页眉重设计为两张卡片："我在 OA 里是谁（审批用）"与"我的 agent 是谁（申请与查询用）"，各三行：大字显示名、小字登录名·角色 / 共用令牌·上次切换、"换一个身份"下拉；右卡多一句"切换立即生效；切完对 agent 说一句…"；功能关时只有左卡。表单 action、字段名、"切换身份"/"退出"按钮文字不变（kb-formal-smoke -usability 与 approve.py 只抓 csrf 与 Task ID，子代理核过）。"关闭时逐字节不变"的自设约束放宽为"功能不变、测试通过"。
+  - 复核（编排者实跑）：oademo 包 -count=1 ok，AgentIdentity 11 条 PASS，gofmt 空，冻结件零 diff；子代理做了四处变异检查。构建第一次失败是因为 HEAD 未推到 origin（kb-formal-aux-build 只从已发布提交构建），推送核对后重建成功。上线后：check-151-oa.py 14 条 PASS（两卡都在、无标签下拉、隐藏 label=tester、表单切 finance-director 后 MCP whoami 即变、切 OA 身份不影响 agent、最后复位 finance-admin）；probe 11 条 PASS（末尾自删 probe 标签）；kb-formal-smoke policy_kb_small、demo-approver.py、demo-project.py 在新 OA 上退出 0。
+  - 证据：/home/wmm/kb-demo/verify-151b/、deploy-151b.log、/home/wmm/logs/kb1/build-151b-oa.log；NAS kb-demo-151 目录追加（SHA256SUMS 重算核对一致，无 Bearer）。关系图页面第 6 版（第八节改为共用令牌与两卡页眉）。
+  - 文档：tester-guide.md 凭据表与"agent 身份切换"节改为共用令牌与两卡措辞，全部"右上角"改掉；README 第 44/137 行；docs/adapters.md 的 /agent-identity 条目。
+  - 欠账新增：OA 的 /agent-identity 每次切换前多调一次 list；OA_AGENT_LABEL 不裁空白；共用令牌意味着一个测试者切换会影响其他同时在测的人（作者接受，指南已写"先看大字再开始、用完切回"）。
+- [2026-10-28 14:52 UTC+8] KB1-LOOP-152 上线并验证（2026-10-28 14:47 换目录 + 重建网关；网关 sha256:12a9a36f…自 0c532249 构建；目录 kb-demo-v2-reports-five-grades-v3）。
+  - 起因：作者 13:56 以总经理身份让 agent 下载 D-000308（文档级绝密；五节 internal、一节 top_secret），agent 按工具说明"最小权限"填了 finance × top_secret，下载时按节核范围被整份拒（download.go:515 "有 6 个分块，任务范围内可见 1 个"），拒绝信息不说缺什么，agent 扩到 12 部门 × 5 级再申请一次。作者问"申请了绝密是否应自动包含以下各级"，答应该，并定为**目录可声明的通用有序属性**（不只对 classification 写死），在申请这一步向下补全、不改放行判定。
+  - 实现（提交 0c532249，子代理 Opus；编排者复核实跑）：catalog.Scope 加 `order`（enum 专用，必须是 allowed_values 的排列，validate.go 校验）；`Scope.DownClosure`；网关 `closeOrderedScopes` 在 createTask 里 normalizeScopes 之后、路由/资格/CheckDelegation/manifest 之前接入，三个申请工具共用；响应多 `scope_closure`（无补全不加键）；工具描述由目录生成一句有序说明；describe_data_product 给 `scope_order`。放行路径（分块核范围、查询谓词、CheckDelegation）一行未动。正式目录无 order → 逐字节不变。测试：catalog 2 条、gateway 8 条新测试 PASS；catalog/gateway/oademo 包 -count=1 全 ok；冻结件零 diff；子代理三处变异检查均被测试抓住；演示属性 102 个主体 clearance 全部向下封闭；演示目录两条路由的三层升级触发集在全部 31 种请求集合下补全前后触发不变。
+  - 演示目录：build-catalog-v2.py 加 GRADE_ORDER 并写 classification.order，版本 v2→v3；生成的 catalog.next.yaml 与 catalog.yaml 只差 order 六行与版本行（子代理先用未改脚本逐字节复现了现 catalog.yaml）。deploy-152.sh 的目录门禁第一版有 bug（过滤只作用一侧、会把 allowed_values 也滤掉导致必然 FAIL），子代理用负例证明并给出修法，编排者采纳并在真实文件与篡改样本上各验一次。
+  - 复现探针 probe-152-download.py（实跑）：总经理按 finance × top_secret 申请下载 D-000308 → 响应 scope_closure 列出补进的四级 → 本人确认后 ACTIVE → 授权 classification 五级 → 组装下载一次成功（6 块，file_sha256 35bd7b83…）→ 撤销。全 5 条 PASS。
+  - 回归第一次全线失败，原因与本轮无关：作者按"只保留两个"把 STAFF_MCP_TOKEN 从 .env 删了，staff 令牌值别处没有存，依赖它的 8 个脚本中止、kb-formal-smoke 中止。处理：给 staff 轮换新令牌写入 principal-tokens-v2.json（0600），principals.json（原地改写，保 bind mount 的 inode）与控制库 principals.token_hash 同步，重建网关加载；identities.py 的 ENV_TOKENS 去掉 staff、approve.env_value 把旧键名 STAFF_MCP_TOKEN 回退到令牌文件；kb-formal-smoke 加"env 文件无该键则读令牌文件的 requester 条目"（提交 13ab53bf，编排者自改的小改动，未派子代理）。第二次回归 15 步全部退出 0（两个正式冒烟、十个场景、tester 复位、两个探针）。线上网关镜像 0c532249 与 HEAD 13ab53bf 只差 evaluation/cmd/kb-formal-smoke，不在网关二进制内。
+  - 更正一条自己的记录（根因：该查没查）：KB1-LOOP-151b 行写"staff 的 clearance 含 top_secret 出处待查"，出处是 KB1-LOOP-148 台账——测试账号 staff 有意放开到五级，供冒烟探测整条七级链；关系图第二节图注早已写明。不是异常。
+  - 证据：/home/wmm/kb-demo/verify-152/（第二次）、verify-152-first-run/（第一次，留作失败记录）、deploy-152.log、/home/wmm/logs/kb1/build-152-gateway.log；NAS /mnt/ctg-pto-dev/factgate-evidence/kb-demo-152/（含 first-run/，SHA256SUMS 核对一致，无 Bearer）。文档：tester-guide.md 新节"密级是有序的"、README 第 5 条、docs/catalog-guide.md 的 order 说明、关系图第 7 版第二节图注。
+  - 欠账：OA 草稿页不标注哪些值是自动补进的（审批人只看到完整集合）；原始申请值不单独持久化（只在响应 scope_closure）；download 拒绝信息仍不列缺的节属性；物理查询的 scope-policy 摘要含 order 字段（EquivalentScopePolicies 不比较 order，子代理读码判断正确，未实测）。
+- [2026-10-28 17:54 UTC+8] KB1-LOOP-153 **专利素材一页写好（docs/patent_material_2026-10.md，73e0c7c7）；demo-misroute.sh 改到五级词汇并在空闲时实跑通过（2026-10-28 17:53）**。
+  - 一页的口径：A 节列论文已写的基线（main.tex 行号），B 节列 147–152 轮论文未写、已实现并实跑过的十条机制（作者决策日期、代码 文件:行号、台账行号），C 节列不得写进权利要求的已知限制。只写"做了什么、怎么验的"，不写论文没有的保证性主张；"不含论文未写的主张"我按此解释，作者若指别的含义请改口。引用的 18 处代码行号与 11 处台账行号逐一核过（其中 KB1-LOOP-150 行号初写 L2902，核对后改为 L2908）。
+  - demo-misroute.sh：读代码核过，脚本每次运行从 catalog.yaml 重新生成 catalog-misrouted.yaml，把链首步（directors.finance，director_authority 要求 job_family=dept_admin）误配成 finance-manager；该主体第二轮后 job_family 为 staff，密级 internal 在五级词汇里仍有效，所以逻辑无需改，只改了注释与提示文字（备份 .before-153）。【实跑】控制库 audit_events 近 30 分钟 0 条、切换历史最新 15:56，判为空闲后运行：误配目录下申请 → APPROVER_NOT_AUTHORIZED（"目录组织架构中的审批人 finance-manager 不具备该环节（requester_director）的审批权限"），随后恢复真目录，整段 23 秒，退出 0；恢复后 /health/ready 204，list_data_products 报 catalog_version kb-demo-v2-reports-five-grades-v3，挂载仍是 /home/wmm/kb-demo/catalog.yaml（sha f20ed503…，与 verify-152 冒烟一致）。
+  - 证据：/home/wmm/kb-demo/verify-153/（before/after/日志）；NAS /mnt/ctg-pto-dev/factgate-evidence/kb-demo-153/（5 文件，SHA256SUMS 核对一致，无 Bearer）。kb-demo README 第 165 行改为已实跑（备份 .before-153）；README 第 163–167 行其余旧文字（*.next.py、"都没有在演示栈上实跑过"）仍过期，未动。
+  - 未做：handoff 第 2 条投稿准备等作者审阅主稿；KB1-LOOP-137 三项与可执行位欠账未动。
+- [2026-10-28 18:26 UTC+8] KB1-LOOP-154 **KB1-LOOP-137 三条待办全部落地并上线（2026-10-28 18:23 部署；网关 sha256:b0bda3b9…、OA sha256:1c47d8b3…，均自 94361691 构建；目录 kb-demo-v2-reports-five-grades-v4）**。
+  - 分工：两个 Opus 5.5 子代理并行按任务书实现（LIKE 一条；OA 撤回 + 待审 TTL 一条），编排者复核、补改、提交、部署、验收。
+  - **LIKE（提交 82cd9eaa）**：根因（读代码）——目录词表 validate.go 用英文词 like/ilike，sqlpolicy 按 pg AST 的算子名查表（LIKE 是 `~~`，子代理用探针实测了七种写法），所以声明 `like` 永远匹配不上、`~~` 又过不了校验。改法：sqlpolicy 建策略时把 like/ilike/not like/not ilike 四个词规范化为符号（只改名不扩集，`CanonicalOperator`），目录词表收四个符号与两个 not 词，发现面按规范化后的名字列 LIKE；其余算子名原样返回，config/catalog.yaml 的 15 处 allowed_operators（子代理纠正了我任务书里写的 8 处）校验与放行逐字节不变。【实跑】catalog/sqlpolicy/physicalquery 三包 ok，网关三条发现面测试（子代理没跑的）PASS；子代理三处变异检查均 FAIL 如预期（第三档）。
+  - **同类缺陷扫出未修（记欠账）**：目录词表的 `in`、`between`、`is`、`is not`、`and`、`or`、`not` 同样对不上 AST 名（IN 在 AST 里是 `=`，BETWEEN 是大写 `BETWEEN` 且查表区分大小写）；现有目录声明 `in` 的产品都同时声明 `=`，所以 IN 实际可用、未触发。是否同样处理待作者定。
+  - **OA 撤回 + 待审过期（提交 94361691）**，只在目录有 delegated_authorization 块时生效：approval 包新增可选接口 DraftWithdrawer（`*Client` 实现 `POST /api/drafts/{id}/withdraw`，服务令牌，2xx/404 视为成功；ApprovalAdapter 接口未改，rq5 的实现不受影响）；网关 revoke_task 与级联归档的每个后代、以及待审过期都调 `notifyDraftWithdrawn`（5 秒超时，失败只记 Warn，迟到回调仍 409）；目录 `delegated_authorization.pending_ttl`（正 Go duration，进摘要），`Service.SweepPendingExpiry` 挂在 cmd/gateway 现有 sweepExpired 之后（15 秒一轮），AWAITING_SUBMISSION/APPROVAL 自创建起超过 TTL 的任务归档为 expired、payload stage=pending；OA 草稿状态 `withdrawn`，按原因显示"已撤销/已过期"，移出待办、无决定按钮，已决定的草稿不改（unchanged:true）。编排者补改：catalog-guide 的 pending_ttl 与撤回说明；task_flow 的过期提示改为"批准后的期限或待审期限已到"。【实跑】新测试 9 条 PASS；gateway/control/oademo/approval/catalog/cmd/gateway 全量 ok（gateway 88.9s、control 83.5s）；冻结件零 diff；gofmt 只列原有三个文件。子代理六处变异检查均 FAIL 如预期（第三档）。
+  - 演示侧：build-catalog-v2.py 加 `pending_ttl: '72h'`、版本 v4（我定 72 小时：覆盖一个周末，演示里被遗忘的草稿不再永久挡部署；备份 .before-154）；先用未改脚本逐字节复现了现 catalog.yaml 与 oa-labels.yaml，再生成 catalog.next.yaml，diff 只有版本行与 `pending_ttl: 72h` 一行；用 HEAD 代码解析校验通过（PendingTTLDuration 72h）。deploy-154.sh 门禁：两镜像同一构建提交且为 HEAD 祖先、docs 外零 diff、镜像 ID 在 override 内、目录 diff 只限两行（在真实文件与篡改样本上各验一次）、待审闸门；先重建 OA 再重建网关（旧 OA 对 withdraw 回 404 会被当成功）。
+  - 待审闸门（单独一步）：只剩 task_721d1851（作者 09:44 建，OA 草稿已在 13:11 重建时丢失，作者当时裁决不挡部署），栈近 30 分钟零事件；按同一裁决 ALLOW_PENDING=1，日志留 WARN。该任务将在创建满 72 小时（10-31 09:44）由扫描归档。
+  - 部署【实跑】18:23:35 GATE → 18:23:55 DONE，20 秒；目录 sha 1ec862fb…；/health/ready 204、OA /login 200；MCP list_data_products 报 catalog_version v4。
+  - 验收【实跑】probe-154-withdraw.py 10 条 PASS（staff 的 agent 申请 → 待审批、finance-admin 待办可见且有决定表单 → MCP revoke_task → 待办消失、草稿页"已撤销"无表单、审批记录列出、get_task_status ARCHIVED/revoked）；verify-154.sh 16 步全部退出 0（两个正式冒烟 catalog_sha 1ec862fb…、tester 复位、十个场景、三个探针），无 FAIL 行；验收后待审任务仍只有 task_721d1851；网关日志无 pending sweep 报错。
+  - 证据：/home/wmm/kb-demo/verify-154/、deploy-154.log、verify-154.log、/home/wmm/logs/kb1/build-154-{gateway,oa}.log；NAS /mnt/ctg-pto-dev/factgate-evidence/kb-demo-154/（27 文件含 catalog-diff.txt，SHA256SUMS 核对一致，无 Bearer）。kb-test-postgres 已停。
+  - 文档：tester-guide.md "OA 怎么用"加"撤回与过期"一条（备份 .before-154）；README 第 6 条（备份 .before-154）；docs/catalog-guide.md 已在提交内。关系图页面未更新。
+  - 欠账：list_data_products 的 delegated_authorization 说明未列 pending_ttl；撤回通知同步、不重试、无发件箱（OA 宕机时级联撤销最多多等 N×5 秒）；pending_ttl 用字符串而非 catalog.Duration（子代理理由：缺省序列化会变成 "0s" 改变块形态）；撤销 ACTIVE 任务也发通知（OA 回 unchanged:true，无害）；同类算子名缺陷见上。
+- [2026-10-28 20:13 UTC+8] KB1-LOOP-155 目录算子词表与 PostgreSQL AST 算子名对齐（作者 2026-10-28 定"处理"KB1-LOOP-154 登记的同类缺陷；提交 7fb3d434；未重建演示栈）。
+  - 站点列全【实跑 pg_query ParseToJSON】：IN 列表是 A_Expr kind AEXPR_IN name `=`、NOT IN 是 name `<>`；BETWEEN 族是 AEXPR_[NOT_]BETWEEN[_SYM] name 大写 `BETWEEN`/`NOT BETWEEN`/`BETWEEN SYMMETRIC`；IS DISTINCT FROM 与 `= ANY` 的 name 也是 `=`；IS [NOT] NULL 是 NullTest 节点、AND/OR/NOT 是 BoolExpr 节点，ast.go 走 validateExprMap 递归，从不查算子表。故原词表的 `in`/`between` 是名字对不上（IN 靠同列的 `=` 放行，BETWEEN 在任何目录下都被拒），`is`/`is not`/`and`/`or`/`not` 是引擎根本不门控（声明与否无差别）。
+  - 同一缺陷曾在正式 campaign 炸过：台账 P8-C2-PILOT-03-FAIL（2026-09-01）阶梯产品声明 `["<=","in"]` 被拒 SQL_OPERATOR_NOT_ALLOWED，当时改 live catalog 为 `["=","<="]` 了事，master benchmark-contract-v1.yaml:469/505 被 v1.12 index 哈希锁住未改（v1.13 欠账）。本轮修引擎侧：正式跑的 live catalog 是 `["=","<="]`，新旧引擎放行集相同，已报数字不受影响；master 那两处在新引擎下 IN 变为可放行，字节未动。
+  - 设计（编排者裁决）：sqlpolicy `validateOperator` 读 `kind`，候选键任一命中即放行——AEXPR_IN：`{name, "in"}`（`=`）/`{name, "not in"}`（`<>`），即 `=`/`<>` 继续放行 IN/NOT IN（逐字节不变），`in` 单独只放行 IN 列表、不放行标量 `=`、IS DISTINCT FROM、`= ANY`；BETWEEN 族键 = 小写 name，`between` 不顺带放行 NOT BETWEEN 或 SYMMETRIC；其余 kind 按 name 不变。新函数 `sqlpolicy.OperatorKey`（去空白、含字母者小写、再走 LIKE 别名），`operatorSet` 与发现面用它；`CanonicalOperator` 不动（现有测试要求它对 "IN" 恒等）。词表 safeOperators 删 `and`/`or`/`not`/`is`/`is not`（全仓 yaml/go/md/py/json 与 kb-demo 目录 0 处声明，子代理另以加载器核了 55 个声明 allowed_operators 的文件：唯一的词是 `in`，且除 benchmark-contract-v1.yaml 两处外都与 `=` 同列），加 `not in`/`not between`。`defaultOperators` 不动：未声明的产品 BETWEEN 仍拒、IN 仍放行。发现面 sql_predicates.go 的 IN/NOT IN 行加 `policyWords`，声明 `in` 的产品列 IN 不列 `=`。docs/catalog-guide.md:171 补一句。
+  - 测试（子代理 Opus 写，编排者自跑复核全 PASS）：sqlpolicy 新增 8 个（in 只放行列表并拒 `=`/IS DISTINCT/`= ANY`，`=` 仍放行 IN 与 IS DISTINCT，not in/<>，between 族逐形式含 `"BETWEEN"`/`" Between "`，缺省集，结构节点不门控，task-global 同键，OperatorKey）；catalog 2 个，其中 TestCatalogVocabularyEveryOperatorAdmitsItsForm 逐词证明词表每个词单独能放行一条 SQL（把 `and` 放回词表即 FAIL——防再犯机制）；gateway 2 个。变异两处（去 `in` 键、BETWEEN 不小写）各使对应测试 FAIL（子代理贴出原文）。`= ANY` 在 `["in"]` 下实际拒绝码 SQL_OPERATOR_NOT_ALLOWED。
+  - 编排者自跑【实跑】：go build/vet 过；sqlpolicy、catalog、physicalquery、sqllowering、queryplan、repohygiene 六包 ok；带 kb-test-postgres 的 gateway 发现面 5 测试 PASS；冻结件（config/catalog.yaml、compose.yaml、evaluation/kbformal、evaluation/final-v5-wsl2）零 diff；gofmt -l 仍只列原有 9 个文件。子代理全量 `go test ./...`（/home/wmm/logs/kb1/test-155-full.log）101 包 ok、2 包 FAIL，均与本改动无关（见下）。
+  - **自己的错**：13ab53bf（本日 14:50，KB1-LOOP-152 轮）把 17 MB 的 ELF 构建产物 kb-formal-smoke 提交进了仓库并已推送；repohygiene 的 TestRepositoryRootCarriesNoTrackedBuildOutput 本轮全量跑时才暴露（上轮只跑了改动相关包，没跑全量——根因：该查没查）。已 `git rm --cached` + .gitignore（提交 91579cec），repohygiene 包复跑 ok；历史里的 blob 已随推送进 origin，不改写已推历史。防再犯：提交前 `git status --porcelain` 看清 `??` 项，构建产物只放 ~/bin 或 build 目录。
+  - 环境欠账：evaluation/internal/experiment 的 TestRun04PreparedBindingMatchesPostgreSQLJSONBRoundTrip 钉 server_version_num 160014（predicate_scope_canonical_test.go:232），kb-test-postgres 现为 16.15 → 设 DSN 时必 FAIL；本改动不碰它，是否把钉改成 16.15（涉及正式轮复现口径）待作者定。
+  - 同类剩余（子代理探针实测，未修）：SubLink 形式 `IN (SELECT …)`、`NOT IN (SELECT …)`、`= ANY (SELECT …)`、`<> ALL (SELECT …)`、`< ANY (SELECT …)` 在只声明 `["<"]` 的产品上全部放行——SubLink 节点走 validateExprMap，其 testexpr 算子从不查表（子查询本身仍经 analyzeSelect 校验列与产品）。`!=` 单独声明放行不了任何东西（解析器把 `!=` 变成 `<>`），词表保留但注释写明。
+  - 演示栈未重建：/home/wmm/kb-demo/catalog.yaml 0 处声明 allowed_operators，全部产品用缺省集，本改动对演示行为不可见；线上网关仍为 94361691 的 b0bda3b9…，下次因演示可见改动重建时顺带上线。kb-test-postgres 测试后已停。
+- [2026-10-28 22:58 UTC+8] KB1-LOOP-156 子查询谓词按 allowed_operators 门控（作者 2026-10-28 定"修复"KB1-LOOP-155 登记的同类剩余；提交 cd1ccb4f；未重建演示栈）。
+  - 站点【实跑 pg_query】：`a IN (SELECT …)` 是无 operName 的 SubLink ANY_SUBLINK（隐含 `=`）；`a NOT IN (SELECT …)` 是 BoolExpr NOT 包同一节点，与 `NOT (a IN (SELECT …))` 同树；`op ANY/ALL (SELECT …)` 的 operName 是 op；`(a,c) IN (SELECT …)` 同 ANY_SUBLINK（testexpr 为 RowExpr）；`(a,c) = (SELECT …)` 由解析器给成 A_Expr 包 EXPR_SUBLINK，裸解析不产生 ROWCOMPARE_SUBLINK；EXISTS/标量/ARRAY 子查询无算子。原 ast.go 没有 SubLink 分支，走 validateExprMap 递归，operName 从不查表——只声明 `["<"]` 的产品上述形式全放行（上轮子代理探针实测）。
+  - 设计（编排者裁决）：ast.go 加 `validateSubLink`（testexpr 与 subselect 仍按 validateExpr 校验，subselect 照旧进 analyzeSelect）：ANY/ALL/ROWCOMPARE 三类查算子表，无 operName 按 `{"=","in"}`、NOT 包裹按 `{"<>","not in"}`（`negatedInSubquery` 识别）、有 operName 按该 op 单独（与 `= ANY(ARRAY)` 一致）；其余类型不查。缺省集不动。docs/catalog-guide.md:171 补一句。发现面不动（下推器不接受子查询）。
+  - 这是收紧。已核【grep + 读代码】：仓库内经 sqlpolicy 授权且带算子的子查询谓词一处都没有——heldout sheet q39.sql 是 FROM 派生表、postgresoracle 用 EXISTS、tpchlowerability 与 postgresoracle 不引用 sqlpolicy、演示脚本无子查询；故不改变任何已记录评测结果。演示目录全用缺省集（含全部比较算子），演示行为不变，未重建。
+  - 测试（子代理 Opus 写；写完跑全量时撞 Opus 会话额度中断，编排者接手复核）：sublink_operators_test.go 8 个，含 AST 形状钉（防解析器升级后形状漂移）、`["<"]` 拒 IN/NOT IN/= ANY/<> ALL 放行 < ANY/< ALL/EXISTS、in/=/not in/<> 各自边界、缺省集下 `~ ANY` 拒、子查询内部仍查算子与列、task-global 同键。编排者自跑【实跑】全 PASS；变异两处（去 validateSubLink 的查表 → 5 测试 FAIL；去 NOT 分支 → 4 测试 FAIL）后恢复、sha 核回；go build/vet 过；sqlpolicy/catalog/physicalquery/sqllowering/queryplan/exposure 六包 ok；带库的 gateway/control/cmd/gateway 三包 ok；冻结件（含 heldout-sheet、tpchlowerability、postgresoracle）零 diff；gofmt 仍只列原有 9 个文件。子代理的全量日志 /home/wmm/logs/kb1/test-156-full.log：102 包 ok，唯一红仍是 Run04 的 PG 版本钉（KB1-LOOP-155 已记）。
+  - 流程记录：Opus 子代理额度在 22:22 用尽（重置 22:50），交付未发出；编排者按台账规则自跑全部判据后放行，不以子代理日志为据。
+- [2026-10-28 23:19 UTC+8] KB1-LOOP-157 演示第三轮启动：作者定（2026-10-28 晚）"忽略历史包袱，重新设计重新部署"——公司名 大米集团、传统央企模板、人名像真人、两个切换器同一棵树、共享口令与共用 tester 令牌保留（作者更正：不是每人独立口令，作者只开一个网页、不改 agent 的 MCP 配置）、预置项目与部门内权限让新员工的 agent 入职即可探索边界。本条登记第一步：OA 去整页刷新 + 卡片标题醒目（提交 3e9a7517，未部署）。
+  - 作者反馈：OA 每 3 秒整页刷新打断操作（关掉下拉、丢滚动位置）；两张卡片标题看不清。
+  - 改法（子代理 Opus 实现，编排者自跑复核【实跑】）：草稿页带版本号 meta，/poll.js 每 3 秒问 GET /tasks/{id}/state（与页面同一套访问判定：404/403），版本变了且用户空闲（无焦点控件、无按住的指针、无选中文本、2 秒内无输入/滚动）才重载一次；2 分钟后降为 10 秒一问；连续 3 次失败（含被重定向到登录页）停。版本号含"本页是否仍在等 TaskGate 答复"，答复窗口关闭后再重载一次，去掉等待语。卡片改名 OA 角色切换（审批用）/ MCP 角色切换（agent 申请与查询用），15px 粗体，OA 卡蓝、MCP 卡绿、各带左色边。
+  - 复核：gofmt -l 空、go build/vet 过、internal/oademo 全包 -count=1 ok（12.8s）；子代理另用 goja 跑脚本 31 个场景（非真浏览器）；变异（去掉版本号里的等待标志）使新测试 FAIL。改动面：internal/oademo 五个文件 + docs/adapters.md:186 一行。
+  - 已知保留：备注文字变化但非空不变版本号（链里 History 长度同时变，可接受）；docs/adapters.md 未记 /state 与 /poll.js 两个端点，待本轮文档统一补。
+  - 线上现状：网关 b0bda3b9…（94361691）、OA 1c47d8b3…（94361691）未动；控制库有 1 张 09:44 finance-admin 的待审批单，作者已定随旧栈作废。第三轮全部产物在 /home/wmm/kb-demo/v3/（组织数据子代理在产）；上线按 down.sh + up.sh 全新拉栈（2026-10-27 实测 3 分钟）。
+- [2026-10-28 23:39 UTC+8] KB1-LOOP-157 第二步：OA 两张身份卡改为同一棵组织树（提交 5e529a07，未部署）；大米集团 124 人组织数据产出（/home/wmm/kb-demo/v3/，不在仓库）。
+  - 组织数据（子代理 Opus 产，编排者复核）：v3/org.yaml 单一出处 → principal-attributes.yaml、principals.json、principal-tokens.json（0600）、oa-extra-users.txt、oa-labels-values.yaml、org-tree.yaml、roster.md；gen-org.py 定种子可重放，check.py 98 项【编排者实跑】全过；属性文件用 internal/principalattr.Load【实跑】读出 display_name/title/oversees；花名册编排者通读。tester 标签令牌（TESTER_MCP_TOKEN）绑给默认测试身份 周雨 zhouyu（财务部会计核算中心会计，2026-07 入职）；原 staff 令牌绑给 高蕾 gaolei（销售部大客户销售中心主任）。子代理按常识与屏蔽表排除了与公众人物同名者（如 李梓萌），非数据库核对。
+  - OA/网关代码（子代理 Opus 实现）：OA_ORG_FILE 指向 oa-org-tree-v1 文件时，OA 卡与 MCP 卡都渲染同一棵可折叠树（公司→条线→部门→中心→人；公司与条线默认展开，部门与中心折叠），/tree.js 提供按姓名/拼音/岗位/部门筛选与回车单选；不可选的人灰显，树上没有的账号或候选人进"其他"；大字行"姓名 · 岗位 · 部门 中心"；未配文件走旧的平铺下拉。网关 whoami 新报 display_name/title/employee_no，acting_as 加 display_name。
+  - 复核【编排者实跑】：gofmt -l 只列原有 3 个 gateway 文件；go build/vet 过；internal/oademo -count=1 ok（15.3s）；带 kb-test-postgres（25500）的 internal/gateway 身份测试 11 个 PASS（无 SKIP）；真实 124 人 org-tree.yaml 经 oademo.LoadOrgTree 加载 ok；子代理在无头 Chrome 跑过 tree.js，截图见暂存区。测试库跑完已停。
+  - 进行中：镜像重建（/home/wmm/logs/kb1/build-157-{gateway,oa}.log，顺序执行，二者都占 3000 端口）；上线准备脚本（v3/build-catalog-v3.py、compose、按入职月生成报表、up-v3.sh、smoke-v3.py）子代理在产。发现待修：build-catalog-v2.py:203/207 写死 `<部门>-admin/-director`、make-compose-next.py 依赖已不存在的注释行、reports/gen-reports.py 不看入职日期（周雨会有入职前的工资条），均在 v3 新脚本里修。
+- [2026-10-29 00:11 UTC+8] KB1-LOOP-157 第三步：大米集团第三轮演示栈全新上线（2026-10-29 00:05 down.sh → 00:09 READY，4 分钟），冒烟 smoke-v3.py 全过。
+  - 镜像：网关 9f9b9639…、OA 3b2e3782…，均出自 62715330（已推 origin/kb-dev，经 NAS 路线）。**自己的错**：先构建后推送，构建器要求 HEAD==origin（docs/agents/environment.md:77），两次空跑退出 1；根因是该查没查（构建前没读构建器前置条件）。失败目录按惯例改名 images/failed-build-*-unpublished-head。
+  - 宿主二进制：source/ 从 51a6caeb 推进到 62715330，build-bin.sh 重建（8 秒）；新 bin-attest 解析完整目录（旧的解析不了 agent_submits/pending_ttl/scope order 三字段，deploy-15x 从未重新认证所以没暴露；子代理起初用剥字段绕过，编排者裁决改为重建二进制、认证真实文件）。
+  - 配置（v3/，不在仓库；备份 v3/backup-20261029T000539/ 含 MANIFEST）：124 主体 principals.json + 属性；compose.demo.yaml（OA_EXTRA_USERS 124 账号全 both、OA_DEFAULT_ACCOUNT=zhouyu、OA_ORG_FILE=/config/org-tree.yaml）；目录 kb-demo-v3-damigroup-v1（审批链按真人：如 finance-admin→huangyumei、vp-rd→chenweidong、general-manager→liuguodong；employee_id 枚举 124）；报表按入职月生成（dept_report.employees 加 hired 列，四张个人视图过滤），schema_digest 由 bafe622c… 变为 55d5ee3d…（表结构变了，预期）。agent 标签 tester → zhouyu（周雨），令牌值不变。控制库全新，旧任务（含 09:44 那张待审批单）随旧栈作废（作者定）。
+  - 冒烟【编排者实跑，exit 0】：shim 24 工具；whoami 周雨/会计/DM20261164、agent_label tester、catalog_version v1；申请财务部内部制度链只有 huangyumei（黄玉梅）一人，OA 批后 ACTIVE、search 命中 5；本人考勤与请假 self_confirm，查询各 6 行、期间恰为 2026-07..2026-12（入职月起）；申请同事邹若琳的考勤 NOT_ELIGIBLE；高蕾（原 staff 令牌）whoami 正常；清理撤销两张单。OA 登录页提示默认身份 zhouyu。
+  - 证据镜像：/mnt/ctg-pto-dev/factgate-evidence/kb-demo-157/（34 个文件，SHA256SUMS 在 NAS 上核过；不含 principal-tokens.json）。冒烟日志待预置项目种完后重跑一次落盘补入。
+  - 欠账：kb-formal-smoke 与 v3 不兼容（令牌文件 {"env"} 标记、写死 sales-staff、机密/绝密探针），本轮验收改用 smoke-v3 + v3/demo-*.py 场景脚本，修 kb-formal-smoke 另立项；docs/adapters.md 未记 /state、/poll.js、OA_ORG_FILE；旧 tester-guide.md 与 kb-demo 下旧脚本（identities.py、approve.py 旧映射、demo-*.py、smoke.py）仍写旧账号，由 v3/ 取代；作者本机 ~/.claude.json 的 factgate 令牌在重建前就已不是任何主体，需作者改为 TESTER_MCP_TOKEN（周雨）或他人令牌。
+  - 进行中：子代理种预置项目（P1-P8）、每日活人脚本、场景脚本移植、新员工入职包。Cloudflare 隧道待种完并换新测试指南后再开。
+- [2026-10-29 00:34 UTC+8] KB1-LOOP-157 第四步（收尾）：预置内容种入、场景脚本移植、入职小册子生成；隧道待作者亲手开；交接 docs/handoff_2026-10-29.md。
+  - 预置（子代理 Opus 产，编排者复核【实跑】list_my_tasks 与控制库计数）：v3/seeded.json 88 项——项目 P1–P6（P5 工程+采购版 NOT_ELIGIBLE：中心主任无 request_reach，改单部门；P6 故意留陈卫东待审批）、6 个子任务、72 张一年期入职授权单（P7 周雨 + P8 其余 71 名员工，各由本部门管理员开单并批）、周雨 3 张本人任务。控制库 ACTIVE 88 / ARCHIVED 32 / AWAITING_APPROVAL 2。daily-life.py 跑过一次（提四批二拒一留一；OA 拒绝表单无理由栏，理由只记日志）。
+  - 场景脚本：demo-personal/center/admin/hr/leader/project/delegated/reports/approver、smoke.py 按角色键移植到 v3/，子代理报全 exit 0；编排者亲跑 demo-personal.py exit 0（本人记录自确认、本人工资条自确认、同事记录 NOT_ELIGIBLE）。子代理一处自己的 bug（幂等重跑覆盖审批人历史）已修并从 approval_events 只读恢复。
+  - 冒烟重跑落盘 v3/smoke-v3-20261029.log（exit 0）；NAS 镜像 kb-demo-157 更新至 54 文件、SHA256SUMS 核过、不含令牌文件。线上 OA 以 zhouyu 登录核过：两棵树 248 个可选项、0 缺人、0"其他"。
+  - 入职小册子 onboarding-{zhouyu,gaolei,lishuhua,chenweidong}.md（令牌与口令只留占位），编排者通读 zhouyu 版。旧 tester-guide.md 作废。
+  - **未完成**：Cloudflare 隧道 `cloudflare-connect.sh start` 被权限策略拦下（External Ingress Tunnel），按 AGENTS.md 不绕过，请作者亲手执行。作者本机 MCP 令牌需作者自改为 TESTER_MCP_TOKEN。daily-life.py 未装定时。
+- [2026-10-29 09:02 UTC+8] KB1-LOOP-157 第五步：第三轮演示设计图（作者 2026-10-29 要求"更新设计图，调用设计工具，讲清系统架构、任务与项目、密级关系，覆盖预置项目与任务、各部门运营生产、新人入职旅程、文档与报表场景、多视角体验"）。
+  - 产物：Design 画布 https://claude.ai/artifact/5z4hCjNoZAUxFyc5vqcGy3（私有，作者自行分享），9 张画板：0 总览、1 系统架构（agent→隧道→网关→五个存储；OA↔网关回调与身份切换）、2 组织架构（124 人全上图）、3 密级关系（五级阶梯、谁能申请、触发层、文档取最高节、报表固定、三条规则）、4 任务与项目（project/child/task/authorization 关系 + 状态机）、5 预置项目地图（P1–P6 + 三环）、6 各部门运营生产场景（12 卡）、7 新人入职旅程（九步）、8 多视角体验路线（六人）。人名、链、状态按 seeded.json/org.yaml 手工抄录，未用脚本生成（画布规范要求逐文件手写）。源文件留档 /home/wmm/kb-demo/v3/design-canvas/。
+  - 未验证：按画布类型规范未做渲染核对；作者看图后若有错位再改。
+- [2026-10-29 09:12 UTC+8] KB1-LOOP-157 第六步：作者定设计图以「演示栈授权关系图」为底（https://claude.ai/artifact/5gpKmsFEa7c7GxtfHmNWDW，第二轮八节页），在其上补第三轮内容并原地更新（Version 8）。
+  - 生成方式：脚本从 v3/org.yaml 与 v3/seeded.json 产出 v3/authmap-v3.html（组织图 124 人、项目表、部门表由数据生成；其余节手写），沿用原页样式与五张原图的结构。十三节：一组织（真人树）、二密级×岗位（取消第二轮的 staff 五级例外，补跨部门资格）、三数据（124 主体、按入职月的报表行数）、四审批链、五任务与项目（真人换入）、六系统架构（新）、七预置项目地图 + 三环（新）、八各部门运营生产场景（新）、九新人入职旅程（新）、十多视角体验路线（新）、十一实跑场景与提示词（按 v3 脚本重写）、十二参数模板（principal_zhouyu 等）、十三一把令牌与身份切换（tester → 周雨，两卡新名）。出处节指向 v3/。
+  - 同日先做的 Design 画布「大米集团演示设计图」（5z4hCjNoZAUxFyc5vqcGy3）保留，作者定以本页为准。
+- [2026-10-29 09:43 UTC+8] KB1-LOOP-157 第七步：作者以王建国试"查我的考勤"，agent 要现建单、等本人确认，作者定"全公司通用的个人数据查询应由管理员提前预制、每个员工都开好"。已种：S1 本人考勤/请假/差旅（内部级）、S2 本人工资条（机密级）各 124 张，S3 本部门制度授权单补给 52 名中层与领导；一年期。控制库 ACTIVE 90 → 390。
+  - 发现（子代理探针【实跑】+ 读代码 internal/gateway/tasks.go、approval_chain.go:248）：代开单的链从开单人部门起排，链上出现本人即拒 APPROVER_NOT_AUTHORIZED，故管理员给自己开单、主任/副总的工资条（链含本人那一层）共 51 张被拒；改由本人 request_data_task（同范围、kb-annual-v1）self_confirm 开通，网关列为 kind=project。其余 249 张按链批完（员工工资条三级：管理员 → 主任 → 副总）。总经理工资条由财务部链批（黄玉梅 → 王志勇 → 王建国），按 TaskGate 所排。
+  - 复核【编排者实跑】：王建国 list_my_tasks 有 S1 授权单、S2 project、S3 授权单；经 S1 查考勤 12 行、经 S2 查工资条 12 行，任务数前后不变（5）；黄玉梅经本人确认的 S1 查 12 行；控制库 ACTIVE 390 / ARCHIVED 36 / AWAITING 2，个人数据与工资条持有人各 124；周雨名下 S1、S2 在（只读查库，因共用令牌当时被作者切给王建国，不以令牌复核）。子代理报：周雨 S1 6 行、S1 查工资条 PRODUCT_NOT_APPROVED（临时切回周雨 10 秒验证后复原为王建国）。
+  - 工具改动（v3/，子代理）：新 seed-personal.py（幂等、记拒绝与计划开单人）；seed-projects.py 重写 seeded.json 时保留 S 项并在令牌被切走时停止；make-onboarding.py 同样守卫并汇总 S 项；四份入职小册子重生成；README 加一条。daily-life.py:248 仍用共用令牌读待办，未改。
+  - **自己的错**：授权关系图第七节的项目表从 Version 8 起一直是空的——生成器把 seeded.json 的 items 当字典，实际是带 key 的列表，item() 全返回 None；根因是生成后没看渲染结果（该查没查）。已修（列表按 key 转字典），Version 10 项目表 6 行齐全；顺带改"入职就有"一环、第九节第 4 步、第十节各视角"已有"与摘要计数（72 张入职制度 + 300 张）。Design 画布未同步此变化，作者定以关系图为准。
+- [2026-10-29 10:43 UTC+8] KB1-LOOP-157 第八步：知识产品只留一个制度库（作者 2026-10-29 定 A 方案），全新拉栈 + 重种。目录 kb-demo-v3-damigroup-v2（sha 81308e14…，10 个关系，schema_digest dd59683a…），10:35 down.sh → 10:39 READY，网关/OA 镜像不变（62715330）。
+  - **自己的错（改口给根因）**：我先告诉作者"只换目录、只重建网关，现有任务全部保留"。子代理读代码后指出并经我核实【读代码】：任务钉着创建时的 catalog_version 与目录 SHA（internal/gateway/query.go:438、:819；callback.go:110），目录改任何一字节，旧任务查询一律 CONFLICT、待批单批不了；另外 stage/ 里目录未声明的 epoch 会让网关拒启（kbpublish/activate.go:164）。根因：该查没查就承诺影响面。已向作者更正，作者改选全新拉栈；记忆 catalog-change-strands-tasks 防再犯。作者今早的测试任务与 P6 旧单随之作废。
+  - 重种【编排者后台实跑，2 分钟】：seed-projects（P1–P8）、seed-personal（S1/S2/S3：issued 249、self 51、refused 51 条 APPROVER_NOT_AUTHORIZED 同上一轮）、smoke-v3 exit 0（一个产品、v2）、verify-onekp（王建国 list_data_products 只见 policy_kb；S3 检索 2 命中）、demo-personal exit 0；控制库 ACTIVE 386 / ARCHIVED 4 / AWAITING 1（P6）；seeded.json 388 项；tester → 周雨。make-onboarding 首跑 exit 1：网关时间戳小数 5 位，Python 3.10 fromisoformat 不认——编排者补零修复后 exit 0。
+  - 脚本（子代理 Opus）：build-catalog-v3.py 改单片段、v2；up-v3.sh 只发布大 epoch；smoke-v3/smoke.py/kb-formal-smoke-v3.sh 单产品；deploy-157-onekp.sh（原地换目录方案，带 ALLOW_STRANDED 门禁，本次未用）；verify-onekp.py；README 记决策。kb-pilot-v1 预算档与 medium 路由仍声明未用。
+  - 文档：授权关系图 Version 11（项目表按重种后数据、第三节注明单产品、第十一节 smoke 行）；Design 画布架构与任务两板改单产品（Version 12）。NAS 镜像 kb-demo-157 更新至 63 文件（含新 catalog.yaml）。Cloudflare 隧道仍待作者亲手开。
+- [2026-10-29 14:20 UTC+8] KB1-LOOP-157 第九步：NAS 迁移尝试中止（作者 2026-10-29 14:1x："NAS 才 10G 内存……要不算了吧"）；本机重启后栈重新拉起。
+  - 迁移准备【实跑】：NAS DS423+（J4125 仅 SSE4.2、10 GB、Docker 24.0.2，docker 要口令 sudo，口令按作者指示取自 auth 仓库 secrets/nas/nas.env，只经 stdin 交给 sudo -S，未落盘、未打印；免密 sudoers 规则被权限策略拦下，未绕）。已传并校验 7 个镜像 tar（加载后 ID 变化但层摘要与本机一致，已打标签）、源码/索引/配置、模型与 venv/PDF（同步中止）；作者自己 scp 了 .env 与 tunnel.token。方案（未执行）：pg_dump 克隆两库、原件容器重传、cloudflared 容器。未做的 go/no-go：bge-m3 在无 AVX CPU 上的 torch 推理。
+  - 中止后清理【实跑】：NAS 上 /volume1/docker/factgate-demo 整目录（含作者复制的 .env 与 tunnel.token）与我加载的 7 个镜像已删，剩余 taskgate-* 镜像是 2026-07 的旧物未动；本机 nas-demo-bundle 已删；子代理已停。
+  - 本机：机器 ~13:56 重启（uptime 22 min），容器全部 Exited、数据卷完好；按 start.sh 步骤 compose start 四个数据服务 → OA → 网关 → shim，14:19 全部 healthy；王建国 whoami 正常（v2 目录）、控制库 ACTIVE 386 / AWAITING 1、tester → 周雨 不变，无需重种。**自己的错**：pkill -f 模式匹配到自己的 shell（exit 144），违反查证做法第 6 条；无后果。
+  - 仍待作者：Cloudflare 隧道 `cloudflare-connect.sh start` 第二次被权限策略拦下（External Ingress Tunnel），作者亲手执行；重启后栈不自启，可考虑 Windows 计划任务在登录时跑 start.sh（未做）。
+- [2026-10-29 14:21 UTC+8] KB1-LOOP-157 第十步：公网隧道由作者 14:20 亲手启动，脚本误报"connector exited"。实查【实跑】：连接器 pid 32705 在跑、日志 14:20:28 注册 4 条连接、公网 OA 200、MCP 401（无令牌的正常应答）。根因：cloudflare-connect.sh 的 running() 用 grep 查 /proc/<pid>/cmdline，本机 grep 是 ugrep 包装、对 /proc 内容漏匹配（记忆 tool-shell-grep-wrapper 已记同类）。改为 bash 模式匹配（备份 cloudflare-connect.sh.before-157），status 现报 running。本机栈与隧道均在线，同事可按原地址测试。
+- [2026-10-29 14:45 UTC+8] KB1-LOOP-157 第十一步：按岗位的常备授权（作者 14:33 以张桂兰问"看我分管的销售、市场等部门今年的月度 KPI"仍要建单自确认，指出"设计图说已预制"）。已种 S4/S5/S6 共 52 张一年期（全部 TaskGate 判 self_confirm，本人在 OA 确认，无一被拒）：S4 三位副总分管四部门 + 总经理全集团的月度 KPI 与预算执行（秘密级）；S5 12 主任 + 12 管理员本部门同上；S6 24 位中心主任本中心四人的考勤、请假、差旅。控制库 ACTIVE 386 → 438。
+  - 复核【编排者实跑，张桂兰自己的令牌】：list_my_tasks 有 S4；KPI 按部门各 96 行（marketing/operations/sales/support）、预算执行 4 行，查询前后任务数不变（5）。子代理另验刘国栋 12 部门、黄玉梅仅财务部、白洁琼本中心恰 4 人、黄玉梅 S5 查考勤 PRODUCT_NOT_APPROVED、重跑全跳过。
+  - 发现：query_sql 不接受位置序号 `ORDER BY 1,2`（SQL_NOT_LOWERABLE，只接受选中列或聚合别名），agent 写 SQL 要用列名；记入指南。
+  - 作者 14:33 自建的那张 KPI 日常任务（task_8f656acd…）仍 AWAITING_APPROVAL，与 S4 目标文字不同未合并，72 小时后自动过期；tester 标签当时指向张桂兰（作者 14:30 切的），未动。make-onboarding 因标签不指向周雨被守卫挡下，小册子待标签切回后重生成。
+  - 关系图 Version 12：三环"入职就有"补岗位常备授权，各视角"已有"更新；生成器样式改为从 v3 目录读（暂存区随重启清空，记忆 author-scripts-location 同类）。
+- [2026-10-29 16:41 UTC+8] KB1-LOOP-157 第十二步：作者 15:01 以张桂兰再测，agent 仍直接 request_data_task 建单等 OA（没先 list_my_tasks）。裁决：靠提示词不可靠，网关侧"复用先于建单"——提交 55e431eb（已推 origin）：环境开关 GATEWAY_REUSE_COVERING_TASK（缺省关，正式轮不变；不加目录键以免作废已有任务），开时 request_data_task 先找申请人名下生效中、未到期、产品与列全批准、每个范围维度闭包后为超集、且按 query_sql 同样检查仍可查的任务，取到期最晚者原样返回（reused_existing_task、reuse_note、approval_chain 空），不建行不建草稿，记审计 TASK_REQUEST_REUSED_EXISTING；子任务/委托/代开/下载不复用；开关开时两个工具描述各加一句。
+  - 复核【编排者实跑】：gofmt 无新增、build/vet 过、带 kb-test-postgres 的 internal/gateway -run 'Reuse|Request' 28 个 PASS（子代理另报全包 ok 63.5s、14 处变异各至少一测 FAIL）；冻结件零 diff。
+  - 部署【实跑】：网关镜像 812c6133…（55e431eb，build-157r-gateway.log），compose.demo.yaml 网关环境加开关（备份 .before-157-reuse），只重建网关容器 16:39，OA 与目录未动、已有任务全部保留；网关日志 INFO 确认开关。verify-reuse.py（张桂兰自己的令牌）：覆盖请求 → reused=True、ACTIVE、任务数 6→6、查询 4 部门各 96 行；多一个财务部的更宽请求 → 新建 AWAITING_APPROVAL（已撤销）。demo-center.py 过；demo-personal.py A/B 因复用改变预期而 FAIL（行为正确、脚本预期过时），子代理正按"覆盖即复用、未覆盖走链"改全部场景脚本并重跑。
+  - 已知限制：被复用的任务曝光额度耗尽时不归档，agent 会一直拿到同一张耗尽的任务，须 complete/revoke 后才能新建。关系图 Version 13 第四节加"复用先于建单"；入职小册子模板加"agent 使用要点"（含 ORDER BY 要用列名）。
+- [2026-10-29 17:03 UTC+8] KB1-LOOP-157 第十三步：场景脚本适配"复用先于建单"；两处事故记录。
+  - 场景脚本（子代理 Opus 改、跑，编排者复核控制库计数）：identities.py 加 is_reused/is_new/acts_as/all_tasks，Session 把复用返回的任务单独记录、绝不撤销、不送 OA，令牌代表他人时拒绝请求；十个 demo-*.py 按"要展示审批路径的步骤把申请加宽到常备授权不覆盖（加 document_type 列、加产品、加秘密级），只看数据的步骤接受复用"改写，全部 exit 0（demo-personal 新增 D 步演示复用：任务数 18→18）；smoke.py 经 shim 加 whoami 守卫；smoke-v3 c/d 步改写但未实跑（标签指向张桂兰时按设计在 a 步停）。daily-life.py 同样加宽，16:58 实跑 exit 0，留下 1 张待办给张丽娟。README 加"复用规则对脚本的影响"一节。
+  - **自己的错 1**：16:39 我用旧版 demo-personal.py 做部署后冒烟，脚本把复用返回的邹若琳 S1/S2 当自建单在清理时撤销（审计：TASK_REQUEST_REUSED_EXISTING → ARCHIVED "demo done"）。根因：先部署了改变语义的开关，再跑未适配的脚本（该查没查）。子代理 16:47 以 seed-personal.py --subjects zouruolin --only S1,S2 恢复（新 task_4e61b013…、task_910380b6…）。教训：复用返回的任务是别人开的常备授权，任何"清理"都不得撤销它；已写进 identities.Session。
+  - **事故 2（发现）**：P6 的 OA 草稿 404——OA 草稿只在内存，14:19 重启后 OA 容器重建，重启前的待审批草稿全部丢失，网关里任务卡在 AWAITING_APPROVAL 直到 72h 过期。处理：撤销旧 P6（task_d21b3e89…），seed-projects.py 重建为 task_bceefc55…（田立军、陈颖、张雪松已批，正等陈卫东）。欠账：OA 草稿应持久化（卷或控制库），否则任何 OA 重启都要重做待批单；记忆 oa-drafts-lost-on-restart。
+  - 控制库现状：ACTIVE 441 / ARCHIVED 75 / AWAITING 2（P6 新单 + 活人脚本留给张丽娟的一张）。tester 标签仍指向张桂兰（作者切的），周雨相关的种子/小册子待作者切回后再跑。
+- [2026-10-30 08:23 UTC+8] KB1-LOOP-157 第十四步：2026-10-30 机器再次重启，作者"启动mcp"。按 start.sh 顺序 compose start 数据服务 → OA → 网关 → shim，全部 healthy，8083 监听。OA 草稿再次丢失（P6 与活人脚本留的一张），撤销后 seed-projects.py 重建 P6 为 task_c3a4d936…（正等陈卫东）；控制库 ACTIVE 441 / ARCHIVED 77 / AWAITING 1。隧道仍需作者亲手 start。建议作者加 Windows 登录计划任务跑 start.sh 免去每次手工。
+- [2026-10-30 08:46 UTC+8] KB1-LOOP-157 第十五步：设计稿（作者已把页面改名"大米集团factgate 演示"）按作者要求把"任务与项目"提到第一节，加"项目 vs 任务 vs 授权单 vs 子任务"对照表并如实写明：两档预算的曝光额度、查询上限、超时完全相同，只差 task_ttl（8760h 对 24h）【读 catalog.yaml】；子任务可挂在任何本人生效根任务下，不要求父任务是项目【读 tasks.go ownedTask】；批准后四种任务的用法一样，不再需要任何确认。Version 15；原页面标题被作者改名，生成器已同步。
+  - **发现并修复**：seeded.json 丢了 72 条 P7/P8 索引（任务本身在控制库仍 ACTIVE）。根因：seed-projects.py 的 save() 只写本次处理过的条目加 S 项，今早为重建 P6 运行时在 P7 前按令牌守卫停下，于是覆盖掉了未处理的 P7/P8；关系图因此一度显示"0 张入职授权单"（Version 14 由作者侧改名触发的版本，内容是我 Version 13 的）。修法：save() 改为合并（保留磁盘上本次未写的全部键），72 条从控制库重建回索引（seeded: rebuilt-from-db），seeded.json 头部 catalog_version 改 v2。
+- [2026-10-30 09:12 UTC+8] KB1-LOOP-157 第十六步：作者 2026-10-30 定两条：① "查看 KPI 应该是项目"；② 设计稿以员工与领导视角为主，"授权单"改叫"个人看板"，管理员配置挪到末尾。
+  - ①（子代理 Opus 执行，编排者以张桂兰令牌复核【实跑】）：S4/S5 的 28 张"经营数据查询"撤销后按真实项目重建为 27 个年度经营分析项目（三位副总的条线、总经理的全集团、23 位主任与管理员的本部门；目标写明按季度对照月度 KPI 与预算执行），全部 self_confirm 本人确认；黄玉梅不另立，由她负责的 P1 覆盖（编排者裁决，避免新申请被复用成 P1 而丢项目），seed-roles.py 新增 covered 结果并先撤旧再建新（否则复用规则会把新申请吃掉）。张桂兰"看我分管部门 KPI"复用新项目、任务数 10→10；黄玉梅同样请求复用 P1。控制库 ACTIVE 440 / ARCHIVED 105 / AWAITING 1。
+  - ②：授权关系图重排为 一 两样东西（个人看板与项目）、二 员工怎么用、三 部门领导怎么用（均带提示词表）、四 实跑场景、五 参数模板、六至十五原各节、末尾不编号"管理员怎么配置个人看板与项目"；全文 授权单→个人看板（接口 kind 仍为 authorization，模板注明）；入职小册子模板同改。Version 17。Design 画布未同步（作者定以本页为准）。
+  - 待办：tester 标签被作者切到白洁琼，make-onboarding 守卫停；切回周雨后重生成四份小册子。demo-leader.py 打印文字仍写"S4（分管条线经营数据）"，行为不受影响。
+- [2026-11-02 10:44 UTC+8] KB1-LOOP-157 第十七步：2026-11-02 作者"启动mcp"，演示栈与 8083 恢复；P6 已过期并重建；公网隧道未启动，等作者亲手 start。
+  - 现状【实跑】：今日开机 09:36、09:41、10:31，上一次开机 10-31 10:50；kbdemo 全部容器 Exited(255) 且 docker 显示 2 days ago，factgate MCP 报 ECONNREFUSED。按 start.sh 顺序 compose start 数据服务 → OA → 网关 → shim，10:39 六个容器 healthy，8082/8083/8092/25434/28090/29000 监听。
+  - 复核【实跑】：用 ~/.claude.json 里的真实配置直连 8083，initialize 200（taskbound-agent-data-gateway 2.1.0），tools/list 200、24 个工具。本会话启动时已连接失败，会话内 factgate 工具仍不可用，需作者重连一次。
+  - 栈已停约两天【推断，来自 docker 的 2 days ago 与开机记录，无停止时刻的直接证据】：约在 10-31 10:30 前后，此后未被拉起；停止原因未定。
+  - P6【实跑】：旧 task_c3a4d936 72h 到期后，网关 10:39 起来时归档为 expired，AWAITING 归 0，无需撤销。seed-projects.py --only P6 重建为 task_ce8edb55…，经田立军、陈颖、张雪松三级 OA 审批后停在陈卫东。seeded.json 与备份 seeded.json.before-1102 逐键比对：437 条未丢，仅 P6 变；脚本打印的 85 条不含 S 项，不是丢失。控制库 ACTIVE 434 / ARCHIVED 112 / AWAITING_APPROVAL 1。
+  - 决定：未整段跑 start.sh，末尾隧道步骤跳过（此前两次被权限策略拦下，台账定为作者亲手执行）；ps 复核无 cloudflared 进程。放弃：替作者启动对外入口。
+  - 仍待作者：cloudflare-connect.sh start；开机自启 start.sh 的计划任务仍未做，今日这类停机还会复现。
+- [2026-11-02 10:44 UTC+8] KB1-LOOP-157 第十八步：NAS 上 git 不可用，kb-dev 推不出去；ed17a2c6 及本条只在本地，需作者恢复。
+  - 现象【实跑】：git push nas kb-dev 报 sh: /opt/bin/git-receive-pack: No such file or directory。NAS uptime 2 天 11 小时（约 10-30 23:19 起）；非登录与 bash -lc 下均无 git，/opt/bin 不存在，ls /opt 现为 Permission denied，/volume1 深度 4 内搜不到 git-receive-pack，也无 Entware 目录。
+  - 原因未定，候选包括：NAS 重启后 /opt 未恢复挂载或权限被改、Entware 被移除或升级清掉。本机无法区分，恢复需要 NAS root，未尝试。
+  - 影响：push 路线（docs/agents/environment.md:87）不可用；构建器要求 HEAD==origin，改代码后的镜像构建也会被挡。ledger-only 提交不影响运行中的栈。
+  - 改口：我在对话里一度说"推错了远端，应推 origin"。根因：只看了分支的跟踪配置，该查 environment.md:87 没查。nas 才是规定路线，origin 走 https 无凭证，随后那次失败不说明任何问题。
+- [2026-11-03 18:23 UTC+8] KB1-LOOP-157 第十九步：专利材料（作者 2026-11-03 定：按「未公开」口径整理，不考虑 arXiv/Zenodo/GitHub 公开状态；编排者已说明中国绝对新颖性与第 24 条宽限期的理解【读条文记忆，非法律意见】，并查得 arXiv 2607.00751 首发 2026-07-01、Zenodo v3 2026-10-18 仅证据包、GitHub 仓库匿名可访问；法域与时效留代理人核）。
+  - docs/patent_material_2026-10.md 补机制 11 覆盖即复用（reuse_task.go 行号、tasks.go:280 钩子、测试与变异）与 12 按岗位预配（配置层编排，演示侧脚本），C 节补两条限制，E 节记作者裁决。
+  - docs/patent_disclosure_2026-11.md 技术交底书 v1：名称、领域、背景（RBAC/ABAC、工单审批、在先论文仅作背景）、要解决的问题、技术方案十步、机制要点表、有益效果（只写实跑观察）、具体实施方式（大米集团：目录与属性、审批链推导六例、复用判定五步、预配编排、审批端与身份）、附图说明（设计稿各节）、术语、权利要求骨架十项、代码与证据出处、已知限制。未审。
+  - 论文：主稿自 10-18 未动，等作者审四段移出内容；演示改动按作者定不进论文，正式轮零 diff。可选：补充材料加半页治理层部署叙述，待作者定。
+- [2026-11-03 18:40 UTC+8] KB1-LOOP-157 第二十步：交底书改按作者的 CBA 交底书模板（NAS PTO/2026/5/专利 cba/2020526 CBA专利交底书_优化版）重写为 v2：九大节（初拟名称、名词解释 20 条、技术领域、背景技术含现有方案/对比文件分析/技术问题/主要解决的问题、发明目的含流程步骤/问题/效果、技术方案与实施例三个、技术要点六条各含技术手段/区别现有技术/有益效果与协同关系、附图表六图、其他含规范表述/新颖性创造性要点/保护范围建议：方法独立项 + 从属 8 项 + 网关与系统独立项），末附提案信息表。对比文件四件取自公开检索摘要（CN116579007A 细粒度数据访问权限、CN109165856A 审批链动态配置、CN120633639A 大模型智能体系统、CN120430337A 私有化大模型应用），未核权利要求原文与法律状态，交代理人核。
+  - 导出：本机无 pandoc/python-docx，用自写 md→html + Windows Word COM 存为 docx 与 PDF；放 Windows 桌面、~/logs/kb1/patent-out、NAS PTO/2026/11/专利 factgate/（docx、pdf、md）。素材页 E 节指向 v2。
+  - 推送仍被 NAS git 缺失挡住，提交只在本地。

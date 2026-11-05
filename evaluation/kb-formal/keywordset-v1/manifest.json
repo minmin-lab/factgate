@@ -1,0 +1,26 @@
+{
+ "version": "taskgate-kb-keywordset-v1",
+ "generator": "evaluation/cmd/kb-keywordset",
+ "rules": [
+  "anchor: for each E-KB4 target document, segment it with the publication's function (section-window-v1, window_chars), take chunk 0, and from its rune midpoint forward take the first window of 4 runes none of which is whitespace or punctuation (if none, the first such window from the start); the target is any chunk of the document",
+  "frequent: the 100 two-rune strings of CJK unified ideographs (U+4E00..U+9FFF) contained in the most chunks of the source corpus, ties by code points",
+  "absent: 4-rune strings drawn uniformly from U+4E00..U+9FFF with PCG(20261018, 11), keeping the first 50 that occur in no chunk of any listed corpus"
+ ],
+ "source_corpus_sha256": "2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62",
+ "absent_checked_corpora_sha256": [
+  "2180645dcdfadc24ed8f9c77692b41cccbbdce05d9a242fc4156997dae964f62",
+  "785ed1fdd60988be511a19d827ae7a46de7ba271587c73f1de620a06b2742481"
+ ],
+ "queryset_targets_sha256": "b6ed7080260900126f0a8215a5d587cdc33e9210d6f8c4ed79e8ddcd6d9251ac",
+ "window_chars": 800,
+ "absent_seed": [
+  20261018,
+  11
+ ],
+ "counts": {
+  "absent": 50,
+  "anchor": 300,
+  "frequent": 100
+ },
+ "keywords_sha256": "90eed4d5eca5ec8e9b338b659d4373c402ccae09788de065dfb98aaa28e5d083"
+}

@@ -1,0 +1,122 @@
+{
+ "version": "taskgate-kb-formal-profile-registry-v1",
+ "profiles": [
+  {
+   "name": "kb-20k-large",
+   "epoch": "policy-kb-2026-10-bge-20k",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb3-96k"
+   ],
+   "catalog": "kb-20k-large.catalog.yaml",
+   "catalog_sha256": "c5c7b40e6b75c514ddf6a79c03f1efb1c1a6e13175cde70a4beffe82a0f0ef22",
+   "principal_attributes": "kb-20k-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "eda9fe01b4adf477f0cd08ce21413b8aaf2d423140bf83e10ada56dfc72662a0",
+   "schema_digest": "67cbe85d3850147a192d6dc4990bc77a39ba4310dba052d0d0f4087efc2a2fa7",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-20kkw-large",
+   "epoch": "policy-kb-2026-10-bge-20kkw",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb8-96k"
+   ],
+   "catalog": "kb-20kkw-large.catalog.yaml",
+   "catalog_sha256": "0584f19f3754b27aa4bb0e90edf46e2228f9033c601c66253b9beb4cd56f7940",
+   "principal_attributes": "kb-20kkw-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "6067be5902be8bb14245d327ea816c7646ab853d7c72ab86605b86690912830a",
+   "schema_digest": "c73cf04069a61131b905dca313adf3b3f9a0abcddfb16efe29ceb7f5dfb1016f",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2-large",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb3-48k",
+    "ekb4"
+   ],
+   "catalog": "kb-v2-large.catalog.yaml",
+   "catalog_sha256": "3ac8ad92abb4eaa8078a6e84bbc6e40be384032f869295d895cf493a95df5972",
+   "principal_attributes": "kb-v2-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb1",
+    "ekb2a",
+    "ekb2b",
+    "ekb5-document"
+   ],
+   "catalog": "kb-v2-pilot.catalog.yaml",
+   "catalog_sha256": "4579aa62eaf3b8c0c9bc5d818718ee8898ff40ae310ac65fd4da171cc53db409",
+   "principal_attributes": "kb-v2-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "94f27b10797d98a29f109699601dfa5efbd34e80290212d7baa0d3c3b710c73b",
+   "kb_publication_sha256": "82748a3ea5afdf9194ce45e5d478cb9c6df7d0a1ec82a0f6a58459405bc27de7",
+   "schema_digest": "90765b6eee529e56ce8a563b0f707556fc5e1fbe324fa1fb788d5f60daa06dfc",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 60
+  },
+  {
+   "name": "kb-v2c-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2c",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb5-collection"
+   ],
+   "catalog": "kb-v2c-pilot.catalog.yaml",
+   "catalog_sha256": "84ea9a07c726a0169b560b270245d9e0998d60833b8246de75145f307ce3103d",
+   "principal_attributes": "kb-v2c-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "427e78a137d82fd7f533ba710dbf88af0613abc12421858d4f18926b988c03f8",
+   "schema_digest": "873339d4250cba11a78565971c65797a799646b58ea54e7238ba391bff298fc8",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2kw-large",
+   "epoch": "policy-kb-2026-10-bge-v2kw",
+   "budget_profile": "kb-large-v1",
+   "experiments": [
+    "ekb6",
+    "ekb8-48k"
+   ],
+   "catalog": "kb-v2kw-large.catalog.yaml",
+   "catalog_sha256": "4a6d4e53ad552fa36095b15916f9a0419c564cbaed4dd6ddcdfe5b3abc944e15",
+   "principal_attributes": "kb-v2kw-large.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
+   "schema_digest": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  },
+  {
+   "name": "kb-v2kw-pilot",
+   "epoch": "policy-kb-2026-10-bge-v2kw",
+   "budget_profile": "kb-pilot-v1",
+   "experiments": [
+    "ekb7"
+   ],
+   "catalog": "kb-v2kw-pilot.catalog.yaml",
+   "catalog_sha256": "7eb83a64df91878245d6fbe40b39da4c74d23132f7194b104f823ee24d16b87f",
+   "principal_attributes": "kb-v2kw-pilot.principal-attributes.yaml",
+   "principal_attributes_sha256": "cc8a5d220ef283b7b3deab332ae85f83663fc20c599b056907587d6e23c58d41",
+   "kb_publication_sha256": "b95be2e524e745e917c74513957fe322a26ca30faa4d62bbf10dedb942048a3b",
+   "schema_digest": "1e4ba27b1f8a4bcb4bc3a752ddfaac702b4b63a6eb6cfbdaec7d75cb28c93bc8",
+   "schema_digest_attested": true,
+   "eligibility_subjects": 0
+  }
+ ]
+}

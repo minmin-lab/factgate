@@ -59,6 +59,25 @@ type DraftRequest struct {
 	ManifestDigest string                  `json:"manifest_digest"`
 	ApprovalMode   string                  `json:"approval_mode"`
 	Approver       string                  `json:"approver,omitempty"`
+	// IssuedBy is the subject who issued the task for its human subject and
+	// may submit the draft in their place (KB1-LOOP-147); empty otherwise.
+	IssuedBy string `json:"issued_by,omitempty"`
+	// MemberConfirm marks a child task delegated to another member's agent
+	// (KB1-LOOP-148): Approver is that member, who may also submit the draft;
+	// the manifest's human subject stays the parent's. False otherwise.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
+	// ParentExpiresAt is the parent grant's expiry of a delegated task. A
+	// grant is re-issued at decision time with the manifest's TTL, so an
+	// approver must shorten the TTL to what the parent has left when the
+	// decision comes later than the request; the OA does so and decides
+	// "narrowed" (KB1-LOOP-147). Nil for a root task.
+	ParentExpiresAt *time.Time `json:"parent_expires_at,omitempty"`
+	// Submitted marks a draft the agent already submitted for its human
+	// subject (KB1-LOOP-149; the Catalog's delegated_authorization
+	// agent_submits): the task is AWAITING_APPROVAL from its creation, so
+	// the OA creates the draft pending, offers no submission and sends no
+	// submitted callback. False otherwise.
+	Submitted bool `json:"submitted,omitempty"`
 }
 
 // CanonicalJSON implements the JSON Canonicalization Scheme in RFC 8785 for

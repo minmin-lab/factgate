@@ -1,0 +1,75 @@
+# A small organization tree for the OA tests (orgtree_test.go): one
+# company, two business lines, three departments of two centers each,
+# twenty people. Group labels are unique, so a test can find a person's
+# group by its <summary>.
+version: oa-org-tree-v1
+company: 大米集团
+root:
+  kind: group
+  label: 大米集团
+  code: company
+  children:
+  - {kind: person, subject: liuguodong, name: 刘国栋, title: 总经理, role_label: 总经理, department: finance, center: finance-a}
+  - kind: group
+    label: 管理线（副总经理 王建国）
+    code: vp-admin
+    children:
+    - {kind: person, subject: wangjianguo, name: 王建国, title: 副总经理, role_label: 副总经理, department: finance, center: finance-a}
+    - kind: group
+      label: 财务部
+      code: finance
+      children:
+      - {kind: person, subject: zhaomin, name: 赵敏, title: 财务部主任, role_label: 部门主任, department: finance}
+      - {kind: person, subject: qianli, name: 钱丽, title: 财务部管理员, role_label: 部门管理员, department: finance}
+      - kind: group
+        label: 会计核算中心
+        code: finance-a
+        children:
+        - {kind: person, subject: sunhao, name: 孙浩, role_label: 中心主任, department: finance, center: finance-a}
+        - {kind: person, subject: zhouyan, name: 周燕, title: 会计, role_label: 员工, department: finance, center: finance-a}
+      - kind: group
+        label: 资金管理中心
+        code: finance-b
+        children:
+        - {kind: person, subject: wuqiang, name: 吴强, role_label: 中心主任, department: finance, center: finance-b}
+        - {kind: person, subject: zhengjie, name: 郑洁, title: 出纳, role_label: 员工, department: finance, center: finance-b}
+    - kind: group
+      label: 人力资源部
+      code: hr
+      children:
+      - {kind: person, subject: fengtao, name: 冯涛, title: 人力资源部主任, role_label: 部门主任, department: hr}
+      - kind: group
+        label: 招聘中心
+        code: hr-a
+        children:
+        - {kind: person, subject: chenjing, name: 陈静, role_label: 中心主任, department: hr, center: hr-a}
+        - {kind: person, subject: chuxin, name: 褚欣, title: 招聘专员, role_label: 员工, department: hr, center: hr-a}
+      - kind: group
+        label: 薪酬中心
+        code: hr-b
+        children:
+        - {kind: person, subject: weilan, name: 卫兰, role_label: 中心主任, department: hr, center: hr-b}
+        - {kind: person, subject: jiangpeng, name: 蒋鹏, title: 薪酬专员, role_label: 员工, department: hr, center: hr-b}
+  - kind: group
+    label: 业务线（副总经理 李明）
+    code: vp-business
+    children:
+    - {kind: person, subject: liming, name: 李明, title: 副总经理, role_label: 副总经理, department: sales, center: sales-a}
+    - kind: group
+      label: 销售部
+      code: sales
+      children:
+      - {kind: person, subject: shenyu, name: 沈宇, title: 销售部主任, role_label: 部门主任, department: sales}
+      - {kind: person, subject: hanmei, name: 韩梅, title: 销售部管理员, role_label: 部门管理员, department: sales}
+      - kind: group
+        label: 华东销售中心
+        code: sales-a
+        children:
+        - {kind: person, subject: yangfan, name: 杨帆, role_label: 中心主任, department: sales, center: sales-a}
+        - {kind: person, subject: zhuli, name: 朱莉, title: 销售代表, role_label: 员工, department: sales, center: sales-a}
+      - kind: group
+        label: 华南销售中心
+        code: sales-b
+        children:
+        - {kind: person, subject: qinlei, name: 秦磊, role_label: 中心主任, department: sales, center: sales-b}
+        - {kind: person, subject: youna, name: 尤娜, title: 销售代表, role_label: 员工, department: sales, center: sales-b}

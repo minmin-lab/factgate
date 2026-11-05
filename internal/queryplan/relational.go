@@ -888,6 +888,12 @@ func compileRelationalVisibleOrder(plan QueryPlan, fields map[string]relationalF
 	return " ORDER BY " + strings.Join(parts, ", "), nil
 }
 
+// RelationalOutputAlias is the opaque output alias a relational compilation
+// gives the projected column id (role.column). It is exported for the
+// retrieval preparation, which wraps a compiled statement and must name its
+// columns without parsing the SQL text.
+func RelationalOutputAlias(id string) string { return relationalOutputAlias(id) }
+
 func relationalOutputAlias(id string) string {
 	digest := sha256.Sum256([]byte("taskgate-relational-output\x00" + id))
 	return "tg_o_" + hex.EncodeToString(digest[:8])

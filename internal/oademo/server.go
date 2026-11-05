@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -46,10 +47,55 @@ type Config struct {
 	PublicBaseURL  string
 	AlicePassword  string
 	BobPassword    string
-	HTTPClient     *http.Client
-	Logger         *slog.Logger
-	Clock          func() time.Time
-	ReceiptSigner  approval.ReceiptSigner
+	// DanaPassword, when set, adds dana as a second approver (for example the
+	// approver a Catalog routes leadership-classified requests to). Each
+	// approver sees and decides only the drafts that name them.
+	DanaPassword string
+	// ExtraUsers adds further demo accounts (for example a colleague's own
+	// requester account, or the directors and leaders of an approval chain);
+	// names must not collide with the built-in users.
+	ExtraUsers []ExtraUser
+	// OmitBuiltinUsers leaves out alice, bob and dana, so the OA offers only
+	// ExtraUsers (the demo stack's role accounts, KB1-LOOP-144); they must then
+	// include a requester and an approver. The formal round keeps the built-in
+	// users.
+	OmitBuiltinUsers bool
+	// AllowSwitch offers a logged-in user a switch to any other configured
+	// account without a password (the shared-password demo mode only).
+	AllowSwitch bool
+	// DefaultAccount is the identity a password-only login starts as; empty
+	// means the first requester in switcher order.
+	DefaultAccount string
+	// AgentIdentityURL is TaskGate's agent-identity endpoint (KB1-LOOP-151,
+	// agent_identity.go). With AllowSwitch the navigation gains a second,
+	// independent card that binds the testers' shared agent token, by label,
+	// to a principal. Empty leaves the card out.
+	AgentIdentityURL string
+	// AgentIdentityLabel is the label of that shared token. Empty means the
+	// first, in label order, that TaskGate lists; a label TaskGate does not
+	// list is said so on the page, with no control. It does nothing without
+	// the URL.
+	AgentIdentityLabel string
+	// Labels are display names for Catalog identifiers (pages.go).
+	Labels Labels
+	// OrgTree, when set, is the organization both identity cards pick from
+	// (orgtree.go) instead of their flat <select>, and names the current
+	// person on each card's big line. Nil keeps the flat switchers.
+	OrgTree       *OrgTree
+	HTTPClient    *http.Client
+	Logger        *slog.Logger
+	Clock         func() time.Time
+	ReceiptSigner approval.ReceiptSigner
+}
+
+// ExtraUser is one configured demo account.
+type ExtraUser struct {
+	Name     string
+	Role     string // requester, approver, or both
+	Password string
+	// DisplayName, when set, is shown instead of the name (for example
+	// "财务部主任"), so a tester sees who holds which authority.
+	DisplayName string
 }
 
 type Server struct {
@@ -58,27 +104,110 @@ type Server struct {
 	mu        sync.RWMutex
 	drafts    map[string]*Draft
 	templates *template.Template
+	// orgPeople indexes Config.OrgTree's persons by subject (nil without it).
+	orgPeople map[string]orgPerson
 }
 
 type user struct {
-	Name         string
-	Role         string
+	Name         string // display name
+	Role         string // requester, approver, or both
+	CanRequest   bool
+	CanApprove   bool
 	PasswordHash []byte
+}
+
+func capabilities(role string) (canRequest, canApprove, ok bool) {
+	switch role {
+	case "requester":
+		return true, false, true
+	case "approver":
+		return false, true, true
+	case "both":
+		return true, true, true
+	}
+	return false, false, false
 }
 
 type DraftRequest = approval.DraftRequest
 
 type Draft struct {
-	ID              string                           `json:"id"`
-	Manifest        approval.AuthorizationManifestV1 `json:"authorization_manifest"`
-	ManifestDigest  string                           `json:"manifest_digest"`
-	ApprovalMode    string                           `json:"approval_mode"`
-	Approver        string                           `json:"approver,omitempty"`
-	ApprovedGrant   *approval.TaskGrantCoreV1        `json:"approved_grant,omitempty"`
-	ApprovalReceipt *approval.ApprovalReceiptV1      `json:"approval_receipt,omitempty"`
-	State           string                           `json:"state"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       time.Time                        `json:"updated_at"`
+	ID             string                           `json:"id"`
+	Manifest       approval.AuthorizationManifestV1 `json:"authorization_manifest"`
+	ManifestDigest string                           `json:"manifest_digest"`
+	ApprovalMode   string                           `json:"approval_mode"`
+	Approver       string                           `json:"approver,omitempty"`
+	// IssuedBy is the administrator who issued the task for its human
+	// subject (KB1-LOOP-147); they may submit the draft in their place.
+	IssuedBy string `json:"issued_by,omitempty"`
+	// MemberConfirm marks a child task delegated to a project member
+	// (KB1-LOOP-148): Approver is that member, who submits and confirms it;
+	// the manifest's human subject stays the project's owner.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
+	// ParentExpiresAt bounds a delegated task's grant: a decision later than
+	// the request shortens the TTL to what the parent has left.
+	ParentExpiresAt *time.Time `json:"parent_expires_at,omitempty"`
+	// AgentSubmitted marks a draft the agent submitted for its human subject
+	// (KB1-LOOP-149; DraftRequest.Submitted): it is created pending, offers
+	// no submission, and no submitted callback is sent for it.
+	AgentSubmitted  bool                        `json:"agent_submitted,omitempty"`
+	ApprovedGrant   *approval.TaskGrantCoreV1   `json:"approved_grant,omitempty"`
+	ApprovalReceipt *approval.ApprovalReceiptV1 `json:"approval_receipt,omitempty"`
+	State           string                      `json:"state"`
+	// History lists the decisions on the draft, oldest first. In an approval
+	// chain (KB1-LOOP-141) TaskGate answers each approval with the next
+	// approver; the draft is then reassigned to them and Approver is always
+	// the one who decides now.
+	History []DraftDecision `json:"history,omitempty"`
+	// Note is what TaskGate answered the last callback with when it did not
+	// simply take it: the next approver, why no grant was issued, or why the
+	// callback was refused.
+	Note string `json:"note,omitempty"`
+	// Withdrawal is TaskGate's notice that it archived the task while the
+	// draft still waited (KB1-LOOP-137): revoked, or expired while pending.
+	// The draft is then "withdrawn" and nobody may submit or decide it.
+	Withdrawal *approval.DraftWithdrawal `json:"withdrawal,omitempty"`
+	CreatedAt  time.Time                 `json:"created_at"`
+	UpdatedAt  time.Time                 `json:"updated_at"`
+}
+
+// DraftDecision is one approver's decision on a draft.
+type DraftDecision struct {
+	Actor     string    `json:"actor"`
+	Decision  string    `json:"decision"`
+	At        time.Time `json:"at"`
+	ReceiptID string    `json:"receipt_id"`
+}
+
+// decidedBy reports whether username has decided the draft before.
+func (d Draft) decidedBy(username string) bool {
+	for _, decision := range d.History {
+		if decision.Actor == username {
+			return true
+		}
+	}
+	return false
+}
+
+// draftEnvelope is what the current approver decides on: the request as made,
+// or in an approval chain what the previous approver granted.
+type draftEnvelope struct {
+	Products []string
+	Columns  map[string][]string
+	Scope    map[string]any
+	Budget   approval.AuthorizationBudgetV1
+	// Granted is true when a previous approver's grant is the base.
+	Granted bool
+}
+
+// Envelope is the draft's current envelope (the task page shows it and
+// prefills the narrow form with it).
+func (d Draft) Envelope() draftEnvelope {
+	if grant := d.ApprovedGrant; grant != nil {
+		return draftEnvelope{Products: grant.ApprovedProducts, Columns: grant.ApprovedColumns, Scope: grant.MandatoryScope,
+			Budget: grant.Budget, Granted: true}
+	}
+	return draftEnvelope{Products: d.Manifest.Products, Columns: d.Manifest.ApprovedColumns, Scope: d.Manifest.MandatoryScope,
+		Budget: d.Manifest.Budget}
 }
 
 type callbackEvent struct {
@@ -99,7 +228,7 @@ func New(config Config) (*Server, error) {
 	if config.ServiceToken == "" || config.CallbackSecret == "" || config.SessionSecret == "" || config.CallbackURL == "" {
 		return nil, errors.New("OA service token, callback secret, session secret, and callback URL are required")
 	}
-	if config.AlicePassword == "" || config.BobPassword == "" {
+	if !config.OmitBuiltinUsers && (config.AlicePassword == "" || config.BobPassword == "") {
 		return nil, errors.New("OA demo passwords are required")
 	}
 	if config.PublicBaseURL == "" {
@@ -107,6 +236,11 @@ func New(config Config) (*Server, error) {
 	}
 	if _, err := url.ParseRequestURI(config.PublicBaseURL); err != nil {
 		return nil, fmt.Errorf("invalid public base URL: %w", err)
+	}
+	if config.AgentIdentityURL != "" {
+		if _, err := url.ParseRequestURI(config.AgentIdentityURL); err != nil {
+			return nil, fmt.Errorf("invalid agent identity URL: %w", err)
+		}
 	}
 	if config.HTTPClient == nil {
 		config.HTTPClient = &http.Client{Timeout: 5 * time.Second}
@@ -120,29 +254,66 @@ func New(config Config) (*Server, error) {
 	if config.ReceiptSigner == nil {
 		config.ReceiptSigner = approval.DemoReceiptSigner([]byte(config.CallbackSecret))
 	}
-	aliceHash, err := bcrypt.GenerateFromPassword([]byte(config.AlicePassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+	users := map[string]user{}
+	if !config.OmitBuiltinUsers {
+		builtin := []struct{ id, name, role, password string }{
+			{"alice", "Alice", "requester", config.AlicePassword},
+			{"bob", "Bob", "approver", config.BobPassword},
+			{"dana", "Dana", "approver", config.DanaPassword},
+		}
+		for _, account := range builtin {
+			if account.password == "" {
+				continue // dana is optional
+			}
+			hash, err := bcrypt.GenerateFromPassword([]byte(account.password), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, err
+			}
+			canRequest, canApprove, _ := capabilities(account.role)
+			users[account.id] = user{Name: account.name, Role: account.role, CanRequest: canRequest, CanApprove: canApprove, PasswordHash: hash}
+		}
 	}
-	bobHash, err := bcrypt.GenerateFromPassword([]byte(config.BobPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+	for _, extra := range config.ExtraUsers {
+		name := strings.ToLower(strings.TrimSpace(extra.Name))
+		canRequest, canApprove, validRole := capabilities(extra.Role)
+		if _, exists := users[name]; exists || name == "" || extra.Password == "" || !validRole {
+			return nil, fmt.Errorf("invalid or duplicate extra OA user %q", extra.Name)
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(extra.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		display := strings.TrimSpace(extra.DisplayName)
+		if display == "" {
+			display = extra.Name
+		}
+		users[name] = user{Name: display, Role: extra.Role, CanRequest: canRequest, CanApprove: canApprove, PasswordHash: hash}
 	}
-	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON}).Parse(pageTemplates)
-	if err != nil {
-		return nil, err
+	anyRequester, anyApprover := false, false
+	for _, account := range users {
+		anyRequester, anyApprover = anyRequester || account.CanRequest, anyApprover || account.CanApprove
 	}
+	if !anyRequester || !anyApprover {
+		return nil, errors.New("the OA demo needs at least one requester and one approver")
+	}
+	config.ExtraUsers = nil
 	config.AlicePassword = ""
 	config.BobPassword = ""
-	return &Server{
-		config: config,
-		users: map[string]user{
-			"alice": {Name: "Alice", Role: "requester", PasswordHash: aliceHash},
-			"bob":   {Name: "Bob", Role: "approver", PasswordHash: bobHash},
-		},
-		drafts:    make(map[string]*Draft),
-		templates: parsedTemplates,
-	}, nil
+	config.DanaPassword = ""
+	server := &Server{config: config, users: users, drafts: make(map[string]*Draft)}
+	if config.OrgTree != nil {
+		if err := config.OrgTree.validate(); err != nil {
+			return nil, fmt.Errorf("org tree: %w", err)
+		}
+		server.orgPeople = config.OrgTree.people()
+	}
+	parsedTemplates, err := template.New("layout").Funcs(template.FuncMap{"json": templateJSON, "decisionLabel": decisionLabel,
+		"roleLabel": roleLabel, "stateLabel": stateLabel, "draftStateLabel": draftStateLabel, "humanDuration": humanDuration}).Parse(pageTemplates)
+	if err != nil {
+		return nil, err
+	}
+	server.templates = parsedTemplates
+	return server, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -152,12 +323,20 @@ func (s *Server) Handler() http.Handler {
 	router.Get("/login", s.loginPage)
 	router.Post("/login", s.login)
 	router.With(s.requireSession, s.requireCSRF).Post("/logout", s.logout)
+	router.With(s.requireSession, s.requireCSRF).Post("/switch", s.switchAccount)
+	router.Get("/switch.js", switchScript)
+	router.Get("/poll.js", pollScript)
+	router.Get("/tree.js", treeScript)
+	router.With(s.requireSession, s.requireCSRF).Post("/agent-identity", s.agentIdentitySwitch)
+	router.With(s.requireSession).Get("/history", s.history)
 	router.Post("/api/drafts", s.createDraft)
+	router.Post("/api/drafts/{draftID}/withdraw", s.withdrawDraft)
 	router.Group(func(protected chi.Router) {
 		protected.Use(s.requireSession)
 		protected.Get("/", s.listDrafts)
 		protected.Get("/tasks", s.listDrafts)
 		protected.Get("/tasks/{draftID}", s.viewDraft)
+		protected.Get("/tasks/{draftID}/state", s.draftState)
 		protected.With(s.requireCSRF).Post("/tasks/{draftID}/submit", s.submitDraft)
 		protected.With(s.requireCSRF).Post("/tasks/{draftID}/decision", s.decideDraft)
 	})
@@ -183,15 +362,23 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid draft request"})
 		return
 	}
-	if err := validateDraftRequest(request); err != nil {
+	if err := s.validateDraftRequest(request); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
 		return
 	}
 	now := s.config.Clock().UTC()
 	draft := &Draft{
 		ID: randomID("oa"), Manifest: cloneManifest(request.Manifest), ManifestDigest: request.ManifestDigest,
-		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver),
-		State: "draft", CreatedAt: now, UpdatedAt: now,
+		ApprovalMode: request.ApprovalMode, Approver: strings.ToLower(request.Approver), IssuedBy: strings.ToLower(request.IssuedBy),
+		MemberConfirm:   request.MemberConfirm,
+		ParentExpiresAt: cloneTime(request.ParentExpiresAt),
+		State:           "draft", CreatedAt: now, UpdatedAt: now,
+	}
+	if request.Submitted {
+		// TaskGate already holds the task as submitted: the draft waits for its
+		// approver from the start, and nobody submits it again.
+		draft.State, draft.AgentSubmitted = "pending", true
+		draft.Note = s.agentSubmittedNote(draft)
 	}
 	s.mu.Lock()
 	s.drafts[draft.ID] = draft
@@ -199,18 +386,97 @@ func (s *Server) createDraft(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"draft_id": draft.ID,
 		"state":    draft.State,
-		"url":      strings.TrimRight(s.config.PublicBaseURL, "/") + "/tasks/" + draft.ID,
+		"url":      approval.DraftPageURL(s.config.PublicBaseURL, draft.ID),
 	})
 }
 
-func validateDraftRequest(request DraftRequest) error {
+// withdrawDraft takes TaskGate's notice that a task was archived while its
+// draft still waited (KB1-LOOP-137): an unsubmitted or pending draft becomes
+// "withdrawn", leaves the to-do lists and offers no action; the history page
+// shows it revoked or expired. It is authenticated like createDraft. Repeating
+// it is idempotent, and a draft already decided (approved, narrowed, rejected,
+// not granted) is left as it is and answered unchanged.
+func (s *Server) withdrawDraft(w http.ResponseWriter, r *http.Request) {
+	if !constantToken(r.Header.Get("Authorization"), "Bearer "+s.config.ServiceToken) {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "unauthorized"})
+		return
+	}
+	var notice approval.DraftWithdrawal
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&notice); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	draftID := chi.URLParam(r, "draftID")
+	if notice.DraftID != draftID || notice.TaskID == "" || !approval.ValidWithdrawalReason(notice.Reason) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid withdrawal"})
+		return
+	}
+	now := s.config.Clock().UTC()
+	if notice.OccurredAt.IsZero() {
+		notice.OccurredAt = now
+	}
+	if notice.Actor == "" {
+		notice.Actor = "system"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[draftID]
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "unknown draft"})
+		return
+	}
+	if draft.Manifest.TaskID != notice.TaskID {
+		writeJSON(w, http.StatusConflict, map[string]any{"error": "the draft belongs to another task"})
+		return
+	}
+	if !draft.open() {
+		// Withdrawn already, or decided: nothing changes.
+		writeJSON(w, http.StatusOK, map[string]any{"draft_id": draft.ID, "state": draft.State, "unchanged": true})
+		return
+	}
+	withdrawal := notice
+	draft.State, draft.Withdrawal, draft.UpdatedAt = "withdrawn", &withdrawal, now
+	draft.Note = s.withdrawalNote(withdrawal)
+	writeJSON(w, http.StatusOK, map[string]any{"draft_id": draft.ID, "state": draft.State, "unchanged": false})
+}
+
+// withdrawalNote is what a withdrawn draft says instead of its actions.
+func (s *Server) withdrawalNote(withdrawal approval.DraftWithdrawal) string {
+	at := pageTime(withdrawal.OccurredAt)
+	if withdrawal.Reason == approval.WithdrawalExpired {
+		return "TaskGate 中此任务等待提交或审批超过时限，已于 " + at + " 过期作废；工单已撤回，无需再提交或审批。需要时请重新申请"
+	}
+	return "TaskGate 中此任务已由 " + s.displayName(withdrawal.Actor) + " 于 " + at + " 撤销；工单已撤回，无需再提交或审批"
+}
+
+// agentSubmittedNote is what an agent-submitted draft says until its first
+// decision: who it was submitted for and who acts on it now.
+func (s *Server) agentSubmittedNote(draft *Draft) string {
+	note := "agent 已代 " + s.displayName(draft.Manifest.HumanSubject) + " 提交，"
+	switch {
+	case strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject):
+		return note + "等待本人确认"
+	case draft.MemberConfirm:
+		return note + "等待项目成员 " + s.displayName(draft.Approver) + " 本人确认"
+	}
+	return note + "等待 " + s.displayName(draft.Approver) + " 审批"
+}
+
+func (s *Server) validateDraftRequest(request DraftRequest) error {
 	if err := approval.ValidateAuthorizationSnapshot(request); err != nil {
 		return fmt.Errorf("invalid authorization manifest: %w", err)
 	}
 	switch request.ApprovalMode {
 	case "manual":
-		if request.Approver != "bob" {
-			return errors.New("manual demo approval requires Bob")
+		if approver, ok := s.users[strings.ToLower(request.Approver)]; !ok || !approver.CanApprove {
+			return errors.New("manual demo approval requires a configured approver")
 		}
 	default:
 		return errors.New("approval_mode must be manual; automatic task approval is disabled")
@@ -225,7 +491,38 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	csrf := randomID("login")
 	http.SetCookie(w, &http.Cookie{Name: "oa_login_csrf", Value: csrf, Path: "/login", HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: r.TLS != nil, MaxAge: 600})
-	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error")})
+	s.render(w, "login", map[string]any{"CSRF": csrf, "Error": r.URL.Query().Get("error"), "Users": s.loginOptions(),
+		"PasswordOnly": s.config.AllowSwitch, "Default": s.defaultAccount()})
+}
+
+// defaultAccount is the identity a password-only login lands on in the
+// shared-password mode: the first requester (the tester's own account).
+func (s *Server) defaultAccount() string {
+	if name := strings.ToLower(strings.TrimSpace(s.config.DefaultAccount)); name != "" {
+		if _, ok := s.users[name]; ok {
+			return name
+		}
+	}
+	options := s.loginOptions()
+	if len(options) == 0 {
+		return ""
+	}
+	return options[0].ID
+}
+
+// passwordOnlyLogin resolves the account of a login that named none (the
+// shared-password mode): the default account, or any account the password
+// opens, so a mode with distinct passwords still logs the right person in.
+func (s *Server) passwordOnlyLogin(password string) (string, bool) {
+	if name := s.defaultAccount(); name != "" && bcrypt.CompareHashAndPassword(s.users[name].PasswordHash, []byte(password)) == nil {
+		return name, true
+	}
+	for _, option := range s.loginOptions() {
+		if bcrypt.CompareHashAndPassword(s.users[option.ID].PasswordHash, []byte(password)) == nil {
+			return option.ID, true
+		}
+	}
+	return "", false
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -234,6 +531,15 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username := strings.ToLower(strings.TrimSpace(r.Form.Get("username")))
+	if username == "" && s.config.AllowSwitch {
+		// The shared-password mode: one password, the identity is chosen after.
+		name, valid := s.passwordOnlyLogin(r.Form.Get("password"))
+		if !valid {
+			http.Redirect(w, r, "/login?error=invalid", http.StatusSeeOther)
+			return
+		}
+		username = name
+	}
 	account, ok := s.users[username]
 	passwordValid := false
 	if ok {
@@ -255,9 +561,20 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 type sessionContextKey struct{}
 
 type sessionData struct {
-	Username string
-	Role     string
-	CSRF     string
+	Username    string
+	DisplayName string
+	Role        string
+	CanRequest  bool
+	CanApprove  bool
+	CSRF        string
+	// AllowSwitch and AccountGroups feed the account switcher in the navigation;
+	// with an organization tree the switcher is Org instead (orgAccountTree).
+	AllowSwitch   bool
+	AccountGroups []accountGroupView
+	Org           []orgNodeView
+	// AgentIdentity is the navigation's agent line (agent_identity.go); the
+	// pages that show the navigation set it, and it stays nil when off.
+	AgentIdentity *agentNav
 }
 
 func (s *Server) requireSession(next http.Handler) http.Handler {
@@ -268,7 +585,17 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 			return
 		}
 		account := s.users[username]
-		data := sessionData{Username: username, Role: account.Role, CSRF: s.csrf(r)}
+		data := sessionData{Username: username, DisplayName: account.Name, Role: account.Role,
+			CanRequest: account.CanRequest, CanApprove: account.CanApprove, CSRF: s.csrf(r), AllowSwitch: s.config.AllowSwitch}
+		if person, ok := s.orgPeople[username]; ok {
+			data.DisplayName = person.line()
+		}
+		if s.config.AllowSwitch {
+			data.AccountGroups = s.accountGroups()
+			if s.config.OrgTree != nil {
+				data.Org = s.orgAccountTree(username)
+			}
+		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionContextKey{}, data)))
 	})
 }
@@ -295,44 +622,160 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) listDrafts(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
+	data.AgentIdentity = s.agentNav(r)
 	s.mu.RLock()
 	drafts := make([]Draft, 0, len(s.drafts))
+	// In the shared-password mode the page also lists what waits for the
+	// other accounts (otherTodos); the formal round's OA scans only its own.
+	var open []Draft
 	for _, draft := range s.drafts {
-		if data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username) {
-			continue
+		if draft.open() && visible(draft, data) {
+			drafts = append(drafts, cloneDraft(draft))
 		}
-		if data.Role == "approver" && draft.ApprovalMode != "manual" {
-			continue
+		if s.config.AllowSwitch && draft.open() {
+			open = append(open, cloneDraft(draft))
 		}
-		drafts = append(drafts, cloneDraft(draft))
 	}
 	s.mu.RUnlock()
 	sort.Slice(drafts, func(i, j int) bool { return drafts[i].CreatedAt.After(drafts[j].CreatedAt) })
-	s.render(w, "tasks", map[string]any{"Session": data, "Drafts": drafts})
+	views := make([]draftView, 0, len(drafts))
+	for _, draft := range drafts {
+		views = append(views, s.view(draft))
+	}
+	s.render(w, "tasks", map[string]any{"Session": data, "Views": views, "Others": s.otherTodos(data, open)})
 }
 
 func (s *Server) viewDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	draft, ok := s.authorizedDraft(chi.URLParam(r, "draftID"), data)
-	if !ok {
-		http.NotFound(w, r)
+	s.mu.RLock()
+	stored, found := s.drafts[chi.URLParam(r, "draftID")]
+	var draft Draft
+	status, message := http.StatusNotFound, ""
+	if found {
+		status, message = draftAccess(stored, data)
+		draft = cloneDraft(stored)
+	}
+	s.mu.RUnlock()
+	if refuseDraftAccess(w, r, status, message) {
 		return
 	}
-	s.render(w, "task", map[string]any{"Session": data, "Draft": draft})
+	data.AgentIdentity = s.agentNav(r)
+	s.render(w, "task", s.taskPage(data, draft))
+}
+
+// draftState answers the task page's poll (pollScript) with the session's
+// page version (pageVersion), under the page's own access rules: 404 for an
+// unknown draft, 403 for someone else's.
+func (s *Server) draftState(w http.ResponseWriter, r *http.Request) {
+	data := r.Context().Value(sessionContextKey{}).(sessionData)
+	s.mu.RLock()
+	stored, found := s.drafts[chi.URLParam(r, "draftID")]
+	var version string
+	status, message := http.StatusNotFound, ""
+	if found {
+		status, message = draftAccess(stored, data)
+		version = pageVersion(*stored, s.awaitsChange(*stored, decidesNow(*stored, data)))
+	}
+	s.mu.RUnlock()
+	if refuseDraftAccess(w, r, status, message) {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(map[string]string{"version": version})
+}
+
+// draftVersion changes whenever the task page would show something new:
+// another state or approver, another decision, TaskGate's note, the grant
+// or the receipt.
+func draftVersion(draft Draft) string {
+	return strings.Join([]string{draft.State, draft.Approver, strconv.Itoa(len(draft.History)),
+		strconv.FormatBool(draft.Note != ""), strconv.FormatBool(draft.ApprovedGrant != nil),
+		strconv.FormatBool(draft.ApprovalReceipt != nil)}, "|")
+}
+
+// pageVersion is the version a session's task page is rendered from and
+// polls against: draftVersion and whether the page awaits change
+// (awaitsChange), so a page rendered inside the answer window also reloads
+// once when the window closes and its waiting notice no longer applies. A
+// waiting page reloads once draftState answers a different one.
+func pageVersion(draft Draft, awaits bool) string {
+	return draftVersion(draft) + "|" + strconv.FormatBool(awaits)
+}
+
+// decidesNow reports whether the session may decide the draft now: it is
+// pending and assigned to the session's account, which can approve. The
+// task page and its poll (draftState) both use it.
+func decidesNow(draft Draft, data sessionData) bool {
+	return draft.State == "pending" && data.CanApprove && strings.EqualFold(draft.Approver, data.Username)
+}
+
+// taskPage is what the task page renders: the view, whether the session
+// may submit or decide the draft now, the switch to whoever acts on it
+// instead (shared-password mode), whether the page polls for changes, and
+// the draft's version it polls against.
+func (s *Server) taskPage(data sessionData, draft Draft) map[string]any {
+	canDecide := decidesNow(draft, data)
+	awaits := s.awaitsChange(draft, canDecide)
+	return map[string]any{"Session": data, "View": s.view(draft),
+		"CanSubmit":   draft.State == "draft" && draft.relatesAsRequester(data.Username),
+		"CanDecide":   canDecide,
+		"SelfConfirm": strings.EqualFold(draft.Approver, draft.Manifest.HumanSubject) || draft.MemberConfirm,
+		"SwitchTo":    s.switchOffer(data, draft),
+		"Refresh":     awaits,
+		"Version":     pageVersion(draft, awaits)}
+}
+
+// draftAccess decides whether the logged-in user may open a draft: a
+// requester their own, an approver the drafts naming them now or that they
+// decided before (an earlier step of an approval chain). A draft that is
+// someone else's is 403 with the reason, not 404, so a user can tell "not
+// mine" from "gone" (draft ids are random, so existence is not a secret worth
+// keeping from a logged-in user).
+func draftAccess(draft *Draft, data sessionData) (int, string) {
+	switch {
+	case draft.relatesAsRequester(data.Username):
+		return http.StatusOK, ""
+	case !data.CanApprove:
+		return http.StatusForbidden, "此工单不属于你（" + data.Username + "），只有其申请人、代开人或确认成员可以打开和提交"
+	case draft.ApprovalMode != "manual":
+		return http.StatusForbidden, "此工单不需要人工审批"
+	case !draft.relatesAsApprover(data.Username):
+		return http.StatusForbidden, "此工单指派给审批人 " + draft.Approver + "，你（" + data.Username + "）不能查看或审批"
+	}
+	return http.StatusOK, ""
+}
+
+// refuseDraftAccess writes a refusal and reports whether it did.
+func refuseDraftAccess(w http.ResponseWriter, r *http.Request, status int, message string) bool {
+	switch status {
+	case http.StatusOK:
+		return false
+	case http.StatusNotFound:
+		http.NotFound(w, r)
+	default:
+		http.Error(w, message, status)
+	}
+	return true
 }
 
 func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	if data.Role != "requester" {
-		http.Error(w, "requester only", http.StatusForbidden)
-		return
-	}
 	draftID := chi.URLParam(r, "draftID")
 	s.mu.Lock()
 	draft, ok := s.drafts[draftID]
-	if !ok || !strings.EqualFold(draft.Manifest.HumanSubject, data.Username) || draft.State != "draft" {
+	status, message := http.StatusNotFound, ""
+	if ok {
+		status, message = draftAccess(draft, data)
+	}
+	if status == http.StatusOK && !draft.relatesAsRequester(data.Username) {
+		status, message = http.StatusForbidden, "只有申请人本人、代开人或确认成员可以提交"
+	}
+	if status == http.StatusOK && draft.State != "draft" {
+		status, message = http.StatusConflict, "draft cannot be submitted"
+	}
+	if status != http.StatusOK {
 		s.mu.Unlock()
-		http.Error(w, "draft cannot be submitted", http.StatusConflict)
+		refuseDraftAccess(w, r, status, message)
 		return
 	}
 	if err := validateStoredDraft(draft); err != nil {
@@ -352,7 +795,7 @@ func (s *Server) submitDraft(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	data := r.Context().Value(sessionContextKey{}).(sessionData)
-	if data.Role != "approver" {
+	if !data.CanApprove {
 		http.Error(w, "approver only", http.StatusForbidden)
 		return
 	}
@@ -367,9 +810,19 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	draftID := chi.URLParam(r, "draftID")
 	s.mu.Lock()
 	draft, ok := s.drafts[draftID]
-	if !ok || draft.ApprovalMode != "manual" || draft.Approver != data.Username || draft.State != "pending" {
+	status, message := http.StatusNotFound, ""
+	if ok {
+		status, message = draftAccess(draft, data)
+	}
+	if status == http.StatusOK && draft.Approver != data.Username {
+		status, message = http.StatusForbidden, "你（"+data.Username+"）已审批过此工单，现在等待 "+draft.Approver+" 审批；你只能查看"
+	}
+	if status == http.StatusOK && draft.State != "pending" {
+		status, message = http.StatusConflict, "draft cannot be decided"
+	}
+	if status != http.StatusOK {
 		s.mu.Unlock()
-		http.Error(w, "draft cannot be decided", http.StatusConflict)
+		refuseDraftAccess(w, r, status, message)
 		return
 	}
 	if err := validateStoredDraft(draft); err != nil {
@@ -379,22 +832,22 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	issuedAt := s.config.Clock().UTC()
+	parent, err := decisionBase(draft, issuedAt)
+	if err != nil {
+		s.mu.Unlock()
+		http.Error(w, "cannot construct approved grant", http.StatusInternalServerError)
+		return
+	}
 	var candidate *approval.TaskGrantCoreV1
 	protocolDecision := approval.ApprovalDecisionReject
 	state := "rejected"
 	switch decision {
 	case "approved":
-		grant, err := domainCoreForDraft(draft, issuedAt)
-		if err != nil {
-			s.mu.Unlock()
-			http.Error(w, "cannot construct approved grant", http.StatusInternalServerError)
-			return
-		}
-		candidate = &grant
+		candidate = &parent
 		protocolDecision = approval.ApprovalDecisionApprove
 		state = "approved"
 	case "narrow":
-		grant, err := narrowedGrantFromForm(draft, r, issuedAt)
+		grant, err := narrowedGrantFromForm(parent, r, issuedAt)
 		if err != nil {
 			s.mu.Unlock()
 			http.Error(w, "invalid narrowing: "+err.Error(), http.StatusBadRequest)
@@ -404,6 +857,22 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 		protocolDecision = approval.ApprovalDecisionNarrow
 		state = "narrowed"
 	}
+	if candidate != nil && draft.ParentExpiresAt != nil {
+		// A delegated task may not outlive its parent: a grant is re-issued
+		// from now with its TTL, so the TTL is shortened to what the parent
+		// has left, which makes an approve-as-made a narrowing.
+		allowed := draft.ParentExpiresAt.Sub(issuedAt).Truncate(time.Millisecond).Milliseconds()
+		if allowed <= 0 {
+			s.mu.Unlock()
+			http.Error(w, "the parent authorization has expired", http.StatusConflict)
+			return
+		}
+		if candidate.Budget.TaskTTLMS > allowed {
+			candidate.Budget.TaskTTLMS = allowed
+			candidate.ExpiresAt = issuedAt.UTC().Add(time.Duration(allowed) * time.Millisecond)
+			protocolDecision, state = approval.ApprovalDecisionNarrow, "narrowed"
+		}
+	}
 	if err := s.issueDecision(draft, protocolDecision, data.Username, issuedAt, candidate); err != nil {
 		s.mu.Unlock()
 		s.config.Logger.Error("sign approval decision", "draft_id", draftID, "error", err)
@@ -412,6 +881,9 @@ func (s *Server) decideDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	draft.State = state
 	draft.UpdatedAt = issuedAt
+	draft.Note = ""
+	draft.History = append(draft.History, DraftDecision{Actor: data.Username, Decision: state, At: issuedAt,
+		ReceiptID: draft.ApprovalReceipt.ReceiptID})
 	snapshot := cloneDraft(draft)
 	s.mu.Unlock()
 	s.dispatch(snapshot, state, data.Username)
@@ -429,58 +901,181 @@ func (s *Server) dispatch(draft Draft, status, actor string) {
 		CallbackContext: draft.Manifest.CallbackContext, ManifestDigest: draft.ManifestDigest,
 		ApprovedGrant: cloneGrantPointer(draft.ApprovedGrant), ApprovalReceipt: cloneReceiptPointer(draft.ApprovalReceipt),
 	}
+	receiptID := ""
+	if draft.ApprovalReceipt != nil {
+		receiptID = draft.ApprovalReceipt.ReceiptID
+	}
 	go func() {
+		var err error
 		for attempt := 1; attempt <= 3; attempt++ {
-			if err := s.sendCallback(context.Background(), event); err == nil {
+			var answer []byte
+			if answer, err = s.sendCallback(context.Background(), event); err == nil {
+				s.applyAnswer(draft.ID, status, receiptID, answer)
 				return
-			} else {
-				s.config.Logger.Warn("OA callback failed", "event_id", event.EventID, "attempt", attempt, "error", err)
 			}
+			s.config.Logger.Warn("OA callback failed", "event_id", event.EventID, "attempt", attempt, "error", err)
 			time.Sleep(time.Duration(attempt) * 200 * time.Millisecond)
 		}
+		s.noteOnDraft(draft.ID, status, receiptID, "TaskGate 未接受这次"+callbackStatusLabels[status]+"（已重试 3 次）："+err.Error())
 	}()
 }
 
-func (s *Server) sendCallback(ctx context.Context, event callbackEvent) error {
+// callbackAnswer is what TaskGate answers an accepted callback with. An
+// approval-chain step that leaves steps open names the next approver; an
+// approval TaskGate took without issuing a grant names the terminal reason.
+type callbackAnswer struct {
+	Pending        bool   `json:"pending"`
+	NextApprover   string `json:"next_approver"`
+	NextRole       string `json:"next_role"`
+	NextRoleLabel  string `json:"next_role_label"`
+	RemainingSteps int    `json:"remaining_steps"`
+	TerminalReason string `json:"terminal_reason"`
+}
+
+var callbackStatusLabels = map[string]string{"submitted": "提交", "approved": "批准", "narrowed": "缩小后批准", "rejected": "拒绝"}
+
+// approvalStepLabels is the fallback when TaskGate's answer carries no
+// next_role_label (a gateway older than KB1-LOOP-147).
+var approvalStepLabels = map[string]string{
+	"requester_director":  "申请人所在部门审批人",
+	"department_director": "被申请部门审批人",
+	"leader":              "分管领导",
+}
+
+func (answer callbackAnswer) nextRoleLabel() string {
+	if answer.NextRoleLabel != "" {
+		return answer.NextRoleLabel
+	}
+	if label, ok := approvalStepLabels[answer.NextRole]; ok {
+		return label
+	}
+	return answer.NextRole
+}
+
+var terminalReasonLabels = map[string]string{
+	"approver_not_authorized": "审批人对所批范围无权，任务已归档",
+}
+
+// applyAnswer acts on TaskGate's answer to a decision: the next approver of
+// an approval chain gets the draft, or the draft records that no grant was
+// issued. It applies only while the draft still holds the decision answered.
+func (s *Server) applyAnswer(draftID, status, receiptID string, body []byte) {
+	if status == "submitted" || receiptID == "" {
+		return
+	}
+	var answer callbackAnswer
+	if err := json.Unmarshal(body, &answer); err != nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[draftID]
+	if !ok || draft.State != status || draft.ApprovalReceipt == nil || draft.ApprovalReceipt.ReceiptID != receiptID {
+		return
+	}
+	switch {
+	case answer.Pending && answer.NextApprover != "":
+		next := strings.ToLower(strings.TrimSpace(answer.NextApprover))
+		previous := draft.Approver
+		draft.Approver, draft.State = next, "pending"
+		draft.Note = fmt.Sprintf("%s 已%s；TaskGate 按组织架构要求下一级 %s（%s）审批，还剩 %d 级",
+			s.displayName(previous), callbackStatusLabels[status], s.displayName(next), answer.nextRoleLabel(), answer.RemainingSteps)
+		if account, ok := s.users[next]; !ok || !account.CanApprove {
+			draft.Note += "；本 OA 没有该审批人账号，无法继续"
+			s.config.Logger.Error("approval chain names an approver the OA does not have", "draft_id", draftID, "approver", next)
+		}
+	case answer.TerminalReason != "":
+		draft.State = "not_granted"
+		reason := terminalReasonLabels[answer.TerminalReason]
+		if reason == "" {
+			reason = answer.TerminalReason
+		}
+		draft.Note = "TaskGate 未签发授权：" + reason
+	default:
+		return
+	}
+	draft.UpdatedAt = s.config.Clock().UTC()
+}
+
+// noteOnDraft records why a callback failed while the draft still holds it.
+func (s *Server) noteOnDraft(draftID, status, receiptID, note string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// A refused submission leaves the draft pending; a refused decision, in
+	// the state the decision set.
+	held := status
+	if status == "submitted" {
+		held = "pending"
+	}
+	draft, ok := s.drafts[draftID]
+	if !ok || draft.State != held {
+		return
+	}
+	if receiptID != "" && (draft.ApprovalReceipt == nil || draft.ApprovalReceipt.ReceiptID != receiptID) {
+		return
+	}
+	draft.Note = note
+}
+
+// displayName is the account's display name with its login name.
+func (s *Server) displayName(username string) string {
+	if account, ok := s.users[username]; ok && account.Name != username {
+		return account.Name + "（" + username + "）"
+	}
+	return username
+}
+
+func (s *Server) sendCallback(ctx context.Context, event callbackEvent) ([]byte, error) {
 	body, err := json.Marshal(event)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	timestamp := strconv.FormatInt(s.config.Clock().Unix(), 10)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.config.CallbackURL, bytes.NewReader(body))
+	status, responseBody, err := s.signedPost(ctx, s.config.CallbackURL, event.EventID, body)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if status < 200 || status >= 300 {
+		// The Gateway explains a rejection only in its response body; keep an
+		// excerpt so the retry log says why activation did not happen.
+		return nil, fmt.Errorf("callback status %d: %s", status, excerpt(string(responseBody)))
+	}
+	return responseBody, nil
+}
+
+// signedPost posts a JSON body to the Gateway the way it authenticates the
+// OA: X-OA-Event-ID, X-OA-Timestamp and X-OA-Signature, an HMAC of the
+// timestamp and the raw body under the callback secret. It returns the status
+// and at most 64 KiB of the answer.
+func (s *Server) signedPost(ctx context.Context, target, eventID string, body []byte) (int, []byte, error) {
+	timestamp := strconv.FormatInt(s.config.Clock().Unix(), 10)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
+	if err != nil {
+		return 0, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-OA-Event-ID", event.EventID)
+	req.Header.Set("X-OA-Event-ID", eventID)
 	req.Header.Set("X-OA-Timestamp", timestamp)
 	req.Header.Set("X-OA-Signature", approval.Sign([]byte(s.config.CallbackSecret), timestamp, body))
 	resp, err := s.config.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
 	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// The Gateway explains a rejection only in its response body; keep an
-		// excerpt so the retry log says why activation did not happen.
-		excerpt := strings.TrimSpace(string(responseBody))
-		if len(excerpt) > 512 {
-			excerpt = excerpt[:512]
-		}
-		return fmt.Errorf("callback status %d: %s", resp.StatusCode, excerpt)
-	}
-	return nil
+	return resp.StatusCode, responseBody, nil
 }
 
-func (s *Server) authorizedDraft(id string, data sessionData) (Draft, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	draft, ok := s.drafts[id]
-	if !ok || (data.Role == "requester" && !strings.EqualFold(draft.Manifest.HumanSubject, data.Username)) || (data.Role == "approver" && (draft.ApprovalMode != "manual" || draft.Approver != data.Username)) {
-		return Draft{}, false
+// excerpt trims text to at most 512 bytes, cut at a character boundary.
+func excerpt(text string) string {
+	text = strings.TrimSpace(text)
+	if len(text) <= 512 {
+		return text
 	}
-	return cloneDraft(draft), true
+	cut := 512
+	for cut > 0 && !utf8.RuneStart(text[cut]) {
+		cut--
+	}
+	return text[:cut]
 }
 
 func cloneDraft(draft *Draft) Draft {
@@ -488,6 +1083,11 @@ func cloneDraft(draft *Draft) Draft {
 	copy.Manifest = cloneManifest(draft.Manifest)
 	copy.ApprovedGrant = cloneGrantPointer(draft.ApprovedGrant)
 	copy.ApprovalReceipt = cloneReceiptPointer(draft.ApprovalReceipt)
+	copy.History = append([]DraftDecision(nil), draft.History...)
+	if draft.Withdrawal != nil {
+		withdrawal := *draft.Withdrawal
+		copy.Withdrawal = &withdrawal
+	}
 	return copy
 }
 
@@ -545,6 +1145,16 @@ func domainCoreForDraft(draft *Draft, issuedAt time.Time) (approval.TaskGrantCor
 	return domain.CoreFromManifest(draft.Manifest, draft.ManifestDigest, issuedAt)
 }
 
+// decisionBase is what an approver approves or narrows: the manifest's core,
+// or in an approval chain the previous approver's grant re-issued now, which
+// is what TaskGate checks the decision against.
+func decisionBase(draft *Draft, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
+	if draft.ApprovedGrant != nil {
+		return draft.ApprovedGrant.Reissued(issuedAt), nil
+	}
+	return domainCoreForDraft(draft, issuedAt)
+}
+
 func (s *Server) issueDecision(draft *Draft, decision approval.ApprovalDecision, actor string, issuedAt time.Time, grant *approval.TaskGrantCoreV1) error {
 	grantDigest := ""
 	if grant != nil {
@@ -567,19 +1177,17 @@ func (s *Server) issueDecision(draft *Draft, decision approval.ApprovalDecision,
 	return nil
 }
 
-func narrowedGrantFromForm(draft *Draft, r *http.Request, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
-	parent, err := domainCoreForDraft(draft, issuedAt)
-	if err != nil {
-		return approval.TaskGrantCoreV1{}, err
-	}
+func narrowedGrantFromForm(parent approval.TaskGrantCoreV1, r *http.Request, issuedAt time.Time) (approval.TaskGrantCoreV1, error) {
 	candidate := parent
 
 	productsRaw := strings.TrimSpace(r.Form.Get("approved_products"))
 	if productsRaw == "" {
 		return approval.TaskGrantCoreV1{}, errors.New("approved_products is required")
 	}
-	var products []string
-	if strings.HasPrefix(productsRaw, "[") {
+	products := checkedProducts(r.Form)
+	if len(products) > 0 {
+		// the checkbox form: one value per kept product
+	} else if strings.HasPrefix(productsRaw, "[") {
 		if err := decodeStrictJSON(productsRaw, &products); err != nil {
 			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_products: %w", err)
 		}
@@ -597,8 +1205,16 @@ func narrowedGrantFromForm(draft *Draft, r *http.Request, issuedAt time.Time) (a
 	candidate.ApprovedProducts = products
 
 	var columns map[string][]string
-	if err := decodeStrictJSON(r.Form.Get("approved_columns"), &columns); err != nil {
-		return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+	if raw := strings.TrimSpace(r.Form.Get("approved_columns")); raw != "" {
+		if err := decodeStrictJSON(raw, &columns); err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+		}
+	} else {
+		checked, err := checkedColumns(r.Form, products)
+		if err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("approved_columns: %w", err)
+		}
+		columns = checked
 	}
 	for product := range columns {
 		sort.Strings(columns[product])
@@ -606,8 +1222,16 @@ func narrowedGrantFromForm(draft *Draft, r *http.Request, issuedAt time.Time) (a
 	candidate.ApprovedColumns = columns
 
 	var scope map[string]any
-	if err := decodeStrictJSON(r.Form.Get("mandatory_scope"), &scope); err != nil {
-		return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+	if raw := strings.TrimSpace(r.Form.Get("mandatory_scope")); raw != "" {
+		if err := decodeStrictJSON(raw, &scope); err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+		}
+	} else {
+		checked, err := checkedScope(r.Form, cloneMandatoryScope(parent.MandatoryScope))
+		if err != nil {
+			return approval.TaskGrantCoreV1{}, fmt.Errorf("mandatory_scope: %w", err)
+		}
+		scope = checked
 	}
 	for name, value := range scope {
 		if values, ok := value.([]any); ok {
@@ -681,6 +1305,14 @@ func decodeStrictJSON(raw string, target any) error {
 		return errors.New("trailing JSON is forbidden")
 	}
 	return nil
+}
+
+func cloneTime(source *time.Time) *time.Time {
+	if source == nil {
+		return nil
+	}
+	value := source.UTC()
+	return &value
 }
 
 func cloneGrantPointer(source *approval.TaskGrantCoreV1) *approval.TaskGrantCoreV1 {
@@ -783,6 +1415,7 @@ func randomID(prefix string) string {
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'")
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
@@ -803,12 +1436,40 @@ func templateJSON(value any) string {
 	return string(encoded)
 }
 
-const pageTemplates = `
-{{define "head"}}<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-bound OA Demo</title><style>
-body{font-family:system-ui,sans-serif;background:#f4f6f8;color:#17202a;margin:0}.wrap{max-width:880px;margin:48px auto;padding:0 20px}.card{background:white;border:1px solid #dfe5eb;border-radius:12px;padding:24px;margin:16px 0;box-shadow:0 2px 10px #17202a0d}input,select,textarea,button{font:inherit;padding:10px 12px;border:1px solid #bcc7d1;border-radius:8px}textarea{box-sizing:border-box;width:100%;min-height:70px}button{background:#1769aa;color:white;border:0;cursor:pointer}.danger{background:#a92828}.muted{color:#617080}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#e8f1f8}nav{display:flex;justify-content:space-between;align-items:center}form.inline{display:inline}.narrow{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5eb}.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.budget-grid input{width:90%}dt{font-weight:600;margin-top:12px}dd{margin-left:0}.error{color:#a92828}a{color:#1769aa;text-decoration:none}</style></head><body><div class="wrap">{{end}}
-{{define "foot"}}</div></body></html>{{end}}
-{{define "login"}}{{template "head" .}}<div class="card"><h1>OA Demo 登录</h1><p class="muted">Alice 提交申请；Bob 审批明细申请。</p>{{if .Error}}<p class="error">用户名或密码错误</p>{{end}}<form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><p><label>用户<br><select name="username"><option value="alice">Alice</option><option value="bob">Bob</option></select></label></p><p><label>密码<br><input type="password" name="password" required autocomplete="current-password"></label></p><button type="submit">登录</button></form></div>{{template "foot" .}}{{end}}
-{{define "nav"}}<nav><div><strong>Task-bound OA</strong> · {{.Username}} / {{.Role}}</div><form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button type="submit">退出</button></form></nav>{{end}}
-{{define "tasks"}}{{template "head" .}}{{template "nav" .Session}}<h1>审批任务</h1>{{range .Drafts}}<div class="card"><span class="tag">{{.State}}</span><h2><a href="/tasks/{{.ID}}">{{.Manifest.DeclaredObjective}}</a></h2><p class="muted">{{.Manifest.TaskID}} · Agent {{.Manifest.AgentID}} · {{.Manifest.Sensitivity}} · {{.ApprovalMode}}</p></div>{{else}}<div class="card"><p>暂无任务。</p></div>{{end}}{{template "foot" .}}{{end}}
-{{define "task"}}{{template "head" .}}{{template "nav" .Session}}<div class="card"><span class="tag">{{.Draft.State}}</span><h1>{{.Draft.Manifest.DeclaredObjective}}</h1><dl><dt>Task ID</dt><dd>{{.Draft.Manifest.TaskID}}</dd><dt>人类主体</dt><dd>{{.Draft.Manifest.HumanSubject}}</dd><dt>Agent 身份</dt><dd>{{.Draft.Manifest.AgentID}}</dd><dt>申请数据产品</dt><dd>{{range .Draft.Manifest.Products}}{{.}} {{end}}</dd><dt>申请字段</dt><dd>{{range $product, $columns := .Draft.Manifest.ApprovedColumns}}<strong>{{$product}}</strong>: {{range $columns}}{{.}} {{end}}<br>{{end}}</dd><dt>强制数据范围</dt><dd>{{range $name, $value := .Draft.Manifest.MandatoryScope}}<strong>{{$name}}</strong>: {{$value}}<br>{{end}}</dd><dt>敏感级别上限</dt><dd>{{.Draft.Manifest.Sensitivity}}</dd><dt>全部预算与有效期</dt><dd>最大查询次数 {{.Draft.Manifest.Budget.MaxQueries}}；最大返回行数 {{.Draft.Manifest.Budget.MaxResultRows}}；最大数据库时间 {{.Draft.Manifest.Budget.MaxDBMS}} ms；单次查询超时 {{.Draft.Manifest.Budget.PerQueryTimeoutMS}} ms；任务有效期 TTL {{.Draft.Manifest.Budget.TaskTTLMS}} ms</dd><dt>审批方式</dt><dd>{{.Draft.ApprovalMode}}{{if .Draft.Approver}} / {{.Draft.Approver}}{{end}}</dd><dt>目录版本 / SHA-256</dt><dd>{{.Draft.Manifest.CatalogVersion}} / <code>{{.Draft.Manifest.CatalogSHA256}}</code></dd><dt>Manifest SHA-256</dt><dd><code>{{.Draft.ManifestDigest}}</code></dd></dl>{{if and (eq .Session.Role "requester") (eq .Draft.State "draft")}}<form method="post" action="/tasks/{{.Draft.ID}}/submit"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><button type="submit">提交申请</button></form>{{end}}{{if and (eq .Session.Role "approver") (eq .Draft.State "pending")}}<form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="approved"><button type="submit">按原申请批准</button></form> <form class="inline" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="rejected"><button class="danger" type="submit">拒绝</button></form><form class="narrow" method="post" action="/tasks/{{.Draft.ID}}/decision"><input type="hidden" name="csrf" value="{{.Session.CSRF}}"><input type="hidden" name="decision" value="narrow"><h2>缩小后批准</h2><p><label>产品（JSON 数组或逗号分隔）<br><textarea name="approved_products" required>{{json .Draft.Manifest.Products}}</textarea></label></p><p><label>字段（JSON 对象）<br><textarea name="approved_columns" required>{{json .Draft.Manifest.ApprovedColumns}}</textarea></label></p><p><label>强制范围（枚举可取子集，日期区间可收紧）<br><textarea name="mandatory_scope" required>{{json .Draft.Manifest.MandatoryScope}}</textarea></label></p><div class="budget-grid"><label>最大查询次数<input name="max_queries" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxQueries}}" value="{{.Draft.Manifest.Budget.MaxQueries}}" required></label><label>最大返回行数<input name="max_result_rows" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxResultRows}}" value="{{.Draft.Manifest.Budget.MaxResultRows}}" required></label><label>最大数据库时间 (ms)<input name="max_db_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.MaxDBMS}}" value="{{.Draft.Manifest.Budget.MaxDBMS}}" required></label><label>单次超时 (ms)<input name="per_query_timeout_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" value="{{.Draft.Manifest.Budget.PerQueryTimeoutMS}}" required></label><label>任务 TTL (ms)<input name="task_ttl_ms" type="number" min="1" max="{{.Draft.Manifest.Budget.TaskTTLMS}}" value="{{.Draft.Manifest.Budget.TaskTTLMS}}" required></label></div><p><button type="submit">缩小后批准</button></p></form>{{end}}</div><p><a href="/tasks">← 返回任务列表</a></p>{{template "foot" .}}{{end}}
-`
+func decisionLabel(decision string) string {
+	if label, ok := callbackStatusLabels[decision]; ok {
+		return label
+	}
+	return decision
+}
+
+func roleLabel(role string) string {
+	switch role {
+	case "requester":
+		return "申请人"
+	case "approver":
+		return "审批人"
+	case "both":
+		return "申请人兼审批人"
+	}
+	return role
+}
+
+// loginOption is one account offered on the login page.
+type loginOption struct{ ID, Name, Role string }
+
+// loginOptions lists the configured accounts, requesters first, then by name.
+func (s *Server) loginOptions() []loginOption {
+	options := make([]loginOption, 0, len(s.users))
+	for id, account := range s.users {
+		options = append(options, loginOption{ID: id, Name: account.Name, Role: account.Role})
+	}
+	rank := map[string]int{"requester": 0, "both": 1, "approver": 2}
+	sort.Slice(options, func(i, j int) bool {
+		if rank[options[i].Role] != rank[options[j].Role] {
+			return rank[options[i].Role] < rank[options[j].Role]
+		}
+		return options[i].ID < options[j].ID
+	})
+	return options
+}

@@ -1,0 +1,307 @@
+version: taskgate-principal-attributes-v1
+subjects:
+  - subject: alice
+    attributes:
+      department: [finance]
+      job_family: [director, finance_controller]
+      clearance: [public, internal, confidential, leadership]
+  - subject: engineering-staff
+    attributes:
+      department: [engineering]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: engineering-hr
+    attributes:
+      department: [engineering]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: engineering-manager
+    attributes:
+      department: [engineering]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: engineering-director
+    attributes:
+      department: [engineering]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: engineering-executive
+    attributes:
+      department: [engineering]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: finance-staff
+    attributes:
+      department: [finance]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: finance-hr
+    attributes:
+      department: [finance]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: finance-manager
+    attributes:
+      department: [finance]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: finance-director
+    attributes:
+      department: [finance]
+      job_family: [director, finance_controller]
+      clearance: [public, internal, confidential, leadership]
+  - subject: finance-executive
+    attributes:
+      department: [finance]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: hr-staff
+    attributes:
+      department: [hr]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: hr-hr
+    attributes:
+      department: [hr]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: hr-manager
+    attributes:
+      department: [hr]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: hr-director
+    attributes:
+      department: [hr]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: hr-executive
+    attributes:
+      department: [hr]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: it-staff
+    attributes:
+      department: [it]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: it-hr
+    attributes:
+      department: [it]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: it-manager
+    attributes:
+      department: [it]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: it-director
+    attributes:
+      department: [it]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: it-executive
+    attributes:
+      department: [it]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: legal-staff
+    attributes:
+      department: [legal]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: legal-hr
+    attributes:
+      department: [legal]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: legal-manager
+    attributes:
+      department: [legal]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: legal-director
+    attributes:
+      department: [legal]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: legal-executive
+    attributes:
+      department: [legal]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: marketing-staff
+    attributes:
+      department: [marketing]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: marketing-hr
+    attributes:
+      department: [marketing]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: marketing-manager
+    attributes:
+      department: [marketing]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: marketing-director
+    attributes:
+      department: [marketing]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: marketing-executive
+    attributes:
+      department: [marketing]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: operations-staff
+    attributes:
+      department: [operations]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: operations-hr
+    attributes:
+      department: [operations]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: operations-manager
+    attributes:
+      department: [operations]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: operations-director
+    attributes:
+      department: [operations]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: operations-executive
+    attributes:
+      department: [operations]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: procurement-staff
+    attributes:
+      department: [procurement]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: procurement-hr
+    attributes:
+      department: [procurement]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: procurement-manager
+    attributes:
+      department: [procurement]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: procurement-director
+    attributes:
+      department: [procurement]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: procurement-executive
+    attributes:
+      department: [procurement]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: product-staff
+    attributes:
+      department: [product]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: product-hr
+    attributes:
+      department: [product]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: product-manager
+    attributes:
+      department: [product]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: product-director
+    attributes:
+      department: [product]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: product-executive
+    attributes:
+      department: [product]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: research-staff
+    attributes:
+      department: [research]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: research-hr
+    attributes:
+      department: [research]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: research-manager
+    attributes:
+      department: [research]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: research-director
+    attributes:
+      department: [research]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: research-executive
+    attributes:
+      department: [research]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: sales-staff
+    attributes:
+      department: [sales]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: sales-hr
+    attributes:
+      department: [sales]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: sales-manager
+    attributes:
+      department: [sales]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: sales-director
+    attributes:
+      department: [sales]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: sales-executive
+    attributes:
+      department: [sales]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]
+  - subject: support-staff
+    attributes:
+      department: [support]
+      job_family: [staff]
+      clearance: [public, internal]
+  - subject: support-hr
+    attributes:
+      department: [support]
+      job_family: [hr]
+      clearance: [public, internal]
+  - subject: support-manager
+    attributes:
+      department: [support]
+      job_family: [manager]
+      clearance: [public, internal, confidential]
+  - subject: support-director
+    attributes:
+      department: [support]
+      job_family: [director]
+      clearance: [public, internal, confidential, leadership]
+  - subject: support-executive
+    attributes:
+      department: [support]
+      job_family: [executive]
+      clearance: [public, internal, confidential, leadership]

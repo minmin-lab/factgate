@@ -3,7 +3,9 @@ package mcp
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,6 +27,11 @@ type Principal struct {
 	ID      string `json:"id"`
 	Subject string `json:"subject"`
 	Role    string `json:"role"`
+	// AgentLabel names the demo agent-identity binding the bearer token was
+	// resolved through (KB1-LOOP-151; a person switches it in the OA). It is
+	// empty for every statically configured token, so comparisons and
+	// encodings of such principals are unchanged.
+	AgentLabel string `json:"agent_label,omitempty"`
 }
 
 type TokenIdentity struct {
@@ -36,16 +43,42 @@ type Authenticator interface {
 	Authenticate(context.Context, string) (Principal, bool)
 }
 
-type StaticAuthenticator struct{ identities []TokenIdentity }
+// DigestIdentity authenticates a principal by the SHA-256 of its bearer token
+// (lowercase hex), so a deployment can configure it without holding the
+// token: the gateway's principals file carries digests only.
+type DigestIdentity struct {
+	TokenSHA256 string
+	Principal   Principal
+}
+
+type StaticAuthenticator struct {
+	identities []TokenIdentity
+	digests    []DigestIdentity
+}
 
 func NewStaticAuthenticator(identities []TokenIdentity) *StaticAuthenticator {
 	return &StaticAuthenticator{identities: append([]TokenIdentity(nil), identities...)}
+}
+
+// NewStaticAuthenticatorWithDigests also admits digest identities. A presented
+// token is hashed once and compared in constant time against every digest.
+func NewStaticAuthenticatorWithDigests(identities []TokenIdentity, digests []DigestIdentity) *StaticAuthenticator {
+	return &StaticAuthenticator{identities: append([]TokenIdentity(nil), identities...), digests: append([]DigestIdentity(nil), digests...)}
 }
 
 func (a *StaticAuthenticator) Authenticate(_ context.Context, token string) (Principal, bool) {
 	for _, identity := range a.identities {
 		if len(token) == len(identity.Token) && subtle.ConstantTimeCompare([]byte(token), []byte(identity.Token)) == 1 {
 			return identity.Principal, true
+		}
+	}
+	if len(a.digests) != 0 {
+		sum := sha256.Sum256([]byte(token))
+		presented := []byte(hex.EncodeToString(sum[:]))
+		for _, identity := range a.digests {
+			if len(presented) == len(identity.TokenSHA256) && subtle.ConstantTimeCompare(presented, []byte(identity.TokenSHA256)) == 1 {
+				return identity.Principal, true
+			}
 		}
 	}
 	return Principal{}, false
@@ -61,6 +94,19 @@ type Tool struct {
 type ToolResult struct {
 	Structured any
 	Text       string
+	// Resources are embedded resources appended to the tool result's content
+	// after its text item, for a tool that delivers a file (MCP
+	// EmbeddedResource with a text body).
+	Resources []EmbeddedResource
+}
+
+// EmbeddedResource is one resource of a tool result: Text for a text file,
+// Blob (sent base64-encoded) for a binary one such as a PDF.
+type EmbeddedResource struct {
+	URI      string
+	MimeType string
+	Text     string
+	Blob     []byte
 }
 
 type ToolError struct {
@@ -221,6 +267,9 @@ func (s *Server) dispatch(ctx context.Context, principal Principal, rpcRequest r
 			if toolErr != nil && toolErr.Cause != nil {
 				logArguments = append(logArguments, "cause", toolErr.Cause)
 			}
+			if principal.AgentLabel != "" {
+				logArguments = append(logArguments, "agent_label", principal.AgentLabel)
+			}
 			s.logger.Warn("MCP tool failed", logArguments...)
 			errorBody := map[string]any{"code": code, "message": message}
 			if toolErr != nil {
@@ -245,8 +294,18 @@ func (s *Server) dispatch(ctx context.Context, principal Principal, rpcRequest r
 			encoded, _ := json.Marshal(structured)
 			text = string(encoded)
 		}
+		content := []any{map[string]any{"type": "text", "text": text}}
+		for _, resource := range toolResult.Resources {
+			body := map[string]any{"uri": resource.URI, "mimeType": resource.MimeType}
+			if resource.Blob != nil {
+				body["blob"] = base64.StdEncoding.EncodeToString(resource.Blob)
+			} else {
+				body["text"] = resource.Text
+			}
+			content = append(content, map[string]any{"type": "resource", "resource": body})
+		}
 		return map[string]any{
-			"content":           []any{map[string]any{"type": "text", "text": text}},
+			"content":           content,
 			"structuredContent": structured,
 			"isError":           false,
 		}, nil

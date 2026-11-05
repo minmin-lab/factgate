@@ -28,11 +28,29 @@ func (s *Service) describeDataProduct(_ context.Context, _ mcp.Principal, raw js
 	}
 	product, found := s.catalog.LookupProduct(args.Name)
 	if !found {
+		// A knowledge product is named like a Product but describes a
+		// collection; the Catalog forbids the two namespaces to overlap.
+		if kp, isKnowledge := s.catalog.LookupKnowledgeProduct(args.Name); isKnowledge {
+			result := s.publicKnowledgeProduct(kp)
+			if orders := s.scopeOrderOf(kp.Scopes); orders != nil {
+				result["scope_order"] = orders
+			}
+			result["catalog_version"] = s.catalog.CatalogVersion
+			return result, nil
+		}
 		return nil, &mcp.ToolError{Code: apierr.CodeNotFound, Message: "请求的数据产品不存在"}
 	}
 	result, err := publicDataProduct(product, true)
 	if err != nil {
 		return nil, err
+	}
+	if kp, role, isRelation := s.knowledgeRelationOf(product.Name); isRelation {
+		result["knowledge_product"] = map[string]any{"name": kp.Name, "role": role}
+	}
+	// An ordered mandatory scope widens downward when a task is requested
+	// (scope_order.go); its order, lowest first, is published with the product.
+	if orders := s.scopeOrderOf(product.Scopes); orders != nil {
+		result["scope_order"] = orders
 	}
 	result["catalog_version"] = s.catalog.CatalogVersion
 	return result, nil
@@ -117,6 +135,14 @@ func (s *Service) getSQLCapabilities(_ context.Context, _ mcp.Principal, raw jso
 			"operators":  "per_product",
 			"functions":  "per_product",
 		},
+		// What a product admits when its Catalog entry declares nothing;
+		// describe_data_product reports each product's effective controls.
+		"catalog_control_defaults": map[string]any{
+			"operators":  "policy_default：未声明 allowed_operators 的产品用缺省算子集（含 LIKE）",
+			"aggregates": "none：未声明 allowed_aggregates 的产品在 SQL 中不能聚合",
+		},
+		"where_predicates":    publicWherePredicates(sqlWherePredicates),
+		"where_rejected":      sqlWhereRejected,
 		"rewrite_error_codes": rewriteErrorCodes,
 		"rebind_error_codes":  []string{apierr.CodeViewSemanticChanged},
 		// Backward-compatible alias for clients predating the split between
@@ -200,6 +226,9 @@ func publicDataProduct(product catalog.Product, detailed bool) (map[string]any, 
 	if detailed {
 		result["allowed_operators"] = append([]string{}, product.AllowedOperators...)
 		result["allowed_functions"] = append([]string{}, product.AllowedFunctions...)
+		// allowed_operators is the declaration, empty when the product leaves
+		// the policy default in force; sql_effective is what applies.
+		result["sql_effective"] = effectiveSQLControls(product)
 	}
 	return result, nil
 }

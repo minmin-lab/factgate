@@ -38,6 +38,13 @@ WSL2 出网走 **Tailscale exit node = NAS（`ds423plus` `100.72.87.34`）**，�
   buildkit RUN 步够不到 docker0 网关 `172.17.0.1`，**必须用 eth0 IP**。
 - **apt**：`Dockerfile.formal` 的 apt-get 带 `Acquire::Retries=8` + 60s 超时。
 - **构建超时**：`final-v5-gateway-build` 的 `buildTimeout` 90m。
+- **Docker Hub 不通时的 dockerfile 前端**（2026-10-26 实测）：
+  - 症状：WSL 解析 registry-1.docker.io 得 198.18.0.5，HEAD 超时，`# syntax=docker/dockerfile:1.7` 解析失败。当时 daocloud 镜像源与 NAS 都能连 Docker Hub。
+  - 基础镜像不受影响：已按摘要在本地，且构建带 `--pull=false`。
+  - 绕法：
+    1. 经 NAS 向 Docker Hub 取 `docker/dockerfile:1.7` 的索引摘要（2026-10-26 为 `sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e`）；
+    2. 按摘要从镜像源拉取：`docker pull docker.m.daocloud.io/docker/dockerfile@<摘要>`。内容寻址，镜像源改不了字节；
+    3. `docker tag` 成 `docker/dockerfile:1.7`，BuildKit 随即用本地这份。
 
 ### mirrored 网络模式（2026-08-27 作者定，已试；与 tailscale 冲突后弃用）
 
@@ -103,3 +110,18 @@ WSL 内删除的空间不会自动回到 D 盘：`ext4.vhdx` 只增不减。回�
   measured paths 在该分支变动属预期。台账仍以 p10-r2/main 为准，kb-dev 的台账行定期以 docs-only 提交同步过去。
 - **Claude Code 连网关 MCP** 经本机 shim 127.0.0.1:8083（~/logs/demo-10/mcp_shim.py，启动脚本 start-mcp-shim.sh）；原因是网关 initialize 用
   DisallowUnknownFields 且只认协议 2025-06-18。WSL 重启后 shim 不自启。
+
+## 2026-10-16：GPU（RTX 4080 Laptop）持续负载会使整机蓝屏
+
+- 现象：WSL 内 bge-m3 编码满载约 56 s 后 GPU 掉离 PCIe 总线，Windows 蓝屏 0x113（nvlddmkm!NvDispatchPnp），System 日志同一时刻有 GPU 插槽的 WHEA 已纠正错误；WSL 内表现为 CUDA_ERROR_UNKNOWN、NVML 不可初始化、dmesg dxgkrnl WARNING（副作用）。两次（09:21、12:53）完全一致。TDR 已排除。
+- 证据与交接：~/logs/kb1/gpu-probe/{HANDOFF-windows-gpu.md,RESULT-windows-gpu.md}；台账 KB1-LOOP-30/32/34/36。
+- 规则：硬件问题（PCIe 链路电源管理 / 功耗）未处理前，**不得在 WSL 跑持续 GPU 负载**；嵌入发布用 CPU（`KB_EMBED_DEVICE=cpu`，约 5 块/秒）。复现脚本 `~/kb-embed/gpu-probe.sh` 只能在作者改完设置、保存全部工作并明确同意后启动。
+- 关联：2026-10-15 17:36 的 WSL 整机重启"原因未定"与 10-11 至 10-15 每晚的意外关机+固件硬件错误很可能同源，不再归因于内存耗尽。
+- 外接 HDMI 屏由 NVIDIA 驱动、内屏走核显；GPU 掉线时只有外接屏黑。
+
+## 2026-10-17：Docker 默认地址池已占满，新网络会截走 NAS 路由
+
+宿主上其他项目（fnt-o2oa 等）、demo 栈与残留的 V5 部署网络占满了 Docker 默认的 172.17–172.31 池，新建网络退到
+192.168.x.0/20；其中 192.168.0.0/20 覆盖 NAS（192.168.8.233），路由被 docker 网桥截走，NAS 的 ssh 与推送失败（挂载暂时
+仍可读）。判断：`ip route get 192.168.8.233` 应走 eth0。新拓扑一律给网络指定子网（KB 叠加层用 10.211.0.0/16，见
+evaluation/kb-formal/compose.kb.yaml）；拉起任何栈后先跑一次上面的命令。不要删其他项目的网络，也不要改 Docker 守护进程配置。

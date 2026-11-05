@@ -464,6 +464,13 @@ func (a *analyzer) validateExpr(value any, current *scope, allowOutput bool) (co
 				return a.validateFunction(current, body, allowOutput)
 			case "A_Expr":
 				return a.validateOperator(current, body, allowOutput)
+			case "SubLink":
+				return a.validateSubLink(current, body, allowOutput, false)
+			case "BoolExpr":
+				if sublink, ok := negatedInSubquery(body); ok {
+					return a.validateSubLink(current, sublink, allowOutput, true)
+				}
+				return a.validateExprMap(body, current, allowOutput)
 			case "TypeCast":
 				if err := validateTypeCast(body); err != nil {
 					return columnBinding{}, err
@@ -607,27 +614,130 @@ func (a *analyzer) validateOperator(current *scope, body map[string]any, allowOu
 	if len(operators) != 1 {
 		return columnBinding{}, reject(CodeOperatorNotAllowed)
 	}
-	if !a.operatorAllowed(operators[0], operands.Sources) {
+	kind, _ := body["kind"].(string)
+	if !a.operatorAllowed(operatorKeys(kind, operators[0]), operands.Sources) {
 		return columnBinding{}, reject(CodeOperatorNotAllowed)
 	}
 	return operands, nil
 }
 
-func (a *analyzer) operatorAllowed(name string, sources productSet) bool {
+// validateSubLink validates a subquery predicate's operands as validateExpr
+// would (the subselect is a SelectStmt and goes through analyzeSelect) and
+// gates the comparison of the ANY, ALL and ROWCOMPARE forms as validateOperator
+// gates an A_Expr. pg_query names no operator for x IN (SELECT ...), whose
+// implied operator is =, so it is looked up under = or in, and its negation
+// (negated, see negatedInSubquery) under <> or not in. An explicit op ANY or op
+// ALL (SELECT ...) is looked up by op alone, as op ANY (ARRAY ...) is. EXISTS,
+// scalar, ARRAY, MULTIEXPR and CTE sublinks are not operators: an operator
+// applied to one is an A_Expr gated on its own, and the subquery is bound by
+// its own column, product and operator checks.
+func (a *analyzer) validateSubLink(current *scope, body map[string]any, allowOutput, negated bool) (columnBinding, error) {
+	operands := emptyBinding()
+	for _, key := range []string{"testexpr", "subselect"} {
+		child, err := a.validateExpr(body[key], current, allowOutput)
+		if err != nil {
+			return columnBinding{}, err
+		}
+		operands = mergeColumns(operands, child)
+	}
+	kind, _ := body["subLinkType"].(string)
+	switch kind {
+	case "ANY_SUBLINK", "ALL_SUBLINK", "ROWCOMPARE_SUBLINK":
+	default:
+		return operands, nil
+	}
+	var keys []string
+	if _, named := body["operName"]; !named {
+		keys = []string{"=", "in"}
+		if negated {
+			keys = []string{"<>", "not in"}
+		}
+	} else {
+		operators := nodeStringList(body["operName"])
+		if len(operators) != 1 {
+			return columnBinding{}, reject(CodeOperatorNotAllowed)
+		}
+		keys = []string{operators[0]}
+	}
+	if !a.operatorAllowed(keys, operands.Sources) {
+		return columnBinding{}, reject(CodeOperatorNotAllowed)
+	}
+	return operands, nil
+}
+
+// negatedInSubquery returns the SubLink of x NOT IN (SELECT ...), which
+// pg_query parses as a NOT BoolExpr whose single argument is an ANY SubLink
+// with no operator name. NOT (x IN (SELECT ...)) is the same tree, so both
+// spellings are gated as not in.
+func negatedInSubquery(body map[string]any) (map[string]any, bool) {
+	if boolop, _ := body["boolop"].(string); boolop != "NOT_EXPR" {
+		return nil, false
+	}
+	args, ok := body["args"].([]any)
+	if !ok || len(args) != 1 {
+		return nil, false
+	}
+	name, sublink, ok := unwrapNode(args[0])
+	if !ok || name != "SubLink" {
+		return nil, false
+	}
+	if kind, _ := sublink["subLinkType"].(string); kind != "ANY_SUBLINK" {
+		return nil, false
+	}
+	if _, named := sublink["operName"]; named {
+		return nil, false
+	}
+	return sublink, true
+}
+
+// operatorKeys returns the keys an A_Expr is authorized under; declaring any
+// one of them admits it. pg_query names an IN list by its element operator (=
+// for IN, <> for NOT IN), so = and <> keep admitting IN and NOT IN, and in and
+// not in admit the list alone, not a scalar comparison, IS DISTINCT FROM or =
+// ANY. The BETWEEN family carries uppercase words and is looked up by their
+// lowercase, so between admits neither NOT BETWEEN nor BETWEEN SYMMETRIC. Any
+// other kind, or none, is looked up by its operator name alone.
+func operatorKeys(kind, name string) []string {
+	switch kind {
+	case "AEXPR_IN":
+		switch name {
+		case "=":
+			return []string{name, "in"}
+		case "<>":
+			return []string{name, "not in"}
+		}
+	case "AEXPR_BETWEEN", "AEXPR_NOT_BETWEEN", "AEXPR_BETWEEN_SYM", "AEXPR_NOT_BETWEEN_SYM":
+		return []string{strings.ToLower(name)}
+	}
+	return []string{name}
+}
+
+// operatorAllowed reports whether every source product declares at least one
+// of keys, or, for an expression over no product, whether the task-global set
+// holds one.
+func (a *analyzer) operatorAllowed(keys []string, sources productSet) bool {
 	if len(sources) == 0 {
-		_, ok := a.taskGlobalOperators[name]
-		return ok
+		return holdsAny(a.taskGlobalOperators, keys)
 	}
 	for productName := range sources {
 		product, ok := a.products[productName]
 		if !ok {
 			return false
 		}
-		if _, ok := product.operators[name]; !ok {
+		if !holdsAny(product.operators, keys) {
 			return false
 		}
 	}
 	return true
+}
+
+func holdsAny(set map[string]struct{}, keys []string) bool {
+	for _, key := range keys {
+		if _, ok := set[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *scope) addRelation(relation relationBinding) error {

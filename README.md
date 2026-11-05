@@ -209,7 +209,9 @@ research boundary.
    non-empty `columns` and `scopes` per product. The FactGate Enforcement Layer
    selects the Catalog profile by the highest sensitivity level and writes the
    complete profile into the approval manifest; the agent neither selects nor
-   optimizes the budget.
+   optimizes the budget. A product that declares `eligibility` is first
+   compiled against the requester's attested attributes; a request outside
+   that envelope is rejected as `NOT_ELIGIBLE` before any approval draft exists.
 3. Submit the task in the OA workflow and complete human approval.
 4. Once the task is `ACTIVE`, call `query_sql(task_id, request_id, sql)`. An
    exposure-enabled grant accepts only analytical queries that lower losslessly

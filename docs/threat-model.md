@@ -18,6 +18,7 @@ Agent 提交的结构化申请、QueryPlan、SQL、浏览器请求、网络回�
 | Agent 越权读取其他主体任务/结果 | Bearer Token 映射固定 Principal；任务和结果同时校验 principal、task、query 与 actor；越权按不存在返回；Principal 禁用后 Gateway 不再列出或执行工具 | 长期静态 Token 没有设备绑定、短期会话、组织级权限或外部会话吊销发布 |
 | Carol 读取敏感原始结果 | Carol 只注册两个审计工具，凭证不含结果行；Control PG 不保存 Parquet bytes | 同时拥有对象存储、数据密钥和元数据权限的管理员可以解密；审计元数据可能包含目标和 OA 信息 |
 | 客户端伪造授权字段 | 身份字段由 Gateway 生成；产品、字段和 Scope 必须显式且非空；OA 展示并绑定 RFC 8785 `AuthorizationManifestV1` 摘要 | 不验证自然语言目标与查询语义；审批人仍须核对结构化 Manifest |
+| 无资格主体把越权申请送进审批队列并依赖审批人误批 | Catalog `eligibility` 在建草稿前把申请人的证明属性（含带窗口的临时授权）编译成可申请范围，可申请范围外直接 `NOT_ELIGIBLE`，不建任务、不设例外路由；委托按委托人属性评估；裁决连同属性快照摘要落入任务记录 | 属性快照是身份/HR 系统的输入，其正确性与时效属可信运维；可申请范围只覆盖 `require` 与 enum Scope，不覆盖字段级或日期范围；误批仍受预算、TTL 与回执约束而非被阻止 |
 | 恶意 QueryPlan | 本地编译器验证产品、字段、聚合、过滤、排序、literal、Limit 与 Offset，随后进入完整 SQL AST 策略 | 编译器或策略实现缺陷仍需模糊测试和攻击语料覆盖 |
 | 通过拆分查询、重叠分页、新 request ID 或不同阈值重复提取数据 | release/influence/outcome 按 decoded FactID 集合结算；exact bitmap ANDNOT 只计 novel facts；OutcomeFact 绑定规范化命题与结果；终态 request replay 不重执行 | outcome 是每个成功命题一个单位，不估算信息量；不限制输出顺序、背景知识或跨 root 推断 |
 | 通过预算拒绝探测数据相关阈值 | 超预算结果始终在释放前丢弃，成功结算保持账本上限 | 接受/拒绝位本身不计 exposure，可能泄漏候选 Effect 是否超过剩余额度；当前机制不是 simulatable auditor，不能把拒绝称为无泄漏 |
@@ -31,7 +32,7 @@ Agent 提交的结构化申请、QueryPlan、SQL、浏览器请求、网络回�
 | View 检查后、业务 SQL 前发生 `CREATE OR REPLACE VIEW` | reservation 前重算 binding；Connector 在 visible/provenance SQL 的同一个只读 `REPEATABLE READ` 事务中再次发现 closure 并核预期 revision digest，检查和执行观察同一 PostgreSQL snapshot | PostgreSQL/connector 缺陷或 DBA 绕过事务快照仍超出应用保证；semantic replay hit 不执行业务 SQL，只依赖其执行前的 task binding 校验和 immutable committed evidence |
 | Semantic root 藉展开绕过 public Grant 或 Scope | 展开后 public fields 只能经已绑定 `Artifact.Output.FieldID` 进入 `CompileRelational`；签名 Grant 仍只包含 root；Gateway 每查询派生最小 terminal internal grants，并要求 root scope 映射覆盖每个 terminal mandatory scope；V4 只绑定 terminal publication ordinal/sidecar | Catalog 对 root output、terminal scope 或 publication 的错误声明仍属可信发布风险；当前不支持 query-time semantic-root-plus-product Join 或 root 上 order/page，已聚合 root 之上只纯投影 |
 | 无关 View 变化造成全局拒绝服务 | Semantic roots 排除在 legacy source-level `schema_digest` 外，task binding 只含获批 products 的 reachable closure；无关 root replacement 不改变该 task binding 或 readiness | 没有 `view_contract` 的 legacy/terminal products 仍共享 source-level attestation；该兼容路径上的漂移会按设计关闭该 source 的 readiness |
-| 通过直接 SQL 绕开 exposure compiler | `query_sql` 在**任何** Grant 下（含 resource-only）都必须按 `taskgate-reporting-sql-v1` 无损 lowering 为 canonical QueryPlan；Gateway 丢弃原始 SQL 作为执行来源，只执行重新生成并再次过策略的 visible SQL 与 provenance companion；不能 lowering 时在执行和结算前结构化拒绝 | 在线 SQL profile 仅支持声明的单产品片段和 2–16 源内任意形状的 connected INNER equi-join graph；每条 edge 只含一个或多个 column-to-column equality，self/outer/cross/non-equality 和断开 graph 仍拒绝。16-source 上限是 operational complexity/DoS ceiling，1 MiB 请求体、AST/资源通用边界仍适用；不支持 AVG、窗口、Union SQL 或任意 SQL provenance，lowering 入口仍需持续 fuzz |
+| 通过直接 SQL 绕开 exposure compiler | `query_sql` 在**任何** Grant 下（含 resource-only）都必须按 `taskgate-reporting-sql-v1` 无损 lowering 为 canonical QueryPlan；Gateway 丢弃原始 SQL 作为执行来源，只执行重新生成并再次过策略的 visible SQL 与 provenance companion；不能 lowering 时在执行和结算前结构化拒绝 | 在线 SQL profile 仅支持声明的单产品片段和 2–16 源内任意形状的 connected INNER equi-join graph；每条 edge 只含一个或多个 column-to-column equality，self/outer/cross/non-equality 和断开 graph 仍拒绝。16-source 上限是 operational complexity/DoS ceiling，1 MiB 请求体、AST/资源通用边界仍适用；AVG 只支持精确数值，不支持窗口、Union SQL 或任意 SQL provenance，lowering 入口仍需持续 fuzz |
 | SQL 注入、注释绕过或写操作 | PostgreSQL AST 单语句白名单、逻辑产品/字段/函数/运算符限制、Scope CTE、外层行限制 | Parser/策略缺陷和依赖漏洞仍可能存在 |
 | 策略失误后修改业务库 | 非 owner、非 superuser、无 `BYPASSRLS` 的独立 `gateway_reader`；角色/连接/事务只读；仅 Datasource Attestation、Reporting Views 和 ordinal sidecar `SELECT`；legacy Schema Attestation 与 semantic View binding | DBA 误授权、Catalog/contract 本身批准了错误语义或数据库漏洞仍可绕过应用意图；摘要只能证明版本一致，不能证明业务语义正确 |
 | OA 回调伪造、重放或乱序 | HMAC-SHA256 认证原始 Body；Event ID/状态/context/actor 校验；独立 OA Ed25519 回执绑定 Manifest 与最终 Grant；Gateway 可配置多把 OA 验签公钥及有效/退役窗口；事务幂等 | Demo OA Outbox 不持久；KMS、密钥分发和吊销发布仍需外部运维 |
@@ -97,6 +98,22 @@ dictionary 才保存可恢复 canonical payload。二者及 bitmap 仍是敏感�
 生命周期完整接入用户删除请求或跨 snapshot 受审压缩。
 
 默认部署不向宿主机发布 Business PostgreSQL 或 MinIO；只有 Gateway 所在隔离内部网络可达。`compose.debug.yaml` 是明确标记的非论文调试覆盖，只将业务库和 MinIO 绑定到宿主机回环地址。控制库、业务库与结果对象存储使用独立的数据、凭据和 Volume，业务只读账号无法访问控制库或结果 bucket。
+
+### 知识产品的两个边界（KB-1）
+
+- 名字解析：数据连接器为每条受治理语句钉 `search_path = pg_catalog`，策略语言不接受带模式限定的算子或函数，因此 pgvector 必须装在
+  `pg_catalog`（`db/init/kb-schema.psql`）。这保持了"未限定名只能解析到系统目录"的性质；代价是业务库管理员要把扩展放进系统模式。
+- 嵌入服务：文本查询的向量由受信边界内的嵌入服务计算（`KB_EMBEDDING_ENDPOINT`）。它看到查询文本与块文本，不接触账本与授权；
+  查询承诺 h_N 取规范化文本的摘要而非向量，向量只进入准备输入并被语句摘要覆盖。服务不可用时文本查询关闭式拒绝，向量查询不受影响。
+  直连嵌入服务或向量库的客户端绕过账本，与直连数据库相同。
+- 正文交付（kb-design §9.8）：账本里一个返回块的 Result 单元格是内容摘要 `text_sha256`，正文不在发布物里。`search`/`fetch`
+  的结果由网关补上正文：封印语句执行之后、结算之前，按（集合，封印语句返回的身份三元组）读 `kb.chunks`，逐行核对 sha256(正文)
+  等于该语句返回的摘要，作为第五列写进规范结果，结果制品与重放都携带它。不符或缺行即 `CONFLICT`，查询在结算前失败、不交付任何
+  正文，也不释放任何 Fact。这条读取是网关内部读，不经调用方 SQL 策略；它只按封印结果里的身份取行，调用方无法影响其谓词。业务表
+  正文相对发布期漂移因此表现为交付失败，不会把未发布的字节送出。
+
+- 主体文件（`PRINCIPALS_PATH`）：部署可以增加 query 主体，文件只含 token 的 SHA-256。它与 `TASKBOUND_ALICE_TOKEN` 同属部署
+  配置，能改它的人就能增减可登录的 Agent 身份；文件本身不含秘密，可以作为部署证据留存，明文 token 只应在发放方手里。
 
 ## 需要运营配合的边界
 

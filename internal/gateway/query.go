@@ -442,6 +442,9 @@ func (s *Service) querySQL(ctx context.Context, principal mcp.Principal, raw jso
 	if err != nil {
 		return nil, err
 	}
+	if err := requireOrdinaryTask(grant); err != nil {
+		return nil, err
+	}
 	// A task with no exposure grant used to skip everything below and hand the
 	// agent's own SQL straight to the authorizer. That was the last path in the
 	// Gateway that executed a statement nothing had prepared, and it is why a
@@ -602,6 +605,9 @@ func (s *Service) executePlan(ctx context.Context, principal mcp.Principal, raw 
 	if err != nil {
 		return nil, err
 	}
+	if err := requireOrdinaryTask(grant); err != nil {
+		return nil, err
+	}
 	prepared, err := s.prepareTaskPlan(ctx, task, grant, args.Plan)
 	if err != nil {
 		replayed, replayErr := s.replayPreparationFailureAt(ctx, task.ID, args.RequestID, digest(requestSummary), requestStarted, err)
@@ -658,6 +664,13 @@ type preparedQueryPlan struct {
 	// the preparation a finalizer reproduces -- so a path that prepares and then
 	// forgets is a path that cannot complete.
 	Prepared physicalquery.PreparedOperation
+	// EnrichResult, when set, completes the canonical result before its
+	// response metadata is applied and before settlement: a retrieval adds the
+	// chunk text after checking it against the released digests. A failure
+	// fails the query unsettled, so nothing is released for a result that
+	// cannot be delivered. The exposure observation is already fixed by then
+	// and covers only the sealed statement's visible columns.
+	EnrichResult func(ctx context.Context, stored *storedQueryResult) error
 }
 
 // operationPrepared reports whether this value carries a real preparation.
@@ -688,17 +701,18 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 		// Catalog and resolving Publications through the verified registry -- so a
 		// failure here is server state disagreeing with itself, not a refused plan.
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "查询无法在当前 Catalog 与快照证据下构造准备输入"}
+			Message: "查询无法在当前 Catalog 与快照证据下构造准备输入", Cause: err}
 	}
 	prepared, err := physicalquery.Prepare(inputs)
 	if err != nil {
+		// The cause names the check that refused; it is logged, not returned.
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodePolicyDenied,
-			Message: "QueryPlan 不在任务授权可精确计量的数据暴露片段内"}
+			Message: "QueryPlan 不在任务授权可精确计量的数据暴露片段内", Cause: err}
 	}
 	compiler, err := physicalquery.LocalCompilerIdentity()
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "本进程无法确定查询编译器身份"}
+			Message: "本进程无法确定查询编译器身份", Cause: err}
 	}
 	// Validate proves the object is the one its binding describes; RequireInputs
 	// proves the binding names these inputs and this compiler. The Gateway holds
@@ -706,12 +720,12 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 	// the finalizer does before comparing.
 	if err := prepared.RequireInputs(inputs, compiler); err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "准备结果与其输入证据不一致；查询未执行"}
+			Message: "准备结果与其输入证据不一致；查询未执行", Cause: err}
 	}
 	visibleSQL, _, err := prepared.ExecutableStatements()
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "准备结果拒绝交出可执行语句"}
+			Message: "准备结果拒绝交出可执行语句", Cause: err}
 	}
 	result := preparedQueryPlan{SQL: visibleSQL, PolicyGrant: prepared.PolicyGrant(), Prepared: prepared}
 	if !grant.Exposure.Enabled() {
@@ -724,7 +738,7 @@ func (s *Service) preparePlan(grant control.TaskGrant, plan queryplan.QueryPlan)
 	context, err := s.planExposureContextFrom(prepared, plan)
 	if err != nil {
 		return preparedQueryPlan{}, &mcp.ToolError{Code: apierr.CodeConflict,
-			Message: "已准备的查询无法在当前快照索引下建立观测上下文"}
+			Message: "已准备的查询无法在当前快照索引下建立观测上下文", Cause: err}
 	}
 	result.Exposure = context
 	return result, nil
@@ -878,6 +892,12 @@ func (s *Service) executeSQL(ctx context.Context, principal mcp.Principal, task 
 	budget, err := s.store.GetBudget(ctx, task.ID)
 	if err != nil {
 		return nil, err
+	}
+	if budget.Usage.ReservedQueries != 0 {
+		// The task's one in-flight query holds a reservation, usually of every
+		// remaining row: those rows are reserved, not spent, so this is not an
+		// exhausted budget. ReserveBudget refuses in the same order.
+		return nil, queryInProgressError()
 	}
 	remaining := budget.Remaining()
 	if remaining.Queries < 1 || remaining.Rows < 1 || remaining.DBMS < 1 {
@@ -1323,6 +1343,23 @@ func (s *Service) executeSQL(ctx context.Context, principal mcp.Principal, task 
 		Columns: data.Columns, Rows: data.Rows, RowCount: data.RowCount,
 		DatabaseMS: settlement.DBMS, ComponentMS: componentMS,
 		Limited: data.Truncated || data.RowCount == reservation.AllowedRows,
+	}
+	if operation.EnrichResult != nil {
+		deliveryStarted := time.Now()
+		enrichErr := operation.EnrichResult(ctx, &stored)
+		componentMS["result_delivery"] = durationMS(time.Since(deliveryStarted))
+		if enrichErr != nil {
+			settlement.ErrorCode = "RESULT_DELIVERY_REFUSED"
+			// A download's whole-document refusal keeps its own code in the
+			// terminal record, so a retry under the same request id answers
+			// with the same refusal (docs/kb-design.md §12).
+			var refusal *mcp.ToolError
+			if errors.As(enrichErr, &refusal) && refusal.Code == apierr.CodeDocumentNotDownloadable {
+				settlement.ErrorCode = refusal.Code
+			}
+			s.failQueryBudget(ctx, settlement)
+			return nil, enrichErr
+		}
 	}
 	if err := applyQueryResponseMetadata(&stored, responseMetadata); err != nil {
 		settlement.ErrorCode = resultEncodingFailed

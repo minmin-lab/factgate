@@ -21,8 +21,10 @@ import (
 	"taskbound.local/agent-data-gateway/internal/control"
 	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	"taskbound.local/agent-data-gateway/internal/domain"
+	"taskbound.local/agent-data-gateway/internal/kbpublish"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/ordinal"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryreceipt"
 	"taskbound.local/agent-data-gateway/internal/resultartifact"
 	"taskbound.local/agent-data-gateway/internal/sqlpolicy"
@@ -43,7 +45,16 @@ type Config struct {
 	Connector          DataConnector
 	// SnapshotRegistry contains only verified V4 hot indexes. It may be nil for
 	// legacy V1--V3 catalogs; every V4 execution fails closed when it is absent.
-	SnapshotRegistry  *ordinal.Registry
+	SnapshotRegistry *ordinal.Registry
+	// PrincipalAttributes is the attested subject-attribute snapshot that
+	// Product eligibility predicates are evaluated against. It is required
+	// whenever the Catalog declares eligibility on any Product.
+	PrincipalAttributes *principalattr.Snapshot
+	// KBEmbedder embeds text queries for knowledge-product search. It may be
+	// nil, in which case text queries are refused and vector queries still
+	// work; a configured embedder is checked against each product's declared
+	// model before use.
+	KBEmbedder        kbpublish.Embedder
 	CallbackSecret    string
 	Logger            *slog.Logger
 	Clock             func() time.Time
@@ -59,6 +70,10 @@ type Config struct {
 	// ciphertext rows to TaskGate-managed encrypted Parquet objects.
 	ResultArtifacts *resultartifact.Manager
 	ResultTTL       time.Duration
+	// KBOriginals reads document originals for the download task's original
+	// format (docs/kb-design.md §12.9); nil when no originals store is
+	// configured, and an original download is then refused.
+	KBOriginals KBOriginalStore
 	// ArtifactOperationTimeout bounds canonical object promotion independently
 	// from the short Control PostgreSQL settlement timeout.
 	ArtifactOperationTimeout time.Duration
@@ -71,6 +86,15 @@ type Config struct {
 	// object-store readers so slow clients cannot exhaust Gateway resources.
 	DownloadTimeout     time.Duration
 	DownloadConcurrency int
+	// OAPublicBaseURL is where requesters open OA drafts. When set, a pending
+	// task's status carries its draft link again (approval.DraftPageURL); the
+	// draft id is the stored approval reference, so nothing new is persisted.
+	OAPublicBaseURL string
+	// ReuseCoveringTask answers a plain root request that one of the
+	// requester's ACTIVE tasks already covers with that task instead of a new
+	// one (reuse_task.go; GATEWAY_REUSE_COVERING_TASK, the demo only). Off,
+	// every request creates a task as before.
+	ReuseCoveringTask bool
 }
 
 type Service struct {
@@ -81,6 +105,8 @@ type Service struct {
 	queryReceiptSigner       *queryreceipt.Signer
 	connector                DataConnector
 	snapshotRegistry         *ordinal.Registry
+	principalAttributes      *principalattr.Snapshot
+	kbEmbedder               kbpublish.Embedder
 	callbackSecret           []byte
 	logger                   *slog.Logger
 	clock                    func() time.Time
@@ -89,6 +115,7 @@ type Service struct {
 	spoolDirectory           string
 	spoolThreshold           int64
 	resultArtifacts          *resultartifact.Manager
+	kbOriginals              KBOriginalStore
 	resultTTL                time.Duration
 	artifactOperationTimeout time.Duration
 	previewMaxBytes          int64
@@ -97,6 +124,8 @@ type Service struct {
 	deliveryTTL              time.Duration
 	downloadTimeout          time.Duration
 	downloadSlots            chan struct{}
+	oaPublicBaseURL          string
+	reuseCoveringTask        bool
 	pendingSettles           atomic.Int64
 	artifactRecoveryFailures atomic.Int64
 	artifactRecoveryRunning  atomic.Bool
@@ -134,11 +163,80 @@ type pendingContext struct {
 	// activation can persist the exact content-addressed set without exposing
 	// physical dependency names to an agent or OA receipt.
 	ViewBinding *pendingViewBinding `json:"view_binding,omitempty"`
+	// Eligibility is the private record of the envelope compilation that
+	// admitted this request before any approver saw it. It is absent on
+	// requests whose Products declare no eligibility and on legacy records.
+	Eligibility *eligibilityVerdict `json:"eligibility,omitempty"`
+	// ApproverEligibility is the same compilation for the route's approver
+	// when the route verifies its approver (catalog ApprovalRoute.VerifyApprover).
+	ApproverEligibility *eligibilityVerdict `json:"approver_eligibility,omitempty"`
+	// VerifyApprover makes the approval callback re-check the actual approver
+	// against the data products' rules before any grant is issued: set by a
+	// verifying route and always for an approver the requester chose.
+	VerifyApprover bool `json:"verify_approver,omitempty"`
+	ApproverChosen bool `json:"approver_chosen,omitempty"`
+	// Chain is the routing record of an approval-chain task
+	// (approval_chain.go); Approver is then its first step's approver.
+	Chain *pendingChain `json:"approval_chain,omitempty"`
+	// SelfConfirm marks a task the Catalog's delegated-authorization model
+	// lets its own human subject confirm (a child task, or a self-service
+	// root task): Approver is then the human subject. The approval callback
+	// refuses a self-approval without it.
+	SelfConfirm bool `json:"self_confirm,omitempty"`
+	// MemberConfirm marks a child task delegated to another member's
+	// principal under the delegated-authorization model (KB1-LOOP-148):
+	// Approver is then that member, who may also submit the draft; the human
+	// subject stays the parent's.
+	MemberConfirm bool `json:"member_confirm,omitempty"`
+	// IssuedBy names the department administrator who issued this task for
+	// its human subject (issue.go); they may submit the draft and watch or
+	// revoke the task.
+	IssuedBy *issuerRecord `json:"issued_by,omitempty"`
+	// AgentSubmitted marks a task the agent submitted for its human subject
+	// at creation (catalog delegated_authorization.agent_submits,
+	// KB1-LOOP-149): it was created AWAITING_APPROVAL with a pending OA
+	// draft, and no submitted callback is expected.
+	AgentSubmitted bool `json:"agent_submitted,omitempty"`
+	// BudgetProfile names the Catalog budget profile the task was requested
+	// under, and BudgetProfileChosen says the requester (or an issuer) chose
+	// it instead of taking the route's default (KB1-LOOP-150): a root task
+	// with a chosen profile is a project, one without is a day task
+	// (list_tasks.go). Recorded only under the delegated_authorization block;
+	// absent without it and on records written before.
+	BudgetProfile       string `json:"budget_profile,omitempty"`
+	BudgetProfileChosen bool   `json:"budget_profile_chosen,omitempty"`
+}
+
+// delegated is the Catalog's delegated-authorization model, nil when the
+// Catalog does not declare it (the formal round).
+func (s *Service) delegated() *catalog.DelegatedAuthorization {
+	if s == nil || s.catalog == nil {
+		return nil
+	}
+	return s.catalog.DelegatedAuthorization
+}
+
+// childSelfConfirm reports whether child tasks are confirmed by their own
+// human subject (catalog delegated_authorization.child_self_confirm).
+func (s *Service) childSelfConfirm() bool {
+	delegated := s.delegated()
+	return delegated != nil && delegated.ChildSelfConfirm
+}
+
+// agentSubmits reports whether a new task is submitted by the agent for its
+// human subject (catalog delegated_authorization.agent_submits): created
+// AWAITING_APPROVAL, its OA draft pending.
+func (s *Service) agentSubmits() bool {
+	delegated := s.delegated()
+	return delegated != nil && delegated.AgentSubmits
 }
 
 func New(config Config) (*Service, error) {
 	if config.Catalog == nil || config.Store == nil || config.Approval == nil || config.Connector == nil || config.CallbackSecret == "" {
 		return nil, errors.New("gateway catalog, store, approval, connector, and callback secret are required")
+	}
+	if catalogDeclaresEligibility(config.Catalog) && config.PrincipalAttributes == nil {
+		return nil, errors.New("catalog declares product eligibility but no principal attribute snapshot is configured")
 	}
 	if config.Logger == nil {
 		config.Logger = slog.Default()
@@ -198,12 +296,13 @@ func New(config Config) (*Service, error) {
 		catalog: config.Catalog, store: config.Store, approval: config.Approval,
 		receiptVerifier:    config.ReceiptVerifier,
 		queryReceiptSigner: config.QueryReceiptSigner, connector: config.Connector,
-		snapshotRegistry: config.SnapshotRegistry,
-		callbackSecret:   []byte(config.CallbackSecret), logger: config.Logger,
+		snapshotRegistry: config.SnapshotRegistry, principalAttributes: config.PrincipalAttributes, kbEmbedder: config.KBEmbedder,
+		callbackSecret: []byte(config.CallbackSecret), logger: config.Logger,
 		clock: config.Clock, background: config.Background, settlementTimeout: config.SettlementTimeout,
 		spoolDirectory:             config.SpoolDirectory,
 		spoolThreshold:             config.SpoolThresholdBytes,
 		resultArtifacts:            config.ResultArtifacts,
+		kbOriginals:                config.KBOriginals,
 		resultTTL:                  config.ResultTTL,
 		artifactOperationTimeout:   config.ArtifactOperationTimeout,
 		previewMaxBytes:            config.PreviewMaxBytes,
@@ -213,6 +312,8 @@ func New(config Config) (*Service, error) {
 		downloadTimeout:            config.DownloadTimeout,
 		downloadSlots:              make(chan struct{}, config.DownloadConcurrency),
 		highCardinalityDerivations: make(chan struct{}, 1),
+		oaPublicBaseURL:            strings.TrimRight(config.OAPublicBaseURL, "/"),
+		reuseCoveringTask:          config.ReuseCoveringTask,
 	}
 	// The first background reconciliation clears this gate. Liveness can start
 	// immediately, but readiness must not race ahead of durable PENDING intents.
@@ -312,7 +413,7 @@ func toolError(err error) error {
 	case control.CodeViewSemanticChanged:
 		return &mcp.ToolError{Code: string(dataconnector.CodeViewSemanticChanged), Message: "语义 View 已变化；历史结果仍可重放，但新查询必须创建新任务并重新审批"}
 	case control.CodeQueryInProgress:
-		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "同一任务已有查询正在执行"}
+		return queryInProgressError()
 	case control.CodeInvalid, control.CodeInvalidStateChange:
 		return &mcp.ToolError{Code: apierr.CodeInvalidRequest, Message: "请求不符合任务状态或数据契约"}
 	case control.CodeIdempotencyConflict:
@@ -321,6 +422,16 @@ func toolError(err error) error {
 		return &mcp.ToolError{Code: apierr.CodeConflict, Message: "请求与当前状态冲突；请重试或刷新状态"}
 	}
 	return &mcp.ToolError{Code: apierr.CodeInternal, Message: "请求处理失败；请使用 trace_id 联系管理员", Cause: err}
+}
+
+// queryInProgressError is the refusal of a second reservation while the
+// task's one in-flight query is outstanding (threat-model: one in-flight query
+// per task). Nothing is recorded for the refused request, so the same
+// request_id may be retried; the code stays CONFLICT, which harnesses retry on.
+func queryInProgressError() error {
+	return &mcp.ToolError{Code: apierr.CodeConflict,
+		Message: "同一任务已有查询正在执行；每个任务同一时刻只允许一个在途查询，待其返回后可用同一 request_id 重试（委托子任务各有独立名额）",
+		Details: map[string]any{"reason": "QUERY_IN_PROGRESS", "retryable": true, "same_request_id_ok": true, "slot": "task"}}
 }
 
 func forbidden() error {

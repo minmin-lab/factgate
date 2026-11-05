@@ -1,0 +1,11 @@
+{
+  "version": "taskgate-kb-catalog-approval-v1",
+  "approval_id": "APPROVE-KB-CATALOG-v1",
+  "approval_status": "AUTHOR_APPROVED",
+  "author": {"name": "wuminmin", "approved_on": "2026-10-18"},
+  "approved_files": [
+    {"path": "config/catalog.yaml", "sha256": "3543c219e634b5bfa1b9683dc26bba340a305ef3f7667eacfc77eec548922275", "bytes": 37343},
+    {"path": "config/principal-attributes.yaml", "sha256": "ae0d2dd9d9b90ee603e7c99e526870661a9baf7dc4c896f2d89fc6b99168dfd7", "bytes": 1130}
+  ],
+  "scope": {"change": "eligibility precedes approval: the expense_detail eligibility block and the demo principal attribute snapshot (K1.5, K1.6)", "relative_to": "main"}
+}

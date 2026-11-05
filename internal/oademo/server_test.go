@@ -106,10 +106,7 @@ func TestCreateDraftAuthenticatesAndDisplaysCompleteManifest(t *testing.T) {
 	}
 
 	page := httptest.NewRecorder()
-	server.render(page, "task", map[string]any{
-		"Session": sessionData{Username: "alice", Role: "requester", CSRF: "csrf"},
-		"Draft":   stored,
-	})
+	server.render(page, "task", server.taskPage(sessionData{Username: "alice", Role: "requester", CanRequest: true, CSRF: "csrf"}, stored))
 	for _, visible := range []string{
 		"summarize travel expenses", "expense_summary", "total_amount", "department", "high",
 		"agent:expense-research", "alice", "10", "500", "30000", "5000", "1800000",
@@ -140,7 +137,11 @@ func TestNarrowedGrantFromFormContractsScopeColumnsAndBudgets(t *testing.T) {
 	if err := httpRequest.ParseForm(); err != nil {
 		t.Fatal(err)
 	}
-	grant, err := narrowedGrantFromForm(draft, httpRequest, issuedAt)
+	parent, err := decisionBase(draft, issuedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := narrowedGrantFromForm(parent, httpRequest, issuedAt)
 	if err != nil {
 		t.Fatalf("safe narrowing rejected: %v", err)
 	}
@@ -157,7 +158,7 @@ func TestNarrowedGrantFromFormContractsScopeColumnsAndBudgets(t *testing.T) {
 	httpRequest = httptest.NewRequest(http.MethodPost, "/decision", strings.NewReader(form.Encode()))
 	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	_ = httpRequest.ParseForm()
-	if _, err := narrowedGrantFromForm(draft, httpRequest, issuedAt); err == nil {
+	if _, err := narrowedGrantFromForm(parent, httpRequest, issuedAt); err == nil {
 		t.Fatal("budget expansion was accepted")
 	}
 }
@@ -192,7 +193,7 @@ func TestValidateDraftRequestRejectsAutomaticApproval(t *testing.T) {
 	request := testDraftRequest(t)
 	request.ApprovalMode = "auto"
 	request.Approver = ""
-	if err := validateDraftRequest(request); err == nil {
+	if err := (&Server{users: map[string]user{}}).validateDraftRequest(request); err == nil {
 		t.Fatal("OA accepted an automatic approval draft")
 	}
 }

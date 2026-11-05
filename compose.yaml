@@ -24,12 +24,20 @@ services:
       - control-plane
 
   business-postgres:
-    image: postgres:16-bookworm
+    # PostgreSQL 16 with pgvector: the Knowledge Product source relations
+    # (db/init/kb-schema.psql) need the vector extension. Research overlays
+    # may pin a plain postgres image; 30-kb-schema.sh then skips the schema.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-travel_demo}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       GATEWAY_DB_PASSWORD: ${GATEWAY_DB_PASSWORD:?set GATEWAY_DB_PASSWORD in .env}
+      # Off by default: the formal and db-test topologies pin a plain postgres
+      # image for this service, and requiring pgvector there aborts initdb.
+      # With this pgvector image the schema is installed anyway; a knowledge
+      # product overlay sets it to 1 so a swapped image fails closed.
+      KB_REQUIRE_PGVECTOR: ${KB_REQUIRE_PGVECTOR:-0}
     volumes:
       - business-pg-data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -343,10 +351,16 @@ services:
       context: .
       args:
         TARGET: gateway
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       GATEWAY_ADDR: :8082
       CONTROL_POSTGRES_DSN: postgres://gateway_control:${CONTROL_DB_PASSWORD:?set CONTROL_DB_PASSWORD in .env}@control-postgres:5432/${CONTROL_POSTGRES_DB:-taskbound_gateway}?sslmode=disable
       CATALOG_PATH: /etc/taskbound/catalog.yaml
+      # Attested subject attributes for Catalog eligibility predicates. The
+      # Gateway refuses to start when the Catalog declares eligibility and this
+      # snapshot is absent; a Catalog without eligibility ignores it.
+      PRINCIPAL_ATTRIBUTES_PATH: /etc/taskbound/principal-attributes.yaml
       GATEWAY_DATA_KEY: ${GATEWAY_DATA_KEY:?set GATEWAY_DATA_KEY in .env}
       GATEWAY_DATA_KEY_ID: ${GATEWAY_DATA_KEY_ID:-local-aes256-gcm-v1}
       GATEWAY_RECEIPT_KEY_ID: ${GATEWAY_RECEIPT_KEY_ID:?set GATEWAY_RECEIPT_KEY_ID in .env}
@@ -382,6 +396,10 @@ services:
       GATEWAY_AUDIT_ANCHOR_KEY_ID: ${GATEWAY_AUDIT_ANCHOR_KEY_ID:-}
       GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY: ${GATEWAY_AUDIT_ANCHOR_PRIVATE_KEY:-}
       GATEWAY_SNAPSHOT_ARTIFACT_DIR: /var/lib/taskgate/snapshot-index
+      # Knowledge-product text queries are embedded by the trusted embedding
+      # service on the host (docs/kb-design.md §7). Empty means the Gateway
+      # starts and refuses text queries; vector queries still work.
+      KB_EMBEDDING_ENDPOINT: ${KB_EMBEDDING_ENDPOINT:-}
       GATEWAY_CONNECTOR_MAX_ROWS: ${GATEWAY_CONNECTOR_MAX_ROWS:-1200000}
       # The code default is 5s, which is a sensible bound for interactive
       # queries but not for the result-heavy Publication: reading 100,000 rows
@@ -436,6 +454,9 @@ services:
       # one generated profile Catalog so a Catalog-bound Gateway instance
       # activates that closure and nothing else.
       - ${TASKGATE_PROFILE_CATALOG:-./config/catalog.yaml}:/etc/taskbound/catalog.yaml:ro
+      # The identity authority's attribute snapshot that eligibility predicates
+      # are evaluated against (see docs/catalog-guide.md, Eligibility).
+      - ${TASKGATE_PRINCIPAL_ATTRIBUTES:-./config/principal-attributes.yaml}:/etc/taskbound/principal-attributes.yaml:ro
       # Exactly one profile's snapshot artifact directory. It defaults to the
       # shared compiler output; the profile activator points it at a directory
       # holding only the activated closure's publication bundles, because the

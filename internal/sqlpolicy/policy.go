@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
+	"unicode"
 
 	pg_query "github.com/pganalyze/pg_query_go/v6"
 )
@@ -38,7 +39,7 @@ func New(config Config) *Engine {
 	return &Engine{
 		defaultFunctions:  stringSet(functions),
 		defaultAggregates: stringSet(aggregates),
-		defaultOperators:  stringSet(operators),
+		defaultOperators:  operatorSet(operators),
 	}
 }
 
@@ -134,6 +135,46 @@ func stringSet(values []string) map[string]struct{} {
 	return result
 }
 
+// operatorAliases maps the Catalog's word spellings of the LIKE family to the
+// operator names PostgreSQL's AST carries, which operatorAllowed looks up
+// (LIKE parses to ~~). It renames only: declaring like admits ~~ and nothing
+// more, so ILIKE and NOT LIKE stay separately declared.
+var operatorAliases = map[string]string{
+	"like": "~~", "ilike": "~~*", "not like": "!~~", "not ilike": "!~~*",
+}
+
+// CanonicalOperator renames a LIKE-family word to its AST symbol and returns
+// any other name unchanged. OperatorKey applies it after normalizing case and
+// space.
+func CanonicalOperator(operator string) string {
+	if canonical, ok := operatorAliases[strings.ToLower(strings.TrimSpace(operator))]; ok {
+		return canonical
+	}
+	return operator
+}
+
+// OperatorKey returns the key a declared operator is authorized under, the
+// name operatorKeys derives from the AST: surrounding space is trimmed, a word
+// (a name holding a letter) is lowercased, and a LIKE-family word becomes its
+// symbol. A symbol comes back trimmed and otherwise unchanged; PostgreSQL
+// operator symbols hold no letters. Discovery calls it so what it lists is
+// what Authorize admits.
+func OperatorKey(operator string) string {
+	key := strings.TrimSpace(operator)
+	if strings.IndexFunc(key, unicode.IsLetter) >= 0 {
+		key = strings.ToLower(key)
+	}
+	return CanonicalOperator(key)
+}
+
+func operatorSet(operators []string) map[string]struct{} {
+	keys := make([]string, 0, len(operators))
+	for _, operator := range operators {
+		keys = append(keys, OperatorKey(operator))
+	}
+	return stringSet(keys)
+}
+
 func sortedKeys(values map[string]struct{}) []string {
 	result := make([]string, 0, len(values))
 	for value := range values {
@@ -225,7 +266,7 @@ func (e *Engine) productPolicy(product ProductGrant) (productPolicy, error) {
 		columns:    stringSet(product.ApprovedColumns),
 		functions:  stringSet(functions),
 		aggregates: stringSet(aggregates),
-		operators:  stringSet(operators),
+		operators:  operatorSet(operators),
 	}, nil
 }
 

@@ -95,6 +95,25 @@ scopes:
 ```
 
 - `enum` 必须提供非空、唯一的 `allowed_values`，不能提供 `min/max`。
+- `enum` 可选 `order`（KB1-LOOP-152）：把该维度声明为有序维度，从低到高列出全部 `allowed_values`，必须恰是它的一个排列（不多、不少、不重复），
+  否则目录校验失败；`date_range` 不能声明 `order`。`allowed_values` 本身的写法不变（不要求按等级排）。
+  声明后，`request_data_task`、`request_download_task`（显式给 `scopes` 时；缺省取资格包络时同样补一次）与 `issue_data_authorization`
+  在申请时把该维度向下补全：取申请值中等级最高者，补上 `order` 里低于它的各级，再做资格判定、审批路由、委托子集校验并写入 manifest；
+  返回值的 `scope_closure` 按维度列出补进的值（没有补进时不给此键），审批人仍可删减。
+  补全后的整个集合受资格包络约束：主体的可申请值若不是向下封闭的（缺了中间某级），申请更高一级会因补进的低级不在包络内而 `NOT_ELIGIBLE`。
+  `order` **只影响申请时的补全，不改放行判定**：授权写了哪些值就只放行哪些值，查询、检索、下载与回执、审计都按授权里的完整集合，不读 `order`。
+  目录没有任何 `order` 时，申请、返回值与工具说明都与原来一致。`describe_data_product` 对声明了 `order` 的强制范围给 `scope_order`，
+  `list_data_products` 的 `scopes` 带 `order`；三个申请工具的说明里由目录生成一句"填最高一级即可"的提示。例：
+
+  ```yaml
+  - name: classification
+    type: enum
+    description: 密级
+    allowed_values: [confidential, internal, public, secret, top_secret]
+    order: [public, internal, secret, confidential, top_secret]
+  ```
+
+  申请 `classification: [secret]` 得到 `[internal, public, secret]`，`scope_closure: {classification: [public, internal]}`。
 - `date_range` 必须提供合法的 `YYYY-MM-DD` 最小/最大日期，不能提供 `allowed_values`。
 - 某产品列入 `scopes` 的每个名称都是强制范围，并且必须同时是该产品发布的字段。TaskIntent 缺任一强制范围时，任务申请失败，而不是退化为无范围授权。
 - 当前 Demo 的两个产品都强制 `department`；`expense_date` 是未绑定产品的扩展示例。
@@ -149,7 +168,44 @@ products:
 - Reporting View 应只暴露业务所需字段。手机号、工资、银行卡等即使“不写入 Catalog”，若仍出现在 View 中，也不应向 `gateway_reader` 暴露。
 - 函数和聚合必须是未限定的小写名，且不能是文件、网络、管理、睡眠等禁止函数；运行时还会经过 SQL AST 的危险函数硬拒绝表。
 - Exposure V2 只允许 `count`、`sum`、`min`、`max`；`avg` 即使在传统 SQL allowlist 中存在，也不能进入 V2 计划。
-- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。
+- 运算符必须来自安全词汇表。允许列表是上限，不会使 AST 原本不支持的 SQL 特性变为可用。LIKE 写 `like` 或 `~~` 都可，ILIKE 写 `ilike` 或 `~~*`（NOT LIKE 写 `not like` 或 `!~~`，NOT ILIKE 写 `not ilike` 或 `!~~*`）；声明 `like` 只放行 LIKE，不顺带放行 ILIKE 或 NOT LIKE。IN 写 `in`（只放行 IN 列表）或 `=`（同时放行等值比较与 IN）；NOT IN 写 `not in` 或 `<>`；BETWEEN 写 `between`，NOT BETWEEN 写 `not between`（各自只放行该形式，BETWEEN SYMMETRIC 不可授予）。词形大小写与首尾空白不计。AND/OR/NOT 与 IS [NOT] NULL 不是算子，不用声明，也不能用 `allowed_operators` 限制。子查询谓词同样按算子门控——`IN (SELECT …)` 按 `in` 或 `=`，`NOT IN (SELECT …)` 按 `not in` 或 `<>`，`op ANY/ALL (SELECT …)` 按 op；EXISTS 与标量子查询不是算子，由子查询自身的列与产品校验约束。
+
+## Eligibility（资格先于审批）
+
+`eligibility` 是 Product 上可选的资格谓词：Gateway 在 `request_data_task` 创建 OA 草稿**之前**，用申请人（根任务的
+Principal subject；委托任务的父 Grant 人类主体）经身份系统证明的属性推出一个"可申请范围"。申请落在可申请范围外立即以
+`NOT_ELIGIBLE` 拒绝，不进入审批队列、不建任务、不设例外路由；审批人只能在可申请范围内收窄。资格裁决是机器裁决，人工审批
+是人的决定，两者分开记录。
+
+```yaml
+products:
+  - name: expense_detail
+    # ...
+    scopes: [department]
+    eligibility:
+      require:
+        - attribute: job_family
+          any_of: [hr, finance, finance_controller]
+      scope_envelope:
+        department:
+          from_attribute: department
+          widen_if:
+            - attribute: job_family
+              any_of: [finance_controller]
+```
+
+- `require` 列出必须全部成立的条件；一条条件成立当且仅当申请人在评估时刻对该属性至少持有 `any_of` 中的一个值。
+- `scope_envelope` 只能约束本产品的强制 enum Scope：可申请值默认是申请人 `from_attribute` 的当前值；任一 `widen_if`
+  条件成立时放宽到该 Scope 的全部 `allowed_values`。申请值必须是可申请值的子集，部分越界也算越界。
+- `require` 与 `scope_envelope` 至少声明一项；属性名是小写标识符，值是规范 token；未知字段按 Catalog 严格解码拒绝。
+- 属性来自部署挂载的快照文件（`PRINCIPAL_ATTRIBUTES_PATH`，格式 `taskgate-principal-attributes-v1`，见
+  `config/principal-attributes.yaml`）：standing attributes 加带 RFC 3339 `[valid_from, valid_until)` 窗口的临时授权
+  `grants`；窗口外的临时授权不参与评估。快照是身份/HR 系统的输入，Gateway 只校验形状并把其 SHA-256 绑定进裁决，不判断
+  属性是否正确。
+- 失败关闭：Catalog 声明了 `eligibility` 而未配置快照时 Gateway 拒绝启动；申请人不在快照中按不具资格处理。
+- 裁决记录（版本 `taskgate-eligibility-v1`：快照摘要、主体、评估时刻、逐产品的 `require` 命中值与各 Scope 的
+  `source=attribute|widened`、`admissible`、`requested`）写入任务的私有 pending context，可在任务记录中复核；签名的
+  `AuthorizationManifestV1` 不改版本、不新增字段。
 
 ## Semantic View Contract（Phase B）
 
@@ -265,7 +321,125 @@ approval_routes:
 ```
 
 - 只允许 `mode: manual`；自动任务审批已关闭。
-- 每条路由必须配置非空 `approver`；OA Demo 只接受 `bob`。
+- 每条路由必须配置非空 `approver`。OA Demo 的审批人有 `bob`，以及配置了 `OA_DANA_PASSWORD` 时的 `dana`；每个审批人只能看到并审批点名给自己的草稿。
+- 按范围条件选审批人（可选 `scope_condition`）：例如 `{classification: [leadership]}`，任务强制范围含任一所列值时命中。
+  - 有条件的路由按声明顺序优先于同一敏感级、同一产品集合的无条件路由，并且必须有这样一条无条件兜底路由。
+  - 条件只能写目录的枚举范围及其允许值（排序、去重）。
+  - 条件只决定谁来审批和用哪个预算，不改变授予的内容。
+- 审批人权限：
+  - 审批人永远不能是任务的申请人本人（`APPROVER_NOT_AUTHORIZED`）。
+  - 路由带 `verify_approver: true` 时，审批人必须在主体属性快照中，并且按其属性推出的范围（与申请人同一套规则），对所申请的全部范围都有资格。例如没有 leadership 密级的人不能审批 leadership 任务。不满足即在建 OA 草稿前以 `APPROVER_NOT_AUTHORIZED` 拒绝。
+  - 审批人的资格裁决与申请人的一并记入任务的私有记录。
+  - 两道门各管一边：申请人的可申请范围决定能申请什么，审批人的资格决定谁有权批。
+- 申请人自选审批人（`request_data_task` 与 `request_download_task` 的可选 `approver`）：覆盖目录路由，相当于审批流被手工改派或配错。
+  - 自选的审批人仍不得是申请人本人，否则请求时即以 `APPROVER_NOT_AUTHORIZED` 拒绝；其余情况照常建 OA 草稿，返回值的 `approver_authorized` 预告该审批能否生效。
+  - 审批回调到达时，TaskGate 按数据产品规则（按其属性推出的范围，与申请人同一套规则）对实际审批人、针对批准后（可能已缩小）的范围再核一次。不通过则不签发授权，任务以终止原因 `approver_not_authorized` 归档。
+  - 走 verify_approver 路由的审批同样在回调时复核。所以即使 OA 流程配错、让无权者批准，也拿不到授权；审批人缩小掉自己无权批的范围后，批准有效。
+
+```yaml
+approval_routes:
+  - {sensitivity: high, mode: manual, approver: bob, budget_profile: kb-large-v1, verify_approver: true}
+  - {sensitivity: high, mode: manual, approver: dana, budget_profile: kb-large-v1, verify_approver: true,
+     scope_condition: {classification: [leadership]}}
+```
+
+### 审批链（`chain`，KB1-LOOP-141；演示功能，不属论文主张）
+
+路由可以不点名审批人，改由组织架构逐级审批：
+
+1. 申请人所在部门的审批人（`directors` 里该部门的人：部门主任，或演示里的部门管理员）；
+2. 申请范围中其余每个部门的审批人，按部门值排序；
+3. 之后按 `escalations` 的顺序逐层：申请范围命中该层的触发值（如 `classification: confidential` 或 `leadership`）时，该层上每个所涉部门的负责人，按部门排序，同一人负责的部门合为一步。
+
+```yaml
+approval_routes:
+  - sensitivity: high
+    mode: manual
+    budget_profile: kb-large-v1
+    chain:
+      requester_attribute: department        # 申请人的部门属性，须恰有一个值
+      department_scope: kb_department        # 列出被申请部门的枚举范围
+      directors: {finance: finance-admin, sales: sales-admin, ...}         # 须覆盖该范围的全部值
+      director_authority: {attribute: department, role: {attribute: job_family, any_of: [dept_admin]}}
+      escalations:                           # 升级层，按链上顺序；KB1-LOOP-147
+        - role: director                     # 本层步骤的角色名，小写标识符，层间唯一，不得是 requester_director / department_director
+          label: 部门主任                     # 展示名，可省略
+          # level: 0                         # 可选，长期授权模型下的职权层级（见下节）；省略即序号加 1
+          scope: classification
+          values: [confidential, leadership]
+          leaders: {finance: finance-director, sales: sales-director, ...}  # 须覆盖全部部门
+          leader_authority: {attribute: department, role: {attribute: job_family, any_of: [director]}}
+        - role: leader
+          label: 分管领导
+          scope: classification
+          values: [leadership]
+          leaders: {finance: leader-admin, sales: leader-business, ...}
+          leader_authority: {attribute: oversees, role: {attribute: job_family, any_of: [leader]}}
+```
+
+- 旧写法 `escalation:`（单个升级层，角色名固定为 `leader`）仍受理，等价于只有一层的 `escalations`；两者不得同时出现。
+- 链路由不写 `approver` 与 `scope_condition`。组织架构须覆盖部门范围的全部值，缺一个即目录无效。
+- **权限核验**：每一级审批人都要在主体属性快照中核验。
+  - `authority.attribute` 须含该步的全部部门；
+  - `role` 须成立。
+  - 目录点名的审批人在建草稿前就核，不满足即 `APPROVER_NOT_AUTHORIZED`，目录配错时失败关闭。
+  - 每一级在审批回调到达时再核一次，不满足则任务以 `approver_not_authorized` 归档，不签发授权。
+  - 申请人不能出现在自己的链上。
+- **缩小与重算**：
+  - 每一级批准或缩小的是上一级的授权，在本级时刻重新签发，有效期从本级起算；
+  - TaskGate 按该级留下的范围重算剩余环节，已批过的人不再出现；
+  - 没有剩余环节时签发授权，任务变为 ACTIVE；
+  - 任一级拒绝，任务即归档。
+- **申请人自选审批人**：`approver` 只替换第一级，并照常在回调时核验。
+- **可见性**：`request_data_task` 返回 `approval_chain`（每步含 `role`、`role_label`、`approver`）；`get_task_status` 与 `wait_for_approval` 返回当前审批人和每一步的状态（approved / current / pending）；每级审批回调的答复含 `next_role` 与 `next_role_label`。
+
+### 长期授权模型（`delegated_authorization`，KB1-LOOP-147/148；演示功能，不属论文主张）
+
+顶层块 `delegated_authorization` 打开演示的粗粒度长期授权模型。块本身进目录摘要，所以每张 manifest 与回执都绑定了它是否打开；没有这个块的目录（正式轮）行为完全不变。
+
+```yaml
+delegated_authorization:
+  issuer_role: {attribute: job_family, any_of: [dept_admin]}  # 代开单（issue_data_authorization）所需角色，必填
+  child_self_confirm: true          # 子任务由树的人类主体本人确认
+  authority_attribute: authority_departments  # 列出主体有职权的部门的属性；省略即 authority_departments
+  center_scope: center              # 中心范围（枚举）；省略即不启用中心规则
+  center_attribute: authority_center  # 列出主体所辖中心的属性；省略即 authority_center
+  personal_scope: employee_id       # 个人记录范围（枚举）；申请人同名属性是本人的值；省略即不启用
+  agent_submits: true               # agent 代人类主体提交：任务创建即 AWAITING_APPROVAL，人只在 OA 批准；省略即 false
+  pending_ttl: 72h                  # 待审任务（AWAITING_SUBMISSION / AWAITING_APPROVAL）自创建起的最长等待；到期归档为 expired 并通知 OA 撤回草稿；省略即永不过期
+products:
+  - name: attendance_records
+    steward_department: hr          # 数据管家部门，须是每条审批链 department_scope 的取值
+    scopes: [kb_department, classification, center, employee_id]
+    ...
+```
+
+以下规则只在块存在时生效，只作用于申请人自己发起的任务；代开单（`issue_data_authorization`）照旧从发单人那一级起排、不走这些规则。审批人照常在建草稿前与每级回调时核验权限。
+
+1. **职权层级**。链上每一步有层级：两类部门审批人（`requester_director`、`department_director`）为 0；升级层的层级取该层可选的 `level`（整数，0 到层数），省略时为它在 `escalations` 里的序号 i（从 0 数）加 1。例如作者定部门主任与部门管理员同层，演示目录把主任层写 `level: 0`。`level` 只影响下面的职权判断，不改变链上的顺序与谁出现在链上。申请人的层级是组织架构里点到他的各处层级的最大值（是 `directors` 的人为 0，都不是为 -1）。排链时：
+   - 某一步的层级不高于申请人的层级、且该步的部门都在申请人的职权部门（`authority_attribute`）内：申请人本人代表这一步，删去；
+   - 某一步点到申请人本人、而本人对该步部门无职权：按部门改由组织图里该步之后、不是本人的第一层的人审批；
+   - 申请范围含职权外的部门（跨部门）时，申请人本部门那一步若按第一条被删，改由组织图顺序里申请人所在位置之后、不是本人的第一层的人审批，与 `level` 无关（部门管理员跨部门 → 本部门主任；主任跨部门 → 分管领导）；
+   - 例（主任层 `level: 0`）：管理员申请本部门秘密 → 本人确认；机密 → [分管领导]；绝密 → [分管领导, 总经理]；管理员跨部门内部 → [本部门主任, 对方管理员]；主任跨部门 → [分管领导, 对方管理员]；
+   - 同一人只出现一次（保留第一次出现的位置，同角色时合并部门）；找不到可替换的人即 `APPROVER_NOT_AUTHORIZED`。
+   - 链上一步不剩时，任务由申请人本人确认（self-service）：审批人是申请人，返回 `self_service: true` 与 `self_confirm: true`，申请人登录 OA 提交并批准即生效；此时不能用 `approver` 指定他人（`INVALID_REQUEST`）。
+   - 中心：申请只含本部门、只含本人所辖中心（`center_scope` 的值都在 `center_attribute` 内）、不触发任何升级层，且所有产品都声明了 `center_scope` 时，同样由申请人本人确认；超出本中心则按上面的规则（通常是本部门管理员审批）。
+   - 职权快照在申请时记入任务的私有路由记录，审批人缩小范围后每一级都按同一份记录重算。
+2. **个人记录自助**。根任务的所有产品都声明了 `personal_scope`，且该范围的申请值恰好等于申请人同名属性的值集合（非空）时，任务由申请人本人确认，不论部门。只申请别人的记录由可申请范围挡下（`NOT_ELIGIBLE`），与本规则无关；含未声明该范围的产品（如文档）的混合任务不适用本规则。
+3. **数据管家**。任务的所有产品都声明了 `steward_department` 时，申请范围里既不在申请人职权内、也不是申请人本部门的部门，一律换成管家部门再排链（例：HR 管理员申请全公司考勤 → 只剩 hr → 本人确认；财务管理员申请财务与销售的考勤 → 本部门主任 + HR 管理员）。混合任务（含未声明管家的产品）按部门常规排链。
+4. **成员确认**。`request_data_task` 带 `parent_task_id` 并用 `delegate_principal_id` 委托给另一个人的查询主体时：任务的人类主体仍是父任务的（委托收缩检查不变），审批人是受托成员本人，可申请范围按成员推出；成员可在 OA 提交并批准，回执上的审批人即成员；返回 `member_confirm: true`，`get_task_status` 的 `waiting_for` 为 `member_submission` / `member_confirmation`。委托给自己（或同一人类主体）的子任务仍按 `child_self_confirm` 由本人确认。
+
+块打开时另有以下几项：
+
+- `request_data_task` 可选 `budget_profile`：取目录里的预算档替换路由的预算档，须与路由预算档的 `exposure_profile_version` 相同（返回 `budget_source: requested_profile`）；块不存在时传入即 `INVALID_REQUEST`。子任务仍与父授权取交。
+- `issue_data_authorization`（代开单）：数据范围只能是发单人自己的部门（数据属主），链从发单人的部门起排、第一步须是发单人；员工可以属于任何部门，但员工本人的可申请范围须覆盖所开范围。
+- `list_data_products` 返回 `delegated_authorization`，说明以上规则与所用属性名；`request_data_task` 的工具说明与入参 schema 也随之列出 `budget_profile`。
+- `list_my_tasks`（KB1-LOOP-150）：每条任务另给 `kind`（`project` 项目，即申请时选了预算档的根任务；`task` 日常任务，即按路由缺省预算档的根任务；`child` 项目内子任务；`authorization` 代开授权单；块打开后新建的任务在私有请求上下文里记 `budget_profile` 与 `budget_profile_chosen`，此前的根任务没有这两项，分不出项目与日常任务，给 `root`）、`budget_profile`（建任务时记下的预算档名，子任务的实际预算是它与父授权取交；没有记录的旧任务取预算与之完全相同的档名，没有就省略）、`products`、`scopes`（ACTIVE/ARCHIVED 且有授权记录时取授权的范围，即审批人缩小后的范围，否则取申请范围）、`approver`（审批链任务待审批时是当前一步的审批人，否则是记录的第一审批人）、`self_confirm`、`member_confirm`、`agent_submitted`，代开单另给 `issued_by` 与 `human_subject`；私有请求上下文无法解码的任务只给基本字段并标 `detail_unavailable: true`。可选入参 `root_task_id`（只列该根任务及其后代中自己名下的）与 `kind`（在取回的一页内过滤，`next_cursor` 仍按未过滤的页给出）。只列本人主体名下的任务：代开单列在员工名下，开单人的列表里没有。块不存在时条目不变，传 `root_task_id` 或 `kind` 即 `INVALID_REQUEST`。
+- `agent_submits: true`（KB1-LOOP-149，作者 2026-10-28 定）：任何场景下提交都由 agent 代人类主体完成，人只审批。`request_data_task`、`request_download_task` 与 `issue_data_authorization` 建的任务创建即 `AWAITING_APPROVAL`（返回 `agent_submitted: true`），OA 草稿以 `submitted: true` 建为待审批、不发 `submitted` 回调（adapters.md），网关审计记一条 `TASK_SUBMITTED_BY_AGENT`（actor 是发起调用的主体，payload 含 `human_subject`、`agent_id`、`approver`、`self_confirm`、`member_confirm`、`draft_id`，代开单另含 `issuer_subject`）。`next_action` 直接是审批那一类（`await_approver_decision`，本人或成员确认为 `human_confirm_in_oa`），不会出现 `human_submit_in_oa`；上述工具与 `get_task_status`、`wait_for_approval`、`revoke_task` 的说明、以及 `list_data_products` 的 `delegated_authorization`（`agent_submits: true`）随之注明。开关缺省关，关时行为不变。
+- 撤回与待审过期（KB1-LOOP-137 待办，2026-10-28）：块存在时，任务被 revoke_task 撤销（含根任务级联归档的后代）或按 `pending_ttl` 过期后，网关向 OA `POST /api/drafts/{id}/withdraw`（同 /api/drafts 的服务令牌），OA 把草稿标为已撤销/已过期并移出待办；通知失败只记日志，迟到的回调仍被网关以 409 拒绝。`pending_ttl` 是正的 Go duration，进目录摘要。
+- 可切换的 agent 身份（KB1-LOOP-151，作者 2026-10-28 定）：演示时一把 MCP 令牌代表谁，由人在 OA「我的 agent」处切换，agent 自己不能切——令牌先以摘要登记（`POST /admin/v1/demo/agent-identities`，管理令牌之下，体为 `label`、`token_sha256`、`principal_id`、`by`，网关不见令牌明文），OA 以与审批回调相同的签名调 `POST /api/v1/oa/agent-identity`（`list` 列出绑定与候选主体，即已启用、属性快照认得的查询主体；`switch` 改绑，每次绑定记入 `demo_agent_identity_switches`），登记过的令牌先于静态主体表认证，切换从下一次请求起生效；块打开时另有 `whoami` 工具（主体、角色、部门、岗位、中心、密级、职权部门、员工号，可切换令牌另给 `agent_label`、`bound_by`、`bound_at`），且每个结构化工具结果顶层带 `acting_as`（`principal_id`、`subject`、可切换令牌的 `agent_label`、部门与岗位的首值）。块不存在时两个接口答 404，`whoami` 不列出、调用得 `FORBIDDEN`，结果不带 `acting_as`。
+- 复用覆盖申请的生效授权（演示，2026-10-29 作者观察）：网关环境变量 `GATEWAY_REUSE_COVERING_TASK=1`（缺省关；不是目录键，开关不改目录摘要、不使既有任务失效）打开时，`request_data_task` 的根申请（不带 `parent_task_id` 与 `delegate_principal_id`；代开单与下载任务从不复用）若已被申请主体名下一项 ACTIVE 任务完全覆盖，直接返回该任务（`reused_existing_task: true`、`reuse_note`、`state: ACTIVE`、批准的产品/列/范围、`expires_at`、预算），不建任务行、不建 OA 草稿，审计在被复用任务上记一条 `TASK_REQUEST_REUSED_EXISTING`（actor 是发起调用的主体，payload 含 `requested_objective`、`reused_task_id`、申请的产品/列/范围）；预算与暴露记账照常记在被复用任务上。覆盖的判定：每个申请产品都在授权内且申请的每一列都已批准；申请所含的每个范围维度（按申请同样做有序维度下闭包后）都是授权批准值的子集（日期范围在批准的起止内，空界为开放），授权未限制的维度视为不限；授权限制了、且某个申请产品发布了该字段（或声明为强制范围）的维度，申请必须也给出；授权未过期，目录版本与摘要一致、授权证明验签通过、所在项目树仍有效、View binding 仍为 ACTIVE。多项都覆盖时取到期最晚的。`request_data_task` 与 `list_my_tasks` 的工具说明各加一句；开关关时行为与说明逐字节不变。
+
 - `budget_profile` 必须引用已定义 Profile。
 - 多产品申请以最高有效敏感级别路由。
 
@@ -407,6 +581,142 @@ budget_profiles:
       max_atom_payload_bytes: 4096
       max_total_atom_payload_bytes: 16384
 ```
+
+## Knowledge Products（KB-1，知识产品）
+
+知识产品把一个受治理的文档集合接到同一套契约上（设计记录 `docs/kb-design.md`）。它由 `cmd/kb-publish` 冻结为一个
+**索引发布期**：三张关系（documents / chunks / values）各发布为一个普通的 snapshot-publication Product，Catalog 顶层再用
+两个块把它们捆起来：
+
+```yaml
+knowledge_products:
+  - name: policy_kb
+    description: 部门制度、合同、审批单与报告
+    sensitivity: high
+    collection: policy_v1                 # kb.collections 中的集合名
+    source_namespace: kb.policy           # 三个产品的 fact_namespace 必须是 kb.policy.{documents,chunks,values}
+    products: {documents: policy_kb_documents, chunks: policy_kb_chunks, values: policy_kb_values}
+    index_publication: policy-kb-2026-10-v1   # 三个产品的 snapshot 必须等于它
+    document_types: [contract, approval, policy, report]
+    attributes:                           # 过滤原子可命名的封闭属性词表
+      - {name: kb_department, type: enum, scope: kb_department}   # 绑定到强制 Scope → 任务范围注入为过滤原子
+      - {name: classification, type: enum, scope: classification}
+      - {name: job_role, type: enum, allowed_values: [staff, manager, director, executive, hr]}
+      - {name: labels, type: text_set}
+      - {name: valid_until, type: date}
+    segmentation: {function: section-window-v1, window_chars: 800}
+    embedding: {model: hash-projection-v1, dimension: 256}
+    extraction_rules:
+      - {document_type: contract, field: amount, type: numeric, source: frontmatter, scope: document}
+    retrieval: {k_max: 20, exact: true, aggregates: [count, sum], generation_admitted: false}
+    scopes: [kb_department, classification]
+    eligibility: {scope_envelope: {kb_department: {from_attribute: department}, classification: {from_attribute: clearance}}}
+kb_publications:
+  - epoch: policy-kb-2026-10-v1
+    knowledge_product: policy_kb
+    manifest_digest: <kb-publication.json 的 manifest_digest>
+    segmentation_digest: <sha256 of canonical JSON of segmentation>
+    embedding_digest: <...>
+    extraction_rules_digest: <...>
+```
+
+规则：
+
+- 三个产品必须存在、带 `snapshot_publication`，`fact_namespace` = `<source_namespace>.<kind>`，`snapshot` = epoch，并各自发布
+  知识 Fact 身份所需字段（documents: `doc_id/version/content_sha256/chunk_count`；chunks: `+chunk_index/text_sha256`，正文 `text` 不是发布字段，网关交付时读业务表并按摘要核对；
+  values: `+field/value_type/canonical_value/value_text/value_numeric/value_date`），且都带知识产品的全部强制 Scope。
+- `scopes` 非空，只能是 enum Catalog Scope；每个强制 Scope 必须有一个同名 enum 属性绑定它（`attributes[].scope`）。
+- `extraction_rules` 的 `document_type` 必须在 `document_types` 内，类型限 `text/numeric/integer/bigint/date`，目前只支持
+  `source: frontmatter`、`scope: document`；`retrieval.aggregates ⊆ {count,sum,min,max}`，`generation_admitted` 必须为 false。
+- 抽取规则的 `scope` 由定义 Catalog 的人按字段业务含义选择：`document`（每份文档版本一个值 Fact，适合金额、日期、编号）或
+  `collection`（同一值在集合内按 (field, canonical_value, kb_department, classification) 去重为一个 Fact，适合对方名称、项目代号等大量重复的
+  枚举值）。有任何 `collection` 规则时，知识产品必须声明第四个关系 `products.collection_values`（kb-publish 会发布它），aggregate 对该字段的
+  请求改在这张关系上结算，依赖与见证集随之变为去重后的值（E-KB5 实测：同一 count 请求，文档级 116 行 / 580 依赖，集合级 10 值 / 50 依赖）。
+- `kb_publications` 的三个声明摘要必须等于对本 Catalog 中 `segmentation` / `embedding` / `extraction_rules` 声明的规范 JSON
+  做 SHA-256 的结果（Catalog 内自洽，不读文件）；`manifest_digest` 是 kb-publish 清单的摘要。
+- 启动激活：Gateway 在加载 snapshot 发布物之后读取 `$GATEWAY_KB_ARTIFACT_DIR/<epoch>/kb-publication.json`，核对清单
+  自摘要、`kb_publications` 绑定、三个 bundle 的 product/publication/relation/sidecar 身份与 manifest/dictionary/sidecar 摘要；
+  任一不符即拒绝启动。清单目录与 `GATEWAY_SNAPSHOT_ARTIFACT_DIR` 分开：snapshot 目录里只能有 Catalog 声明的 publication，
+  多一项即拒启动，所以 kb-publish 输出的 `<root>/kb` 要单独挂给 `GATEWAY_KB_ARTIFACT_DIR`；该目录同样只能含 Catalog 声明的
+  epoch，不认的条目、符号链接或文件都拒绝激活。
+- `eligibility` 与 Product 的同一结构（见上节 Eligibility），按知识产品的强制 Scope 校验；申请其 chunks / documents / values
+  任一关系时，Gateway 在建草稿前按该知识产品的 eligibility 推出可申请范围（关系继承知识产品的 eligibility），可申请范围外即 `NOT_ELIGIBLE`。
+- 检索语言（`internal/retrieval`）是封闭的：`search`（AND 过滤原子 + 一个文本或向量查询承诺 + `k ≤ k_max`）、`fetch`
+  （只接受本根任务族此前 `search`/`fetch` 已返回过的块引用，网关对照该根族账本的 Release 集合逐块核对，否则
+  `CHUNK_NOT_RETURNED`）、`aggregate`（过滤原子 + 抽取字段上的一个白名单聚合）。原子算子按属性类型限定（enum/text:
+  `= <> in`；date/numeric: `= <> < <= > >=  in`；text_set: `has`——语言接受，但检索计划尚无渲染，`search` 以
+`RETRIEVAL_FILTER_UNSUPPORTED`（reason `OPERATOR_NOT_EXECUTABLE`）拒绝，MCP schema 也不再列出它），字面量用 exposure 规范编码；任务强制范围按 `attributes[].scope`
+  注入为原子（进入请求承诺 h_N，不计为调用方原子），调用方对该属性的原子必须与范围相交。语言之外一律关闭式拒绝：
+  `RETRIEVAL_FILTER_UNSUPPORTED`、`RETRIEVAL_QUERY_UNSUPPORTED`（含任何未知字段，如重排器、more-like-this）、
+  `RETRIEVAL_K_EXCEEDED`、`RETRIEVAL_SCOPE_EXCEEDED`、`CHUNK_NOT_RETURNED`、`AGGREGATE_UNSUPPORTED`。
+
+检索工具与结算（K3.3）：Gateway 向 query 角色列出 `search`、`fetch`、`aggregate` 三个 MCP 工具（参数：`task_id`、`request_id`、
+`knowledge_product`，以及各自的 `filters` / `query{text|vector}` / `k`、`chunks[]`、`field` + `aggregate`）。`search` 与 `fetch` 由
+`physicalquery.PrepareRetrieval` 准备：先把规范形变成 `chunks ⋈ documents` 的关系计划交给与 `execute_plan` 相同的编译器，再给两条语句各包一层
+命中集 CTE（在 `kb.chunks` 上按精确余弦距离排序、同一调用方原子、身份三列全序、`LIMIT k`；`fetch` 按身份枚举、不排序）；密封、预留、
+执行、序数推导、结算、回执、重放全部复用 `execute_plan` 的链条，响应列为 `doc_id, version, chunk_index, text_sha256, text`
+（前四列是封印语句的结果，`text` 是交付时按 `text_sha256` 核对后补上的正文；按设计不回相似度分数，名次即返回顺序）。效果口径见
+docs/kb-design.md §5（Release 为四个可见单元格；Dependency 另含块行、文档键单元格与文档行、每个调用方过滤属性一个块单元格）。
+
+文档下载任务（K7；docs/kb-design.md §12）：检索与下载是两种任务。
+- `request_download_task`（`objective`、`knowledge_product`、`documents[]` 为 1–20 个 `{doc_id, version}`、可选 `include_values`、
+  可选 `scopes`，缺省为申请人的可申请范围）：产品与列由网关固定——chunks 与 documents，`include_values` 时加 values。
+  清单以排序后的 `"doc_id@version"` 存入授权单的保留范围键 `kb_documents`，审批人在 OA 看到并可删减（沿用子集缩小规则）。
+  普通 `request_data_task` 不能携带该键；下载任务不能委托。
+- `download_document`（`task_id`、`request_id` 最长 100 字符、`knowledge_product`、`doc_id`、`version`）：
+  - 依次以 `<request_id>:document`、`:chunks`、`:values` 三个准备操作读取文档行、全部分块（fetch 形）与批准时的抽取值，各自结算并出回执；
+  - 分块数不等于文档行的 `chunk_count`（例如某节在任务范围外）即整份拒绝，不释放任何分块；
+  - 全部结算后，由结算行确定性地组装 `taskgate-kb-document-file-v1` Markdown 文件（标题、抽取值、按序正文；不含存储的 body、
+    节标题与原始前置字段），返回文件内容、`file_sha256`、逐块 `text_sha256` 清单与短期 `download_url`
+    （`/api/v1/kb/documents/download`，HMAC 能力绑定文件摘要）；MCP 结果另附一个嵌入资源。
+- 原文件通道（§12.8）：`request_download_task` 加 `original_file: true` 时，documents 的列加 `content_sha256`（即原文件权，审批人可删去），并隐含 values；
+  `download_document` 加 `format: "original"` 时，三部分照常结算（document 部分多释放 content_sha256），再按身份读出存储的源文档，
+  核其 SHA-256 等于已释放的 content_sha256 后原样交付；未批准原文件即 `DOWNLOAD_NOT_APPROVED`。节标题与未抽取的前置字段随文件整体释放。
+- 拒绝码：`TASK_KIND_MISMATCH`（下载任务中的 search/fetch/aggregate/query_sql/execute_plan，或检索任务中的下载）、
+  `DOWNLOAD_NOT_APPROVED`（文档不在批准清单内）、`DOCUMENT_NOT_DOWNLOADABLE`（文档不存在、在范围外或有范围外的节）。
+`aggregate` 直接是 values 关系上的一个计划（`field` 与 `value_type` 过滤 + 白名单聚合），不新写结算。任务必须同时授权 chunks 与
+documents 两个 Product（aggregate 授权 values），且携带 V5 暴露 profile。文本查询由受信嵌入服务编码：Gateway 读 `KB_EMBEDDING_ENDPOINT`
+（compose 中默认为空），未配置时文本查询以 `RETRIEVAL_QUERY_UNSUPPORTED` 拒绝、向量查询仍可用；嵌入器在使用前按知识产品声明的
+模型 / 维度 / 权重 sha256 核对。业务库须把 pgvector 装在 `pg_catalog`（`db/init/kb-schema.psql`）：连接器为每条语句钉
+`search_path = pg_catalog`，距离算子只有在那里才可解析。
+
+发现面、就绪预告与拒绝细节（KB1-LOOP-137；代码出处见各条）：
+- `list_data_products` 增 `knowledge_products`，各关系产品带 `knowledge_product: {name, role}`；`describe_data_product` 接受知识产品名。
+  知识产品页给出 `retrieval`（`k_max`、三种查询方式及限额：text 为归一化后至多 4096 字节、keywords 至多 8 个且每个至多 64 字符、
+  vector 的维度）、`attributes`（类型、`allowed_values`、实际可执行的 search 算子、`filter_columns`）、`extracted_fields`（可用聚合与所读列）
+  与 `task_requirements`。其中 search/fetch 的列取自检索计划本身（physicalquery.RetrievalRequiredColumns：chunks 的
+  `doc_id, version, chunk_index, text_sha256` 加每个过滤属性的列，documents 的 `doc_id, version`；作用域列不必授权），aggregate 的要求
+  直接运行 aggregatePlan 得出。不发布 collection、source_namespace、嵌入权重与 eligibility。
+- `request_data_task`（按申请清单）与 `get_task_context`（按已批授权）返回 `knowledge_readiness`：每个涉及的知识产品能否 search/fetch/aggregate、
+  缺哪些关系或列、哪些属性可过滤、暴露 profile 是否为 V5。只作信息，从不让请求失败；审批人仍可能删减。
+- `request_data_task`、`get_task_status`、`wait_for_approval` 返回 `waiting_for` 与 `next_action`：`human_submit_in_oa`（须申请人本人在 OA 提交，
+  agent 不能代交；目录启用 `delegated_authorization.agent_submits` 时不会出现，任务创建即待审批）、`await_approver_decision`、`use_task`、`none_terminal`；配置 `PUBLIC_OA_BASE_URL` 时，未批准任务的状态带草稿链接 `oa_url`。
+- `get_sql_capabilities` 增 `where_predicates`、`where_rejected`、`catalog_control_defaults`；`describe_data_product` 增 `sql_effective`
+  （生效算子：声明的或策略缺省集；该产品可用的 WHERE 谓词；聚合，未声明即不能聚合）。
+
+拒绝细节：错误体在 `code`、`message` 之外带 `reason` 与以下键（`mcp.ToolError.Details`）。
+
+| reason | code | 何时 | 细节与补救 |
+|---|---|---|---|
+| `UNKNOWN_KNOWLEDGE_PRODUCT` | `INVALID_REQUEST` | knowledge_product 不是目录中的知识产品名（KB1-LOOP-137 前为 `POLICY_DENIED`"任务授权外的知识产品"） | `knowledge_products` 列出全部知识产品；输入是某知识产品的关系名时给 `suggested_knowledge_product` 与 `relation_role` |
+| `RELATIONS_NOT_GRANTED` | `POLICY_DENIED` | 任务缺工具所读的关系（search/fetch：chunks 与 documents；aggregate：values；download_document：chunks 与 documents） | `missing_products`；授权只能收窄，须按 `task_requirements` 新建任务 |
+| `COLUMNS_NOT_GRANTED` | `POLICY_DENIED` | 检索或 aggregate 计划读取的列未获授权 | `missing_columns`（关系 → 列）；同上新建任务 |
+| `OPERATOR_NOT_EXECUTABLE` | `RETRIEVAL_FILTER_UNSUPPORTED` | 语言接受、计划尚无渲染的过滤算子（text_set 的 `has`） | `attribute`、`attribute_type`、`operator` |
+| `RETRIEVAL_NOT_PREPARABLE` | `POLICY_DENIED` | 其余检索准备失败（兜底） | 具体原因只记在网关日志（trace_id 对应的 cause） |
+| `QUERY_IN_PROGRESS` | `CONFLICT` | 同一任务已有在途查询（每个任务一个名额，委托子任务各有名额） | `retryable`、`same_request_id_ok`：在途查询返回后可用同一 request_id 重试 |
+
+`POLICY_DENIED` 的全部发射点（gateway 包，KB1-LOOP-137 后）：`QueryPlan 不在任务授权可精确计量的数据暴露片段内`（query.go，兜底，cause 记日志）、
+`任务授权缺少目录要求的强制数据范围`（query.go）、`当前实例不支持跨数据源任务`（datasource.go）、`QueryPlan 请求了任务授权外的数据产品`、
+`QueryPlan 无法在语义 View 的任务授权内编译`、`QueryPlan 使用了语义 View root 未授权的运算`、`语义 View 查询不在其治理闭包与任务授权内`（view_execution.go）、
+`检索不在任务授权可精确计量的数据暴露片段内`（retrieval.go，兜底）、`任务未授权该知识产品的抽取值关系`（知识产品无 values 关系时）、
+`委托任务无法继承父任务的授权预算`、`委托任务扩大了父 Grant 的产品、字段、范围或期限`（tasks.go），以及 retrieval_refusals.go 的
+`RELATIONS_NOT_GRANTED` 与 `COLUMNS_NOT_GRANTED` 两类。被拒请求不进审计链，只在网关日志按 trace_id 记录：拒绝只取决于授权与请求，不取决于数据。
+
+发布流程：`kb-publish -spec <spec.json> -artifact-dir <snapshot artifact root>` 写入 kb.* 行、建冻结物化视图、编译三个 bundle 到
+`<root>/<publication>/`，并在 `<root>/kb/<epoch>/` 留下清单、三个 compiler input 与 `catalog-fragment.yaml`；
+`kb-publish -merge -base config/catalog.yaml -fragment <root>/kb/<epoch>/catalog-fragment.yaml -out candidate.yaml` 把片段追加进
+候选 Catalog 并校验；随后按下节发布清单的第 3–8 步（snapshot-index 以三个 input 重编、sidecar-install 与其他发布物同批安装、
+重算 `schema_digest`、提升版本、作者签署）。
 
 ## 发布清单
 

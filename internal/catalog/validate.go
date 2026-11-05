@@ -34,11 +34,20 @@ var attestedPostgreSQLTypes = map[string]struct{}{
 	"timestamp with time zone": {}, "timestamp without time zone": {}, "uuid": {},
 }
 
+// safeOperators is the set of operator names sqlpolicy gates by name, so each
+// admits something declared alone, except != (PostgreSQL parses it as <>, so
+// only <> admits it). The LIKE family is admitted under its word or its AST
+// symbol (LIKE is ~~, ILIKE ~~*, NOT LIKE !~~, NOT ILIKE !~~*). in admits an
+// IN list alone and not in a NOT IN list alone, while = and <> admit those
+// lists as well as the comparison; between and not between admit only that
+// form, and BETWEEN SYMMETRIC cannot be granted. AND, OR, NOT and IS [NOT]
+// NULL are structural nodes allowed_operators never constrains, so they are
+// not words here.
 var safeOperators = map[string]struct{}{
 	"=": {}, "<>": {}, "!=": {}, "<": {}, "<=": {}, ">": {}, ">=": {},
-	"+": {}, "-": {}, "*": {}, "/": {}, "%": {}, "and": {}, "or": {},
-	"not": {}, "like": {}, "ilike": {}, "in": {}, "between": {}, "is": {},
-	"is not": {},
+	"+": {}, "-": {}, "*": {}, "/": {}, "%": {}, "like": {}, "ilike": {},
+	"in": {}, "not in": {}, "between": {}, "not between": {},
+	"~~": {}, "!~~": {}, "~~*": {}, "!~~*": {}, "not like": {}, "not ilike": {},
 }
 
 var forbiddenFunctions = map[string]struct{}{
@@ -85,6 +94,9 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 	}
 	if len(c.Sources) == 0 {
 		problems = append(problems, fieldError("sources", "at least one source is required", ErrMissingField))
+	}
+	if c.DelegatedAuthorization != nil {
+		problems = append(problems, validateDelegatedAuthorization("delegated_authorization", *c.DelegatedAuthorization)...)
 	}
 	if len(c.Products) == 0 {
 		problems = append(problems, fieldError("products", "at least one product is required", ErrMissingField))
@@ -167,9 +179,35 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 
 	routes := make(map[domain.Sensitivity]ApprovalRoute, len(c.ApprovalRoutes))
 	scopedRouteSets := make(map[string]struct{}, len(c.ApprovalRoutes))
+	scopeDefinitions := make(map[string]Scope, len(c.Scopes))
+	for _, scope := range c.Scopes {
+		scopeDefinitions[scope.Name] = scope
+	}
+	unconditioned := make(map[string]struct{}, len(c.ApprovalRoutes))
+	conditions := make(map[string]struct{}, len(c.ApprovalRoutes))
+	for _, route := range c.ApprovalRoutes {
+		if len(route.ScopeCondition) == 0 {
+			unconditioned[route.routeKey()] = struct{}{}
+		}
+	}
 	for index, route := range c.ApprovalRoutes {
 		path := fmt.Sprintf("approval_routes[%d]", index)
 		problems = append(problems, validateApprovalRoute(path, route, profiles)...)
+		if route.Chain != nil {
+			problems = append(problems, validateApprovalChain(path+".chain", *route.Chain, scopeDefinitions)...)
+		}
+		if len(route.ScopeCondition) > 0 {
+			problems = append(problems, validateScopeCondition(path+".scope_condition", route.ScopeCondition, scopeDefinitions)...)
+			if _, ok := unconditioned[route.routeKey()]; !ok {
+				problems = append(problems, fieldError(path+".scope_condition", "a conditioned route needs an unconditioned route for the same sensitivity and products", ErrInvalidApprovalRoute))
+			}
+			condition, _ := CanonicalDeclarationDigest(route.ScopeCondition)
+			if _, duplicate := conditions[route.routeKey()+"\x00"+condition]; duplicate {
+				problems = append(problems, fieldError(path+".scope_condition", "conditioned approval route is duplicated", ErrInvalidApprovalRoute))
+			}
+			conditions[route.routeKey()+"\x00"+condition] = struct{}{}
+			continue
+		}
 		if route.Sensitivity != "" && len(route.Products) == 0 {
 			if _, exists := routes[route.Sensitivity]; exists {
 				problems = append(problems, fieldError(path+".sensitivity", "approval route is duplicated", ErrInvalidApprovalRoute))
@@ -243,9 +281,22 @@ func (c *Catalog) validate(viewContractCandidates map[string]struct{}) error {
 			}
 		}
 	}
+	for index, product := range c.Products {
+		if product.Eligibility == nil {
+			continue
+		}
+		problems = append(problems, validateEligibility(fmt.Sprintf("products[%d].eligibility", index), product.Eligibility, product.Scopes, c.Scopes)...)
+	}
+	problems = append(problems, c.validateKnowledgeProducts()...)
+	if c.DelegatedAuthorization != nil {
+		problems = append(problems, validateDelegatedScopes("delegated_authorization", *c.DelegatedAuthorization, scopeDefinitions)...)
+	}
+	problems = append(problems, c.validateStewardDepartments(scopeDefinitions)...)
 	scopedProducts := make(map[string]string)
 	for index, route := range c.ApprovalRoutes {
-		if len(route.Products) == 0 {
+		// A conditioned route shares its fallback's product set and is
+		// checked through it.
+		if len(route.Products) == 0 || len(route.ScopeCondition) > 0 {
 			continue
 		}
 		path := fmt.Sprintf("approval_routes[%d].products", index)
@@ -376,7 +427,33 @@ func validateScope(path string, scope Scope) ValidationErrors {
 	default:
 		problems = append(problems, fieldError(path+".type", "type must be enum or date_range", ErrMissingField))
 	}
+	if len(scope.Order) > 0 {
+		if scope.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(path+".order", "only an enum scope can declare an order", ErrInvalidCatalog))
+		} else if !samePermutation(scope.Order, scope.AllowedValues) {
+			problems = append(problems, fieldError(path+".order", "order must list every allowed value exactly once, lowest first", ErrInvalidCatalog))
+		}
+	}
 	return problems
+}
+
+// samePermutation reports whether order lists exactly the values of allowed,
+// each once.
+func samePermutation(order, allowed []string) bool {
+	if len(order) != len(allowed) {
+		return false
+	}
+	remaining := make(map[string]int, len(allowed))
+	for _, value := range allowed {
+		remaining[value]++
+	}
+	for _, value := range order {
+		if remaining[value] == 0 {
+			return false
+		}
+		remaining[value]--
+	}
+	return true
 }
 
 func validateBudgetProfile(path string, profile BudgetProfile) ValidationErrors {
@@ -393,6 +470,33 @@ func validateBudgetProfile(path string, profile BudgetProfile) ValidationErrors 
 	return problems
 }
 
+// validateScopeCondition requires every condition to name a Catalog enum scope
+// and list sorted, distinct values that scope admits.
+func validateScopeCondition(path string, condition map[string][]string, scopes map[string]Scope) ValidationErrors {
+	var problems ValidationErrors
+	for name, values := range condition {
+		scope, ok := scopes[name]
+		if !ok || scope.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(path+"."+name, "a scope condition must name a Catalog enum scope", ErrInvalidApprovalRoute))
+			continue
+		}
+		allowed := make(map[string]struct{}, len(scope.AllowedValues))
+		for _, value := range scope.AllowedValues {
+			allowed[value] = struct{}{}
+		}
+		if len(values) == 0 {
+			problems = append(problems, fieldError(path+"."+name, "a scope condition lists at least one value", ErrInvalidApprovalRoute))
+		}
+		for index, value := range values {
+			if _, ok := allowed[value]; !ok || index > 0 && values[index-1] >= value {
+				problems = append(problems, fieldError(path+"."+name, "scope condition values must be sorted, distinct values of the scope", ErrInvalidApprovalRoute))
+				break
+			}
+		}
+	}
+	return problems
+}
+
 func validateApprovalRoute(path string, route ApprovalRoute, profiles map[string]BudgetProfile) ValidationErrors {
 	var problems ValidationErrors
 	if err := route.Sensitivity.Validate(); err != nil {
@@ -401,7 +505,11 @@ func validateApprovalRoute(path string, route ApprovalRoute, profiles map[string
 	if route.Mode != domain.ApprovalModeManual {
 		problems = append(problems, fieldError(path+".mode", "mode must be manual; automatic task approval is disabled", ErrInvalidApprovalRoute))
 	}
-	if strings.TrimSpace(route.Approver) == "" {
+	if route.Chain != nil {
+		if strings.TrimSpace(route.Approver) != "" || len(route.ScopeCondition) > 0 {
+			problems = append(problems, fieldError(path+".chain", "a chain route names neither an approver nor a scope condition", ErrInvalidApprovalRoute))
+		}
+	} else if strings.TrimSpace(route.Approver) == "" {
 		problems = append(problems, fieldError(path+".approver", "manual route requires an approver", ErrInvalidApprovalRoute))
 	}
 	if strings.TrimSpace(route.BudgetProfile) == "" {
@@ -600,4 +708,55 @@ func duplicateOrEmpty(values []string) bool {
 		}
 	}
 	return false
+}
+
+func validateAttributeCondition(path string, condition AttributeCondition) ValidationErrors {
+	var problems ValidationErrors
+	if !identifierPattern.MatchString(condition.Attribute) {
+		problems = append(problems, fieldError(path+".attribute", "a lowercase attribute name is required", ErrInvalidCatalog))
+	}
+	if len(condition.AnyOf) == 0 || duplicateOrEmpty(condition.AnyOf) {
+		problems = append(problems, fieldError(path+".any_of", "any_of must list distinct non-empty values", ErrInvalidCatalog))
+	}
+	for _, value := range condition.AnyOf {
+		if strings.ContainsAny(value, "\x00\r\n\t") || value != strings.TrimSpace(value) {
+			problems = append(problems, fieldError(path+".any_of", "attribute values must be canonical tokens", ErrInvalidCatalog))
+			break
+		}
+	}
+	return problems
+}
+
+func validateEligibility(path string, eligibility *Eligibility, mandatoryScopes []string, scopes []Scope) ValidationErrors {
+	var problems ValidationErrors
+	if len(eligibility.Require) == 0 && len(eligibility.ScopeEnvelope) == 0 {
+		problems = append(problems, fieldError(path, "eligibility must declare require conditions or a scope envelope", ErrInvalidCatalog))
+	}
+	for index, condition := range eligibility.Require {
+		problems = append(problems, validateAttributeCondition(fmt.Sprintf("%s.require[%d]", path, index), condition)...)
+	}
+	productScopes := make(map[string]struct{}, len(mandatoryScopes))
+	for _, name := range mandatoryScopes {
+		productScopes[name] = struct{}{}
+	}
+	definitions := make(map[string]Scope, len(scopes))
+	for _, scope := range scopes {
+		definitions[scope.Name] = scope
+	}
+	for name, rule := range eligibility.ScopeEnvelope {
+		rulePath := path + ".scope_envelope." + name
+		if _, mandatory := productScopes[name]; !mandatory {
+			problems = append(problems, fieldError(rulePath, "scope envelope must name a mandatory scope of this product", ErrInvalidCatalog))
+		}
+		if definition, ok := definitions[name]; ok && definition.Type != ScopeTypeEnum {
+			problems = append(problems, fieldError(rulePath, "scope envelopes are defined for enum scopes only", ErrInvalidCatalog))
+		}
+		if !identifierPattern.MatchString(rule.FromAttribute) {
+			problems = append(problems, fieldError(rulePath+".from_attribute", "a lowercase attribute name is required", ErrInvalidCatalog))
+		}
+		for index, condition := range rule.WidenIf {
+			problems = append(problems, validateAttributeCondition(fmt.Sprintf("%s.widen_if[%d]", rulePath, index), condition)...)
+		}
+	}
+	return problems
 }

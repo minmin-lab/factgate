@@ -33,6 +33,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/dataconnector"
 	gatewayapp "taskbound.local/agent-data-gateway/internal/gateway"
 	"taskbound.local/agent-data-gateway/internal/mcp"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryreceipt"
 	"taskbound.local/agent-data-gateway/internal/resultartifact"
 )
@@ -50,6 +51,18 @@ func main() {
 	if err != nil {
 		logger.Error("catalog validation failed", "error", err)
 		os.Exit(1)
+	}
+	// The attribute snapshot is optional unless the Catalog declares
+	// eligibility on any Product; gatewayapp.New then refuses to start without
+	// it, so a misconfigured deployment fails here rather than at request time.
+	var principalAttributes *principalattr.Snapshot
+	if path := strings.TrimSpace(os.Getenv("PRINCIPAL_ATTRIBUTES_PATH")); path != "" {
+		principalAttributes, err = principalattr.Load(path)
+		if err != nil {
+			logger.Error("principal attribute snapshot validation failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("principal attribute snapshot loaded", "path", path, "sha256", principalAttributes.SHA256, "subjects", len(principalAttributes.Subjects))
 	}
 	key, err := control.ParseAES256Key(requiredEnv("GATEWAY_DATA_KEY"))
 	if err != nil {
@@ -77,6 +90,25 @@ func main() {
 	if err != nil {
 		logger.Error("initialize result object store", "error", err)
 		os.Exit(1)
+	}
+	// The knowledge originals bucket (docs/kb-design.md §12.9) is optional and
+	// read with its own read-only credentials.
+	var kbOriginals gatewayapp.KBOriginalStore
+	if bucket := strings.TrimSpace(os.Getenv("GATEWAY_KB_ORIGINALS_BUCKET")); bucket != "" {
+		originals, err := resultartifact.NewS3Backend(resultartifact.S3Config{
+			Endpoint:       requiredEnv("GATEWAY_OBJECT_STORE_ENDPOINT"),
+			Region:         env("GATEWAY_OBJECT_STORE_REGION", "us-east-1"),
+			Bucket:         bucket,
+			AccessKey:      requiredEnv("GATEWAY_KB_ORIGINALS_ACCESS_KEY"),
+			SecretKey:      requiredEnv("GATEWAY_KB_ORIGINALS_SECRET_KEY"),
+			ForcePathStyle: pathStyle,
+		})
+		if err != nil {
+			logger.Error("initialize knowledge originals store", "error", err)
+			os.Exit(1)
+		}
+		kbOriginals = originals
+		logger.Info("knowledge originals store", "bucket", bucket)
 	}
 	resultArtifacts, err := resultartifact.NewManager(objectBackend, cipher,
 		env("GATEWAY_RESULT_TEMP_DIR", "/tmp/taskgate-result-artifacts"))
@@ -162,16 +194,54 @@ func main() {
 		logger.Error("snapshot index artifact directory is required by the Catalog")
 		os.Exit(1)
 	}
+	if kbManifests, err := activateKnowledgeProducts(logicalCatalog, strings.TrimSpace(os.Getenv("GATEWAY_KB_ARTIFACT_DIR"))); err != nil {
+		logger.Error("knowledge product activation failed", "error", err)
+		os.Exit(1)
+	} else {
+		for _, manifest := range kbManifests {
+			logger.Info("knowledge product activated", "knowledge_product", manifest.KnowledgeProduct, "epoch", manifest.Epoch,
+				"manifest_digest", manifest.ManifestDigest, "chunks", manifest.Counts.Chunks)
+		}
+	}
+
+	kbEmbedder, kbEmbedderKind, err := kbEmbedderFor(logicalCatalog, strings.TrimSpace(os.Getenv("KB_EMBEDDING_ENDPOINT")))
+	if err != nil {
+		logger.Error("knowledge product embedder configuration failed", "error", err)
+		os.Exit(1)
+	}
+	if len(logicalCatalog.KnowledgeProducts) > 0 {
+		logger.Info("knowledge product query embedder", "kind", kbEmbedderKind)
+	}
 
 	aliceToken := requiredEnv("TASKBOUND_ALICE_TOKEN")
 	carolToken := requiredEnv("TASKBOUND_CAROL_TOKEN")
-	if err := bootstrapPrincipal(ctx, store, control.Principal{ID: "principal_alice", Subject: "alice", Role: "query", TokenHash: tokenDigest(aliceToken)}); err != nil {
+	alice := control.Principal{ID: "principal_alice", Subject: "alice", Role: "query", TokenHash: tokenDigest(aliceToken)}
+	carol := control.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor", TokenHash: tokenDigest(carolToken)}
+	if err := bootstrapPrincipal(ctx, store, alice); err != nil {
 		logger.Error("bootstrap Alice", "error", err)
 		os.Exit(1)
 	}
-	if err := bootstrapPrincipal(ctx, store, control.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor", TokenHash: tokenDigest(carolToken)}); err != nil {
+	if err := bootstrapPrincipal(ctx, store, carol); err != nil {
 		logger.Error("bootstrap Carol", "error", err)
 		os.Exit(1)
+	}
+	var filePrincipals []control.Principal
+	if path := strings.TrimSpace(os.Getenv("PRINCIPALS_PATH")); path != "" {
+		// Additional query principals, for example the subjects an eligibility
+		// experiment needs; the file holds token digests only.
+		extra, err := loadPrincipalsFile(path, []control.Principal{alice, carol})
+		if err != nil {
+			logger.Error("load principals file", "error", err)
+			os.Exit(1)
+		}
+		for _, principal := range extra {
+			if err := bootstrapPrincipal(ctx, store, principal); err != nil {
+				logger.Error("bootstrap file principal", "principal", principal.ID, "error", err)
+				os.Exit(1)
+			}
+		}
+		filePrincipals = extra
+		logger.Info("principals bootstrapped from file", "count", len(extra))
 	}
 	oaClient, err := approval.NewClient(requiredEnv("OA_BASE_URL"), requiredEnv("OA_SERVICE_TOKEN"), nil)
 	if err != nil {
@@ -253,6 +323,18 @@ func main() {
 		logger.Error("initialize result delivery", "error", err)
 		os.Exit(1)
 	}
+	// GATEWAY_REUSE_COVERING_TASK (the demo only; default off): a plain root
+	// request that one of the requester's ACTIVE tasks already covers is
+	// answered with that task. Not a Catalog key, so turning it on leaves the
+	// Catalog digest, and every existing task, untouched.
+	reuseCoveringTask, err := boolEnv("GATEWAY_REUSE_COVERING_TASK", false)
+	if err != nil {
+		logger.Error("invalid covering-task reuse switch", "error", err)
+		os.Exit(1)
+	}
+	if reuseCoveringTask {
+		logger.Info("covered task requests reuse the requester's active task", "env", "GATEWAY_REUSE_COVERING_TASK")
+	}
 	connectorMaxConnections, err := positiveInt64Env("GATEWAY_CONNECTOR_MAX_CONNECTIONS", int64(dataconnector.DefaultMaxConnections))
 	if err != nil || connectorMaxConnections > 4096 {
 		logger.Error("invalid Business PostgreSQL connector connection limit", "error", "must be between 1 and 4096")
@@ -273,15 +355,17 @@ func main() {
 	}
 	defer connector.Close()
 	service, err := gatewayapp.New(gatewayapp.Config{
-		Catalog: logicalCatalog, Store: store, Approval: oaClient,
+		Catalog: logicalCatalog, Store: store, Approval: oaClient, PrincipalAttributes: principalAttributes, KBEmbedder: kbEmbedder,
 		Connector: connector, CallbackSecret: requiredEnv("OA_CALLBACK_SECRET"), Logger: logger,
 		ReceiptVerifier: oaReceiptVerifier, QueryReceiptSigner: queryReceiptSigner, Background: ctx,
 		SettlementTimeout: settlementTimeout, SnapshotRegistry: snapshotRegistry,
-		ResultArtifacts: resultArtifacts, ResultTTL: retention.ResultTTL,
+		ResultArtifacts: resultArtifacts, ResultTTL: retention.ResultTTL, KBOriginals: kbOriginals,
 		ArtifactOperationTimeout: artifactOperationTimeout,
 		PreviewMaxBytes:          previewMaxBytes, DeliveryBaseURL: deliveryBaseURL,
 		DeliverySigningKey: deliverySigningKey, DeliveryTTL: deliveryTTL,
 		DownloadTimeout: downloadTimeout, DownloadConcurrency: int(downloadConcurrency64),
+		OAPublicBaseURL:   oaPublicBaseURLFromEnv(logger),
+		ReuseCoveringTask: reuseCoveringTask,
 	})
 	if err != nil {
 		logger.Error("initialize gateway service", "error", err)
@@ -292,11 +376,22 @@ func main() {
 		logger.Error("initialize audit anchor publisher", "error", err)
 		os.Exit(1)
 	}
-	authenticator := mcp.NewStaticAuthenticator([]mcp.TokenIdentity{
+	digestIdentities := make([]mcp.DigestIdentity, 0, len(filePrincipals))
+	for _, principal := range filePrincipals {
+		digestIdentities = append(digestIdentities, mcp.DigestIdentity{TokenSHA256: principal.TokenHash,
+			Principal: mcp.Principal{ID: principal.ID, Subject: principal.Subject, Role: principal.Role}})
+	}
+	authenticator := mcp.NewStaticAuthenticatorWithDigests([]mcp.TokenIdentity{
 		{Token: aliceToken, Principal: mcp.Principal{ID: "principal_alice", Subject: "alice", Role: "query"}},
 		{Token: carolToken, Principal: mcp.Principal{ID: "principal_carol", Subject: "carol", Role: "auditor"}},
-	})
-	mcpServer, err := mcp.NewServer(authenticator, service, logger)
+	}, digestIdentities)
+	var mcpAuthenticator mcp.Authenticator = authenticator
+	if logicalCatalog.DelegatedAuthorization != nil {
+		// The demo's switchable agent identities (KB1-LOOP-151) are consulted
+		// before the static tokens; the formal round keeps the static table.
+		mcpAuthenticator = &gatewayapp.AgentIdentityAuthenticator{Store: store, Fallback: authenticator, Logger: logger}
+	}
+	mcpServer, err := mcp.NewServer(mcpAuthenticator, service, logger)
 	if err != nil {
 		logger.Error("initialize MCP server", "error", err)
 		os.Exit(1)
@@ -335,11 +430,16 @@ func main() {
 		router.Handle("/mcp", mcpServer)
 	}
 	router.Handle("/api/v1/oa/callback", service.OACallbackHandler())
+	router.Handle("/api/v1/oa/agent-identity", service.OAAgentIdentityHandler())
 	router.Handle("/api/v1/results/{result_id}/download", service.ResultDownloadHandler())
+	router.Handle("/api/v1/kb/documents/download", service.DocumentDownloadHandler())
 	mountRetentionAdmin(router, store, retention, logger, service)
+	if logicalCatalog.DelegatedAuthorization != nil {
+		mountDemoAgentIdentityAdmin(router, retention.AdminToken, service.AdminAgentIdentityHandler())
+	}
 	mountProfileDiagnostic(router, activatedSnapshotState, retention.AdminToken, service.ReadyError, store.DB())
 
-	go sweepExpired(ctx, store, logger)
+	go sweepExpired(ctx, store, service, logger)
 	go sweepPendingResultArtifacts(ctx, service, logger)
 	go sweepOrphanResultStaging(ctx, service, stagingOrphanTTL, logger)
 	go sweepRetention(ctx, store, retention, logger, service)
@@ -685,6 +785,20 @@ func mountRetentionAdmin(router chi.Router, store *control.Store, config retenti
 	})
 }
 
+// mountDemoAgentIdentityAdmin mounts the demo's agent-identity registration
+// (KB1-LOOP-151) behind the admin token; without an admin token nothing is
+// mounted. The gateway mounts it only under the Catalog's
+// delegated_authorization block.
+func mountDemoAgentIdentityAdmin(router chi.Router, adminToken string, handler http.Handler) {
+	if strings.TrimSpace(adminToken) == "" {
+		return
+	}
+	router.Group(func(r chi.Router) {
+		r.Use(adminTokenAuth(adminToken))
+		r.Method(http.MethodPost, "/admin/v1/demo/agent-identities", handler)
+	})
+}
+
 func adminTokenAuth(token string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -995,7 +1109,11 @@ func postAuditCheckpointAnchor(ctx context.Context, config auditAnchorConfig, ch
 	return anchor, nil
 }
 
-func sweepExpired(ctx context.Context, store *control.Store, logger *slog.Logger) {
+// sweepExpired archives ACTIVE tasks past their grant expiry and then, under
+// the Catalog's delegated_authorization pending_ttl, the tasks that waited
+// too long for submission or approval (Service.SweepPendingExpiry, which does
+// nothing without the block or the field).
+func sweepExpired(ctx context.Context, store *control.Store, service *gatewayapp.Service, logger *slog.Logger) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -1028,6 +1146,11 @@ func sweepExpired(ctx context.Context, store *control.Store, logger *slog.Logger
 				}
 				afterID = tasks[len(tasks)-1].ID
 			}
+			if archived, err := service.SweepPendingExpiry(ctx, now); err != nil {
+				logger.Warn("pending-task expiry sweep", "error", err)
+			} else if len(archived) > 0 {
+				logger.Info("archived pending tasks past pending_ttl", "count", len(archived), "task_ids", archived)
+			}
 		}
 	}
 }
@@ -1049,6 +1172,23 @@ func boolEnv(key string, fallback bool) (bool, error) {
 		return false, fmt.Errorf("%s must be a boolean", key)
 	}
 	return value, nil
+}
+
+// oaPublicBaseURLFromEnv reads the OA's public address, the base of the draft
+// links get_task_status rebuilds for pending tasks. It is optional, and an
+// unusable value only leaves those links out.
+func oaPublicBaseURLFromEnv(logger *slog.Logger) string {
+	base := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_OA_BASE_URL")), "/")
+	if base == "" {
+		return ""
+	}
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") ||
+		parsed.RawQuery != "" || parsed.Fragment != "" {
+		logger.Warn("PUBLIC_OA_BASE_URL is not an absolute http(s) URL; pending tasks will not carry their OA draft link", "value", base)
+		return ""
+	}
+	return base
 }
 
 func deliveryConfigFromEnv() (string, []byte, error) {

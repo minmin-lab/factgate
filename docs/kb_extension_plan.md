@@ -2,13 +2,14 @@
 
 状态：草案 v1，2026-10-15，等作者审阅后用 `/loop` 启动。分支 `kb-dev`（自 p10-r2 468f87c 建）。
 目标：TKDE 稿在"全部改完"后投：知识产品路径从"定义"升级为"实现并评估"（作者决策，台账 LOOP-54）。
+框架（2026-10-16 作者定，台账 KB1-LOOP-40）：论文主张为"面向 Agent 的企业数据产品暴露治理"，报表与文档/知识是同一机制的两个实例，文档场景为主叙事（kb-design §9b）；K4 实验按可发表级执行，正文改写在阶段 5。
 
 ## 0. 边界与证据政策（需作者在审阅时确认）
 
 - **封印证据不动。** V5 campaign（faf4d095）的数字、原始证据、generate_evidence.py 一律不改。
 - **两个证据锚点。** 知识产品实验是第二套证据：绑定它自己的提交，由后封印生成器（generate_p10_evidence.py 同类，新文件 `paper/tkde/generate_kb_evidence.py`）出宏并做严格校验；V5 证据以 draft 模式（祖先校验）验证。论文可复现性声明改为"两个提交锚点"。
   `make paper-final-check` 在 kb-dev 上会因 measured paths 变动而失败，这是预期；改为新目标 `make paper-kb-check`（V5 draft + KB final）。
-- **新实验类名** campaign_class 用 `kb-pilot`，publication_eligible 保持 false，直到作者裁决其为正式证据。
+- **新实验类名** campaign_class 用 `kb-pilot`，publication_eligible 保持 false，直到作者裁决其为正式证据。 2026-10-16 作者采纳统一框架后，K4 证据按可发表级设计（三部署、冻结语料 v2 + bge-m3、预先登记预期），翻 true 仍待作者裁决。
 - **主张不超证据。** 论文只说实现了什么、测了什么；未做的仍写"未评估"。
 - **签署类动作永不代签**：catalog 变更凑齐后作者一次签署；Zenodo 发布只在作者明示后。
 
@@ -18,48 +19,99 @@
 
 | 编号 | 任务 | 验收 | 状态 |
 |---|---|---|---|
-| K1.1 | Catalog 增 `eligibility`（require 条件、scope_envelope）；严格解码与校验 | `go test ./internal/catalog/` 新增用例通过；无效声明被拒 | DOING |
-| K1.2 | 新包 `internal/principalattr`：属性快照（标准属性 + 带有效期的临时授权），规范 JSON 摘要 | 单元测试：解析、摘要稳定、授权窗口 | DOING |
-| K1.3 | 网关 `request_data_task` 在审批前编译包络：require 不满足或范围超出 → `NOT_ELIGIBLE`，不建草稿；委托按委托人属性检查 | gateway 测试：通过/拒绝/放宽/临时授权/过期/委托 六类 | TODO |
-| K1.4 | 裁决落盘：pendingContext 增 `eligibility`（快照摘要、规则 id、包络）；manifest 不改版本 | 任务记录里可复核 | TODO |
-| K1.5 | 配置与部署：`config/principal-attributes.yaml`、compose 挂载与环境变量、demo catalog 给 expense_detail 加资格；集成测试仍过 | `scripts/integration-test.sh` 通过；demo 脚本新增"非 HR 申请薪资被直接拒绝"例 | TODO |
-| K1.6 | 文档：catalog-guide 新节、getting-started 一段、threat-model 更新 | 文档与代码一致 | TODO |
+| K1.1 | Catalog 增 `eligibility`（require 条件、scope_envelope）；严格解码与校验 | `go test ./internal/catalog/` 新增用例通过；无效声明被拒 | DONE |
+| K1.2 | 新包 `internal/principalattr`：属性快照（标准属性 + 带有效期的临时授权），规范 JSON 摘要 | 单元测试：解析、摘要稳定、授权窗口 | DONE |
+| K1.3 | 网关 `request_data_task` 在审批前编译包络：require 不满足或范围超出 → `NOT_ELIGIBLE`，不建草稿；委托按委托人属性检查 | gateway 测试：通过/拒绝/放宽/临时授权/过期/委托 六类 | DONE |
+| K1.4 | 裁决落盘：pendingContext 增 `eligibility`（快照摘要、规则 id、包络）；manifest 不改版本 | 任务记录里可复核 | DONE |
+| K1.5 | 配置与部署：`config/principal-attributes.yaml`、compose 挂载与环境变量、demo catalog 给 expense_detail 加资格；集成测试仍过 | `scripts/integration-test.sh` 通过；demo 脚本新增"非 HR 申请薪资被直接拒绝"例 | DONE |
+| K1.6 | 文档：catalog-guide 新节、getting-started 一段、threat-model 更新 | 文档与代码一致 | DONE |
 
 ### 阶段 2：知识产品类型与索引发布编译器
 
 | 编号 | 任务 | 验收 | 状态 |
 |---|---|---|---|
-| K2.1 | 设计记录 `docs/kb-design.md`：知识产品 Catalog 声明（集合、切分函数、抽取规则、属性词表）、索引发布期的绑定内容与摘要、Fact 身份编码（f_doc/f_chunk/f_val/f_gen）、封闭检索语言、三维效果定义 | 与论文补充材料一致；作者审阅 | TODO |
-| K2.2 | 业务库侧：pgvector 扩展、`kb.*` 表（documents、chunks、extracted_values、labels）、只读角色 | 迁移脚本；`db/init` 新文件 | TODO |
-| K2.3 | `cmd/kb-publish`：冻结一个 collection 为发布物（块 id、内容哈希、标签、抽取值、嵌入模型版本、切分摘要），生成序数字典与清单，输出摘要写回 Catalog | 两次运行同输入同摘要；篡改一块即失败 | TODO |
-| K2.4 | Catalog `knowledge_products` 块与校验；网关启动激活知识发布物 | 激活失败即拒启动 | TODO |
-| K2.5 | 合成语料生成器 `evaluation/cmd/kb-corpus`：1 万份文档、12 部门、5 岗位、4 密级、自定义标签、领导层专属章节；文档类型含合同/审批单/制度/报告，带可抽取字段 | 语料冻结并 digest 绑定 | TODO |
+| K2.1 | 设计记录 `docs/kb-design.md`：知识产品 Catalog 声明（集合、切分函数、抽取规则、属性词表）、索引发布期的绑定内容与摘要、Fact 身份编码（f_doc/f_chunk/f_val/f_gen）、封闭检索语言、三维效果定义 | 与论文补充材料一致；作者审阅 | DONE：作者 2026-10-17 认可（台账 KB1-LOOP-78） |
+| K2.2 | 业务库侧：pgvector 扩展、`kb.*` 表（documents、chunks、extracted_values、labels）、只读角色 | 迁移脚本；`db/init` 新文件 | DONE（2026-10-17 更正：compose 里把 KB_REQUIRE_PGVECTOR 写死为 1，使 db-test 与正式拓扑的业务库初始化失败；已改为默认 0，台账 KB1-LOOP-80） |
+| K2.3 | `cmd/kb-publish`：冻结一个 collection 为发布物（块 id、内容哈希、标签、抽取值、嵌入模型版本、切分摘要），生成序数字典与清单，输出摘要写回 Catalog | 两次运行同输入同摘要；篡改一块即失败 | DONE |
+| K2.4 | Catalog `knowledge_products` 块与校验；网关启动激活知识发布物 | 激活失败即拒启动 | DONE（2026-10-17 更正：此前部署路径不通，snapshot 加载器拒绝制品目录里的 kb/，而验收只跑了绕过加载器的进程内测试；已改为独立的 GATEWAY_KB_ARTIFACT_DIR 并加严格目录校验，部署级冒烟在 K4.10，台账 KB1-LOOP-80） |
+| K2.5 | 合成语料生成器 `evaluation/cmd/kb-corpus`：1 万份文档、12 部门、5 岗位、4 密级、自定义标签、领导层专属章节；文档类型含合同/审批单/制度/报告，带可抽取字段 | 语料冻结并 digest 绑定 | DONE |
+| K2.6 | GPU 嵌入：WSL 装 CUDA 版 torch 与 nvidia-container-toolkit；嵌入提供者 `bge-m3`（权重 sha256 入发布期）接入 kb-publish；嵌入服务（受信边界内，供查询文本嵌入）；hash-projection-v1 留作测试提供者 | GPU 上 48k 块编码完成并记时；同输入两次嵌入余弦差 < 1e-4；发布期清单含模型摘要 | DONE |
+| K2.7 | 真实感语料 v2：LLM 生成（元数据与可抽取字段受控），冻结 manifest + digest，JSONL 镜像 NAS（唯一备份） | 文档数、分布与 v1 口径相同或明写差异；digest 绑定；NAS sha256 核验 | DONE |
+| K2.8 | 集合级抽取值（作者 2026-10-17 定）：Catalog 规则 scope=collection，第四张关系 `collection_values`（按值与强制范围去重）进发布物、片段、激活校验 | kbpublish / catalog 测试通过；v2 重发布带集合级 counterparty | DONE |
 
 ### 阶段 3：检索工具与结算
 
 | 编号 | 任务 | 验收 | 状态 |
 |---|---|---|---|
-| K3.1 | 检索降级器：`search`（AND 过滤原子 + 查询承诺 + k）、`fetch`、`aggregate`；OR/脚本/通配/未知字段关闭式拒绝；强制范围注入 | 规范形对等价输入一致（别名、原子顺序）；拒绝码齐全 | TODO |
-| K3.2 | 效果提取：F_R/F_D/F_O 按 kb-design 定义；aggregate 的派生 Fact 带见证集 | 独立 oracle 包逐成员核对 | TODO |
-| K3.3 | 接入现有三维结算、重放、回执、委托；MCP 暴露三个工具 | 现有 TLA+/属性测试对知识 Fact 原样通过；集成测试：重放 0/0/0、拆分不多扣、子任务共账、超限扣留 | TODO |
-| K3.4 | 近似检索对策：精确检索为默认；HNSW 作为可选臂记录命中集差异率 | 差异率进补充材料 | TODO |
+| K3.1 | 检索降级器：`search`（AND 过滤原子 + 查询承诺 + k）、`fetch`、`aggregate`；OR/脚本/通配/未知字段关闭式拒绝；强制范围注入 | 规范形对等价输入一致（别名、原子顺序）；拒绝码齐全 | DONE |
+| K3.2 | 效果提取：F_R/F_D/F_O 按 kb-design 定义；aggregate 的派生 Fact 带见证集 | 独立 oracle 包逐成员核对 | DONE |
+| K3.3 | 接入现有三维结算、重放、回执、委托；MCP 暴露三个工具 | 现有 TLA+/属性测试对知识 Fact 原样通过；集成测试：重放 0/0/0、拆分不多扣、子任务共账、超限扣留 | DONE |
+| K3.4 | 近似检索对策：精确检索为默认；HNSW 作为可选臂记录命中集差异率 | 差异率进补充材料 | DONE |
+| K3.5 | aggregate 按字段的规则 scope 路由到 values 或 collection_values | 端到端：同一聚合在两种声明下依赖集合不同 | DONE |
 
 ### 阶段 4：实验
 
 | 编号 | 任务 | 验收 | 状态 |
 |---|---|---|---|
-| K4.1 | 实验设计先写台账：问题、臂（逐次 ACL 基线 / FactGate）、语料、oracle、预期表、停止规则（保守先验，不拟合实测） | 台账行 | TODO |
-| K4.2 | E-KB1 自适应抽取：合法部门权限的 agent 用多次检索搬空部门库；指标：累计外泄分块比例 vs 步数、合法任务完成率；三部署重复 | 曲线 + 表 | TODO |
-| K4.3 | E-KB2 资格门：非资格申请被拒率 100%、误批止损（预算与 TTL 下的最大外泄） | 表 | TODO |
-| K4.4 | E-KB3 开销：search/fetch/aggregate 的结算时延与直连向量库对比；10 万与 100 万分块两档 | 表 | TODO |
-| K4.5 | 证据注册与宏：`generate_kb_evidence.py`，注册到 pilot-evidence 同类登记件；论文新节由"定义"改"实现并评估"，补充材料加实验小节 | 构建通过；页数再平衡 | TODO |
+| K4.1 | 实验设计先写台账：问题、臂（逐次 ACL 基线 / FactGate）、语料、oracle、预期表、停止规则（保守先验，不拟合实测） | 台账行 | DONE：作者 2026-10-17 认可（台账 KB1-LOOP-79） |
+| K4.2 | E-KB1 自适应抽取：合法部门权限的 agent 用多次检索搬空部门库；指标：累计外泄分块比例 vs 步数、合法任务完成率；三部署重复 | 曲线 + 表 | DONE |
+| K4.3 | E-KB2 资格门：非资格申请被拒率 100%、误批止损（预算与 TTL 下的最大外泄） | 表 | DONE |
+| K4.4 | E-KB3 开销：search/fetch/aggregate 的结算时延与直连向量库对比；10 万与 100 万分块两档 | 表 | DONE：验收经作者 2026-10-17 修订，10^6 档不做，补充材料写明未评估并报发布内存斜率（kb-design §9.8 选项 iii）；10^5 档完成 |
+| K4.6 | E-KB4 检索质量：合法任务 recall@k（真实感语料 v2 + bge-m3）、直连 vs 网关命中集一致率（精确检索下应为 100%）；三部署 | 表 | DONE |
+| K4.7 | E-KB5 集合级口径：同一"列出本部门供应商 / 合同对方"聚合在文档级与集合级两份发布物上的 R/D/O 与预算消耗对比 | 表 + 补充材料一句 | DONE |
+| K4.5 | 证据注册与宏：`generate_kb_evidence.py`，注册到 pilot-evidence 同类登记件；论文新节由"定义"改"实现并评估"，补充材料加实验小节 | 构建通过；页数再平衡 | DONE |
+
+### 阶段 4b：正式轮（方案 C，2026-10-17 作者定，台账 KB1-LOOP-79）
+
+试点结果不改标签；正式证据只来自开跑前声明为正式的一轮，标准与论文里 V5 的正式证据相同：每次部署用冻结的提交全新拉起整套服务，
+请求经网关的 HTTP 接口发出，审批走真实回调，三次部署，证据封存、镜像 NAS、作者签署证据绑定。
+
+| 编号 | 任务 | 验收 | 状态 |
+|---|---|---|---|
+| K4.8 | 正式轮设计：把部署、驱动、审批、证据封存与签署流程写进实验设计的"正式轮"一节；预登记的问题、预期与停止规则不改 | 设计一节 + 台账行 | DOING：规程初稿已写入 kb_experiment_design"正式轮"一节，开跑前冻结；2026-10-17 补实现说明（装载作业、参考部署、实验逻辑移植的偏离与等价性证明、逐请求记录、部署记录文件、pilot 才可重试），台账 KB1-LOOP-85/86 |
+| K4.9 | 外部驱动：E-KB1–E-KB5 改为经网关 HTTP 接口驱动的程序，审批走真实回调；在同一发布物上与进程内 runner 逐项对拍 | 对拍一致（延迟除外） | DONE（2026-10-17）：pilot 类彩排 12 次全新部署、三个部署序号、24 份报告与试点逐项对拍 0 差异；合并报告与宏比较 0 差异（台账 KB1-LOOP-89） |
+| K4.10 | 部署接入：全新部署能装载 KB 发布物（kb schema、pg_catalog 中的 pgvector、序数 sidecar）、Catalog 含 knowledge_products、网关容器能访问嵌入服务；网关镜像由冻结提交构建 | 一次全新部署上冒烟通过 | DONE（2026-10-17）：冒烟通过（KB1-LOOP-82）；四个 profile 的 schema 摘要均由参考部署记录（KB1-LOOP-86）；单次部署 run-deployment.sh 在冻结检出上端到端通过（含 V5 运行时身份、批准的健康检查、全部镜像按摘要钉住，KB1-LOOP-88） |
+| K4.11 | 正式发射：开跑前通知作者；三次全新部署；证据封存、NAS 镜像核验、注册为正式类 | 三部署全部通过，封存核验 | DONE（2026-10-17）：作者批准数据绑定并同意发射（KB1-LOOP-90/91）；正式轮 kb-formal-publication-20261017 的 12 次部署全部通过，封存（campaign-evidence ab68ddca…）、NAS 核验、与试点比较 0 差异、登记为 kb-publication（ffd08529…）（KB1-LOOP-92） |
+| K4.12 | 论文更新：宏改用正式证据，补充材料"试点评估"改为正式；作者签署证据绑定（并入 K5.2） | 构建与渲染检查通过；补充材料 E-KB3 段"正文在结算后读取、不在分量里"一句是对试点（旧做法）的描述，换正式证据时改为"结算前补进规范结果、计入 result_delivery 分量" | DONE（2026-10-17）：作者签署正式证据批准记录（f8d533f）后生成器换用正式证据（只有 E-KB3 时延与分量、摘要与类别宏变化）；补充材料知识产品一节改述正式轮、E-KB3 计时口径与结算前补正文，并按正式数据更正重放一句；make paper 与 check-rendered 通过（KB1-LOOP-93） |
 
 ### 阶段 5：投稿前
 
 | 编号 | 任务 | 状态 |
 |---|---|---|
-| K5.1 | 主稿页数定稿（12 或 13，作者定）、review/ 刷新、投稿包与投稿信更新、arXiv v3 | TODO |
-| K5.2 | 作者签署 catalog 与证据绑定；Zenodo 存证（作者明示后） | TODO |
+| K5.1 | 主稿页数定稿（12 或 13，作者定）、review/ 刷新、投稿包与投稿信更新、arXiv v3 | PARTIAL（2026-10-18）：作者定 12 页；主稿按统一框架改写，12 页，构建与渲染检查通过，三段评估正文原样移入补充材料（KB1-LOOP-94）；Zenodo DOI 已进主稿与补充材料（KB1-LOOP-96）；待作者审阅；之后 review/ 刷新、投稿包与投稿信、arXiv v3 |
+| K5.2 | 作者签署 catalog 与证据绑定；Zenodo 存证（作者明示后） | DONE（2026-10-18）：KB 正式证据绑定已由作者签署（evidence-approval-v1，f8d533f）；Zenodo 版本 2（记录 23444544，DOI 10.5281/zenodo.23444544）经作者明示发布并核实（公开 API、DOI 解析、下载核 sha256 与 418 个文件），存证记录 published（KB1-LOOP-96）；作者签署 catalog 变更（catalog-approval-v1，b792d44），覆盖面核查通过（KB1-LOOP-97） |
+
+
+### 阶段 6：关键词检索进论文（作者 2026-10-18 11:38 定，原话"我决策 把关键词检索加进论文"，台账 KB1-LOOP-101）
+
+| 编号 | 任务 | 验收 | 状态 |
+|---|---|---|---|
+| K6.1 | 设计记录：关键词检索语义（子串包含、大小写敏感、多关键词取交、按出现次数加分块键全序）、规范形与原子、三维效果、拒绝码、与向量检索的关系；写入 docs/kb-design.md 新节 | 每条口径给出代码落点；发射端与校验端成对列出 | DONE（2026-10-18）：kb-design §11（KB1-LOOP-102） |
+| K6.2 | 实现：检索请求加关键词形态、规范化与承诺、准备语句（LIKE + 转义）、语句分类器与校验端同改、效果与独立 oracle、网关与 MCP 工具、目录声明、kb schema 加 pg_trgm GIN 索引 | 单测、对 oracle 随机命中集逐成员一致、两端同改的 grep 清单 | DONE（2026-10-18）：代码与单测/DB 测试通过，既有向量摘要逐字节不变；顺带修 verify 的正文篡改检查（KB1-LOOP-102） |
+| K6.3 | 部署路径冒烟：kb-formal-smoke 跑关键词检索 | 全新部署上通过（进程内测试不算） | DONE（2026-10-18）：改由关键词轮彩排的 9 次全新部署验收（KB1-LOOP-104 决定，KB1-LOOP-106） |
+| K6.4 | 实验设计与预先登记：关键词命中集与直连 LIKE 一致（E-KB6）、关键词扫描抽取在预算处停（E-KB7）、开销（E-KB8）；驱动 kb-formal-driver 增实验 | 预期与停止规则在开跑前冻结 | DONE（2026-10-18）：登记 KB1-LOOP-103，驱动与基础设施 KB1-LOOP-104 |
+| K6.5 | 彩排（pilot 类） | 12 次部署通过、对拍 0 差异 | DONE（2026-10-18）：9 次部署全部通过，不变量 0 差异，登记为对拍基准（KB1-LOOP-106） |
+| K6.6 | 新数据绑定（作者签署）、发射（通知作者）、正式轮 | 封存、登记 | DONE（2026-10-18）：作者签署绑定 v2 并同意发射（KB1-LOOP-107）；正式轮 9/9 完成、封存、与彩排对拍 0 差异、登记 71901f5d…（KB1-LOOP-108） |
+| K6.7 | 作者签署关键词证据批准；生成器接入新登记 | 宏换正式证据 | DONE（2026-10-18）：作者批准 b245d94，宏换源，只有时延与摘要变化（KB1-LOOP-110） |
+| K6.8 | 论文：主稿知识产品一节与摘要、贡献加关键词检索，守 12 页；补充材料新增实验节 | 构建与渲染检查通过 | DONE（2026-10-18）：主稿与补充材料已加关键词检索并换正式证据，12 页；Zenodo 第 3 版由作者发布并核实，DOI 进论文（KB1-LOOP-109–112） |
+
+### 阶段 7：文档下载任务进论文（作者 2026-10-18 定，原话"搜索归搜索，下载归下载"，"Put it in the paper"，台账 KB1-LOOP-116）
+
+> **2026-10-20 改定（台账 KB1-LOOP-139）**：作者定下载不作为论文评测贡献，K7.4–K7.8 撤回（运行前）。
+> K7.1–K7.3 的设计、代码、演示与冒烟保留；论文只在补充材料以一段说明它是制品中的另一种任务、不属于评测主张。
+
+| 编号 | 任务 | 验收 | 状态 |
+|---|---|---|---|
+| K7.1 | 设计记录：下载任务、保留范围键 kb_documents、任务种类分离、完整性检查（整份拒绝）、文件格式、三维效果、拒绝码；写入 docs/kb-design.md 新节 | 每条口径给出代码落点；发射端与校验端成对列出 | DONE（2026-10-18）：kb-design §12（KB1-LOOP-116） |
+| K7.2 | 实现：apierr 三码、request_download_task、download_document（转换器、主计划与 values 计划、完整性、文件组装与交付）、任务种类分离、参考模型与 oracle | 单测与 DB 测试；两端同改的 grep 清单 | DONE（2026-10-18）：三部分均复用既有准备与结算，未新增准备形态，故参考模型与 oracle 无需改；单测与对演示库的端到端测试通过，网关全包 138 过 0 败（KB1-LOOP-117） |
+| K7.2b | 原文件通道：original_file 申请、format original 下载、body 读出并核 content_sha256、网关短期地址；单测、端到端、冒烟（作者 19:3x 定，KB1-LOOP-120） | 原文件字节等于已发布摘要；计费包含全部分块单元格 | DONE（2026-10-18）：单测与端到端通过（KB1-LOOP-121）；部署路径冒烟通过（KB1-LOOP-122） |
+| K7.2c | PDF 原件：渲染器与全语料 PDF、kb.document_files 与 files 关系（kb-publish、目录）、原件桶与网关只读读取、format original 改为 files 关系、演示栈新发布期；单测、端到端、冒烟（作者 23:3x 定，KB1-LOOP-124） | PDF 字节等于已发布 file_sha256；计费包含全部分块单元格 | DONE（2026-10-19）：端到端测试与两知识产品冒烟通过（KB1-LOOP-126） |
+| K7.3 | 部署路径冒烟：kb-formal-smoke 跑下载任务；演示栈换新镜像 | 全新部署上通过（进程内测试不算） | DONE（2026-10-18）：演示栈（新镜像 147af801…）两知识产品各跑一次冒烟全部通过；全新部署的验收并入 K7.5 彩排（KB1-LOOP-118） |
+| K7.4 | 实验设计与预先登记 E-KB9（正确性、整份拒绝、审批绑定、种类分离、账本、代价对照）；驱动增实验 | 预期与停止规则在开跑前冻结 | WITHDRAWN（2026-10-20，运行前，KB1-LOOP-139）：登记只起草未冻结，无任何运行 |
+| K7.5 | 彩排（pilot 类） | 全部部署通过、对拍 0 差异 | WITHDRAWN（KB1-LOOP-139） |
+| K7.6 | 新数据绑定（作者签署）、发射（通知作者）、正式轮 | 封存、登记 | WITHDRAWN（KB1-LOOP-139） |
+| K7.7 | 作者签署下载证据批准；生成器接入新登记 | 宏换正式证据 | WITHDRAWN（KB1-LOOP-139） |
+| K7.8 | 论文：主稿知识产品一节、贡献与摘要加下载任务，守 12 页；补充材料新增实验节；Zenodo 新版（作者发布） | 构建与渲染检查通过 | 改为补充材料一段说明（不属于评测主张），主稿不改；DONE（2026-10-20，KB1-LOOP-139） |
 
 ## 2. 估时（我的估计，未实测）
 

@@ -1,0 +1,25 @@
+# Attested subject attributes consumed by Catalog `eligibility` predicates.
+#
+# This file is an INPUT from the identity/HR authority, not a policy the
+# Gateway derives: the Gateway validates its shape, binds its SHA-256 into
+# every eligibility verdict, and does not judge whether the attributes are
+# correct. Replace it from your IdP/HR export in a real deployment.
+#
+# Shape (taskgate-principal-attributes-v1):
+#   subjects[].subject      canonical subject id, must equal the Principal subject
+#   subjects[].attributes   standing attributes, name -> distinct values
+#   subjects[].grants[]     temporary values with an RFC 3339 [valid_from, valid_until) window
+#
+# The demo registers one query Principal (alice). She is a finance analyst of
+# 销售部, so an eligibility rule that bounds expense_detail by department admits
+# her own department and rejects any other department outright.
+version: taskgate-principal-attributes-v1
+subjects:
+  - subject: alice
+    attributes:
+      department: [销售部]
+      job_family: [finance]
+  - subject: carol
+    attributes:
+      department: [审计部]
+      job_family: [audit]

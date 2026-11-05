@@ -1,0 +1,7 @@
+version: taskgate-principal-attributes-v1
+subjects:
+  - subject: alice
+    attributes:
+      department: [finance]
+      job_family: [director, finance_controller]
+      clearance: [public, internal, confidential, leadership]

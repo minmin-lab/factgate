@@ -52,6 +52,25 @@ type BuildRequest struct {
 	// only where modules are fetched from: go.sum still decides which bytes are
 	// accepted. Empty leaves the Dockerfile's default in force.
 	ModuleProxy string
+	// Target is the cmd/ binary to build. Empty means the Gateway, which is the
+	// only target the Gateway manifest, runtime identity and V5 campaign accept;
+	// AuxiliaryBuildTargets lists the others a deployment may build the same way.
+	Target string
+}
+
+// AuxiliaryBuildTargets are the non-Gateway services a formal deployment may
+// build from the same tracked-file context and pinned bases (the knowledge-
+// product formal round builds its approval simulator this way).
+var AuxiliaryBuildTargets = map[string]bool{"oa-demo": true}
+
+func (request BuildRequest) target() (string, error) {
+	if request.Target == "" || request.Target == GatewayBuildTarget {
+		return GatewayBuildTarget, nil
+	}
+	if !AuxiliaryBuildTargets[request.Target] {
+		return "", fmt.Errorf("formal build target %q is neither the Gateway nor an admitted auxiliary target", request.Target)
+	}
+	return request.Target, nil
 }
 
 // BuildArguments renders the exact docker build argv.
@@ -78,6 +97,10 @@ func (request BuildRequest) BuildArguments() ([]string, error) {
 	if strings.ContainsAny(request.ModuleProxy, " \t\r\n") {
 		return nil, errors.New("the formal build module proxy must be a single GOPROXY value without whitespace")
 	}
+	target, err := request.target()
+	if err != nil {
+		return nil, err
+	}
 	builder, err := request.Pins.Pin(BuilderRole)
 	if err != nil {
 		return nil, err
@@ -98,7 +121,7 @@ func (request BuildRequest) BuildArguments() ([]string, error) {
 		"build",
 		"--file", FormalDockerfile,
 		"--target", "runtime",
-		"--build-arg", "TARGET=" + GatewayBuildTarget,
+		"--build-arg", "TARGET=" + target,
 		"--build-arg", "SOURCE_COMMIT=" + request.Context.Source.Commit,
 		"--build-arg", "BUILD_CONTEXT_SHA256=" + request.Context.ContextSHA256,
 		"--build-arg", "SOURCE_MANIFEST_SHA256=" + request.Context.SourceManifestSHA256,
@@ -124,6 +147,10 @@ func (request BuildRequest) BuildArguments() ([]string, error) {
 // builder's log, because the log is a human-readable stream whose format is not
 // part of any contract.
 func Build(ctx context.Context, engine Engine, builder Builder, request BuildRequest) (ImageInspect, error) {
+	target, err := request.target()
+	if err != nil {
+		return ImageInspect{}, err
+	}
 	arguments, err := request.BuildArguments()
 	if err != nil {
 		return ImageInspect{}, err
@@ -135,7 +162,7 @@ func Build(ctx context.Context, engine Engine, builder Builder, request BuildReq
 	if err != nil {
 		return ImageInspect{}, err
 	}
-	if err := RequireFormalImage(image, FromContext(request.Context)); err != nil {
+	if err := RequireFormalImageForTarget(image, FromContext(request.Context), target); err != nil {
 		return ImageInspect{}, err
 	}
 	return image, nil
@@ -148,6 +175,12 @@ func Build(ctx context.Context, engine Engine, builder Builder, request BuildReq
 // a build invoked without one of its build arguments fails at the build rather
 // than at the observer snapshot hours later.
 func RequireFormalImage(image ImageInspect, expected ExpectedSource) error {
+	return RequireFormalImageForTarget(image, expected, GatewayBuildTarget)
+}
+
+// RequireFormalImageForTarget is RequireFormalImage for an explicit build
+// target (the Gateway or an admitted auxiliary target).
+func RequireFormalImageForTarget(image ImageInspect, expected ExpectedSource, target string) error {
 	if _, present := image.Label(LabelFormalBuild); !present {
 		return fmt.Errorf("image %s carries no %s label", shortImageID(image.ID), LabelFormalBuild)
 	}
@@ -155,7 +188,7 @@ func RequireFormalImage(image ImageInspect, expected ExpectedSource) error {
 		{LabelRevision, expected.Commit},
 		{LabelBuildContext, expected.ContextSHA256},
 		{LabelSourceManifest, expected.SourceManifestSHA256},
-		{LabelBuildTarget, GatewayBuildTarget},
+		{LabelBuildTarget, target},
 	} {
 		got, present := image.Label(check.name)
 		if !present {

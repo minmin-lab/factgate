@@ -24,6 +24,7 @@ import (
 	"taskbound.local/agent-data-gateway/internal/exposure"
 	"taskbound.local/agent-data-gateway/internal/mcp"
 	"taskbound.local/agent-data-gateway/internal/ordinal"
+	"taskbound.local/agent-data-gateway/internal/principalattr"
 	"taskbound.local/agent-data-gateway/internal/queryplan"
 	"taskbound.local/agent-data-gateway/internal/snapshotbundle"
 	"taskbound.local/agent-data-gateway/internal/testpostgres"
@@ -181,6 +182,9 @@ type gatewayHarness struct {
 	// Tests that must observe or perturb Control state the store deliberately
 	// exposes no API for open their own connection to it.
 	dsn string
+	// taskBudget, when set, replaces the default task budget the seeding
+	// helpers use; experiment drivers that run many queries per task set it.
+	taskBudget *domain.Budget
 }
 
 // controlDB opens a second connection to this harness's Control schema.
@@ -194,12 +198,44 @@ func (harness *gatewayHarness) controlDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// harnessOptions lets a test start from the repository Catalog with a textual
+// rewrite applied before parsing, and supply the attribute snapshot that
+// eligibility compilation reads.
+type harnessOptions struct {
+	rewriteCatalog      func(string) string
+	principalAttributes *principalattr.Snapshot
+	oaPublicBaseURL     string
+}
+
 func newGatewayHarness(t *testing.T) *gatewayHarness {
+	return newGatewayHarnessWithOptions(t, harnessOptions{})
+}
+
+func newGatewayHarnessWithOptions(t *testing.T, options harnessOptions) *gatewayHarness {
 	t.Helper()
 	ctx := context.Background()
-	loadedCatalog, err := catalog.Load(filepath.Join("..", "..", "config", "catalog.yaml"))
+	catalogPath := filepath.Join("..", "..", "config", "catalog.yaml")
+	var loadedCatalog *catalog.Catalog
+	var err error
+	if options.rewriteCatalog == nil {
+		loadedCatalog, err = catalog.Load(catalogPath)
+	} else {
+		var raw []byte
+		raw, err = os.ReadFile(catalogPath)
+		if err == nil {
+			loadedCatalog, err = catalog.Parse([]byte(options.rewriteCatalog(string(raw))))
+		}
+	}
 	if err != nil {
 		t.Fatalf("load catalog: %v", err)
+	}
+	if options.principalAttributes == nil && catalogDeclaresEligibility(loadedCatalog) {
+		// The repository Catalog ships with the snapshot compose mounts, so the
+		// default harness activates exactly what the demo deployment activates.
+		options.principalAttributes, err = principalattr.Load(filepath.Join("..", "..", "config", "principal-attributes.yaml"))
+		if err != nil {
+			t.Fatalf("load principal attributes: %v", err)
+		}
 	}
 	cipher, err := control.NewAES256GCM(bytes.Repeat([]byte{0x5a}, 32))
 	if err != nil {
@@ -233,8 +269,9 @@ func newGatewayHarness(t *testing.T) *gatewayHarness {
 	t.Cleanup(cancelBackground)
 	service, err := New(Config{
 		Catalog: loadedCatalog, Store: store, Approval: approvalAdapter,
-		Connector: connector, CallbackSecret: secret,
+		Connector: connector, CallbackSecret: secret, PrincipalAttributes: options.principalAttributes,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Clock: clock.Now, Background: background,
+		OAPublicBaseURL: options.oaPublicBaseURL,
 	})
 	if err != nil {
 		t.Fatalf("create gateway service: %v", err)
@@ -449,10 +486,18 @@ func (harness *gatewayHarness) createSummaryTaskWithGrantAndExposureProfile(t *t
 }
 
 func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.T, taskID string, narrow func(*domain.TaskGrantCoreV1), exposureLimits control.ExposureLimits, profile string, products []string, columns map[string][]string, sensitivity domain.Sensitivity) {
+	harness.createTaskWithGrantScopeAndExposureProfile(t, taskID, narrow, exposureLimits, profile, products, columns, sensitivity,
+		map[string]any{"department": []any{"销售部"}})
+}
+
+func (harness *gatewayHarness) createTaskWithGrantScopeAndExposureProfile(t *testing.T, taskID string, narrow func(*domain.TaskGrantCoreV1), exposureLimits control.ExposureLimits, profile string, products []string, columns map[string][]string, sensitivity domain.Sensitivity, scope map[string]any) {
 	t.Helper()
 	budget := domain.Budget{
 		MaxQueries: 10, MaxRows: 500, MaxDBTime: 30 * time.Second,
 		PerQueryTimeout: 5 * time.Second, TaskTTL: 30 * time.Minute,
+	}
+	if harness.taskBudget != nil {
+		budget = *harness.taskBudget
 	}
 	if exposureLimits.ReleaseFacts > 0 || exposureLimits.InfluenceFacts > 0 {
 		budget.MaxReleaseFacts = exposureLimits.ReleaseFacts
@@ -468,7 +513,7 @@ func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.
 	pendingValue := pendingContext{
 		Products:       append([]string(nil), products...),
 		Columns:        columns,
-		MandatoryScope: map[string]any{"department": []any{"销售部"}}, Budget: budget, Sensitivity: sensitivity,
+		MandatoryScope: scope, Budget: budget, Sensitivity: sensitivity,
 		DatasourceID: harness.connector.attestation.DatasourceID, SchemaDigest: harness.connector.attestation.SchemaDigest,
 		ApprovalMode: domain.ApprovalModeManual, Approver: "bob", CallbackContext: "seed-context-" + taskID,
 	}
@@ -551,7 +596,7 @@ func (harness *gatewayHarness) createTaskWithGrantAndExposureProfile(t *testing.
 			TaskID: taskID, Subject: harness.alice.Subject, Purpose: "summarize travel expenses",
 			ApprovedProducts: append([]string(nil), products...),
 			ApprovedColumns:  columns,
-			MandatoryScope:   json.RawMessage(`{"department":["销售部"]}`), SensitivityCeiling: string(sensitivity),
+			MandatoryScope:   mustJSON(t, scope), SensitivityCeiling: string(sensitivity),
 			Budget: control.BudgetLimits{
 				Queries: core.Budget.MaxQueries, Rows: core.Budget.MaxResultRows, DBMS: core.Budget.MaxDBMS,
 			},
@@ -681,4 +726,13 @@ func prepareOrdinalForTest(t *testing.T, harness *gatewayHarness, taskID string,
 		t.Fatalf("task %s prepared no ordinal execution", taskID)
 	}
 	return prepared.Exposure.ordinal
+}
+
+func mustJSON(t *testing.T, value any) json.RawMessage {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("encode %T: %v", value, err)
+	}
+	return encoded
 }
